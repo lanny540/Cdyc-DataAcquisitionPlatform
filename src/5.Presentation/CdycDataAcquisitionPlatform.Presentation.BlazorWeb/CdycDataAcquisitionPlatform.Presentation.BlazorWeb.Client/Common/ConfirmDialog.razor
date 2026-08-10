@@ -1,0 +1,156 @@
+@if (IsOpen)
+{
+    <MudOverlay Visible="true"
+                DarkBackground="true"
+                LockScroll="true"
+                ZIndex="1300"
+                OnClick="@(_ => HandleBackdropClick())">
+        <MudPaper Class="pa-6" Elevation="8" Style="width:min(420px, 100%);" @onclick:stopPropagation="true">
+            <MudStack Spacing="2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    @if (!string.IsNullOrWhiteSpace(ResolvedIcon))
+                    {
+                        <MudAvatar Size="Size.Medium" Style="@AvatarStyle">
+                            <MudIcon Icon="@ResolvedIcon" Size="Size.Small" />
+                        </MudAvatar>
+                    }
+
+                    <MudText Typo="Typo.h6" GutterBottom="false">@Title</MudText>
+                </MudStack>
+
+                @if (ChildContent is not null)
+                {
+                    <MudStack Class="mt-2" Spacing="0">
+                        @ChildContent
+                    </MudStack>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(WarningText))
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Warning" Class="mt-1">
+                        @WarningText
+                    </MudText>
+                }
+
+                <MudStack Row="true" Spacing="2" Class="mt-4" Justify="Justify.FlexEnd">
+                    <MudButton Variant="Variant.Text"
+                               Color="Color.Secondary"
+                               OnClick="HandleCancelAsync"
+                               Disabled="IsBusy">
+                        @CancelButtonText
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled"
+                               Color="@ConfirmButtonColor"
+                               OnClick="OnConfirm"
+                               Disabled="IsBusy">
+                        @(IsBusy ? BusyButtonText : ConfirmButtonText)
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    </MudOverlay>
+}
+
+@code {
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    [Parameter]
+    public string Title { get; set; } = "请确认操作";
+
+    [Parameter]
+    public string? WarningText { get; set; }
+
+    [Parameter]
+    public Severity DialogSeverity { get; set; } = Severity.Normal;
+
+    [Parameter]
+    public string? Icon { get; set; }
+
+    [Parameter]
+    public string ConfirmButtonText { get; set; } = "确认";
+
+    [Parameter]
+    public string BusyButtonText { get; set; } = "处理中...";
+
+    [Parameter]
+    public string CancelButtonText { get; set; } = "取消";
+
+    [Parameter]
+    public bool IsBusy { get; set; }
+
+    [Parameter]
+    public bool CloseOnBackdropClick { get; set; } = true;
+
+    [Parameter]
+    public Color ConfirmButtonColor { get; set; } = Color.Primary;
+
+    [Parameter]
+    public EventCallback OnConfirm { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private string? ResolvedIcon => string.IsNullOrWhiteSpace(Icon) ? GetDefaultIcon(DialogSeverity) : Icon;
+
+    private string AvatarStyle => $"background:{GetBackgroundColor(DialogSeverity)};color:{GetForegroundColor(DialogSeverity)};";
+
+    private Task HandleBackdropClick()
+    {
+        if (!CloseOnBackdropClick || IsBusy)
+        {
+            return Task.CompletedTask;
+        }
+
+        return OnCancel.InvokeAsync();
+    }
+
+    private Task HandleCancelAsync()
+    {
+        if (IsBusy)
+        {
+            return Task.CompletedTask;
+        }
+
+        return OnCancel.InvokeAsync();
+    }
+
+    private static string? GetDefaultIcon(Severity severity)
+    {
+        return severity switch
+        {
+            Severity.Error => Icons.Material.Filled.WarningAmber,
+            Severity.Warning => Icons.Material.Filled.ErrorOutline,
+            Severity.Success => Icons.Material.Filled.CheckCircleOutline,
+            Severity.Info => Icons.Material.Filled.Info,
+            _ => Icons.Material.Filled.HelpOutline
+        };
+    }
+
+    private static string GetBackgroundColor(Severity severity)
+    {
+        return severity switch
+        {
+            Severity.Error => "rgba(239, 68, 68, 0.14)",
+            Severity.Warning => "rgba(245, 158, 11, 0.16)",
+            Severity.Success => "rgba(34, 197, 94, 0.14)",
+            Severity.Info => "rgba(59, 130, 246, 0.14)",
+            _ => "rgba(100, 116, 139, 0.14)"
+        };
+    }
+
+    private static string GetForegroundColor(Severity severity)
+    {
+        return severity switch
+        {
+            Severity.Error => "#DC2626",
+            Severity.Warning => "#D97706",
+            Severity.Success => "#16A34A",
+            Severity.Info => "#2563EB",
+            _ => "#475569"
+        };
+    }
+}

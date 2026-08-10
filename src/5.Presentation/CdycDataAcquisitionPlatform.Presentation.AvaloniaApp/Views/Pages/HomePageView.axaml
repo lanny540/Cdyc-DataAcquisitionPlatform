@@ -1,0 +1,71 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:CdycDataAcquisitionPlatform.Presentation.AvaloniaApp.ViewModels.Pages"
+             x:Class="CdycDataAcquisitionPlatform.Presentation.AvaloniaApp.Views.Pages.HomePageView"
+             x:DataType="vm:HomePageViewModel">
+    <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="16">
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <StackPanel>
+                <TextBlock Text="{Binding WelcomeMessage}"
+                           FontSize="20"
+                           FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding StatusMessage}"
+                           Margin="0,6,0,0"
+                           Foreground="#6B7280"/>
+            </StackPanel>
+
+            <Button Grid.Column="1"
+                    Content="刷新服务端数据"
+                    Command="{Binding RefreshCommand}"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"/>
+        </Grid>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,*,*,*" ColumnSpacing="12">
+            <Border Grid.Column="0" Background="#EEF2FF" CornerRadius="8" Padding="16">
+                <StackPanel>
+                    <TextBlock Text="采集点总数" Foreground="#4338CA"/>
+                    <TextBlock Text="{Binding TotalCollectionPoints}" FontSize="26" FontWeight="Bold"/>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="1" Background="#ECFDF5" CornerRadius="8" Padding="16">
+                <StackPanel>
+                    <TextBlock Text="在线采集点" Foreground="#047857"/>
+                    <TextBlock Text="{Binding OnlineCollectionPoints}" FontSize="26" FontWeight="Bold"/>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="2" Background="#FEF2F2" CornerRadius="8" Padding="16">
+                <StackPanel>
+                    <TextBlock Text="离线采集点" Foreground="#B91C1C"/>
+                    <TextBlock Text="{Binding OfflineCollectionPoints}" FontSize="26" FontWeight="Bold"/>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="3" Background="#EFF6FF" CornerRadius="8" Padding="16">
+                <StackPanel>
+                    <TextBlock Text="客户端同步点位" Foreground="#1D4ED8"/>
+                    <TextBlock Text="{Binding LocalSourcedCollectionPoints}" FontSize="26" FontWeight="Bold"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <DataGrid Grid.Row="2"
+                  ItemsSource="{Binding LatestRecords}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  GridLinesVisibility="All"
+                  BorderThickness="1"
+                  BorderBrush="#E5E7EB">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="采集点" Binding="{Binding CollectionPointName}" Width="*" />
+                <DataGridTextColumn Header="指标" Binding="{Binding MetricName}" Width="*" />
+                <DataGridTextColumn Header="数值" Binding="{Binding Value}" Width="*" />
+                <DataGridTextColumn Header="单位" Binding="{Binding Unit}" Width="*" />
+                <DataGridTextColumn Header="采集时间" Binding="{Binding CollectedAt}" Width="1.4*" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <TextBlock Grid.Row="3"
+                   Text="主页聚焦服务端统计与最新采集数据展示。"
+                   Foreground="#9CA3AF"/>
+    </Grid>
+</UserControl>

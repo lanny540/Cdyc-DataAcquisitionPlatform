@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CdycDataAcquisitionPlatform.Presentation.BlazorWeb.Client\CdycDataAcquisitionPlatform.Presentation.BlazorWeb.Client.csproj" />
+    <ProjectReference Include="..\..\..\1.Core\CdycDataAcquisitionPlatform.Core.Domain\CdycDataAcquisitionPlatform.Core.Domain.csproj" />
+    <ProjectReference Include="..\..\..\1.Core\CdycDataAcquisitionPlatform.Core.Shared\CdycDataAcquisitionPlatform.Core.Shared.csproj" />
+    <ProjectReference Include="..\..\..\2.Infrastructure\CdycDataAcquisitionPlatform.Infrastructure.DataAccess\CdycDataAcquisitionPlatform.Infrastructure.DataAccess.csproj" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MudBlazor" Version="9.8.0" />
+  </ItemGroup>
+
+</Project>

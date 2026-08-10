@@ -1,0 +1,128 @@
+@page "/"
+@inject IPlatformApiClient PlatformApiClient
+
+<PageTitle>平台概览</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h4">数据采集平台概览</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary">聚合展示采集点总量、通信状态以及最新入库数据。</MudText>
+    </MudStack>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadAsync">
+        刷新
+    </MudButton>
+</MudStack>
+
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-4">@_errorMessage</MudAlert>
+}
+
+@if (_isLoading)
+{
+    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+}
+else if (_overview is not null)
+{
+    <MudGrid Class="mb-6">
+        <MudItem xs="12" md="3">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.caption">采集点总数</MudText>
+                <MudText Typo="Typo.h4">@_overview.TotalCollectionPoints</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.caption">在线采集点</MudText>
+                <MudText Typo="Typo.h4" Color="Color.Success">@_overview.OnlineCollectionPoints</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.caption">离线采集点</MudText>
+                <MudText Typo="Typo.h4" Color="Color.Error">@_overview.OfflineCollectionPoints</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.caption">来自客户端同步</MudText>
+                <MudText Typo="Typo.h4" Color="Color.Info">@_overview.LocalSourcedCollectionPoints</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid>
+        <MudItem xs="12" lg="6">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-3">采集点通信状态</MudText>
+                <MudTable Items="_overview.CollectionPoints" Dense="true" Hover="true">
+                    <HeaderContent>
+                        <MudTh>编码</MudTh>
+                        <MudTh>名称</MudTh>
+                        <MudTh>协议</MudTh>
+                        <MudTh>状态</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="编码">@context.Code</MudTd>
+                        <MudTd DataLabel="名称">@context.Name</MudTd>
+                        <MudTd DataLabel="协议">@context.Protocol</MudTd>
+                        <MudTd DataLabel="状态">
+                            <MudChip T="string" Color="@(context.CommunicationStatus == "在线" ? Color.Success : Color.Error)" Variant="Variant.Outlined">
+                                @context.CommunicationStatus
+                            </MudChip>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" lg="6">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-3">最新采集数据</MudText>
+                <MudTable Items="_overview.LatestRecords" Dense="true" Hover="true">
+                    <HeaderContent>
+                        <MudTh>采集点</MudTh>
+                        <MudTh>指标</MudTh>
+                        <MudTh>数值</MudTh>
+                        <MudTh>采集时间</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="采集点">@context.CollectionPointName</MudTd>
+                        <MudTd DataLabel="指标">@context.MetricName</MudTd>
+                        <MudTd DataLabel="数值">@($"{context.Value} {context.Unit}")</MudTd>
+                        <MudTd DataLabel="采集时间">@context.CollectedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private DashboardOverviewDto? _overview;
+    private bool _isLoading = true;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            _overview = await PlatformApiClient.GetDashboardOverviewAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"服务端概览接口暂不可用：{ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

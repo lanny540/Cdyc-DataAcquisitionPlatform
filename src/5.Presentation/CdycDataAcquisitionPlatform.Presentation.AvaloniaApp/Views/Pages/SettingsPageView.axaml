@@ -1,0 +1,78 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:CdycDataAcquisitionPlatform.Presentation.AvaloniaApp.ViewModels.Pages"
+             x:Class="CdycDataAcquisitionPlatform.Presentation.AvaloniaApp.Views.Pages.SettingsPageView"
+             x:DataType="vm:SettingsPageViewModel">
+    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="16">
+        <StackPanel Grid.Row="0">
+            <TextBlock Text="{Binding SettingsTitle}"
+                       FontSize="20"
+                       FontWeight="SemiBold"/>
+            <TextBlock Text="{Binding StatusMessage}"
+                       Margin="0,6,0,0"
+                       Foreground="#6B7280"/>
+        </StackPanel>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,*,*,*,Auto,Auto,Auto,Auto" ColumnSpacing="10">
+            <TextBox Grid.Column="0" Text="{Binding Code}" PlaceholderText="采集点编码" />
+            <TextBox Grid.Column="1" Text="{Binding Name}" PlaceholderText="采集点名称" />
+            <TextBox Grid.Column="2" Text="{Binding Protocol}" PlaceholderText="采集协议" />
+            <TextBox Grid.Column="3" Text="{Binding Endpoint}" PlaceholderText="采集端点" />
+            <CheckBox Grid.Column="4" IsChecked="{Binding IsEnabled}" Content="启用" VerticalAlignment="Center" />
+            <Button Grid.Column="5" Content="新建" Command="{Binding CreateNewCommand}" />
+            <Button Grid.Column="6" Content="保存到本地" Command="{Binding SaveLocalCommand}" />
+            <Button Grid.Column="7" Content="同步到服务端" Command="{Binding SyncCommand}" />
+        </Grid>
+
+        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="16">
+            <Border Grid.Column="0" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="8" Padding="12">
+                <Grid RowDefinitions="Auto,*" RowSpacing="10">
+                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                        <TextBlock Text="本地 SQLite 配置" FontSize="16" FontWeight="SemiBold" />
+                        <Button Grid.Column="1" Content="刷新本地" Command="{Binding LoadLocalCommand}" />
+                    </Grid>
+
+                    <DataGrid Grid.Row="1"
+                              ItemsSource="{Binding LocalCollectionPoints}"
+                              SelectedItem="{Binding SelectedLocalPoint}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              GridLinesVisibility="All"
+                              BorderThickness="0">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="编码" Binding="{Binding Code}" Width="*" />
+                            <DataGridTextColumn Header="名称" Binding="{Binding Name}" Width="*" />
+                            <DataGridTextColumn Header="协议" Binding="{Binding Protocol}" Width="*" />
+                            <DataGridTextColumn Header="同步状态" Binding="{Binding SyncStatus}" Width="*" />
+                            <DataGridTextColumn Header="更新时间" Binding="{Binding UpdatedAt}" Width="1.2*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="1" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="8" Padding="12">
+                <Grid RowDefinitions="Auto,*" RowSpacing="10">
+                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                        <TextBlock Text="服务端采集点快照" FontSize="16" FontWeight="SemiBold" />
+                        <Button Grid.Column="1" Content="刷新服务端" Command="{Binding LoadServerCommand}" />
+                    </Grid>
+
+                    <DataGrid Grid.Row="1"
+                              ItemsSource="{Binding ServerCollectionPoints}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              GridLinesVisibility="All"
+                              BorderThickness="0">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="编码" Binding="{Binding Code}" Width="*" />
+                            <DataGridTextColumn Header="名称" Binding="{Binding Name}" Width="*" />
+                            <DataGridTextColumn Header="协议" Binding="{Binding Protocol}" Width="*" />
+                            <DataGridTextColumn Header="通信状态" Binding="{Binding CommunicationStatus}" Width="*" />
+                            <DataGridTextColumn Header="来源" Binding="{Binding Source}" Width="*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

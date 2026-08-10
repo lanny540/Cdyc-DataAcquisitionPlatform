@@ -1,0 +1,184 @@
+@page "/collection-points"
+
+<PageTitle>采集点管理</PageTitle>
+
+<MudStack Class="collection-points-shell">
+    <MudPaper Class="collection-points-hero pa-6" Elevation="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h4" GutterBottom="true">采集点配置管理</MudText>
+                <MudText Typo="Typo.body1" Class="collection-points-hero-description">
+                    将新增、编辑操作统一收纳到侧边抽屉，主视图专注展示采集点全量数据、通信状态与来源信息，便于高密度巡检和批量管理。
+                </MudText>
+                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mt-4">
+                    <MudChip T="string" Variant="Variant.Outlined" Color="Color.Info">@($"{_collectionPoints.Count} 个采集点")</MudChip>
+                    <MudChip T="string" Variant="Variant.Outlined" Color="Color.Success">@($"{EnabledCollectionPointCount} 个已启用")</MudChip>
+                    <MudChip T="string" Variant="Variant.Outlined" Color="Color.Primary">@($"{OnlineCollectionPointCount} 个在线")</MudChip>
+                </MudStack>
+            </MudStack>
+            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                <MudButton Variant="Variant.Outlined" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadAsync">
+                    刷新列表
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDrawer">
+                    新增采集点
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
+    }
+
+    <ConfirmDialog IsOpen="_pendingDeletePoint is not null"
+                   Title="确认删除采集点"
+                   DialogSeverity="Severity.Error"
+                   WarningText="该操作不可撤销，请再次确认。"
+                   ConfirmButtonText="确认删除"
+                   BusyButtonText="删除中..."
+                   ConfirmButtonColor="Color.Error"
+                   IsBusy="_isDeleting"
+                   CloseOnBackdropClick="true"
+                   OnCancel="CancelDelete"
+                   OnConfirm="ConfirmDeleteAsync">
+        @if (_pendingDeletePoint is not null)
+        {
+            <MudText Typo="Typo.body1">
+                即将删除采集点 <b>@_pendingDeletePoint.Code</b>（@_pendingDeletePoint.Name），删除后将同时移除其关联采集数据记录。
+            </MudText>
+        }
+    </ConfirmDialog>
+
+    <MudPaper Class="collection-points-table-card" Elevation="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="2" Class="pa-4">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h6">服务端采集点列表</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    列表已扩展为主工作区，适合持续查看状态与快速触发编辑。
+                </MudText>
+            </MudStack>
+            <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                <MudChip T="string" Variant="Variant.Text" Color="Color.Default">来源可区分 Server / Local</MudChip>
+                <MudChip T="string" Variant="Variant.Text" Color="Color.Default">点击编辑在右侧打开表单</MudChip>
+            </MudStack>
+        </MudStack>
+
+        <MudDivider />
+
+        <MudTable Items="_collectionPoints" Dense="true" Hover="true" Loading="_isLoading" Breakpoint="Breakpoint.Sm">
+            <HeaderContent>
+                <MudTh>编码</MudTh>
+                <MudTh>名称</MudTh>
+                <MudTh>协议</MudTh>
+                <MudTh>通信状态</MudTh>
+                <MudTh>来源</MudTh>
+                <MudTh>更新时间</MudTh>
+                <MudTh Style="width: 180px;">操作</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="编码">
+                    <MudText Typo="Typo.body1">@context.Code</MudText>
+                </MudTd>
+                <MudTd DataLabel="名称">@context.Name</MudTd>
+                <MudTd DataLabel="协议">
+                    <MudChip T="string" Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small">
+                        @context.Protocol
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="通信状态">
+                    <MudChip T="string" Color="@(context.CommunicationStatus == "在线" ? Color.Success : Color.Error)" Variant="Variant.Outlined" Size="Size.Small">
+                        @context.CommunicationStatus
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="来源">
+                    <MudChip T="string" Color="@(context.Source == "Local" ? Color.Warning : Color.Info)" Variant="Variant.Text" Size="Size.Small">
+                        @context.Source
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="更新时间">@context.UpdatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</MudTd>
+                <MudTd DataLabel="操作">
+                    <MudStack Row="true" Spacing="1">
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit" OnClick="@(() => EditAsync(context))">
+                            编辑
+                        </MudButton>
+                        <MudButton Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.DeleteOutline" OnClick="@(() => RequestDelete(context))">
+                            删除
+                        </MudButton>
+                    </MudStack>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudStack AlignItems="AlignItems.Center" Class="pa-10">
+                    <MudIcon Icon="@Icons.Material.Filled.SettingsInputComponent" Size="Size.Large" Color="Color.Default" />
+                    <MudText Typo="Typo.h6" Class="mt-3">当前还没有采集点</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">可以从右上角新增采集点，或等待客户端同步后刷新查看。</MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="OpenCreateDrawer">立即新增</MudButton>
+                </MudStack>
+            </NoRecordsContent>
+        </MudTable>
+    </MudPaper>
+
+    <MudOverlay Visible="_isEditorOpen"
+                DarkBackground="true"
+                LockScroll="true"
+                ZIndex="1400"
+                Class="collection-points-editor-overlay"
+                OnClick="@(_ => CloseEditor())">
+        <MudPaper Class="collection-points-editor-panel" Elevation="0" @onclick:stopPropagation="true">
+            <MudStack Class="collection-points-editor" Spacing="0" @key="_editorRenderKey">
+                <MudStack Class="collection-points-editor-header" Row="true" AlignItems="AlignItems.Start" Justify="Justify.SpaceBetween" Spacing="2">
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.h5">@EditorTitle</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">
+                            @EditorDescription
+                        </MudText>
+                    </MudStack>
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Default" OnClick="CloseEditor" />
+                </MudStack>
+
+                <MudStack Class="collection-points-editor-body" Spacing="3">
+                    <MudAlert Severity="@(_editingId.HasValue ? Severity.Info : Severity.Success)" Dense="true" Variant="Variant.Outlined">
+                        @(_editingId.HasValue ? "当前正在编辑已有采集点，保存后会直接更新服务端配置。" : "正在创建新的服务端采集点，保存后会立即出现在列表中。")
+                    </MudAlert>
+
+                    <MudTextField Label="采集点编码"
+                                  @bind-Value="_code"
+                                  Variant="Variant.Outlined"
+                                  Immediate="true"
+                                  Placeholder="例如 CP-001" />
+                    <MudTextField Label="采集点名称"
+                                  @bind-Value="_name"
+                                  Variant="Variant.Outlined"
+                                  Immediate="true"
+                                  Placeholder="输入便于识别的点位名称" />
+                    <MudTextField Label="采集协议"
+                                  @bind-Value="_protocol"
+                                  Variant="Variant.Outlined"
+                                  Immediate="true"
+                                  Placeholder="例如 Modbus TCP" />
+                    <MudTextField Label="采集端点"
+                                  @bind-Value="_endpoint"
+                                  Variant="Variant.Outlined"
+                                  Immediate="true"
+                                  Lines="3"
+                                  Placeholder="例如 192.168.1.10:502" />
+                    <MudSwitch T="bool" @bind-Value="_isEnabled" Color="Color.Primary">启用采集点</MudSwitch>
+                </MudStack>
+
+                <MudStack Class="collection-points-editor-footer" Row="true" Spacing="2" Justify="Justify.FlexEnd">
+                    <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="CancelEditor">
+                        取消
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="ResetEditor">
+                        清空
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync">
+                        @SaveButtonText
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    </MudOverlay>
+</MudStack>

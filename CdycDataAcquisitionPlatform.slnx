@@ -1,0 +1,30 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/1.Core/">
+    <Project Path="src/1.Core/CdycDataAcquisitionPlatform.Core.Domain/CdycDataAcquisitionPlatform.Core.Domain.csproj" />
+    <Project Path="src/1.Core/CdycDataAcquisitionPlatform.Core.Shared/CdycDataAcquisitionPlatform.Core.Shared.csproj" />
+  </Folder>
+  <Folder Name="/src/2.Infrastructure/">
+    <Project Path="src/2.Infrastructure/CdycDataAcquisitionPlatform.Infrastructure.DataAccess/CdycDataAcquisitionPlatform.Infrastructure.DataAccess.csproj" />
+    <Project Path="src/2.Infrastructure/CdycDataAcquisitionPlatform.Infrastructure.Redis/CdycDataAcquisitionPlatform.Infrastructure.Redis.csproj" />
+    <Project Path="src/2.Infrastructure/CdycDataAcquisitionPlatform.Infrastructure.TimeSeries/CdycDataAcquisitionPlatform.Infrastructure.TimeSeries.csproj" />
+  </Folder>
+  <Folder Name="/src/3.Collectors/">
+    <Project Path="src/3.Collectors/CdycDataAcquisitionPlatform.Collectors.CollectorBase/CdycDataAcquisitionPlatform.Collectors.CollectorBase.csproj" />
+    <Project Path="src/3.Collectors/CdycDataAcquisitionPlatform.Collectors.Modbus/CdycDataAcquisitionPlatform.Collectors.Modbus.csproj" />
+    <Project Path="src/3.Collectors/CdycDataAcquisitionPlatform.Collectors.Mqtt/CdycDataAcquisitionPlatform.Collectors.Mqtt.csproj" />
+  </Folder>
+  <Folder Name="/src/4.Proxies/">
+    <Project Path="src/4.Proxies/CdycDataAcquisitionPlatform.Proxies.OpcDaProxy/CdycDataAcquisitionPlatform.Proxies.OpcDaProxy.csproj" />
+  </Folder>
+  <Folder Name="/src/5.Presentation/">
+    <Project Path="src/5.Presentation/CdycDataAcquisitionPlatform.Presentation.AvaloniaApp/CdycDataAcquisitionPlatform.Presentation.AvaloniaApp.csproj" />
+  </Folder>
+  <Folder Name="/src/5.Presentation/CdycDataAcquisitionPlatform.Presentation.BlazorWeb/">
+    <Project Path="src/5.Presentation/CdycDataAcquisitionPlatform.Presentation.BlazorWeb/CdycDataAcquisitionPlatform.Presentation.BlazorWeb.Client/CdycDataAcquisitionPlatform.Presentation.BlazorWeb.Client.csproj" />
+    <Project Path="src/5.Presentation/CdycDataAcquisitionPlatform.Presentation.BlazorWeb/CdycDataAcquisitionPlatform.Presentation.BlazorWeb/CdycDataAcquisitionPlatform.Presentation.BlazorWeb.csproj" />
+  </Folder>
+  <Folder Name="/src/6.Tests/">
+    <Project Path="src/6.Tests/CdycDataAcquisitionPlatform.Tests.UnitTests/CdycDataAcquisitionPlatform.Tests.UnitTests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,25 @@
+bin/
+obj/
+/packages/
+riderModule.iml
+/_ReSharper.Caches/
+
+/.vscode/
+/.vs/
+/.idea/
+
+# JetBrains / Rider
+*.sln.iml
+*.DotSettings.user
+
+# Visual Studio
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Test and local artifacts
+TestResults/
+
+# macOS
+.DS_Store

@@ -1,0 +1,48 @@
+@page "/Error"
+@using System.Diagnostics
+
+@* 宿主服务端异常页：由 UseExceptionHandler("/Error") 统一接管未处理异常。 *@
+
+<PageTitle>服务端异常</PageTitle>
+
+<MudPaper Class="pa-8 mx-auto" Style="max-width: 760px;">
+    <MudStack Spacing="3">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Color="Color.Error" Size="Size.Large" />
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h4">系统发生异常</MudText>
+                <MudText Typo="Typo.body1" Color="Color.Secondary">
+                    当前请求在服务端处理时发生错误，请稍后重试或联系管理员。
+                </MudText>
+            </MudStack>
+        </MudStack>
+
+        @if (ShowRequestId)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                请求标识：<code>@RequestId</code>
+            </MudAlert>
+        }
+
+        <MudDivider />
+
+        <MudText Typo="Typo.h6">开发环境说明</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            切换到 <b>Development</b> 环境可以看到更详细的异常信息，但不应在生产环境中开启，以免向终端用户暴露敏感数据。
+        </MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            如需本地调试，请设置环境变量 <code>ASPNETCORE_ENVIRONMENT=Development</code> 后重新启动应用。
+        </MudText>
+    </MudStack>
+</MudPaper>
+
+@code{
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private string? RequestId { get; set; }
+    private bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
+
+    protected override void OnInitialized() =>
+        RequestId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
+}

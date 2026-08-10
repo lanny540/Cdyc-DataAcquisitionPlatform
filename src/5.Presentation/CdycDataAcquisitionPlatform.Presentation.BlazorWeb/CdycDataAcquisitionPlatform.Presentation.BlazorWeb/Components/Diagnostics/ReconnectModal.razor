@@ -1,0 +1,73 @@
+<script type="module" src="@Assets["Components/Diagnostics/ReconnectModal.razor.js"]"></script>
+
+<dialog id="components-reconnect-modal" data-nosnippet>
+    <MudPaper Class="components-reconnect-container pa-6" Elevation="8">
+        <MudStack AlignItems="AlignItems.Center" Spacing="3">
+            <MudAvatar Class="components-reconnect-icon-shell components-reconnect-show-icon components-reconnect-retrying-icon" Size="Size.Large">
+                <MudProgressCircular Class="components-rejoining-animation" Indeterminate="true" Color="Color.Primary" Size="Size.Medium" />
+            </MudAvatar>
+
+            <MudAvatar Class="components-reconnect-icon-shell components-reconnect-failed-icon" Size="Size.Large">
+                <MudIcon Icon="@Icons.Material.Filled.WifiOff" Size="Size.Medium" />
+            </MudAvatar>
+
+            <MudAvatar Class="components-reconnect-icon-shell components-reconnect-paused-icon components-reconnect-resume-failed-icon" Size="Size.Large">
+                <MudIcon Icon="@Icons.Material.Filled.PauseCircleFilled" Size="Size.Medium" />
+            </MudAvatar>
+
+            <MudStack AlignItems="AlignItems.Center" Spacing="1" Class="components-reconnect-copy">
+                <MudChip T="string" Color="Color.Error" Variant="Variant.Outlined" Size="Size.Small">
+                    网络已断开
+                </MudChip>
+
+                <MudText Typo="Typo.h5" Align="Align.Center" Class="components-reconnect-title">
+                    正在尝试恢复连接
+                </MudText>
+
+                <MudText Typo="Typo.body2" Align="Align.Center" Class="components-reconnect-supporting">
+                    当前页面仍然保留在本次操作上下文中，系统会持续尝试恢复与你的服务端会话。
+                </MudText>
+            </MudStack>
+
+            <MudText Typo="Typo.body1" Align="Align.Center" Class="components-reconnect-first-attempt-visible components-reconnect-message">
+                正在重新连接服务，请稍候...
+            </MudText>
+
+            <MudText Typo="Typo.body1" Align="Align.Center" Class="components-reconnect-repeated-attempt-visible components-reconnect-message">
+                连接恢复失败，将在 <span id="components-seconds-to-next-attempt"></span> 秒后自动重试。
+            </MudText>
+
+            <MudText Typo="Typo.body1" Align="Align.Center" Class="components-reconnect-failed-visible components-reconnect-message">
+                无法重新连接到服务。你可以立即重试，或刷新页面后重新进入。
+            </MudText>
+
+            <MudText Typo="Typo.body1" Align="Align.Center" Class="components-pause-visible components-reconnect-message">
+                当前会话已被服务端暂停，需要你手动恢复后才能继续操作。
+            </MudText>
+
+            <MudText Typo="Typo.body1" Align="Align.Center" Class="components-resume-failed-visible components-reconnect-message">
+                恢复会话失败。请再次尝试恢复，或刷新页面后重新进入。
+            </MudText>
+
+            <MudStack Class="components-reconnect-actions" Row="true" Justify="Justify.Center" Spacing="2">
+                <MudButton id="components-reconnect-button"
+                           Class="components-reconnect-failed-visible"
+                           Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           Size="Size.Large"
+                           StartIcon="@Icons.Material.Filled.Refresh">
+                    立即重试
+                </MudButton>
+
+                <MudButton id="components-resume-button"
+                           Class="components-pause-visible components-resume-failed-visible"
+                           Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           Size="Size.Large"
+                           StartIcon="@Icons.Material.Filled.PlayCircleFilled">
+                    恢复会话
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+</dialog>
