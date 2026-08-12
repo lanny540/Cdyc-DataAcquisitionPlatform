@@ -1,0 +1,15 @@
+<Solution>
+  <Project Path="DAP.Core.Domain/DAP.Core.Domain.csproj" />
+  <Project Path="DAP.Core.Shared/DAP.Core.Shared.csproj" />
+  <Project Path="DAP.Infrastructure.DataAccess/DAP.Infrastructure.DataAccess.csproj" />
+  <Project Path="DAP.Infrastructure.Redis/DAP.Infrastructure.Redis.csproj" />
+  <Project Path="DAP.Infrastructure.TimeSeries/DAP.Infrastructure.TimeSeries.csproj" />
+  <Project Path="DAP.Collectors.CollectorBase/DAP.Collectors.CollectorBase.csproj" />
+  <Project Path="DAP.Collectors.Modbus/DAP.Collectors.Modbus.csproj" />
+  <Project Path="DAP.Collectors.Mqtt/DAP.Collectors.Mqtt.csproj" />
+  <Project Path="DAP.Proxies.OpcDaProxy/DAP.Proxies.OpcDaProxy.csproj" />
+  <Project Path="DAP.Presentation.AvaloniaApp/DAP.Presentation.AvaloniaApp.csproj" />
+  <Project Path="DAP.Presentation.BlazorWeb.Client/DAP.Presentation.BlazorWeb.Client.csproj" />
+  <Project Path="DAP.Presentation.BlazorWeb/DAP.Presentation.BlazorWeb.csproj" />
+  <Project Path="DAP.Tests.UnitTests/DAP.Tests.UnitTests.csproj" />
+</Solution>

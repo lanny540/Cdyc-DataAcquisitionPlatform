@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DAP.Presentation.BlazorWeb.Client\DAP.Presentation.BlazorWeb.Client.csproj" />
+    <ProjectReference Include="..\DAP.Core.Domain\DAP.Core.Domain.csproj" />
+    <ProjectReference Include="..\DAP.Core.Shared\DAP.Core.Shared.csproj" />
+    <ProjectReference Include="..\DAP.Infrastructure.DataAccess\DAP.Infrastructure.DataAccess.csproj" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MudBlazor" Version="9.8.0" />
+  </ItemGroup>
+
+</Project>
