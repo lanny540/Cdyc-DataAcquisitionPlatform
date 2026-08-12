@@ -4,15 +4,63 @@
              xmlns:local="using:DAP.Presentation.AvaloniaApp"
              xmlns:semi="https://irihi.tech/semi"
              RequestedThemeVariant="Default">
-             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+    <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 
     <Application.DataTemplates>
-        <local:ViewLocator/>
+        <local:ViewLocator />
     </Application.DataTemplates>
-  
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="AppBackgroundBrush" Color="#EFF2FF" />
+                    <SolidColorBrush x:Key="RailBackgroundBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="SidebarBackgroundBrush" Color="#F8FAFF" />
+                    <SolidColorBrush x:Key="ShellSurfaceBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="SurfaceMutedBrush" Color="#F5F7FF" />
+                    <SolidColorBrush x:Key="SurfaceBorderBrush" Color="#E6E9F5" />
+                    <SolidColorBrush x:Key="PrimaryTextBrush" Color="#172033" />
+                    <SolidColorBrush x:Key="SecondaryTextBrush" Color="#536076" />
+                    <SolidColorBrush x:Key="MutedTextBrush" Color="#8B96A9" />
+                    <SolidColorBrush x:Key="AccentBrush" Color="#4F46E5" />
+                    <SolidColorBrush x:Key="AccentSoftBrush" Color="#EEF0FF" />
+                    <SolidColorBrush x:Key="NavItemActiveBrush" Color="#F1F4FF" />
+                    <SolidColorBrush x:Key="NavItemBorderBrush" Color="#DCE3FF" />
+                    <SolidColorBrush x:Key="NavIconBrush" Color="#667085" />
+                    <SolidColorBrush x:Key="RailIconBrush" Color="#7D88A1" />
+                    <SolidColorBrush x:Key="SuccessBrush" Color="#14B8A6" />
+                    <SolidColorBrush x:Key="WarningBrush" Color="#F59E0B" />
+                    <SolidColorBrush x:Key="DangerBrush" Color="#EF5A6F" />
+                </ResourceDictionary>
+
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="AppBackgroundBrush" Color="#0A1020" />
+                    <SolidColorBrush x:Key="RailBackgroundBrush" Color="#101829" />
+                    <SolidColorBrush x:Key="SidebarBackgroundBrush" Color="#111C31" />
+                    <SolidColorBrush x:Key="ShellSurfaceBrush" Color="#121B2E" />
+                    <SolidColorBrush x:Key="SurfaceMutedBrush" Color="#18253B" />
+                    <SolidColorBrush x:Key="SurfaceBorderBrush" Color="#263550" />
+                    <SolidColorBrush x:Key="PrimaryTextBrush" Color="#F8FAFC" />
+                    <SolidColorBrush x:Key="SecondaryTextBrush" Color="#B9C4D7" />
+                    <SolidColorBrush x:Key="MutedTextBrush" Color="#7F8DA3" />
+                    <SolidColorBrush x:Key="AccentBrush" Color="#7C85FF" />
+                    <SolidColorBrush x:Key="AccentSoftBrush" Color="#20294A" />
+                    <SolidColorBrush x:Key="NavItemActiveBrush" Color="#1B2641" />
+                    <SolidColorBrush x:Key="NavItemBorderBrush" Color="#35456A" />
+                    <SolidColorBrush x:Key="NavIconBrush" Color="#8EA0BF" />
+                    <SolidColorBrush x:Key="RailIconBrush" Color="#95A4BE" />
+                    <SolidColorBrush x:Key="SuccessBrush" Color="#22C7A8" />
+                    <SolidColorBrush x:Key="WarningBrush" Color="#FFB84E" />
+                    <SolidColorBrush x:Key="DangerBrush" Color="#FF7A90" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+
     <Application.Styles>
         <semi:SemiTheme Locale="zh-CN" />
-        <semi:UrsaSemiTheme Locale="zh-CN"/>
+        <semi:UrsaSemiTheme Locale="zh-CN" />
         <StyleInclude Source="avares://Semi.Avalonia.DataGrid/Index.axaml" />
     </Application.Styles>
 </Application>

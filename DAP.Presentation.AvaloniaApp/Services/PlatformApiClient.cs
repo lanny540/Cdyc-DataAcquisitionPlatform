@@ -34,10 +34,12 @@ public sealed class PlatformApiClient
     /// </summary>
     /// <param name="cancellationToken">取消令牌。</param>
     /// <returns>采集点集合。</returns>
-    public async Task<IReadOnlyCollection<CollectionPointDto>> GetCollectionPointsAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyCollection<CollectionPointDto>> GetCollectionPointsAsync(
+        CancellationToken cancellationToken = default)
     {
-        return await _httpClient.GetFromJsonAsync<IReadOnlyCollection<CollectionPointDto>>("api/collection-points", cancellationToken)
-            ?? Array.Empty<CollectionPointDto>();
+        return await _httpClient.GetFromJsonAsync<IReadOnlyCollection<CollectionPointDto>>("api/collection-points",
+                   cancellationToken)
+               ?? Array.Empty<CollectionPointDto>();
     }
 
     /// <summary>
@@ -66,7 +68,7 @@ public sealed class PlatformApiClient
         IReadOnlyCollection<LocalCollectionPointDto> points,
         CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.PostAsJsonAsync(
+        HttpResponseMessage response = await _httpClient.PostAsJsonAsync(
             "api/collection-points/sync",
             new SyncCollectionPointsRequest(points),
             cancellationToken);

@@ -3,69 +3,469 @@
              xmlns:vm="clr-namespace:DAP.Presentation.AvaloniaApp.ViewModels.Pages"
              x:Class="DAP.Presentation.AvaloniaApp.Views.Pages.HomePageView"
              x:DataType="vm:HomePageViewModel">
-    <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="16">
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="12">
-            <StackPanel>
-                <TextBlock Text="{Binding WelcomeMessage}"
-                           FontSize="20"
-                           FontWeight="SemiBold"/>
-                <TextBlock Text="{Binding StatusMessage}"
-                           Margin="0,6,0,0"
-                           Foreground="#6B7280"/>
-            </StackPanel>
+    <UserControl.Styles>
+        <Style Selector="Button.task-card-button">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
 
-            <Button Grid.Column="1"
-                    Content="刷新服务端数据"
-                    Command="{Binding RefreshCommand}"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Center"/>
+        <Style Selector="Border.task-card-surface">
+            <Setter Property="Background" Value="{DynamicResource ShellSurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SurfaceBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+
+        <Style Selector="Border.task-card-surface.active">
+            <Setter Property="Background" Value="{DynamicResource NavItemActiveBrush}" />
+            <Setter Property="BoxShadow" Value="0 16 40 0 #160F172A" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="20">
+        <Border Background="{DynamicResource SurfaceMutedBrush}"
+                BorderBrush="{DynamicResource SurfaceBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="26"
+                Padding="20">
+            <Grid ColumnDefinitions="*,260,Auto" ColumnSpacing="16">
+                <StackPanel>
+                    <TextBlock Text="{Binding WelcomeMessage}"
+                               FontSize="30"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource PrimaryTextBrush}" />
+                    <TextBlock Text="{Binding BoardSubtitle}"
+                               Margin="0,8,0,0"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource SecondaryTextBrush}" />
+                </StackPanel>
+
+                <Border Grid.Column="1"
+                        Background="{DynamicResource ShellSurfaceBrush}"
+                        BorderBrush="{DynamicResource SurfaceBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="18"
+                        Padding="14,12">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                        <PathIcon Width="16"
+                                  Height="16"
+                                  VerticalAlignment="Center"
+                                  Foreground="{DynamicResource MutedTextBrush}"
+                                  Data="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16a6.471 6.471 0 0 0 4.23-1.57l.27.28v.79L20 21.5 21.5 20 15.5 14zM9.5 14A4.5 4.5 0 1 1 14 9.5 4.505 4.505 0 0 1 9.5 14z" />
+                        <TextBox Grid.Column="1"
+                                 PlaceholderText="搜索工作项"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 Padding="0" />
+                    </Grid>
+                </Border>
+
+                <StackPanel Grid.Column="2"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center"
+                            Spacing="10">
+                    <ItemsControl ItemsSource="{Binding ActiveMembers}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="8" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Width="34"
+                                        Height="34"
+                                        CornerRadius="17"
+                                        Background="{Binding AccentBrush}">
+                                    <TextBlock HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               FontSize="11"
+                                               FontWeight="Bold"
+                                               Foreground="White"
+                                               Text="{Binding Initials}" />
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Button Content="刷新概览"
+                            Command="{Binding RefreshCommand}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,*,*,*" ColumnSpacing="14">
+            <Border Grid.Column="0"
+                    Background="#EEF0FF"
+                    CornerRadius="22"
+                    Padding="18">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="采集点总数"
+                               Foreground="#4F46E5" />
+                    <TextBlock Text="{Binding TotalCollectionPoints}"
+                               FontSize="28"
+                               FontWeight="Bold"
+                               Foreground="#1F2451" />
+                    <Border Height="6"
+                            CornerRadius="999"
+                            Background="#C7D2FE" />
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="1"
+                    Background="#E7FAF7"
+                    CornerRadius="22"
+                    Padding="18">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="在线采集点"
+                               Foreground="#0F766E" />
+                    <TextBlock Text="{Binding OnlineCollectionPoints}"
+                               FontSize="28"
+                               FontWeight="Bold"
+                               Foreground="#12332F" />
+                    <Border Height="6"
+                            Width="140"
+                            CornerRadius="999"
+                            Background="#14B8A6" />
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="2"
+                    Background="#FFF5E6"
+                    CornerRadius="22"
+                    Padding="18">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="离线采集点"
+                               Foreground="#B45309" />
+                    <TextBlock Text="{Binding OfflineCollectionPoints}"
+                               FontSize="28"
+                               FontWeight="Bold"
+                               Foreground="#5F370E" />
+                    <Border Height="6"
+                            Width="104"
+                            CornerRadius="999"
+                            Background="#F59E0B" />
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="3"
+                    Background="#FFE9ED"
+                    CornerRadius="22"
+                    Padding="18">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="本地同步点位"
+                               Foreground="#BE123C" />
+                    <TextBlock Text="{Binding LocalSourcedCollectionPoints}"
+                               FontSize="28"
+                               FontWeight="Bold"
+                               Foreground="#5B1730" />
+                    <Border Height="6"
+                            Width="122"
+                            CornerRadius="999"
+                            Background="#EF5A6F" />
+                </StackPanel>
+            </Border>
         </Grid>
 
-        <Grid Grid.Row="1" ColumnDefinitions="*,*,*,*" ColumnSpacing="12">
-            <Border Grid.Column="0" Background="#EEF2FF" CornerRadius="8" Padding="16">
-                <StackPanel>
-                    <TextBlock Text="采集点总数" Foreground="#4338CA"/>
-                    <TextBlock Text="{Binding TotalCollectionPoints}" FontSize="26" FontWeight="Bold"/>
-                </StackPanel>
-            </Border>
-            <Border Grid.Column="1" Background="#ECFDF5" CornerRadius="8" Padding="16">
-                <StackPanel>
-                    <TextBlock Text="在线采集点" Foreground="#047857"/>
-                    <TextBlock Text="{Binding OnlineCollectionPoints}" FontSize="26" FontWeight="Bold"/>
-                </StackPanel>
-            </Border>
-            <Border Grid.Column="2" Background="#FEF2F2" CornerRadius="8" Padding="16">
-                <StackPanel>
-                    <TextBlock Text="离线采集点" Foreground="#B91C1C"/>
-                    <TextBlock Text="{Binding OfflineCollectionPoints}" FontSize="26" FontWeight="Bold"/>
-                </StackPanel>
-            </Border>
-            <Border Grid.Column="3" Background="#EFF6FF" CornerRadius="8" Padding="16">
-                <StackPanel>
-                    <TextBlock Text="客户端同步点位" Foreground="#1D4ED8"/>
-                    <TextBlock Text="{Binding LocalSourcedCollectionPoints}" FontSize="26" FontWeight="Bold"/>
-                </StackPanel>
+        <Grid Grid.Row="2" ColumnDefinitions="*,320" ColumnSpacing="20">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Disabled">
+                <ItemsControl ItemsSource="{Binding SprintLanes}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="16" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Width="336"
+                                    Background="{DynamicResource SurfaceMutedBrush}"
+                                    BorderBrush="{DynamicResource SurfaceBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="24"
+                                    Padding="18">
+                                <Grid RowDefinitions="Auto,*" RowSpacing="16">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Title}"
+                                                       FontWeight="Bold"
+                                                       Foreground="{DynamicResource PrimaryTextBrush}" />
+                                            <TextBlock Text="{Binding Summary}"
+                                                       Margin="0,4,0,0"
+                                                       Foreground="{DynamicResource MutedTextBrush}" />
+                                        </StackPanel>
+
+                                        <Border Grid.Column="1"
+                                                Padding="10,4"
+                                                Background="{DynamicResource ShellSurfaceBrush}"
+                                                CornerRadius="999">
+                                            <TextBlock Text="{Binding Tasks.Count}"
+                                                       FontWeight="Bold"
+                                                       Foreground="{DynamicResource SecondaryTextBrush}" />
+                                        </Border>
+                                    </Grid>
+
+                                    <ItemsControl Grid.Row="1"
+                                                  ItemsSource="{Binding Tasks}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Classes="task-card-button"
+                                                        Margin="0,0,0,12"
+                                                        HorizontalContentAlignment="Stretch"
+                                                        Command="{Binding Command}"
+                                                        CommandParameter="{Binding}">
+                                                    <Border Classes="task-card-surface"
+                                                            Classes.active="{Binding IsSelected}"
+                                                            Padding="16"
+                                                            CornerRadius="20">
+                                                        <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="12">
+                                                            <TextBlock Text="{Binding Title}"
+                                                                       TextWrapping="Wrap"
+                                                                       FontWeight="SemiBold"
+                                                                       Foreground="{DynamicResource PrimaryTextBrush}" />
+
+                                                            <Border Grid.Row="1"
+                                                                    Padding="10,4"
+                                                                    HorizontalAlignment="Left"
+                                                                    Background="{Binding TagBackground}"
+                                                                    CornerRadius="999">
+                                                                <TextBlock Text="{Binding Tag}"
+                                                                           FontSize="12"
+                                                                           Foreground="{Binding TagForeground}" />
+                                                            </Border>
+
+                                                            <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                                                <TextBlock Text="{Binding Metric}"
+                                                                           Foreground="{DynamicResource SecondaryTextBrush}" />
+                                                                <TextBlock Grid.Column="1"
+                                                                           Text="{Binding Ticket}"
+                                                                           Foreground="{DynamicResource MutedTextBrush}" />
+                                                            </Grid>
+
+                                                            <Grid Grid.Row="3" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                                                <Border Width="28"
+                                                                        Height="28"
+                                                                        CornerRadius="14"
+                                                                        Background="{Binding AccentBrush}">
+                                                                    <TextBlock HorizontalAlignment="Center"
+                                                                               VerticalAlignment="Center"
+                                                                               FontSize="10"
+                                                                               FontWeight="Bold"
+                                                                               Foreground="White"
+                                                                               Text="{Binding AssigneeInitials}" />
+                                                                </Border>
+                                                                <Border Grid.Column="1"
+                                                                        Height="6"
+                                                                        CornerRadius="999"
+                                                                        Background="{DynamicResource SurfaceMutedBrush}"
+                                                                        VerticalAlignment="Center">
+                                                                    <Border Width="{Binding Progress}"
+                                                                            Height="6"
+                                                                            CornerRadius="999"
+                                                                            HorizontalAlignment="Left"
+                                                                            Background="{Binding AccentBrush}" />
+                                                                </Border>
+                                                                <PathIcon Grid.Column="2"
+                                                                          Width="16"
+                                                                          Height="16"
+                                                                          VerticalAlignment="Center"
+                                                                          Foreground="{Binding AccentBrush}"
+                                                                          Data="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                                                            </Grid>
+                                                        </Grid>
+                                                    </Border>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <Border Grid.Column="1"
+                    Background="{DynamicResource SurfaceMutedBrush}"
+                    BorderBrush="{DynamicResource SurfaceBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="24"
+                    Padding="18">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="16">
+                    <StackPanel>
+                        <TextBlock Text="Inspector"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource PrimaryTextBrush}" />
+                        <TextBlock Text="{Binding FocusTaskStage}"
+                                   Margin="0,4,0,0"
+                                   Foreground="{Binding FocusTaskAccentBrush}" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="1" Spacing="6">
+                        <TextBlock Text="{Binding FocusTaskTitle}"
+                                   FontSize="20"
+                                   FontWeight="Bold"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource PrimaryTextBrush}" />
+                        <TextBlock Text="{Binding FocusTaskDescription}"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource SecondaryTextBrush}" />
+                    </StackPanel>
+
+                    <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <Border Background="{DynamicResource ShellSurfaceBrush}"
+                                CornerRadius="18"
+                                Padding="14">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Ticket"
+                                           Foreground="{DynamicResource MutedTextBrush}" />
+                                <TextBlock Text="{Binding FocusTaskTicket}"
+                                           FontSize="18"
+                                           FontWeight="Bold"
+                                           Foreground="{DynamicResource PrimaryTextBrush}" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Column="1"
+                                Background="{DynamicResource ShellSurfaceBrush}"
+                                CornerRadius="18"
+                                Padding="14">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="进度"
+                                           Foreground="{DynamicResource MutedTextBrush}" />
+                                <TextBlock Text="{Binding FocusTaskProgress, StringFormat='{}{0}%'}"
+                                           FontSize="18"
+                                           FontWeight="Bold"
+                                           Foreground="{DynamicResource PrimaryTextBrush}" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <StackPanel Grid.Row="3" Spacing="10">
+                        <Border Background="{DynamicResource ShellSurfaceBrush}"
+                                CornerRadius="18"
+                                Padding="14">
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                <Border Width="42"
+                                        Height="42"
+                                        CornerRadius="21"
+                                        Background="{Binding FocusTaskAccentBrush}">
+                                    <TextBlock HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               FontWeight="Bold"
+                                               Foreground="White"
+                                               Text="{Binding FocusTaskAssigneeInitials}" />
+                                </Border>
+                                <StackPanel Grid.Column="1"
+                                            VerticalAlignment="Center"
+                                            Spacing="2">
+                                    <TextBlock Text="{Binding FocusTaskOwnerName}"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource PrimaryTextBrush}" />
+                                    <TextBlock Text="{Binding FocusTaskOwnerRole}"
+                                               Foreground="{DynamicResource SecondaryTextBrush}" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <TextBlock Text="关键指标"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource PrimaryTextBrush}" />
+                        <ItemsControl ItemsSource="{Binding InspectorMetrics}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="0,0,0,10"
+                                            Background="{DynamicResource ShellSurfaceBrush}"
+                                            CornerRadius="16"
+                                            Padding="12">
+                                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                            <Border Width="10"
+                                                    Height="10"
+                                                    CornerRadius="999"
+                                                    VerticalAlignment="Center"
+                                                    Background="{Binding AccentBrush}" />
+                                            <TextBlock Grid.Column="1"
+                                                       VerticalAlignment="Center"
+                                                       Text="{Binding Label}"
+                                                       Foreground="{DynamicResource SecondaryTextBrush}" />
+                                            <TextBlock Grid.Column="2"
+                                                       VerticalAlignment="Center"
+                                                       FontWeight="Bold"
+                                                       Text="{Binding Value}"
+                                                       Foreground="{DynamicResource PrimaryTextBrush}" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <Grid Grid.Row="4" RowDefinitions="Auto,Auto,*" RowSpacing="12">
+                        <TextBlock Text="最近活动"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource PrimaryTextBrush}" />
+
+                        <ItemsControl Grid.Row="1"
+                                      ItemsSource="{Binding ActivityLogs}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,0,0,12"
+                                          ColumnDefinitions="Auto,*"
+                                          ColumnSpacing="10">
+                                        <Border Width="10"
+                                                Height="10"
+                                                CornerRadius="999"
+                                                Margin="0,4,0,0"
+                                                Background="{Binding AccentBrush}" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="{Binding Message}"
+                                                       TextWrapping="Wrap"
+                                                       Foreground="{DynamicResource PrimaryTextBrush}" />
+                                            <TextBlock Text="{Binding Time}"
+                                                       Foreground="{DynamicResource MutedTextBrush}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <Border Grid.Row="2"
+                                Background="{DynamicResource ShellSurfaceBrush}"
+                                BorderBrush="{DynamicResource SurfaceBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="18"
+                                Padding="14">
+                            <Grid RowDefinitions="Auto,*" RowSpacing="10">
+                                <TextBlock Text="最新采样摘要"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource PrimaryTextBrush}" />
+
+                                <ItemsControl Grid.Row="1"
+                                              ItemsSource="{Binding LatestRecords}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Margin="0,0,0,10"
+                                                    Background="{DynamicResource SurfaceMutedBrush}"
+                                                    CornerRadius="14"
+                                                    Padding="10">
+                                                <StackPanel Spacing="3">
+                                                    <TextBlock Text="{Binding CollectionPointName}"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="{DynamicResource PrimaryTextBrush}" />
+                                                    <TextBlock Text="{Binding MetricName}"
+                                                               Foreground="{DynamicResource SecondaryTextBrush}" />
+                                                    <TextBlock Text="{Binding Value, StringFormat='{}值：{0}'}"
+                                                               Foreground="{DynamicResource MutedTextBrush}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Grid>
             </Border>
         </Grid>
-
-        <DataGrid Grid.Row="2"
-                  ItemsSource="{Binding LatestRecords}"
-                  AutoGenerateColumns="False"
-                  IsReadOnly="True"
-                  GridLinesVisibility="All"
-                  BorderThickness="1"
-                  BorderBrush="#E5E7EB">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="采集点" Binding="{Binding CollectionPointName}" Width="*" />
-                <DataGridTextColumn Header="指标" Binding="{Binding MetricName}" Width="*" />
-                <DataGridTextColumn Header="数值" Binding="{Binding Value}" Width="*" />
-                <DataGridTextColumn Header="单位" Binding="{Binding Unit}" Width="*" />
-                <DataGridTextColumn Header="采集时间" Binding="{Binding CollectedAt}" Width="1.4*" />
-            </DataGrid.Columns>
-        </DataGrid>
-
-        <TextBlock Grid.Row="3"
-                   Text="主页聚焦服务端统计与最新采集数据展示。"
-                   Foreground="#9CA3AF"/>
     </Grid>
 </UserControl>

@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using Avalonia;
+using Avalonia.Styling;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DAP.Core.Shared.Contracts;
@@ -8,32 +10,27 @@ namespace DAP.Presentation.AvaloniaApp.ViewModels.Pages;
 
 public partial class SettingsPageViewModel : ViewModelBase
 {
-    [ObservableProperty]
-    private string _settingsTitle = "本地采集点配置与服务端同步";
+    [ObservableProperty] private string _settingsTitle = "采集设置";
 
-    [ObservableProperty]
-    private Guid _editingLocalId;
+    [ObservableProperty] private Guid _editingLocalId;
 
-    [ObservableProperty]
-    private string _code = string.Empty;
+    [ObservableProperty] private string _code = string.Empty;
 
-    [ObservableProperty]
-    private string _name = string.Empty;
+    [ObservableProperty] private string _name = string.Empty;
 
-    [ObservableProperty]
-    private string _protocol = "Modbus TCP";
+    [ObservableProperty] private string _protocol = "Modbus TCP";
 
-    [ObservableProperty]
-    private string _endpoint = string.Empty;
+    [ObservableProperty] private string _endpoint = string.Empty;
 
-    [ObservableProperty]
-    private bool _isEnabled = true;
+    [ObservableProperty] private bool _isEnabled = true;
 
-    [ObservableProperty]
-    private string _statusMessage = "可在本地维护采集点后同步到服务端。";
+    [ObservableProperty] private string _statusMessage = "可在本地维护采集点后同步到服务端。";
 
-    [ObservableProperty]
-    private LocalCollectionPointDto? _selectedLocalPoint;
+    [ObservableProperty] private LocalCollectionPointDto? _selectedLocalPoint;
+
+    [ObservableProperty] private bool _isDarkTheme;
+
+    [ObservableProperty] private string _themeModeText = "浅色";
 
     public ObservableCollection<LocalCollectionPointDto> LocalCollectionPoints { get; } = [];
 
@@ -65,7 +62,20 @@ public partial class SettingsPageViewModel : ViewModelBase
         SyncCommand = new AsyncRelayCommand(SyncAsync);
         CreateNewCommand = new RelayCommand(CreateNew);
 
+        ApplyThemeState(Application.Current?.ActualThemeVariant ?? ThemeVariant.Light);
         _ = InitializeAsync();
+    }
+
+    partial void OnIsDarkThemeChanged(bool value)
+    {
+        if (Application.Current is not null)
+        {
+            Application.Current.RequestedThemeVariant = value
+                ? ThemeVariant.Dark
+                : ThemeVariant.Light;
+        }
+
+        ThemeModeText = value ? "深色" : "浅色";
     }
 
     partial void OnSelectedLocalPointChanged(LocalCollectionPointDto? value)
@@ -92,10 +102,10 @@ public partial class SettingsPageViewModel : ViewModelBase
 
     private async Task LoadLocalAsync()
     {
-        var items = await _localCollectionPointStore.GetAllAsync();
+        IReadOnlyCollection<LocalCollectionPointDto> items = await _localCollectionPointStore.GetAllAsync();
 
         LocalCollectionPoints.Clear();
-        foreach (var item in items)
+        foreach (LocalCollectionPointDto item in items)
         {
             LocalCollectionPoints.Add(item);
         }
@@ -107,10 +117,10 @@ public partial class SettingsPageViewModel : ViewModelBase
     {
         try
         {
-            var items = await _platformApiClient.GetCollectionPointsAsync();
+            IReadOnlyCollection<CollectionPointDto> items = await _platformApiClient.GetCollectionPointsAsync();
             ServerCollectionPoints.Clear();
 
-            foreach (var item in items)
+            foreach (CollectionPointDto item in items)
             {
                 ServerCollectionPoints.Add(item);
             }
@@ -134,7 +144,7 @@ public partial class SettingsPageViewModel : ViewModelBase
             return;
         }
 
-        var savedPoint = await _localCollectionPointStore.UpsertAsync(new LocalCollectionPointDto(
+        LocalCollectionPointDto savedPoint = await _localCollectionPointStore.UpsertAsync(new LocalCollectionPointDto(
             EditingLocalId,
             Code,
             Name,
@@ -153,8 +163,9 @@ public partial class SettingsPageViewModel : ViewModelBase
     {
         try
         {
-            var localPoints = await _localCollectionPointStore.GetAllAsync();
-            var response = await _platformApiClient.SyncLocalCollectionPointsAsync(localPoints);
+            IReadOnlyCollection<LocalCollectionPointDto> localPoints = await _localCollectionPointStore.GetAllAsync();
+            SyncCollectionPointsResponse? response =
+                await _platformApiClient.SyncLocalCollectionPointsAsync(localPoints);
 
             if (response is null)
             {
@@ -184,5 +195,11 @@ public partial class SettingsPageViewModel : ViewModelBase
         Endpoint = string.Empty;
         IsEnabled = true;
         StatusMessage = "已切换到新建模式，可录入新的本地采集点。";
+    }
+
+    private void ApplyThemeState(ThemeVariant themeVariant)
+    {
+        IsDarkTheme = themeVariant == ThemeVariant.Dark;
+        ThemeModeText = IsDarkTheme ? "深色" : "浅色";
     }
 }

@@ -38,7 +38,7 @@ public sealed class SqliteLocalCollectionPointStore
         using var connection = new SqliteConnection(_connectionString);
         connection.Open();
 
-        using var command = connection.CreateCommand();
+        using SqliteCommand command = connection.CreateCommand();
         command.CommandText =
             """
             SELECT LocalId, Code, Name, Protocol, Endpoint, IsEnabled, SyncStatus, UpdatedAt
@@ -46,7 +46,7 @@ public sealed class SqliteLocalCollectionPointStore
             ORDER BY UpdatedAt DESC;
             """;
 
-        using var reader = command.ExecuteReader();
+        using SqliteDataReader reader = command.ExecuteReader();
         while (reader.Read())
         {
             items.Add(new LocalCollectionPointDto(
@@ -70,7 +70,7 @@ public sealed class SqliteLocalCollectionPointStore
     /// <returns>保存后的采集点。</returns>
     public Task<LocalCollectionPointDto> UpsertAsync(LocalCollectionPointDto point)
     {
-        var savedPoint = point with
+        LocalCollectionPointDto savedPoint = point with
         {
             LocalId = point.LocalId == Guid.Empty ? Guid.NewGuid() : point.LocalId,
             UpdatedAt = DateTimeOffset.UtcNow,
@@ -80,7 +80,7 @@ public sealed class SqliteLocalCollectionPointStore
         using var connection = new SqliteConnection(_connectionString);
         connection.Open();
 
-        using var command = connection.CreateCommand();
+        using SqliteCommand command = connection.CreateCommand();
         command.CommandText =
             """
             INSERT INTO LocalCollectionPoints (LocalId, Code, Name, Protocol, Endpoint, IsEnabled, SyncStatus, UpdatedAt)
@@ -114,7 +114,7 @@ public sealed class SqliteLocalCollectionPointStore
     /// <returns>表示异步操作的任务。</returns>
     public Task MarkAsSyncedAsync(IEnumerable<Guid> localIds)
     {
-        var idList = localIds.ToArray();
+        Guid[] idList = localIds.ToArray();
         if (idList.Length == 0)
         {
             return Task.CompletedTask;
@@ -123,9 +123,9 @@ public sealed class SqliteLocalCollectionPointStore
         using var connection = new SqliteConnection(_connectionString);
         connection.Open();
 
-        foreach (var id in idList)
+        foreach (Guid id in idList)
         {
-            using var command = connection.CreateCommand();
+            using SqliteCommand command = connection.CreateCommand();
             command.CommandText =
                 """
                 UPDATE LocalCollectionPoints
@@ -146,7 +146,7 @@ public sealed class SqliteLocalCollectionPointStore
         using var connection = new SqliteConnection(_connectionString);
         connection.Open();
 
-        using var command = connection.CreateCommand();
+        using SqliteCommand command = connection.CreateCommand();
         command.CommandText =
             """
             CREATE TABLE IF NOT EXISTS LocalCollectionPoints

@@ -27,7 +27,7 @@ public partial class App : Application
         {
             desktop.MainWindow = new MainWindow
             {
-                DataContext = _serviceProvider.GetRequiredService<MainWindowViewModel>(),
+                DataContext = _serviceProvider.GetRequiredService<MainWindowViewModel>()
             };
         }
 
@@ -36,9 +36,9 @@ public partial class App : Application
 
     private static IServiceProvider ConfigureServices()
     {
-        var configuration = new ConfigurationBuilder()
+        IConfigurationRoot configuration = new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
+            .AddJsonFile("appsettings.json", false, false)
             .Build();
 
         var services = new ServiceCollection();
@@ -48,7 +48,7 @@ public partial class App : Application
 
         services.AddHttpClient<PlatformApiClient>((serviceProvider, client) =>
         {
-            var options = serviceProvider.GetRequiredService<IOptions<ApiOptions>>().Value;
+            ApiOptions options = serviceProvider.GetRequiredService<IOptions<ApiOptions>>().Value;
             client.BaseAddress = new Uri(options.BaseUrl);
         });
 
@@ -57,6 +57,7 @@ public partial class App : Application
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<ViewModels.Pages.HomePageViewModel>();
         services.AddTransient<ViewModels.Pages.SettingsPageViewModel>();
+        services.AddTransient<ViewModels.Pages.SystemSettingsPageViewModel>();
 
         return services.BuildServiceProvider();
     }
