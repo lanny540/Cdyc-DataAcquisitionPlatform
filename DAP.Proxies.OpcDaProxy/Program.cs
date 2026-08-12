@@ -1,7 +1,7 @@
 using DAP.Proxies.OpcDaProxy;
 
-var builder = Host.CreateApplicationBuilder(args);
+HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddHostedService<Worker>();
 
-var host = builder.Build();
+IHost host = builder.Build();
 host.Run();

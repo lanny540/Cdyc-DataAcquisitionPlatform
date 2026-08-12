@@ -3,13 +3,13 @@ using DAP.Presentation.BlazorWeb.Endpoints;
 using DAP.Presentation.BlazorWeb.Components.Shell;
 using DAP.Presentation.BlazorWeb.Services;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddPlatformPresentationServices(builder.Configuration, builder.Environment);
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
-await using (var scope = app.Services.CreateAsyncScope())
+await using (AsyncServiceScope scope = app.Services.CreateAsyncScope())
 {
     var initializer = scope.ServiceProvider.GetRequiredService<PostgreSqlDatabaseInitializer>();
     await initializer.InitializeAsync();
@@ -23,7 +23,7 @@ if (app.Environment.IsDevelopment())
 else
 {
     // 宿主服务端异常统一回落到 /Error，由 ServerErrorPage 负责展示。
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    app.UseExceptionHandler("/Error", true);
     app.UseHsts();
 }
 

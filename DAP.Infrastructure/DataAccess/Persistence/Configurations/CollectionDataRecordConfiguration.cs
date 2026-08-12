@@ -16,7 +16,8 @@ public sealed class CollectionDataRecordConfiguration : IEntityTypeConfiguration
             "collection_data_records",
             tableBuilder =>
             {
-                tableBuilder.HasCheckConstraint("ck_collection_data_records_metric_name_not_blank", "btrim(metric_name) <> ''");
+                tableBuilder.HasCheckConstraint("ck_collection_data_records_metric_name_not_blank",
+                    "btrim(metric_name) <> ''");
                 tableBuilder.HasCheckConstraint("ck_collection_data_records_unit_not_blank", "btrim(unit) <> ''");
             });
 
@@ -39,7 +40,7 @@ public sealed class CollectionDataRecordConfiguration : IEntityTypeConfiguration
         builder.HasIndex(item => item.CollectionPointId)
             .HasDatabaseName("ix_collection_data_records_collection_point_id");
 
-        builder.HasIndex(item => new { item.CollectionPointId, item.MetricName, item.CollectedAt })
+        builder.HasIndex(item => new {item.CollectionPointId, item.MetricName, item.CollectedAt})
             .HasDatabaseName("ix_collection_data_records_point_metric_collected_at");
     }
 }

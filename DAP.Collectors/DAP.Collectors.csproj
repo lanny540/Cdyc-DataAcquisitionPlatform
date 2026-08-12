@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\DAP.Core.Domain\DAP.Core.Domain.csproj" />
-    <ProjectReference Include="..\DAP.Core.Shared\DAP.Core.Shared.csproj" />
+    <ProjectReference Include="..\DAP.Core.Domain\DAP.Core.Domain.csproj"/>
+    <ProjectReference Include="..\DAP.Core.Shared\DAP.Core.Shared.csproj"/>
   </ItemGroup>
 
   <PropertyGroup>

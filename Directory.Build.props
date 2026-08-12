@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <Version>2026.08.12</Version>
+    <AssemblyVersion>2026.08.12</AssemblyVersion>
+    <FileVersion>2026.08.12</FileVersion>
+    <Company>CDYC</Company>
+    <Product>数据采集平台客户端</Product>
+  </PropertyGroup>
+</Project>

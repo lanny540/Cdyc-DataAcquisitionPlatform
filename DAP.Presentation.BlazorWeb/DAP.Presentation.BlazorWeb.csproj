@@ -8,16 +8,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DAP.Presentation.BlazorWeb.Client\DAP.Presentation.BlazorWeb.Client.csproj" />
-    <ProjectReference Include="..\DAP.Core.Domain\DAP.Core.Domain.csproj" />
-    <ProjectReference Include="..\DAP.Core.Shared\DAP.Core.Shared.csproj" />
-    <ProjectReference Include="..\DAP.Infrastructure\DAP.Infrastructure.csproj" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.10" />
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
+    <ProjectReference Include="..\DAP.Presentation.BlazorWeb.Client\DAP.Presentation.BlazorWeb.Client.csproj"/>
+    <ProjectReference Include="..\DAP.Core.Domain\DAP.Core.Domain.csproj"/>
+    <ProjectReference Include="..\DAP.Core.Shared\DAP.Core.Shared.csproj"/>
+    <ProjectReference Include="..\DAP.Infrastructure\DAP.Infrastructure.csproj"/>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.10"/>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10"/>
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="MudBlazor" Version="9.8.0" />
+    <PackageReference Include="MudBlazor" Version="9.8.0"/>
   </ItemGroup>
 
 </Project>

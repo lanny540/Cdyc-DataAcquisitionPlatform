@@ -8,7 +8,8 @@
         <MudText Typo="Typo.h4">数据采集平台概览</MudText>
         <MudText Typo="Typo.body1" Color="Color.Secondary">聚合展示采集点总量、通信状态以及最新入库数据。</MudText>
     </MudStack>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadAsync">
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh"
+               OnClick="LoadAsync">
         刷新
     </MudButton>
 </MudStack>
@@ -20,7 +21,7 @@
 
 @if (_isLoading)
 {
-    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+    <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
 }
 else if (_overview is not null)
 {
@@ -67,7 +68,9 @@ else if (_overview is not null)
                         <MudTd DataLabel="名称">@context.Name</MudTd>
                         <MudTd DataLabel="协议">@context.Protocol</MudTd>
                         <MudTd DataLabel="状态">
-                            <MudChip T="string" Color="@(context.CommunicationStatus == "在线" ? Color.Success : Color.Error)" Variant="Variant.Outlined">
+                            <MudChip T="string"
+                                     Color="@(context.CommunicationStatus == "在线" ? Color.Success : Color.Error)"
+                                     Variant="Variant.Outlined">
                                 @context.CommunicationStatus
                             </MudChip>
                         </MudTd>
@@ -89,7 +92,8 @@ else if (_overview is not null)
                         <MudTd DataLabel="采集点">@context.CollectionPointName</MudTd>
                         <MudTd DataLabel="指标">@context.MetricName</MudTd>
                         <MudTd DataLabel="数值">@($"{context.Value} {context.Unit}")</MudTd>
-                        <MudTd DataLabel="采集时间">@context.CollectedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</MudTd>
+                        <MudTd
+                            DataLabel="采集时间">@context.CollectedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</MudTd>
                     </RowTemplate>
                 </MudTable>
             </MudPaper>
@@ -125,4 +129,5 @@ else if (_overview is not null)
             _isLoading = false;
         }
     }
+
 }

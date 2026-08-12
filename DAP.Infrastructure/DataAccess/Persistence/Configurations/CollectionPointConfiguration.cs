@@ -36,7 +36,8 @@ public sealed class CollectionPointConfiguration : IEntityTypeConfiguration<Coll
         builder.Property(item => item.Protocol).HasColumnName("protocol").HasMaxLength(100).IsRequired();
         builder.Property(item => item.Endpoint).HasColumnName("endpoint").HasMaxLength(500).IsRequired();
         builder.Property(item => item.IsEnabled).HasColumnName("is_enabled").IsRequired();
-        builder.Property(item => item.CommunicationStatus).HasColumnName("communication_status").HasMaxLength(50).IsRequired();
+        builder.Property(item => item.CommunicationStatus).HasColumnName("communication_status").HasMaxLength(50)
+            .IsRequired();
         builder.Property(item => item.Source).HasColumnName("source").HasMaxLength(50).IsRequired();
         builder.Property(item => item.LastError).HasColumnName("last_error");
         builder.Property(item => item.UpdatedAt).HasColumnName("updated_at").IsRequired();
@@ -45,10 +46,10 @@ public sealed class CollectionPointConfiguration : IEntityTypeConfiguration<Coll
             .IsUnique()
             .HasDatabaseName("ux_collection_points_code");
 
-        builder.HasIndex(item => new { item.CommunicationStatus, item.UpdatedAt })
+        builder.HasIndex(item => new {item.CommunicationStatus, item.UpdatedAt})
             .HasDatabaseName("ix_collection_points_status_updated_at");
 
-        builder.HasIndex(item => new { item.Source, item.UpdatedAt })
+        builder.HasIndex(item => new {item.Source, item.UpdatedAt})
             .HasDatabaseName("ix_collection_points_source_updated_at");
     }
 }

@@ -21,7 +21,7 @@ public partial class MainWindow : UrsaWindow
     {
         Screen? screen = Screens.ScreenFromWindow(this) ?? Screens.Primary;
         PixelRect workingArea = screen?.WorkingArea ?? new PixelRect(0, 0, (int) TargetWidth, (int) TargetHeight);
-        bool shouldUseFullscreen = workingArea.Width < TargetWidth || workingArea.Height < TargetHeight;
+        var shouldUseFullscreen = workingArea.Width < TargetWidth || workingArea.Height < TargetHeight;
 
         if (shouldUseFullscreen)
         {

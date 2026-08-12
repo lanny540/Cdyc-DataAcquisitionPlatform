@@ -40,7 +40,8 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
     }
 
     /// <inheritdoc />
-    public Task<IReadOnlyCollection<CollectionPointDto>> GetCollectionPointsAsync(CancellationToken cancellationToken = default)
+    public Task<IReadOnlyCollection<CollectionPointDto>> GetCollectionPointsAsync(
+        CancellationToken cancellationToken = default)
     {
         return _platformReadRepository.GetCollectionPointsAsync(cancellationToken);
     }
@@ -53,14 +54,14 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
         ValidateCollectionPointRequest(request);
 
         var normalizedCode = NormalizeCode(request.Code);
-        var existingPoint = request.Id.HasValue
+        CollectionPoint? existingPoint = request.Id.HasValue
             ? await _collectionPointRepository.GetByIdAsync(request.Id.Value, cancellationToken)
             : null;
 
         existingPoint ??= await _collectionPointRepository.GetByCodeAsync(normalizedCode, cancellationToken);
 
         var source = NormalizeSource(request.Source);
-        var updatedAt = DateTimeOffset.UtcNow;
+        DateTimeOffset updatedAt = DateTimeOffset.UtcNow;
 
         if (existingPoint is null)
         {
@@ -87,7 +88,8 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
             existingPoint.Endpoint = request.Endpoint.Trim();
             existingPoint.IsEnabled = request.IsEnabled;
             existingPoint.Source = source;
-            existingPoint.CommunicationStatus = ResolveCommunicationStatus(existingPoint.CommunicationStatus, request.IsEnabled);
+            existingPoint.CommunicationStatus =
+                ResolveCommunicationStatus(existingPoint.CommunicationStatus, request.IsEnabled);
             existingPoint.UpdatedAt = updatedAt;
         }
 
@@ -98,7 +100,7 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
     /// <inheritdoc />
     public async Task<bool> DeleteCollectionPointAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var collectionPoint = await _collectionPointRepository.GetByIdAsync(id, cancellationToken);
+        CollectionPoint? collectionPoint = await _collectionPointRepository.GetByIdAsync(id, cancellationToken);
         if (collectionPoint is null)
         {
             return false;
@@ -129,7 +131,8 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
         }
 
         var normalizedCode = NormalizeCode(request.CollectionPointCode);
-        var collectionPoint = await _collectionPointRepository.GetByCodeAsync(normalizedCode, cancellationToken);
+        CollectionPoint? collectionPoint =
+            await _collectionPointRepository.GetByCodeAsync(normalizedCode, cancellationToken);
         if (collectionPoint is null)
         {
             collectionPoint = new CollectionPoint
@@ -188,10 +191,11 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
         var updatedCount = 0;
         var syncedIds = new List<Guid>();
 
-        foreach (var localPoint in request.Points)
+        foreach (LocalCollectionPointDto localPoint in request.Points)
         {
             var normalizedCode = NormalizeCode(localPoint.Code);
-            var collectionPoint = await _collectionPointRepository.GetByCodeAsync(normalizedCode, cancellationToken);
+            CollectionPoint? collectionPoint =
+                await _collectionPointRepository.GetByCodeAsync(normalizedCode, cancellationToken);
 
             if (collectionPoint is null)
             {
@@ -217,7 +221,8 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
                 collectionPoint.Protocol = localPoint.Protocol.Trim();
                 collectionPoint.Endpoint = localPoint.Endpoint.Trim();
                 collectionPoint.IsEnabled = localPoint.IsEnabled;
-                collectionPoint.CommunicationStatus = ResolveCommunicationStatus(collectionPoint.CommunicationStatus, localPoint.IsEnabled);
+                collectionPoint.CommunicationStatus =
+                    ResolveCommunicationStatus(collectionPoint.CommunicationStatus, localPoint.IsEnabled);
                 collectionPoint.Source = "Local";
                 collectionPoint.UpdatedAt = DateTimeOffset.UtcNow;
                 updatedCount++;

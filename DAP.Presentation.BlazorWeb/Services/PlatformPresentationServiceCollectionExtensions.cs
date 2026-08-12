@@ -40,7 +40,8 @@ public static class PlatformPresentationServiceCollectionExtensions
 
         services.AddSingleton(_ =>
         {
-            return new PostgreSqlConnectionSettings(ConnectionStringResolver.GetPostgreSqlConnectionString(configuration));
+            return new PostgreSqlConnectionSettings(
+                ConnectionStringResolver.GetPostgreSqlConnectionString(configuration));
         });
 
         services.AddSingleton(sp =>
@@ -93,15 +94,25 @@ internal static class ConnectionStringResolver
 /// </summary>
 internal sealed class ServerPlatformApiClient(IDataAcquisitionPlatformService platformService) : IPlatformApiClient
 {
-    public Task<DashboardOverviewDto> GetDashboardOverviewAsync(CancellationToken cancellationToken = default) =>
-        platformService.GetDashboardOverviewAsync(cancellationToken);
+    public Task<DashboardOverviewDto> GetDashboardOverviewAsync(CancellationToken cancellationToken = default)
+    {
+        return platformService.GetDashboardOverviewAsync(cancellationToken);
+    }
 
-    public async Task<IReadOnlyList<CollectionPointDto>> GetCollectionPointsAsync(CancellationToken cancellationToken = default) =>
-        (await platformService.GetCollectionPointsAsync(cancellationToken)).ToList();
+    public async Task<IReadOnlyList<CollectionPointDto>> GetCollectionPointsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return (await platformService.GetCollectionPointsAsync(cancellationToken)).ToList();
+    }
 
-    public Task<CollectionPointDto> UpsertCollectionPointAsync(CollectionPointUpsertRequest request, CancellationToken cancellationToken = default) =>
-        platformService.UpsertCollectionPointAsync(request, cancellationToken);
+    public Task<CollectionPointDto> UpsertCollectionPointAsync(CollectionPointUpsertRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return platformService.UpsertCollectionPointAsync(request, cancellationToken);
+    }
 
-    public Task<bool> DeleteCollectionPointAsync(Guid id, CancellationToken cancellationToken = default) =>
-        platformService.DeleteCollectionPointAsync(id, cancellationToken);
+    public Task<bool> DeleteCollectionPointAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return platformService.DeleteCollectionPointAsync(id, cancellationToken);
+    }
 }

@@ -8,7 +8,8 @@ public interface IPlatformApiClient
 
     Task<IReadOnlyList<CollectionPointDto>> GetCollectionPointsAsync(CancellationToken cancellationToken = default);
 
-    Task<CollectionPointDto> UpsertCollectionPointAsync(CollectionPointUpsertRequest request, CancellationToken cancellationToken = default);
+    Task<CollectionPointDto> UpsertCollectionPointAsync(CollectionPointUpsertRequest request,
+        CancellationToken cancellationToken = default);
 
     Task<bool> DeleteCollectionPointAsync(Guid id, CancellationToken cancellationToken = default);
 }

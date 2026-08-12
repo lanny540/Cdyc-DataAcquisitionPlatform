@@ -15,47 +15,52 @@ public static class CollectionPointEndpoints
     /// <returns>当前端点路由构建器。</returns>
     public static IEndpointRouteBuilder MapCollectionPointEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var pointGroup = endpoints.MapGroup("/api/collection-points").WithTags("CollectionPoints");
+        RouteGroupBuilder pointGroup = endpoints.MapGroup("/api/collection-points").WithTags("CollectionPoints");
         pointGroup.MapGet(
-            "/",
-            async (IDataAcquisitionPlatformService platformService, CancellationToken cancellationToken) =>
-            {
-                var points = await platformService.GetCollectionPointsAsync(cancellationToken);
-                return Results.Ok(points);
-            })
+                "/",
+                async (IDataAcquisitionPlatformService platformService, CancellationToken cancellationToken) =>
+                {
+                    IReadOnlyCollection<CollectionPointDto> points =
+                        await platformService.GetCollectionPointsAsync(cancellationToken);
+                    return Results.Ok(points);
+                })
             .WithName("GetCollectionPoints");
 
         pointGroup.MapPost(
-            "/",
-            async (CollectionPointUpsertRequest request, IDataAcquisitionPlatformService platformService, CancellationToken cancellationToken) =>
-            {
-                var validationError = ValidateCollectionPointRequest(request);
-                if (validationError is not null)
+                "/",
+                async (CollectionPointUpsertRequest request, IDataAcquisitionPlatformService platformService,
+                    CancellationToken cancellationToken) =>
                 {
-                    return validationError;
-                }
+                    IResult? validationError = ValidateCollectionPointRequest(request);
+                    if (validationError is not null)
+                    {
+                        return validationError;
+                    }
 
-                var savedPoint = await platformService.UpsertCollectionPointAsync(request, cancellationToken);
-                return Results.Ok(savedPoint);
-            })
+                    CollectionPointDto savedPoint =
+                        await platformService.UpsertCollectionPointAsync(request, cancellationToken);
+                    return Results.Ok(savedPoint);
+                })
             .WithName("UpsertCollectionPoint");
 
         pointGroup.MapDelete(
-            "/{id:guid}",
-            async (Guid id, IDataAcquisitionPlatformService platformService, CancellationToken cancellationToken) =>
-            {
-                var deleted = await platformService.DeleteCollectionPointAsync(id, cancellationToken);
-                return deleted ? Results.NoContent() : Results.NotFound();
-            })
+                "/{id:guid}",
+                async (Guid id, IDataAcquisitionPlatformService platformService, CancellationToken cancellationToken) =>
+                {
+                    var deleted = await platformService.DeleteCollectionPointAsync(id, cancellationToken);
+                    return deleted ? Results.NoContent() : Results.NotFound();
+                })
             .WithName("DeleteCollectionPoint");
 
         pointGroup.MapPost(
-            "/sync",
-            async (SyncCollectionPointsRequest request, IDataAcquisitionPlatformService platformService, CancellationToken cancellationToken) =>
-            {
-                var result = await platformService.SyncLocalCollectionPointsAsync(request, cancellationToken);
-                return Results.Ok(result);
-            })
+                "/sync",
+                async (SyncCollectionPointsRequest request, IDataAcquisitionPlatformService platformService,
+                    CancellationToken cancellationToken) =>
+                {
+                    SyncCollectionPointsResponse result =
+                        await platformService.SyncLocalCollectionPointsAsync(request, cancellationToken);
+                    return Results.Ok(result);
+                })
             .WithName("SyncCollectionPoints");
 
         return endpoints;

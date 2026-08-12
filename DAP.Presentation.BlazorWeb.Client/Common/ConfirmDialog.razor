@@ -11,7 +11,7 @@
                     @if (!string.IsNullOrWhiteSpace(ResolvedIcon))
                     {
                         <MudAvatar Size="Size.Medium" Style="@AvatarStyle">
-                            <MudIcon Icon="@ResolvedIcon" Size="Size.Small" />
+                            <MudIcon Icon="@ResolvedIcon" Size="Size.Small"/>
                         </MudAvatar>
                     }
 
@@ -52,47 +52,33 @@
 }
 
 @code {
-    [Parameter]
-    public bool IsOpen { get; set; }
+    [Parameter] public bool IsOpen { get; set; }
 
-    [Parameter]
-    public string Title { get; set; } = "请确认操作";
+    [Parameter] public string Title { get; set; } = "请确认操作";
 
-    [Parameter]
-    public string? WarningText { get; set; }
+    [Parameter] public string? WarningText { get; set; }
 
-    [Parameter]
-    public Severity DialogSeverity { get; set; } = Severity.Normal;
+    [Parameter] public Severity DialogSeverity { get; set; } = Severity.Normal;
 
-    [Parameter]
-    public string? Icon { get; set; }
+    [Parameter] public string? Icon { get; set; }
 
-    [Parameter]
-    public string ConfirmButtonText { get; set; } = "确认";
+    [Parameter] public string ConfirmButtonText { get; set; } = "确认";
 
-    [Parameter]
-    public string BusyButtonText { get; set; } = "处理中...";
+    [Parameter] public string BusyButtonText { get; set; } = "处理中...";
 
-    [Parameter]
-    public string CancelButtonText { get; set; } = "取消";
+    [Parameter] public string CancelButtonText { get; set; } = "取消";
 
-    [Parameter]
-    public bool IsBusy { get; set; }
+    [Parameter] public bool IsBusy { get; set; }
 
-    [Parameter]
-    public bool CloseOnBackdropClick { get; set; } = true;
+    [Parameter] public bool CloseOnBackdropClick { get; set; } = true;
 
-    [Parameter]
-    public Color ConfirmButtonColor { get; set; } = Color.Primary;
+    [Parameter] public Color ConfirmButtonColor { get; set; } = Color.Primary;
 
-    [Parameter]
-    public EventCallback OnConfirm { get; set; }
+    [Parameter] public EventCallback OnConfirm { get; set; }
 
-    [Parameter]
-    public EventCallback OnCancel { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
 
-    [Parameter]
-    public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
 
     private string? ResolvedIcon => string.IsNullOrWhiteSpace(Icon) ? GetDefaultIcon(DialogSeverity) : Icon;
 
@@ -153,4 +139,5 @@
             _ => "#475569"
         };
     }
+
 }

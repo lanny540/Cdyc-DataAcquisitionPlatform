@@ -1,21 +1,22 @@
 @inherits LayoutComponentBase
 
-<MudThemeProvider />
-<MudPopoverProvider />
-<MudDialogProvider />
-<MudSnackbarProvider />
+<MudThemeProvider/>
+<MudPopoverProvider/>
+<MudDialogProvider/>
+<MudSnackbarProvider/>
 <MudLayout>
     <MudAppBar Elevation="1">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((_) => DrawerToggle())" />
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                       OnClick="@((_) => DrawerToggle())"/>
         <MudText Typo="Typo.h5" Class="ml-3">CDYC 数据采集平台</MudText>
-        <MudSpacer />
-        <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined">Web 管理端</MudChip>
+        <MudSpacer/>
+        <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined">Web 管理端 @AppVersion</MudChip>
     </MudAppBar>
     <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
         <MudDrawerHeader>
             <MudText Typo="Typo.h6">平台管理</MudText>
         </MudDrawerHeader>
-        <NavMenu />
+        <NavMenu/>
     </MudDrawer>
     <MudMainContent>
         <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="my-4 pt-4">
@@ -33,8 +34,11 @@
 @code {
     private bool _drawerOpen = true;
 
+    private string AppVersion => $"v{System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.0.0"}";
+
     private void DrawerToggle()
     {
         _drawerOpen = !_drawerOpen;
     }
+
 }

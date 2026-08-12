@@ -22,12 +22,8 @@ CDYC 数据采集平台是一个基于 **.NET 10** 构建的数据采集与监�
 ```text
 ├── DAP.Core.Domain                 # 核心层：领域实体、业务接口规范
 ├── DAP.Core.Shared                 # 核心层：共享数据契约 (Contracts / DTOs)
-├── DAP.Infrastructure.DataAccess   # 基础设施：基于 EF Core & Dapper 的 PGSQL 数据库访问
-├── DAP.Infrastructure.Redis        # 基础设施：Redis 分布式缓存实现
-├── DAP.Infrastructure.TimeSeries   # 基础设施：时序数据库集成 (用于海量采集数据存储)
-├── DAP.Collectors.CollectorBase    # 采集引擎：核心采集基类抽象
-├── DAP.Collectors.Modbus           # 采集引擎：Modbus 协议支持
-├── DAP.Collectors.Mqtt             # 采集引擎：MQTT 协议支持
+├── DAP.Infrastructure              # 基础设施：包含 PGSQL 数据库访问、Redis 缓存与时序数据库集成
+├── DAP.Collectors                  # 采集引擎：包含核心采集基类抽象及 Modbus、MQTT 协议支持
 ├── DAP.Proxies.OpcDaProxy          # 代理服务：OPC DA 采集代理 Worker
 ├── DAP.Presentation.BlazorWeb      # 展示层：Blazor Web 服务端与 API 宿主 (Endpoints)
 ├── DAP.Presentation.BlazorWeb.Client # 展示层：Blazor WebAssembly 客户端

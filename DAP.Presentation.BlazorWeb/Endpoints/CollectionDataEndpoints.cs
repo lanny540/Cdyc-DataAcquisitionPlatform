@@ -15,29 +15,33 @@ public static class CollectionDataEndpoints
     /// <returns>当前端点路由构建器。</returns>
     public static IEndpointRouteBuilder MapCollectionDataEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var dataGroup = endpoints.MapGroup("/api/collection-data").WithTags("CollectionData");
+        RouteGroupBuilder dataGroup = endpoints.MapGroup("/api/collection-data").WithTags("CollectionData");
         dataGroup.MapGet(
-            "/",
-            async (int? limit, IDataAcquisitionPlatformService platformService, CancellationToken cancellationToken) =>
-            {
-                var records = await platformService.GetCollectionDataAsync(limit ?? 20, cancellationToken);
-                return Results.Ok(records);
-            })
+                "/",
+                async (int? limit, IDataAcquisitionPlatformService platformService,
+                    CancellationToken cancellationToken) =>
+                {
+                    IReadOnlyCollection<CollectionDataRecordDto> records =
+                        await platformService.GetCollectionDataAsync(limit ?? 20, cancellationToken);
+                    return Results.Ok(records);
+                })
             .WithName("GetCollectionData");
 
         dataGroup.MapPost(
-            "/ingest",
-            async (IngestCollectionDataRequest request, IDataAcquisitionPlatformService platformService, CancellationToken cancellationToken) =>
-            {
-                var validationError = ValidateIngestCollectionDataRequest(request);
-                if (validationError is not null)
+                "/ingest",
+                async (IngestCollectionDataRequest request, IDataAcquisitionPlatformService platformService,
+                    CancellationToken cancellationToken) =>
                 {
-                    return validationError;
-                }
+                    IResult? validationError = ValidateIngestCollectionDataRequest(request);
+                    if (validationError is not null)
+                    {
+                        return validationError;
+                    }
 
-                var savedRecord = await platformService.IngestCollectionDataAsync(request, cancellationToken);
-                return Results.Ok(savedRecord);
-            })
+                    CollectionDataRecordDto savedRecord =
+                        await platformService.IngestCollectionDataAsync(request, cancellationToken);
+                    return Results.Ok(savedRecord);
+                })
             .WithName("IngestCollectionData");
 
         return endpoints;

@@ -1,11 +1,11 @@
 <Solution>
-  <Project Path="DAP.Core.Domain/DAP.Core.Domain.csproj" />
-  <Project Path="DAP.Core.Shared/DAP.Core.Shared.csproj" />
-  <Project Path="DAP.Infrastructure/DAP.Infrastructure.csproj" />
-  <Project Path="DAP.Collectors/DAP.Collectors.csproj" />
-  <Project Path="DAP.Proxies.OpcDaProxy/DAP.Proxies.OpcDaProxy.csproj" />
-  <Project Path="DAP.Presentation.AvaloniaApp/DAP.Presentation.AvaloniaApp.csproj" />
-  <Project Path="DAP.Presentation.BlazorWeb.Client/DAP.Presentation.BlazorWeb.Client.csproj" />
-  <Project Path="DAP.Presentation.BlazorWeb/DAP.Presentation.BlazorWeb.csproj" />
-  <Project Path="DAP.Tests.UnitTests/DAP.Tests.UnitTests.csproj" />
+    <Project Path="DAP.Core.Domain/DAP.Core.Domain.csproj"/>
+    <Project Path="DAP.Core.Shared/DAP.Core.Shared.csproj"/>
+    <Project Path="DAP.Infrastructure/DAP.Infrastructure.csproj"/>
+    <Project Path="DAP.Collectors/DAP.Collectors.csproj"/>
+    <Project Path="DAP.Proxies.OpcDaProxy/DAP.Proxies.OpcDaProxy.csproj"/>
+    <Project Path="DAP.Presentation.AvaloniaApp/DAP.Presentation.AvaloniaApp.csproj"/>
+    <Project Path="DAP.Presentation.BlazorWeb.Client/DAP.Presentation.BlazorWeb.Client.csproj"/>
+    <Project Path="DAP.Presentation.BlazorWeb/DAP.Presentation.BlazorWeb.csproj"/>
+    <Project Path="DAP.Tests.UnitTests/DAP.Tests.UnitTests.csproj"/>
 </Solution>

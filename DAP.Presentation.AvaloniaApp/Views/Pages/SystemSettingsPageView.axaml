@@ -4,23 +4,23 @@
              x:Class="DAP.Presentation.AvaloniaApp.Views.Pages.SystemSettingsPageView"
              x:DataType="vm:SystemSettingsPageViewModel">
     <Grid RowDefinitions="Auto,*" RowSpacing="18">
-        <Border Background="{DynamicResource SurfaceMutedBrush}"
-                BorderBrush="{DynamicResource SurfaceBorderBrush}"
+        <Border Background="{DynamicResource SemiColorBackground1}"
+                BorderBrush="{DynamicResource SemiColorBorder}"
                 BorderThickness="1"
                 Padding="18">
             <StackPanel Spacing="6">
                 <TextBlock Text="{Binding PageTitle}"
                            FontSize="26"
                            FontWeight="Bold"
-                           Foreground="{DynamicResource PrimaryTextBrush}" />
+                           Foreground="{DynamicResource SemiColorText0}" />
                 <TextBlock Text="{Binding PageDescription}"
-                           Foreground="{DynamicResource SecondaryTextBrush}" />
+                           Foreground="{DynamicResource SemiColorText1}" />
             </StackPanel>
         </Border>
 
         <Grid Grid.Row="1" ColumnDefinitions="1.15*,0.85*" ColumnSpacing="16">
-            <Border Background="{DynamicResource SurfaceMutedBrush}"
-                    BorderBrush="{DynamicResource SurfaceBorderBrush}"
+            <Border Background="{DynamicResource SemiColorBackground1}"
+                    BorderBrush="{DynamicResource SemiColorBorder}"
                     BorderThickness="1"
                     Padding="18">
                 <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="18">
@@ -28,15 +28,15 @@
                         <TextBlock Text="主题与外观"
                                    FontSize="18"
                                    FontWeight="SemiBold"
-                                   Foreground="{DynamicResource PrimaryTextBrush}" />
+                                   Foreground="{DynamicResource SemiColorText0}" />
                         <TextBlock Text="在浅色和深色主题之间切换，实时预览整个应用外观。"
                                    TextWrapping="Wrap"
-                                   Foreground="{DynamicResource SecondaryTextBrush}" />
+                                   Foreground="{DynamicResource SemiColorText1}" />
                     </StackPanel>
 
                     <Border Grid.Row="1"
-                            Background="{DynamicResource ShellSurfaceBrush}"
-                            BorderBrush="{DynamicResource SurfaceBorderBrush}"
+                            Background="{DynamicResource SemiColorBackground0}"
+                            BorderBrush="{DynamicResource SemiColorBorder}"
                             BorderThickness="1"
                             Padding="16">
                         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
@@ -48,79 +48,80 @@
                                         VerticalAlignment="Center"
                                         Spacing="2">
                                 <TextBlock Text="当前主题"
-                                           Foreground="{DynamicResource MutedTextBrush}" />
+                                           Foreground="{DynamicResource SemiColorText2}" />
                                 <TextBlock Text="{Binding ThemeModeText}"
                                            FontWeight="SemiBold"
-                                           Foreground="{DynamicResource PrimaryTextBrush}" />
+                                           Foreground="{DynamicResource SemiColorText0}" />
                             </StackPanel>
                         </Grid>
                     </Border>
 
                     <Border Grid.Row="2"
-                            Background="{DynamicResource ShellSurfaceBrush}"
-                            BorderBrush="{DynamicResource SurfaceBorderBrush}"
+                            Background="{DynamicResource SemiColorBackground0}"
+                            BorderBrush="{DynamicResource SemiColorBorder}"
                             BorderThickness="1"
                             Padding="16">
                         <StackPanel Spacing="8">
                             <TextBlock Text="说明"
                                        FontWeight="SemiBold"
-                                       Foreground="{DynamicResource PrimaryTextBrush}" />
+                                       Foreground="{DynamicResource SemiColorText0}" />
                             <TextBlock Text="主题切换会立即作用于整个客户端窗口，包括主页、采集设置与主导航区域。"
                                        TextWrapping="Wrap"
-                                       Foreground="{DynamicResource SecondaryTextBrush}" />
+                                       Foreground="{DynamicResource SemiColorText1}" />
                         </StackPanel>
                     </Border>
                 </Grid>
             </Border>
 
             <StackPanel Grid.Column="1" Spacing="16">
-                <Border Background="{DynamicResource SurfaceMutedBrush}"
-                        BorderBrush="{DynamicResource SurfaceBorderBrush}"
+                <Border Background="{DynamicResource SemiColorBackground1}"
+                        BorderBrush="{DynamicResource SemiColorBorder}"
                         BorderThickness="1"
                         Padding="18">
                     <StackPanel Spacing="10">
                         <TextBlock Text="应用信息"
                                    FontSize="18"
                                    FontWeight="SemiBold"
-                                   Foreground="{DynamicResource PrimaryTextBrush}" />
-                        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                                   Foreground="{DynamicResource SemiColorText0}" />
+                        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10"
+                              RowSpacing="10">
                             <TextBlock Text="名称"
-                                       Foreground="{DynamicResource MutedTextBrush}" />
+                                       Foreground="{DynamicResource SemiColorText2}" />
                             <TextBlock Grid.Column="1"
                                        Text="{Binding AppName}"
-                                       Foreground="{DynamicResource PrimaryTextBrush}" />
+                                       Foreground="{DynamicResource SemiColorText0}" />
 
                             <TextBlock Grid.Row="1"
                                        Text="版本"
-                                       Foreground="{DynamicResource MutedTextBrush}" />
+                                       Foreground="{DynamicResource SemiColorText2}" />
                             <TextBlock Grid.Row="1"
                                        Grid.Column="1"
                                        Text="{Binding AppVersion}"
-                                       Foreground="{DynamicResource PrimaryTextBrush}" />
+                                       Foreground="{DynamicResource SemiColorText0}" />
 
                             <TextBlock Grid.Row="2"
                                        Text="技术栈"
-                                       Foreground="{DynamicResource MutedTextBrush}" />
+                                       Foreground="{DynamicResource SemiColorText2}" />
                             <TextBlock Grid.Row="2"
                                        Grid.Column="1"
                                        Text="{Binding BuildDescription}"
-                                       Foreground="{DynamicResource PrimaryTextBrush}" />
+                                       Foreground="{DynamicResource SemiColorText0}" />
                         </Grid>
                     </StackPanel>
                 </Border>
 
-                <Border Background="{DynamicResource SurfaceMutedBrush}"
-                        BorderBrush="{DynamicResource SurfaceBorderBrush}"
+                <Border Background="{DynamicResource SemiColorBackground1}"
+                        BorderBrush="{DynamicResource SemiColorBorder}"
                         BorderThickness="1"
                         Padding="18">
                     <StackPanel Spacing="10">
                         <TextBlock Text="版权信息"
                                    FontSize="18"
                                    FontWeight="SemiBold"
-                                   Foreground="{DynamicResource PrimaryTextBrush}" />
+                                   Foreground="{DynamicResource SemiColorText0}" />
                         <TextBlock Text="{Binding Copyright}"
                                    TextWrapping="Wrap"
-                                   Foreground="{DynamicResource SecondaryTextBrush}" />
+                                   Foreground="{DynamicResource SemiColorText1}" />
                     </StackPanel>
                 </Border>
             </StackPanel>

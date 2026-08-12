@@ -19,7 +19,8 @@ public interface IDataAcquisitionPlatformService
     /// </summary>
     /// <param name="cancellationToken">取消令牌。</param>
     /// <returns>采集点集合。</returns>
-    Task<IReadOnlyCollection<CollectionPointDto>> GetCollectionPointsAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyCollection<CollectionPointDto>> GetCollectionPointsAsync(
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 新增或更新采集点配置。

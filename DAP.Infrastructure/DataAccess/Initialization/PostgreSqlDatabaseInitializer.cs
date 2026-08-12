@@ -67,17 +67,18 @@ public sealed class PostgreSqlDatabaseInitializer
         }
 
         var quotedDatabaseName = "\"" + targetDatabase.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"";
-        await using var createDatabaseCommand = new NpgsqlCommand($"CREATE DATABASE {quotedDatabaseName};", adminConnection);
+        await using var createDatabaseCommand =
+            new NpgsqlCommand($"CREATE DATABASE {quotedDatabaseName};", adminConnection);
         await createDatabaseCommand.ExecuteNonQueryAsync(cancellationToken);
     }
 
     private async Task SeedAsync(CancellationToken cancellationToken)
     {
-        var seedPoints = CreateSeedPoints();
+        CollectionPoint[] seedPoints = CreateSeedPoints();
 
-        foreach (var seedPoint in seedPoints)
+        foreach (CollectionPoint seedPoint in seedPoints)
         {
-            var existingPoint = await _dbContext.CollectionPoints
+            CollectionPoint? existingPoint = await _dbContext.CollectionPoints
                 .FirstOrDefaultAsync(item => item.Code == seedPoint.Code, cancellationToken);
 
             if (existingPoint is null)
@@ -104,16 +105,21 @@ public sealed class PostgreSqlDatabaseInitializer
             return;
         }
 
-        var pointsByCode = await _dbContext.CollectionPoints
+        Dictionary<string, CollectionPoint> pointsByCode = await _dbContext.CollectionPoints
             .ToDictionaryAsync(item => item.Code, cancellationToken);
 
         await _dbContext.CollectionDataRecords.AddRangeAsync(
         [
-            CreateSeedRecord(Guid.Parse("67da3e77-d8b7-4427-b6fd-dcb0184db001"), pointsByCode["MB-01"], "温度", 83.6000m, "°C", 3),
-            CreateSeedRecord(Guid.Parse("67da3e77-d8b7-4427-b6fd-dcb0184db002"), pointsByCode["MB-01"], "温度", 82.9000m, "°C", 8),
-            CreateSeedRecord(Guid.Parse("67da3e77-d8b7-4427-b6fd-dcb0184db003"), pointsByCode["MQ-02"], "湿度", 46.2000m, "%", 4),
-            CreateSeedRecord(Guid.Parse("67da3e77-d8b7-4427-b6fd-dcb0184db004"), pointsByCode["MQ-02"], "湿度", 45.6000m, "%", 11),
-            CreateSeedRecord(Guid.Parse("67da3e77-d8b7-4427-b6fd-dcb0184db005"), pointsByCode["OPC-03"], "压力", 0.7100m, "MPa", 37)
+            CreateSeedRecord(Guid.Parse("67da3e77-d8b7-4427-b6fd-dcb0184db001"), pointsByCode["MB-01"], "温度", 83.6000m,
+                "°C", 3),
+            CreateSeedRecord(Guid.Parse("67da3e77-d8b7-4427-b6fd-dcb0184db002"), pointsByCode["MB-01"], "温度", 82.9000m,
+                "°C", 8),
+            CreateSeedRecord(Guid.Parse("67da3e77-d8b7-4427-b6fd-dcb0184db003"), pointsByCode["MQ-02"], "湿度", 46.2000m,
+                "%", 4),
+            CreateSeedRecord(Guid.Parse("67da3e77-d8b7-4427-b6fd-dcb0184db004"), pointsByCode["MQ-02"], "湿度", 45.6000m,
+                "%", 11),
+            CreateSeedRecord(Guid.Parse("67da3e77-d8b7-4427-b6fd-dcb0184db005"), pointsByCode["OPC-03"], "压力", 0.7100m,
+                "MPa", 37)
         ], cancellationToken);
 
         await _dbContext.SaveChangesAsync(cancellationToken);

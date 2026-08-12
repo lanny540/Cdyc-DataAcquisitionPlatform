@@ -46,10 +46,9 @@ public partial class HomePageViewModel : ViewModelBase
 
     [ObservableProperty] private string _statusMessage = "正在等待刷新。";
 
-    public ObservableCollection<SprintLaneModel> SprintLanes { get; } = CreateSprintLanes();
+    public ObservableCollection<SprintLaneModel> SprintLanes { get; } = [];
 
-    public ObservableCollection<MemberAvatarModel> ActiveMembers { get; } =
-        new(CreateMembers());
+    public ObservableCollection<MemberAvatarModel> ActiveMembers { get; } = [];
 
     public ObservableCollection<InspectorMetricModel> InspectorMetrics { get; } = [];
 
@@ -68,12 +67,6 @@ public partial class HomePageViewModel : ViewModelBase
         _platformApiClient = platformApiClient;
         RefreshCommand = new AsyncRelayCommand(LoadAsync);
         SelectTaskCommand = new RelayCommand<SprintTaskCardModel?>(SelectTask);
-
-        AttachTaskCommands();
-        SelectTask(SprintLanes
-            .SelectMany(lane => lane.Tasks)
-            .FirstOrDefault(task => task.Ticket == "DAP-142")
-            ?? SprintLanes.SelectMany(lane => lane.Tasks).FirstOrDefault());
 
         _ = LoadAsync();
     }
@@ -126,6 +119,57 @@ public partial class HomePageViewModel : ViewModelBase
                 LatestRecords.Add(record);
             }
 
+            if (overview?.SprintLanes is not null)
+            {
+                SprintLanes.Clear();
+                foreach (SprintLaneDto laneDto in overview.SprintLanes)
+                {
+                    var lane = new SprintLaneModel
+                    {
+                        Title = laneDto.Title,
+                        Summary = laneDto.Summary,
+                        Tasks = new ObservableCollection<SprintTaskCardModel>(laneDto.Tasks.Select(taskDto =>
+                            new SprintTaskCardModel
+                            {
+                                Title = taskDto.Title,
+                                Description = taskDto.Description,
+                                Stage = taskDto.Stage,
+                                Tag = taskDto.Tag,
+                                TagBackground = taskDto.TagBackground,
+                                TagForeground = taskDto.TagForeground,
+                                Ticket = taskDto.Ticket,
+                                Metric = taskDto.Metric,
+                                AccentBrush = taskDto.AccentBrush,
+                                Progress = taskDto.Progress,
+                                AssigneeInitials = taskDto.AssigneeInitials,
+                                OwnerName = taskDto.OwnerName,
+                                OwnerRole = taskDto.OwnerRole,
+                                InspectorMetrics = taskDto.InspectorMetrics
+                                    .Select(m => new InspectorMetricModel(m.Label, m.Value, m.AccentBrush)).ToList(),
+                                ActivityLogs = taskDto.ActivityLogs
+                                    .Select(a => new ActivityLogModel(a.Time, a.Message, a.AccentBrush)).ToList(),
+                                Command = SelectTaskCommand
+                            }))
+                    };
+                    SprintLanes.Add(lane);
+                }
+
+                // Select the first task by default
+                SelectTask(SprintLanes
+                               .SelectMany(lane => lane.Tasks)
+                               .FirstOrDefault(task => task.Ticket == "DAP-142")
+                           ?? SprintLanes.SelectMany(lane => lane.Tasks).FirstOrDefault());
+            }
+
+            if (overview?.ActiveMembers is not null)
+            {
+                ActiveMembers.Clear();
+                foreach (MemberAvatarDto memberDto in overview.ActiveMembers)
+                {
+                    ActiveMembers.Add(new MemberAvatarModel(memberDto.Initials, memberDto.AccentBrush));
+                }
+            }
+
             StatusMessage = $"最近刷新时间：{DateTime.Now:yyyy-MM-dd HH:mm:ss}";
         }
         catch (Exception ex)
@@ -164,245 +208,6 @@ public partial class HomePageViewModel : ViewModelBase
             target.Add(item);
         }
     }
-
-    private static ObservableCollection<SprintLaneModel> CreateSprintLanes()
-    {
-        return new ObservableCollection<SprintLaneModel>
-        {
-            new()
-            {
-                Title = "TO DO",
-                Summary = "待确认 04",
-                Tasks =
-                [
-                    new SprintTaskCardModel
-                    {
-                        Title = "统一边缘网关采样节拍与缓存写入策略",
-                        Description = "统一边缘网关的轮询周期、缓存窗口和异常回退策略，减少波峰时段的数据抖动。",
-                        Stage = "To do",
-                        Tag = "Planning",
-                        TagBackground = "#E9EEFF",
-                        TagForeground = "#4F46E5",
-                        Ticket = "DAP-101",
-                        Metric = "3 项依赖",
-                        AccentBrush = "#4F46E5",
-                        Progress = 24,
-                        AssigneeInitials = "LY",
-                        OwnerName = "Lyn",
-                        OwnerRole = "边缘采集方案评估",
-                        InspectorMetrics =
-                        [
-                            new InspectorMetricModel("刷新周期", "30 min", "#4F46E5"),
-                            new InspectorMetricModel("依赖模块", "03", "#4F46E5"),
-                            new InspectorMetricModel("阻塞项", "02", "#EF5A6F")
-                        ],
-                        ActivityLogs =
-                        [
-                            new ActivityLogModel("09:05", "完成采样频率调整方案草图", "#4F46E5"),
-                            new ActivityLogModel("09:42", "补充缓存落盘异常处理边界", "#14B8A6"),
-                            new ActivityLogModel("10:16", "等待平台接口约束确认", "#F59E0B")
-                        ]
-                    },
-                    new SprintTaskCardModel
-                    {
-                        Title = "清理历史采集模板并补齐站点映射字段",
-                        Description = "整理旧模板中的无效字段，补齐采集点与站点映射的缺失信息，为后续迁移做准备。",
-                        Stage = "To do",
-                        Tag = "Backlog",
-                        TagBackground = "#EEF2FF",
-                        TagForeground = "#475569",
-                        Ticket = "DAP-117",
-                        Metric = "5 个字段",
-                        AccentBrush = "#94A3B8",
-                        Progress = 18,
-                        AssigneeInitials = "WX",
-                        OwnerName = "Wes",
-                        OwnerRole = "基础数据治理",
-                        InspectorMetrics =
-                        [
-                            new InspectorMetricModel("待清理模板", "12", "#94A3B8"),
-                            new InspectorMetricModel("站点映射", "05", "#14B8A6"),
-                            new InspectorMetricModel("风险项", "01", "#EF5A6F")
-                        ],
-                        ActivityLogs =
-                        [
-                            new ActivityLogModel("08:52", "完成旧模板字段盘点", "#94A3B8"),
-                            new ActivityLogModel("09:37", "补录 5 个站点映射字段", "#14B8A6"),
-                            new ActivityLogModel("10:20", "待业务确认废弃模板清单", "#F59E0B")
-                        ]
-                    }
-                ]
-            },
-            new()
-            {
-                Title = "IN PROGRESS",
-                Summary = "执行中 05",
-                Tasks =
-                [
-                    new SprintTaskCardModel
-                    {
-                        Title = "将客户端仪表盘切换为设计工作台式布局",
-                        Description = "对照参考图重做主工作台，改造导航、卡片层级和右侧 inspector，让信息结构更清晰。",
-                        Stage = "In progress",
-                        Tag = "Design",
-                        TagBackground = "#E7FAF7",
-                        TagForeground = "#0F766E",
-                        Ticket = "DAP-142",
-                        Metric = "68% 完成",
-                        AccentBrush = "#14B8A6",
-                        Progress = 68,
-                        AssigneeInitials = "RB",
-                        OwnerName = "Robin",
-                        OwnerRole = "体验设计与交互联调",
-                        InspectorMetrics =
-                        [
-                            new InspectorMetricModel("刷新周期", "15 min", "#4F46E5"),
-                            new InspectorMetricModel("同步批次", "03", "#14B8A6"),
-                            new InspectorMetricModel("阻塞项", "01", "#EF5A6F")
-                        ],
-                        ActivityLogs =
-                        [
-                            new ActivityLogModel("09:18", "完成主窗口三栏壳层重构", "#4F46E5"),
-                            new ActivityLogModel("10:02", "为主页补充 mock 任务卡片和详情侧栏", "#14B8A6"),
-                            new ActivityLogModel("10:41", "联动主题切换，校准明暗色板", "#F59E0B")
-                        ]
-                    },
-                    new SprintTaskCardModel
-                    {
-                        Title = "修正断线重连后的本地同步状态展示",
-                        Description = "让断线恢复后的本地同步状态与服务端快照重新对齐，避免界面长时间显示旧状态。",
-                        Stage = "In progress",
-                        Tag = "Refactor",
-                        TagBackground = "#FFF4DB",
-                        TagForeground = "#B45309",
-                        Ticket = "DAP-138",
-                        Metric = "2 个分支",
-                        AccentBrush = "#F59E0B",
-                        Progress = 52,
-                        AssigneeInitials = "ST",
-                        OwnerName = "Stewie",
-                        OwnerRole = "同步状态修正",
-                        InspectorMetrics =
-                        [
-                            new InspectorMetricModel("待对齐状态", "07", "#F59E0B"),
-                            new InspectorMetricModel("回归用例", "04", "#14B8A6"),
-                            new InspectorMetricModel("异常节点", "02", "#EF5A6F")
-                        ],
-                        ActivityLogs =
-                        [
-                            new ActivityLogModel("09:28", "定位断线恢复后的状态残留问题", "#F59E0B"),
-                            new ActivityLogModel("09:55", "补充本地状态覆盖逻辑", "#14B8A6"),
-                            new ActivityLogModel("10:32", "准备回归断线恢复链路", "#4F46E5")
-                        ]
-                    },
-                    new SprintTaskCardModel
-                    {
-                        Title = "下发 Modbus TCP 采集模板到新工位",
-                        Description = "将新建工位所需的 Modbus TCP 模板参数打包下发，并验证首轮采集是否稳定。",
-                        Stage = "In progress",
-                        Tag = "Deploy",
-                        TagBackground = "#FFE8EC",
-                        TagForeground = "#BE123C",
-                        Ticket = "DAP-145",
-                        Metric = "1 台设备",
-                        AccentBrush = "#EF5A6F",
-                        Progress = 41,
-                        AssigneeInitials = "QH",
-                        OwnerName = "Qin",
-                        OwnerRole = "工位上线准备",
-                        InspectorMetrics =
-                        [
-                            new InspectorMetricModel("目标工位", "01", "#EF5A6F"),
-                            new InspectorMetricModel("已校验寄存器", "08", "#14B8A6"),
-                            new InspectorMetricModel("告警项", "01", "#F59E0B")
-                        ],
-                        ActivityLogs =
-                        [
-                            new ActivityLogModel("08:47", "完成模板参数包导出", "#EF5A6F"),
-                            new ActivityLogModel("09:40", "校验寄存器映射前 8 项", "#14B8A6"),
-                            new ActivityLogModel("10:26", "等待现场设备重启确认", "#F59E0B")
-                        ]
-                    }
-                ]
-            },
-            new()
-            {
-                Title = "REVIEW",
-                Summary = "待验收 03",
-                Tasks =
-                [
-                    new SprintTaskCardModel
-                    {
-                        Title = "补齐服务端总览接口的空值与降级处理",
-                        Description = "完善服务端总览接口的空值保护和异常降级，保证桌面端在网络抖动时仍能稳定显示。",
-                        Stage = "Review",
-                        Tag = "API",
-                        TagBackground = "#E8F1FF",
-                        TagForeground = "#1D4ED8",
-                        Ticket = "DAP-133",
-                        Metric = "待联调",
-                        AccentBrush = "#3B82F6",
-                        Progress = 88,
-                        AssigneeInitials = "AN",
-                        OwnerName = "Anne",
-                        OwnerRole = "接口稳定性校验",
-                        InspectorMetrics =
-                        [
-                            new InspectorMetricModel("异常分支", "06", "#3B82F6"),
-                            new InspectorMetricModel("降级场景", "03", "#14B8A6"),
-                            new InspectorMetricModel("待确认", "01", "#F59E0B")
-                        ],
-                        ActivityLogs =
-                        [
-                            new ActivityLogModel("09:11", "补齐 LatestRecords 空集合降级", "#3B82F6"),
-                            new ActivityLogModel("09:58", "增加接口失败提示文案", "#14B8A6"),
-                            new ActivityLogModel("10:44", "等待桌面端联调验证", "#F59E0B")
-                        ]
-                    },
-                    new SprintTaskCardModel
-                    {
-                        Title = "验证本地 SQLite 同步结果与服务端快照一致性",
-                        Description = "对比本地 SQLite 与服务端采集点快照，校验同步后字段与状态是否完全一致。",
-                        Stage = "Review",
-                        Tag = "QA",
-                        TagBackground = "#F3E8FF",
-                        TagForeground = "#7E22CE",
-                        Ticket = "DAP-136",
-                        Metric = "6 条用例",
-                        AccentBrush = "#8B5CF6",
-                        Progress = 79,
-                        AssigneeInitials = "MK",
-                        OwnerName = "Mika",
-                        OwnerRole = "同步一致性验证",
-                        InspectorMetrics =
-                        [
-                            new InspectorMetricModel("回归用例", "06", "#8B5CF6"),
-                            new InspectorMetricModel("通过率", "83%", "#14B8A6"),
-                            new InspectorMetricModel("待复核", "01", "#F59E0B")
-                        ],
-                        ActivityLogs =
-                        [
-                            new ActivityLogModel("08:58", "完成本地与服务端字段映射核对", "#8B5CF6"),
-                            new ActivityLogModel("09:49", "发现 1 条同步状态延迟", "#F59E0B"),
-                            new ActivityLogModel("10:35", "回归验证 5 条用例通过", "#14B8A6")
-                        ]
-                    }
-                ]
-            }
-        };
-    }
-
-    private static IReadOnlyList<MemberAvatarModel> CreateMembers()
-    {
-        return
-        [
-            new MemberAvatarModel("LY", "#4F46E5"),
-            new MemberAvatarModel("RB", "#14B8A6"),
-            new MemberAvatarModel("ST", "#F59E0B"),
-            new MemberAvatarModel("MK", "#8B5CF6")
-        ];
-    }
-
 }
 
 public sealed class SprintLaneModel

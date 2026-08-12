@@ -8,7 +8,7 @@
 <MudPaper Class="pa-8 mx-auto" Style="max-width: 760px;">
     <MudStack Spacing="3">
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-            <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Color="Color.Error" Size="Size.Large" />
+            <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Color="Color.Error" Size="Size.Large"/>
             <MudStack Spacing="0">
                 <MudText Typo="Typo.h4">系统发生异常</MudText>
                 <MudText Typo="Typo.body1" Color="Color.Secondary">
@@ -24,7 +24,7 @@
             </MudAlert>
         }
 
-        <MudDivider />
+        <MudDivider/>
 
         <MudText Typo="Typo.h6">开发环境说明</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
@@ -37,12 +37,14 @@
 </MudPaper>
 
 @code{
-    [CascadingParameter]
-    private HttpContext? HttpContext { get; set; }
+    [CascadingParameter] private HttpContext? HttpContext { get; set; }
 
     private string? RequestId { get; set; }
     private bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
 
-    protected override void OnInitialized() =>
+    protected override void OnInitialized()
+    {
         RequestId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
+    }
+
 }

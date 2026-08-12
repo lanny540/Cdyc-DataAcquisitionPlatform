@@ -13,7 +13,7 @@ public class UnitTest1
     {
         var service = new InMemoryDataAcquisitionPlatformService();
 
-        var result = await service.UpsertCollectionPointAsync(new CollectionPointUpsertRequest(
+        CollectionPointDto result = await service.UpsertCollectionPointAsync(new CollectionPointUpsertRequest(
             null,
             "MB-99",
             "新增测试点",
@@ -22,7 +22,7 @@ public class UnitTest1
             true,
             "Server"));
 
-        var points = await service.GetCollectionPointsAsync();
+        IReadOnlyCollection<CollectionPointDto> points = await service.GetCollectionPointsAsync();
 
         Assert.Contains(points, item => item.Code == result.Code && item.Name == "新增测试点");
     }
@@ -41,8 +41,9 @@ public class UnitTest1
             "待同步",
             DateTimeOffset.UtcNow);
 
-        var response = await service.SyncLocalCollectionPointsAsync(new SyncCollectionPointsRequest([localPoint]));
-        var points = await service.GetCollectionPointsAsync();
+        SyncCollectionPointsResponse response =
+            await service.SyncLocalCollectionPointsAsync(new SyncCollectionPointsRequest([localPoint]));
+        IReadOnlyCollection<CollectionPointDto> points = await service.GetCollectionPointsAsync();
 
         Assert.Equal(1, response.CreatedCount);
         Assert.Contains(points, item => item.Code == "SYNC-01" && item.Source == "Local");
@@ -52,7 +53,7 @@ public class UnitTest1
     public async Task DeleteCollectionPointAsync_ShouldRemoveExistingPoint()
     {
         var service = new InMemoryDataAcquisitionPlatformService();
-        var savedPoint = await service.UpsertCollectionPointAsync(new CollectionPointUpsertRequest(
+        CollectionPointDto savedPoint = await service.UpsertCollectionPointAsync(new CollectionPointUpsertRequest(
             null,
             "DELETE-01",
             "待删除点位",
@@ -62,7 +63,7 @@ public class UnitTest1
             "Server"));
 
         var deleted = await service.DeleteCollectionPointAsync(savedPoint.Id);
-        var points = await service.GetCollectionPointsAsync();
+        IReadOnlyCollection<CollectionPointDto> points = await service.GetCollectionPointsAsync();
 
         Assert.True(deleted);
         Assert.DoesNotContain(points, item => item.Id == savedPoint.Id);

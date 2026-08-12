@@ -1,0 +1,60 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:DAP.Presentation.AvaloniaApp.ViewModels.Pages"
+             x:Class="DAP.Presentation.AvaloniaApp.Views.Pages.MonitorPageView"
+             x:DataType="vm:MonitorPageViewModel">
+    <Grid RowDefinitions="Auto,*" RowSpacing="18">
+        <!-- 加载动画 -->
+        <ProgressBar IsIndeterminate="True"
+                     IsVisible="{Binding IsLoading}"
+                     VerticalAlignment="Top"
+                     HorizontalAlignment="Stretch"
+                     Height="4"
+                     Foreground="{DynamicResource SemiColorText0}"
+                     Grid.RowSpan="2"
+                     ZIndex="99" />
+
+        <Border Background="{DynamicResource SemiColorBackground1}"
+                BorderBrush="{DynamicResource SemiColorBorder}"
+                BorderThickness="1"
+                Padding="18">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="实时数据监控"
+                               FontSize="26"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource SemiColorText0}" />
+                    <TextBlock Text="{Binding StatusMessage}"
+                               Foreground="{DynamicResource SemiColorText1}" />
+                </StackPanel>
+                <Button Grid.Column="1"
+                        Content="刷新数据"
+                        Command="{Binding RefreshCommand}"
+                        VerticalAlignment="Center"
+                        Classes="Primary" />
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1"
+                Background="{DynamicResource SemiColorBackground1}"
+                BorderBrush="{DynamicResource SemiColorBorder}"
+                BorderThickness="1">
+            <DataGrid ItemsSource="{Binding CollectionData}"
+                      IsReadOnly="True"
+                      GridLinesVisibility="All"
+                      BorderThickness="0"
+                      Background="Transparent">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="采集点编码" Binding="{Binding CollectionPointCode}" Width="*" />
+                    <DataGridTextColumn Header="采集点名称" Binding="{Binding CollectionPointName}" Width="1.5*" />
+                    <DataGridTextColumn Header="指标名称" Binding="{Binding MetricName}" Width="*" />
+                    <DataGridTextColumn Header="值" Binding="{Binding Value}" Width="*" />
+                    <DataGridTextColumn Header="单位" Binding="{Binding Unit}" Width="*" />
+                    <DataGridTextColumn Header="采集时间"
+                                        Binding="{Binding CollectedAt, StringFormat='yyyy-MM-dd HH:mm:ss'}"
+                                        Width="1.5*" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+    </Grid>
+</UserControl>

@@ -56,6 +56,7 @@ public partial class App : Application
 
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<ViewModels.Pages.HomePageViewModel>();
+        services.AddTransient<ViewModels.Pages.MonitorPageViewModel>();
         services.AddTransient<ViewModels.Pages.SettingsPageViewModel>();
         services.AddTransient<ViewModels.Pages.SystemSettingsPageViewModel>();
 

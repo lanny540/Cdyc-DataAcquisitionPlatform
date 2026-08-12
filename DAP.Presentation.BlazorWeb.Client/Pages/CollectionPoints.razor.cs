@@ -10,8 +10,7 @@ namespace DAP.Presentation.BlazorWeb.Client.Pages;
 /// </summary>
 public partial class CollectionPoints
 {
-    [Inject]
-    private IPlatformApiClient PlatformApiClient { get; set; } = default!;
+    [Inject] private IPlatformApiClient PlatformApiClient { get; set; } = default!;
 
     private readonly List<CollectionPointDto> _collectionPoints = [];
     private Guid? _editingId;
@@ -30,7 +29,8 @@ public partial class CollectionPoints
 
     private int EnabledCollectionPointCount => _collectionPoints.Count(point => point.IsEnabled);
 
-    private int OnlineCollectionPointCount => _collectionPoints.Count(point => string.Equals(point.CommunicationStatus, "在线", StringComparison.Ordinal));
+    private int OnlineCollectionPointCount => _collectionPoints.Count(point =>
+        string.Equals(point.CommunicationStatus, "在线", StringComparison.Ordinal));
 
     private string EditorTitle => _editingId.HasValue ? "编辑采集点" : "新增采集点";
 
@@ -141,7 +141,7 @@ public partial class CollectionPoints
             return;
         }
 
-        var point = _pendingDeletePoint;
+        CollectionPointDto point = _pendingDeletePoint;
         _isDeleting = true;
 
         try

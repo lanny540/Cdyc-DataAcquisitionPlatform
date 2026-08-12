@@ -9,6 +9,7 @@ namespace DAP.Tests.UnitTests.TestDoubles;
 internal sealed class InMemoryDataAcquisitionPlatformService : IDataAcquisitionPlatformService
 {
     private readonly Lock _syncRoot = new();
+
     private readonly List<CollectionPointDto> _collectionPoints =
     [
         new(
@@ -40,11 +41,13 @@ internal sealed class InMemoryDataAcquisitionPlatformService : IDataAcquisitionP
         }
     }
 
-    public Task<IReadOnlyCollection<CollectionPointDto>> GetCollectionPointsAsync(CancellationToken cancellationToken = default)
+    public Task<IReadOnlyCollection<CollectionPointDto>> GetCollectionPointsAsync(
+        CancellationToken cancellationToken = default)
     {
         lock (_syncRoot)
         {
-            return Task.FromResult<IReadOnlyCollection<CollectionPointDto>>(_collectionPoints.OrderBy(item => item.Code).ToArray());
+            return Task.FromResult<IReadOnlyCollection<CollectionPointDto>>(_collectionPoints.OrderBy(item => item.Code)
+                .ToArray());
         }
     }
 
@@ -55,9 +58,10 @@ internal sealed class InMemoryDataAcquisitionPlatformService : IDataAcquisitionP
         lock (_syncRoot)
         {
             var normalizedCode = request.Code.Trim().ToUpperInvariant();
-            var existingPoint = request.Id.HasValue
+            CollectionPointDto? existingPoint = request.Id.HasValue
                 ? _collectionPoints.FirstOrDefault(item => item.Id == request.Id.Value)
-                : _collectionPoints.FirstOrDefault(item => item.Code.Equals(normalizedCode, StringComparison.OrdinalIgnoreCase));
+                : _collectionPoints.FirstOrDefault(item =>
+                    item.Code.Equals(normalizedCode, StringComparison.OrdinalIgnoreCase));
 
             var savedPoint = new CollectionPointDto(
                 existingPoint?.Id ?? request.Id ?? Guid.NewGuid(),
@@ -66,7 +70,9 @@ internal sealed class InMemoryDataAcquisitionPlatformService : IDataAcquisitionP
                 request.Protocol.Trim(),
                 request.Endpoint.Trim(),
                 request.IsEnabled,
-                request.IsEnabled ? existingPoint?.CommunicationStatus is "在线" or "离线" ? existingPoint.CommunicationStatus : "在线" : "停用",
+                request.IsEnabled
+                    ? existingPoint?.CommunicationStatus is "在线" or "离线" ? existingPoint.CommunicationStatus : "在线"
+                    : "停用",
                 string.IsNullOrWhiteSpace(request.Source) ? "Server" : request.Source.Trim(),
                 existingPoint?.LastError,
                 DateTimeOffset.UtcNow);
@@ -89,7 +95,7 @@ internal sealed class InMemoryDataAcquisitionPlatformService : IDataAcquisitionP
     {
         lock (_syncRoot)
         {
-            var existingPoint = _collectionPoints.FirstOrDefault(item => item.Id == id);
+            CollectionPointDto? existingPoint = _collectionPoints.FirstOrDefault(item => item.Id == id);
             if (existingPoint is null)
             {
                 return Task.FromResult(false);
@@ -118,7 +124,8 @@ internal sealed class InMemoryDataAcquisitionPlatformService : IDataAcquisitionP
     {
         lock (_syncRoot)
         {
-            var point = _collectionPoints.FirstOrDefault(item => item.Code.Equals(request.CollectionPointCode.Trim(), StringComparison.OrdinalIgnoreCase));
+            CollectionPointDto? point = _collectionPoints.FirstOrDefault(item =>
+                item.Code.Equals(request.CollectionPointCode.Trim(), StringComparison.OrdinalIgnoreCase));
             if (point is null)
             {
                 point = new CollectionPointDto(
@@ -161,10 +168,10 @@ internal sealed class InMemoryDataAcquisitionPlatformService : IDataAcquisitionP
             var updatedCount = 0;
             var syncedIds = new List<Guid>();
 
-            foreach (var localPoint in request.Points)
+            foreach (LocalCollectionPointDto localPoint in request.Points)
             {
                 var normalizedCode = localPoint.Code.Trim().ToUpperInvariant();
-                var existingPoint = _collectionPoints.FirstOrDefault(item =>
+                CollectionPointDto? existingPoint = _collectionPoints.FirstOrDefault(item =>
                     item.Code.Equals(normalizedCode, StringComparison.OrdinalIgnoreCase));
 
                 var savedPoint = new CollectionPointDto(
@@ -174,7 +181,9 @@ internal sealed class InMemoryDataAcquisitionPlatformService : IDataAcquisitionP
                     localPoint.Protocol.Trim(),
                     localPoint.Endpoint.Trim(),
                     localPoint.IsEnabled,
-                    localPoint.IsEnabled ? existingPoint?.CommunicationStatus is "在线" or "离线" ? existingPoint.CommunicationStatus : "在线" : "停用",
+                    localPoint.IsEnabled
+                        ? existingPoint?.CommunicationStatus is "在线" or "离线" ? existingPoint.CommunicationStatus : "在线"
+                        : "停用",
                     "Local",
                     existingPoint?.LastError,
                     DateTimeOffset.UtcNow);

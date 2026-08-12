@@ -129,10 +129,42 @@ public sealed record SyncCollectionPointsResponse(
 /// <param name="LocalSourcedCollectionPoints">来源于客户端同步的采集点数量。</param>
 /// <param name="LatestRecords">最新采集数据。</param>
 /// <param name="CollectionPoints">采集点状态快照。</param>
+/// <param name="SprintLanes">看板列数据。</param>
+/// <param name="ActiveMembers">活跃成员数据。</param>
 public sealed record DashboardOverviewDto(
     int TotalCollectionPoints,
     int OnlineCollectionPoints,
     int OfflineCollectionPoints,
     int LocalSourcedCollectionPoints,
     IReadOnlyCollection<CollectionDataRecordDto> LatestRecords,
-    IReadOnlyCollection<CollectionPointDto> CollectionPoints);
+    IReadOnlyCollection<CollectionPointDto> CollectionPoints,
+    IReadOnlyCollection<SprintLaneDto>? SprintLanes = null,
+    IReadOnlyCollection<MemberAvatarDto>? ActiveMembers = null);
+
+public sealed record SprintLaneDto(
+    string Title,
+    string Summary,
+    IReadOnlyCollection<SprintTaskCardDto> Tasks);
+
+public sealed record SprintTaskCardDto(
+    string Title,
+    string Description,
+    string Stage,
+    string Tag,
+    string TagBackground,
+    string TagForeground,
+    string Ticket,
+    string Metric,
+    string AccentBrush,
+    int Progress,
+    string AssigneeInitials,
+    string OwnerName,
+    string OwnerRole,
+    IReadOnlyCollection<InspectorMetricDto> InspectorMetrics,
+    IReadOnlyCollection<ActivityLogDto> ActivityLogs);
+
+public sealed record MemberAvatarDto(string Initials, string AccentBrush);
+
+public sealed record InspectorMetricDto(string Label, string Value, string AccentBrush);
+
+public sealed record ActivityLogDto(string Time, string Message, string AccentBrush);
