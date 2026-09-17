@@ -1,5 +1,5 @@
-using DAP.Presentation.BlazorWeb.Endpoints;
 using DAP.Presentation.BlazorWeb.Components.Shell;
+using DAP.Presentation.BlazorWeb.Endpoints;
 using DAP.Presentation.BlazorWeb.Services;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);

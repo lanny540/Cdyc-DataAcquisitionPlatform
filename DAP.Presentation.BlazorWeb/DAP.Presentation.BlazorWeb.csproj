@@ -12,8 +12,8 @@
     <ProjectReference Include="..\DAP.Core.Domain\DAP.Core.Domain.csproj"/>
     <ProjectReference Include="..\DAP.Core.Shared\DAP.Core.Shared.csproj"/>
     <ProjectReference Include="..\DAP.Infrastructure\DAP.Infrastructure.csproj"/>
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.12" />
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.12"/>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12"/>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="MudBlazor" Version="9.10.0" />
+    <PackageReference Include="MudBlazor" Version="9.10.0"/>
   </ItemGroup>
 
 </Project>

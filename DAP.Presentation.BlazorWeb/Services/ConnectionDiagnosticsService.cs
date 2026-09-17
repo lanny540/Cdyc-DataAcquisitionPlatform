@@ -46,34 +46,19 @@ public sealed class ConnectionDiagnosticsService(
         ManagedDataDefinitionUpsertRequest request,
         CancellationToken cancellationToken = default)
     {
-        string acquisitionType = request.AcquisitionType.Trim();
-        string address = request.ConnectionAddress.Trim();
+        var acquisitionType = request.AcquisitionType.Trim();
+        var address = request.ConnectionAddress.Trim();
 
-        if (string.IsNullOrWhiteSpace(acquisitionType) || string.IsNullOrWhiteSpace(address))
+        ManagedDataConnectionTestResultDto? validationResult = ValidateConnectionTestRequest(acquisitionType, address);
+        if (validationResult is not null)
         {
-            return new ManagedDataConnectionTestResultDto(
-                acquisitionType,
-                address,
-                false,
-                "采集方式和连接地址不能为空。",
-                DateTimeOffset.UtcNow,
-                "参数不完整。");
+            return validationResult;
         }
 
-        if (string.Equals(acquisitionType, "Modbus", StringComparison.OrdinalIgnoreCase))
+        validationResult = ValidateModbusConnectionTestRequest(request, acquisitionType, address);
+        if (validationResult is not null)
         {
-            Dictionary<string, string> configuration = ParseJsonDictionary(request.ConfigurationJson);
-            string variant = GetValueOrDefault(configuration, "protocolVariant", "RTU");
-            if (string.Equals(variant, "RTU", StringComparison.OrdinalIgnoreCase))
-            {
-                return new ManagedDataConnectionTestResultDto(
-                    acquisitionType,
-                    address,
-                    false,
-                    "当前仅支持基于网络地址的连接测试，Modbus RTU 串口连接暂不支持在 Web 端自动探测。",
-                    DateTimeOffset.UtcNow,
-                    "不支持串口自动探测。");
-            }
+            return validationResult;
         }
 
         ConnectionProbeResult probeResult = await ProbeAddressAsync(address, cancellationToken);
@@ -88,8 +73,8 @@ public sealed class ConnectionDiagnosticsService(
 
     private async Task<ServerConnectionStatusDto> GetHistoryApiStatusAsync(CancellationToken cancellationToken)
     {
-        string address = _historyApiOptions.BaseAddress.Trim();
-        bool credentialsConfigured =
+        var address = _historyApiOptions.BaseAddress.Trim();
+        var credentialsConfigured =
             !string.IsNullOrWhiteSpace(_historyApiOptions.ClientId) &&
             !string.IsNullOrWhiteSpace(_historyApiOptions.ClientSecret);
 
@@ -109,14 +94,7 @@ public sealed class ConnectionDiagnosticsService(
         }
 
         ConnectionProbeResult probeResult = await ProbeAddressAsync(address, cancellationToken);
-        string statusMessage = probeResult.Success
-            ? "服务器网络可达。"
-            : "服务器当前不可达或开发环境无法访问。";
-
-        if (_historyApiOptions.UseMockResponses)
-        {
-            statusMessage += " 当前业务执行仍会走 Mock 响应。";
-        }
+        var statusMessage = BuildHistoryApiStatusMessage(probeResult.Success);
 
         return new ServerConnectionStatusDto(
             "history-api",
@@ -133,14 +111,9 @@ public sealed class ConnectionDiagnosticsService(
 
     private async Task<ConnectionProbeResult> ProbeAddressAsync(string address, CancellationToken cancellationToken)
     {
-        if (!TryResolveEndpoint(address, out string host, out int port, out string normalizedAddress, out string? errorMessage))
+        if (!TryResolveEndpoint(address, out var host, out var port, out var normalizedAddress, out var errorMessage))
         {
-            return new ConnectionProbeResult(
-                false,
-                normalizedAddress,
-                errorMessage ?? "无法解析服务器地址。",
-                DateTimeOffset.UtcNow,
-                errorMessage);
+            return CreateProbeFailureResult(normalizedAddress, errorMessage);
         }
 
         using var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -166,6 +139,68 @@ public sealed class ConnectionDiagnosticsService(
                 DateTimeOffset.UtcNow,
                 ex.Message);
         }
+    }
+
+    private static ManagedDataConnectionTestResultDto? ValidateConnectionTestRequest(
+        string acquisitionType,
+        string address)
+    {
+        return string.IsNullOrWhiteSpace(acquisitionType) || string.IsNullOrWhiteSpace(address)
+            ? new ManagedDataConnectionTestResultDto(
+                acquisitionType,
+                address,
+                false,
+                "采集方式和连接地址不能为空。",
+                DateTimeOffset.UtcNow,
+                "参数不完整。")
+            : null;
+    }
+
+    private static ManagedDataConnectionTestResultDto? ValidateModbusConnectionTestRequest(
+        ManagedDataDefinitionUpsertRequest request,
+        string acquisitionType,
+        string address)
+    {
+        if (!string.Equals(acquisitionType, "Modbus", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        Dictionary<string, string> configuration = ParseJsonDictionary(request.ConfigurationJson);
+        var variant = GetValueOrDefault(configuration, "protocolVariant", "RTU");
+        if (!string.Equals(variant, "RTU", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return new ManagedDataConnectionTestResultDto(
+            acquisitionType,
+            address,
+            false,
+            "当前仅支持基于网络地址的连接测试，Modbus RTU 串口连接暂不支持在 Web 端自动探测。",
+            DateTimeOffset.UtcNow,
+            "不支持串口自动探测。");
+    }
+
+    private string BuildHistoryApiStatusMessage(bool isReachable)
+    {
+        var statusMessage = isReachable
+            ? "服务器网络可达。"
+            : "服务器当前不可达或开发环境无法访问。";
+
+        return _historyApiOptions.UseMockResponses
+            ? $"{statusMessage} 当前业务执行仍会走 Mock 响应。"
+            : statusMessage;
+    }
+
+    private static ConnectionProbeResult CreateProbeFailureResult(string normalizedAddress, string? errorMessage)
+    {
+        return new ConnectionProbeResult(
+            false,
+            normalizedAddress,
+            errorMessage ?? "无法解析服务器地址。",
+            DateTimeOffset.UtcNow,
+            errorMessage);
     }
 
     private static bool TryResolveEndpoint(
@@ -201,8 +236,9 @@ public sealed class ConnectionDiagnosticsService(
             return true;
         }
 
-        string[] segments = normalizedAddress.Split(':', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-        if (segments.Length == 2 && int.TryParse(segments[1], out int parsedPort))
+        var segments =
+            normalizedAddress.Split(':', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length == 2 && int.TryParse(segments[1], out var parsedPort))
         {
             host = segments[0];
             port = parsedPort;
@@ -234,12 +270,14 @@ public sealed class ConnectionDiagnosticsService(
 
         try
         {
-            Dictionary<string, JsonElement>? rawDictionary =
+            var rawDictionary =
                 JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
 
             return rawDictionary?.ToDictionary(
                 item => item.Key,
-                item => item.Value.ValueKind == JsonValueKind.String ? item.Value.GetString() ?? string.Empty : item.Value.ToString(),
+                item => item.Value.ValueKind == JsonValueKind.String
+                    ? item.Value.GetString() ?? string.Empty
+                    : item.Value.ToString(),
                 StringComparer.OrdinalIgnoreCase) ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
         catch
@@ -250,7 +288,7 @@ public sealed class ConnectionDiagnosticsService(
 
     private static string GetValueOrDefault(IReadOnlyDictionary<string, string> dictionary, string key, string fallback)
     {
-        return dictionary.TryGetValue(key, out string? value) && !string.IsNullOrWhiteSpace(value)
+        return dictionary.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value)
             ? value
             : fallback;
     }

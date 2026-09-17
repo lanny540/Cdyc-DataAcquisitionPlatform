@@ -38,11 +38,12 @@ public static class PlatformPresentationServiceCollectionExtensions
         services.AddMemoryCache();
         services.AddOpenApi();
         services.Configure<HistoryApiOptions>(configuration.GetSection(HistoryApiOptions.SectionName));
-        services.Configure<ManagedDataSchedulerOptions>(configuration.GetSection(ManagedDataSchedulerOptions.SectionName));
+        services.Configure<ManagedDataSchedulerOptions>(
+            configuration.GetSection(ManagedDataSchedulerOptions.SectionName));
 
         services.AddHttpClient("HistoryApi", (serviceProvider, client) =>
             {
-                var historyOptions = serviceProvider
+                HistoryApiOptions historyOptions = serviceProvider
                     .GetRequiredService<Microsoft.Extensions.Options.IOptions<HistoryApiOptions>>().Value;
 
                 if (!string.IsNullOrWhiteSpace(historyOptions.BaseAddress))
@@ -54,7 +55,7 @@ public static class PlatformPresentationServiceCollectionExtensions
             })
             .ConfigurePrimaryHttpMessageHandler(serviceProvider =>
             {
-                var historyOptions = serviceProvider
+                HistoryApiOptions historyOptions = serviceProvider
                     .GetRequiredService<Microsoft.Extensions.Options.IOptions<HistoryApiOptions>>().Value;
 
                 return new HttpClientHandler

@@ -156,7 +156,7 @@ internal sealed class InMemoryDataAcquisitionPlatformService : IDataAcquisitionP
                 ? _managedDataDefinitions.FirstOrDefault(item => item.Id == request.Id.Value)
                 : _managedDataDefinitions.FirstOrDefault(item =>
                     item.Code.Equals(normalizedCode, StringComparison.OrdinalIgnoreCase));
-            string? originalCode = existingDefinition?.Code;
+            var originalCode = existingDefinition?.Code;
 
             var savedDefinition = new ManagedDataDefinitionDto(
                 existingDefinition?.Id ?? request.Id ?? Guid.NewGuid(),
@@ -195,7 +195,8 @@ internal sealed class InMemoryDataAcquisitionPlatformService : IDataAcquisitionP
     {
         lock (_syncRoot)
         {
-            ManagedDataDefinitionDto? existingDefinition = _managedDataDefinitions.FirstOrDefault(item => item.Id == id);
+            ManagedDataDefinitionDto? existingDefinition =
+                _managedDataDefinitions.FirstOrDefault(item => item.Id == id);
             if (existingDefinition is null)
             {
                 return Task.FromResult(false);

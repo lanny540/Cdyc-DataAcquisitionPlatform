@@ -34,19 +34,19 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
 
     private IReadOnlyDictionary<string, string> ConfigurationItems =>
         _details is null
-            ? new Dictionary<string, string>()
+            ? []
             : ParseJsonDictionary(_details.Definition.ConfigurationJson);
 
     private IReadOnlyDictionary<string, string> BusinessTagItems =>
         _details is null
-            ? new Dictionary<string, string>()
+            ? []
             : ParseJsonDictionary(_details.Definition.BusinessTagsJson);
 
-    private IReadOnlyList<CollectionDataRecordDto> HistoryTrendRecords =>
+    private CollectionDataRecordDto[] HistoryTrendRecords =>
         _details?.RecentRecords.OrderBy(item => item.CollectedAt).ToArray() ?? [];
 
     private List<ChartSeries<double>> HistoryChartSeries =>
-        HistoryTrendRecords.Count == 0 || _details is null
+        HistoryTrendRecords.Length == 0 || _details is null
             ? []
             :
             [
@@ -61,7 +61,7 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
         HistoryTrendRecords.Select(item => item.CollectedAt.ToLocalTime().ToString("HH:mm:ss")).ToArray();
 
     private bool HasLiveCurrentSnapshot =>
-        _liveCurrentSnapshot is {Success: true, ParsedValue: not null};
+        _liveCurrentSnapshot is { Success: true, ParsedValue: not null };
 
     private string CurrentValueText =>
         HasLiveCurrentSnapshot
@@ -84,15 +84,15 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
     {
         get
         {
-            if (HistoryTrendRecords.Count < 2)
+            if (HistoryTrendRecords.Length < 2)
             {
                 return "历史点位不足，暂无法计算波动趋势。";
             }
 
             CollectionDataRecordDto latest = HistoryTrendRecords[^1];
             CollectionDataRecordDto previous = HistoryTrendRecords[^2];
-            decimal delta = latest.Value - previous.Value;
-            string unit = ResolveUnit(latest.Unit);
+            var delta = latest.Value - previous.Value;
+            var unit = ResolveUnit(latest.Unit);
 
             return delta switch
             {
@@ -107,14 +107,14 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
     {
         get
         {
-            if (HistoryTrendRecords.Count == 0)
+            if (HistoryTrendRecords.Length == 0)
             {
                 return "--";
             }
 
-            decimal min = HistoryTrendRecords.Min(item => item.Value);
-            decimal max = HistoryTrendRecords.Max(item => item.Value);
-            string unit = ResolveUnit(HistoryTrendRecords[^1].Unit);
+            var min = HistoryTrendRecords.Min(item => item.Value);
+            var max = HistoryTrendRecords.Max(item => item.Value);
+            var unit = ResolveUnit(HistoryTrendRecords[^1].Unit);
             return $"{min:0.###} - {max:0.###} {unit}".Trim();
         }
     }
@@ -144,7 +144,7 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
                 return 0;
             }
 
-            int interval = GetRefreshIntervalSeconds();
+            var interval = GetRefreshIntervalSeconds();
             if (_isAutoRefreshing)
             {
                 return 100;
@@ -174,7 +174,7 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
 
             if (_details.Definition.IsEnabled && !HasLiveCurrentSnapshot)
             {
-                await RefreshCurrentValueAsync(setStatusMessage: false, CancellationToken.None);
+                await RefreshCurrentValueAsync(false, CancellationToken.None);
             }
         }
         catch (Exception ex)
@@ -256,7 +256,7 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
             ManagedDataExecutionResultDto result =
                 await PlatformApiClient.DebugReadManagedDataDefinitionAsync(_details.Definition.Id, cancellationToken);
 
-            if (result is {Success: true, ParsedValue: not null})
+            if (result is { Success: true, ParsedValue: not null })
             {
                 _liveCurrentSnapshot = result;
                 _lastExecutionResult = result;
@@ -269,7 +269,9 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
 
             if (setStatusMessage)
             {
-                _message = result.Success ? result.StatusMessage : $"实时刷新失败：{result.ErrorMessage ?? result.StatusMessage}";
+                _message = result.Success
+                    ? result.StatusMessage
+                    : $"实时刷新失败：{result.ErrorMessage ?? result.StatusMessage}";
                 _messageSeverity = result.Success ? Severity.Success : Severity.Warning;
             }
         }
@@ -315,35 +317,53 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
             while (!cancellationToken.IsCancellationRequested)
             {
                 await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
-
-                if (_details is null || !_details.Definition.IsEnabled)
-                {
-                    _secondsUntilNextRefresh = 0;
-                    continue;
-                }
-
-                if (_secondsUntilNextRefresh > 0)
-                {
-                    _secondsUntilNextRefresh--;
-                }
-
-                if (_secondsUntilNextRefresh == 0)
-                {
-                    if (_isLoading || _isExecuting || _isAutoRefreshing)
-                    {
-                        continue;
-                    }
-
-                    await RefreshCurrentValueAsync(setStatusMessage: false, cancellationToken);
-                    ResetCountdown();
-                }
-
+                await ProcessAutoRefreshTickAsync(cancellationToken);
                 await InvokeAsync(StateHasChanged);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
         }
+    }
+
+    private async Task ProcessAutoRefreshTickAsync(CancellationToken cancellationToken)
+    {
+        if (!CanAutoRefresh())
+        {
+            _secondsUntilNextRefresh = 0;
+            return;
+        }
+
+        DecrementRefreshCountdown();
+
+        if (!ShouldRefreshCurrentValue())
+        {
+            return;
+        }
+
+        await RefreshCurrentValueAsync(false, cancellationToken);
+        ResetCountdown();
+    }
+
+    private bool CanAutoRefresh()
+    {
+        return _details is not null && _details.Definition.IsEnabled;
+    }
+
+    private void DecrementRefreshCountdown()
+    {
+        if (_secondsUntilNextRefresh > 0)
+        {
+            _secondsUntilNextRefresh--;
+        }
+    }
+
+    private bool ShouldRefreshCurrentValue()
+    {
+        return _secondsUntilNextRefresh == 0 &&
+               !_isLoading &&
+               !_isExecuting &&
+               !_isAutoRefreshing;
     }
 
     private void StopAutoRefreshLoop()
@@ -378,12 +398,14 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
 
         try
         {
-            Dictionary<string, JsonElement>? rawDictionary =
+            var rawDictionary =
                 JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
 
             return rawDictionary?.ToDictionary(
                 item => item.Key,
-                item => item.Value.ValueKind == JsonValueKind.String ? item.Value.GetString() ?? string.Empty : item.Value.ToString(),
+                item => item.Value.ValueKind == JsonValueKind.String
+                    ? item.Value.GetString() ?? string.Empty
+                    : item.Value.ToString(),
                 StringComparer.OrdinalIgnoreCase) ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
         catch
@@ -461,5 +483,7 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
             {
             }
         }
+
+        GC.SuppressFinalize(this);
     }
 }

@@ -15,10 +15,13 @@ public partial class HistoryApiTest
 
     private string _currentTagNames = "tag001";
     private string _rawTagName = "tag001";
+
     private string _rawStartText = DateTimeOffset.UtcNow.AddHours(-1)
         .ToString("yyyy-MM-ddTHH:mm:ss.fff'Z'", CultureInfo.InvariantCulture);
+
     private string _rawEndText = DateTimeOffset.UtcNow
         .ToString("yyyy-MM-ddTHH:mm:ss.fff'Z'", CultureInfo.InvariantCulture);
+
     private int _rawStartIndex;
     private int _rawCount = 100;
     private bool _isCurrentLoading;

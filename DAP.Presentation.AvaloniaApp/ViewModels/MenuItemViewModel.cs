@@ -1,6 +1,6 @@
 using System.Collections.ObjectModel;
-using CommunityToolkit.Mvvm.ComponentModel;
 using System.Windows.Input;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace DAP.Presentation.AvaloniaApp.ViewModels;
 

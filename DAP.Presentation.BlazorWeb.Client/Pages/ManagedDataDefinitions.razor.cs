@@ -86,8 +86,10 @@ public partial class ManagedDataDefinitions
         .ThenBy(item => item.Code);
 
     private int EnabledDefinitionCount => _definitions.Count(item => item.IsEnabled);
+
     private int HistorianDefinitionCount => _definitions.Count(item =>
         string.Equals(item.AcquisitionType, "Historian API", StringComparison.Ordinal));
+
     private int ModbusDefinitionCount => _definitions.Count(item =>
         string.Equals(item.AcquisitionType, "Modbus", StringComparison.Ordinal));
 
@@ -247,7 +249,7 @@ public partial class ManagedDataDefinitions
 
         try
         {
-            bool deleted = await PlatformApiClient.DeleteManagedDataDefinitionAsync(definition.Id);
+            var deleted = await PlatformApiClient.DeleteManagedDataDefinitionAsync(definition.Id);
             if (!deleted)
             {
                 SetMessage($"后台数据定义 {definition.Code} 不存在或已被删除。", Severity.Warning);
@@ -283,12 +285,12 @@ public partial class ManagedDataDefinitions
 
     private async Task DebugReadAsync(ManagedDataDefinitionDto definition)
     {
-        await ExecuteDefinitionAsync(definition, isCollect: false);
+        await ExecuteDefinitionAsync(definition, false);
     }
 
     private async Task CollectAsync(ManagedDataDefinitionDto definition)
     {
-        await ExecuteDefinitionAsync(definition, isCollect: true);
+        await ExecuteDefinitionAsync(definition, true);
     }
 
     private void OpenDetails(ManagedDataDefinitionDto definition)
@@ -405,8 +407,8 @@ public partial class ManagedDataDefinitions
 
     private ManagedDataDefinitionUpsertRequest? BuildCurrentRequest()
     {
-        string connectionAddress = ResolveConnectionAddress();
-        string identifier = ResolveIdentifier();
+        var connectionAddress = ResolveConnectionAddress();
+        var identifier = ResolveIdentifier();
 
         if (string.IsNullOrWhiteSpace(connectionAddress) || string.IsNullOrWhiteSpace(identifier))
         {
@@ -617,12 +619,14 @@ public partial class ManagedDataDefinitions
 
         try
         {
-            Dictionary<string, JsonElement>? rawDictionary =
+            var rawDictionary =
                 JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
 
             return rawDictionary?.ToDictionary(
                 item => item.Key,
-                item => item.Value.ValueKind == JsonValueKind.String ? item.Value.GetString() ?? string.Empty : item.Value.ToString(),
+                item => item.Value.ValueKind == JsonValueKind.String
+                    ? item.Value.GetString() ?? string.Empty
+                    : item.Value.ToString(),
                 StringComparer.OrdinalIgnoreCase) ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
         catch
@@ -644,7 +648,7 @@ public partial class ManagedDataDefinitions
 
     private static string GetValueOrDefault(IReadOnlyDictionary<string, string> dictionary, string key, string fallback)
     {
-        return dictionary.TryGetValue(key, out string? value) && !string.IsNullOrWhiteSpace(value)
+        return dictionary.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value)
             ? value
             : fallback;
     }

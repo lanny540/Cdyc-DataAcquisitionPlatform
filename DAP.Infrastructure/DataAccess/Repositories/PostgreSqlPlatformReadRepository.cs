@@ -55,11 +55,11 @@ public sealed class PostgreSqlPlatformReadRepository : IPlatformReadRepository
     {
         await using NpgsqlConnection connection = await _dataSource.OpenConnectionAsync(cancellationToken);
 
-        ManagedDataDefinitionReadModel? definition =
+        var definition =
             await connection.QuerySingleOrDefaultAsync<ManagedDataDefinitionReadModel>(
                 new CommandDefinition(
                     PlatformReadSql.ManagedDataDefinitionById,
-                    new { Id = id },
+                    new {Id = id},
                     cancellationToken: cancellationToken));
 
         if (definition is null)
@@ -67,18 +67,18 @@ public sealed class PostgreSqlPlatformReadRepository : IPlatformReadRepository
             return null;
         }
 
-        CollectionPointReadModel? collectionPoint =
+        var collectionPoint =
             await connection.QuerySingleOrDefaultAsync<CollectionPointReadModel>(
                 new CommandDefinition(
                     PlatformReadSql.CollectionPointByCode,
-                    new { Code = definition.Code },
+                    new {Code = definition.Code},
                     cancellationToken: cancellationToken));
 
         IEnumerable<CollectionDataRecordReadModel> records =
             await connection.QueryAsync<CollectionDataRecordReadModel>(
                 new CommandDefinition(
                     PlatformReadSql.CollectionDataByPointCode,
-                    new { Code = definition.Code, Limit = Math.Max(1, historyLimit) },
+                    new {Code = definition.Code, Limit = Math.Max(1, historyLimit)},
                     cancellationToken: cancellationToken));
 
         CollectionDataRecordDto[] recentRecords = records.Select(MapCollectionDataRecord).ToArray();

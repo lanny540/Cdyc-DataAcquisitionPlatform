@@ -1,5 +1,5 @@
-using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using DAP.Presentation.BlazorWeb.Client.Services;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);

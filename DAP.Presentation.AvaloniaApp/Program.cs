@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 
 namespace DAP.Presentation.AvaloniaApp;
 

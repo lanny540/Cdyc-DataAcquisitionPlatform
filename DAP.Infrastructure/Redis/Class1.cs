@@ -1,4 +1,4 @@
-﻿namespace DAP.Infrastructure.Redis;
+namespace DAP.Infrastructure.Redis;
 
 public class Class1
 {

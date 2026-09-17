@@ -81,7 +81,7 @@ public sealed class HistoryApiProxyService(
         string? baseAddressOverride,
         CancellationToken cancellationToken = default)
     {
-        string tagName = request.TagName.Trim();
+        var tagName = request.TagName.Trim();
         var requestUri =
             $"{NormalizePath(_options.RawDataPathPrefix)}/{Uri.EscapeDataString(tagName)}/{FormatUtcTimestamp(request.StartTime)}/{FormatUtcTimestamp(request.EndTime)}/{request.StartIndex}/{request.Count}";
 
@@ -102,7 +102,7 @@ public sealed class HistoryApiProxyService(
     {
         try
         {
-            string resolvedBaseAddress = ResolveBaseAddress(baseAddressOverride);
+            var resolvedBaseAddress = ResolveBaseAddress(baseAddressOverride);
             if (_options.UseMockResponses)
             {
                 return CreateMockResponse(queryType, requestUri, resolvedBaseAddress, requestedTagNames);
@@ -111,13 +111,13 @@ public sealed class HistoryApiProxyService(
             ValidateConfiguration(resolvedBaseAddress);
 
             using HttpClient client = CreateClient(resolvedBaseAddress);
-            string accessToken = await GetAccessTokenAsync(client, resolvedBaseAddress, cancellationToken);
+            var accessToken = await GetAccessTokenAsync(client, resolvedBaseAddress, cancellationToken);
 
             using var requestMessage = new HttpRequestMessage(HttpMethod.Get, requestUri);
             requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
             using HttpResponseMessage response = await client.SendAsync(requestMessage, cancellationToken);
-            string payload = await response.Content.ReadAsStringAsync(cancellationToken);
+            var payload = await response.Content.ReadAsStringAsync(cancellationToken);
 
             return new HistoryApiQueryResponse(
                 response.IsSuccessStatusCode,
@@ -152,22 +152,23 @@ public sealed class HistoryApiProxyService(
         string requestedTagNames)
     {
         DateTimeOffset now = DateTimeOffset.UtcNow;
-        decimal currentValue = 12.10m + (now.Second % 17) * 0.07m;
-        decimal midValue = currentValue - 0.11m;
-        decimal earlyValue = currentValue - 0.24m;
-        string[] requestedTags = ResolveRequestedTags(requestedTagNames);
+        var currentValue = 12.10m + (now.Second % 17 * 0.07m);
+        var midValue = currentValue - 0.11m;
+        var earlyValue = currentValue - 0.24m;
+        var requestedTags = ResolveRequestedTags(requestedTagNames);
         MockHistorySample[] payloadSamples = queryType == "时间段原始数据"
-            ? requestedTags.SelectMany(tagName => CreateRawMockSamples(tagName, now, earlyValue, midValue, currentValue))
+            ? requestedTags
+                .SelectMany(tagName => CreateRawMockSamples(tagName, now, earlyValue, midValue, currentValue))
                 .ToArray()
             : requestedTags.Select((tagName, index) => new MockHistorySample(
-                tagName,
-                currentValue + index * 0.03m,
-                now.ToString("O", CultureInfo.InvariantCulture)))
+                    tagName,
+                    currentValue + (index * 0.03m),
+                    now.ToString("O", CultureInfo.InvariantCulture)))
                 .ToArray();
 
-        string payload = JsonSerializer.Serialize(payloadSamples);
+        var payload = JsonSerializer.Serialize(payloadSamples);
 
-        string requestTarget = string.IsNullOrWhiteSpace(resolvedBaseAddress)
+        var requestTarget = string.IsNullOrWhiteSpace(resolvedBaseAddress)
             ? $"mock://history-api{requestUri}"
             : new Uri(new Uri(AppendTrailingSlash(resolvedBaseAddress)), requestUri).ToString();
 
@@ -183,7 +184,7 @@ public sealed class HistoryApiProxyService(
 
     private static string[] ResolveRequestedTags(string requestedTagNames)
     {
-        string[] tags = requestedTagNames
+        var tags = requestedTagNames
             .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
             .Where(static tag => !string.IsNullOrWhiteSpace(tag))
             .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -221,9 +222,10 @@ public sealed class HistoryApiProxyService(
         string resolvedBaseAddress,
         CancellationToken cancellationToken)
     {
-        string tokenCacheKey = $"{TokenCacheKey}:{resolvedBaseAddress}";
+        var tokenCacheKey = $"{TokenCacheKey}:{resolvedBaseAddress}";
 
-        if (memoryCache.TryGetValue<HistoryApiTokenCacheEntry>(tokenCacheKey, out var cachedEntry) &&
+        if (memoryCache.TryGetValue<HistoryApiTokenCacheEntry>(tokenCacheKey,
+                out HistoryApiTokenCacheEntry? cachedEntry) &&
             cachedEntry is not null &&
             cachedEntry.ExpiresAt > DateTimeOffset.UtcNow.AddMinutes(1))
         {
@@ -244,7 +246,7 @@ public sealed class HistoryApiProxyService(
                 System.Text.Encoding.UTF8.GetBytes($"{_options.ClientId}:{_options.ClientSecret}")));
 
         using HttpResponseMessage response = await client.SendAsync(request, cancellationToken);
-        string payload = await response.Content.ReadAsStringAsync(cancellationToken);
+        var payload = await response.Content.ReadAsStringAsync(cancellationToken);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -252,7 +254,7 @@ public sealed class HistoryApiProxyService(
                 $"获取 OAuth Token 失败，上游返回 {(int)response.StatusCode} {response.ReasonPhrase}。{payload}");
         }
 
-        HistoryApiTokenResponse? tokenResponse =
+        var tokenResponse =
             JsonSerializer.Deserialize<HistoryApiTokenResponse>(payload);
 
         if (tokenResponse is null || string.IsNullOrWhiteSpace(tokenResponse.AccessToken))
@@ -260,7 +262,7 @@ public sealed class HistoryApiProxyService(
             throw new InvalidOperationException("获取 OAuth Token 失败，服务端未返回有效的 access_token。");
         }
 
-        var expiresAt = DateTimeOffset.UtcNow.AddSeconds(Math.Max(tokenResponse.ExpiresIn - 60, 60));
+        DateTimeOffset expiresAt = DateTimeOffset.UtcNow.AddSeconds(Math.Max(tokenResponse.ExpiresIn - 60, 60));
         var cacheEntry = new HistoryApiTokenCacheEntry(tokenResponse.AccessToken, expiresAt);
         memoryCache.Set(tokenCacheKey, cacheEntry, expiresAt);
 
@@ -289,7 +291,7 @@ public sealed class HistoryApiProxyService(
 
     private string BuildAbsoluteUrl(string requestUri, string? baseAddressOverride)
     {
-        string resolvedBaseAddress = ResolveBaseAddress(baseAddressOverride);
+        var resolvedBaseAddress = ResolveBaseAddress(baseAddressOverride);
         return string.IsNullOrWhiteSpace(resolvedBaseAddress)
             ? requestUri
             : new Uri(new Uri(AppendTrailingSlash(resolvedBaseAddress)), requestUri).ToString();
@@ -304,7 +306,8 @@ public sealed class HistoryApiProxyService(
 
     private static string FormatUtcTimestamp(DateTimeOffset value)
     {
-        return Uri.EscapeDataString(value.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss.fff'Z'", CultureInfo.InvariantCulture));
+        return Uri.EscapeDataString(value.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss.fff'Z'",
+            CultureInfo.InvariantCulture));
     }
 
     private static string NormalizePath(string path)

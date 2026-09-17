@@ -32,13 +32,15 @@ public sealed class ManagedDataExecutionService(
     IDataAcquisitionPlatformService platformService,
     ILogger<ManagedDataExecutionService> logger) : IManagedDataExecutionService
 {
-    public async Task<ManagedDataExecutionResultDto> DebugReadAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<ManagedDataExecutionResultDto> DebugReadAsync(Guid id,
+        CancellationToken cancellationToken = default)
     {
         ManagedDataDefinition definition = await GetDefinitionAsync(id, cancellationToken);
-        return await ExecuteReadAsync(definition, "DebugRead", persistRecord: false, cancellationToken);
+        return await ExecuteReadAsync(definition, "DebugRead", false, cancellationToken);
     }
 
-    public async Task<ManagedDataExecutionResultDto> CollectAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<ManagedDataExecutionResultDto> CollectAsync(Guid id,
+        CancellationToken cancellationToken = default)
     {
         ManagedDataDefinition definition = await GetDefinitionAsync(id, cancellationToken);
         if (!definition.IsEnabled)
@@ -52,7 +54,7 @@ public sealed class ManagedDataExecutionService(
                 "当前数据定义已停用，无法执行采集入库。");
         }
 
-        return await ExecuteReadAsync(definition, "Collect", persistRecord: true, cancellationToken);
+        return await ExecuteReadAsync(definition, "Collect", true, cancellationToken);
     }
 
     private async Task<ManagedDataExecutionResultDto> ExecuteReadAsync(
@@ -96,7 +98,7 @@ public sealed class ManagedDataExecutionService(
         CancellationToken cancellationToken)
     {
         Dictionary<string, string> configuration = ParseConfiguration(definition.ConfigurationJson);
-        string queryMode = GetValueOrDefault(configuration, "queryMode", "CurrentValue");
+        var queryMode = GetValueOrDefault(configuration, "queryMode", "CurrentValue");
 
         HistoryApiQueryResponse response = queryMode switch
         {
@@ -140,7 +142,7 @@ public sealed class ManagedDataExecutionService(
         }
 
         CollectionDataRecordDto? savedRecord = null;
-        string statusMessage = $"调试读取成功，解析出数值 {sample.Value.ToString(CultureInfo.InvariantCulture)}。";
+        var statusMessage = $"调试读取成功，解析出数值 {sample.Value.ToString(CultureInfo.InvariantCulture)}。";
 
         if (persistRecord)
         {
@@ -231,12 +233,14 @@ public sealed class ManagedDataExecutionService(
 
         try
         {
-            Dictionary<string, JsonElement>? rawDictionary =
+            var rawDictionary =
                 JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(configurationJson);
 
             return rawDictionary?.ToDictionary(
                 item => item.Key,
-                item => item.Value.ValueKind == JsonValueKind.String ? item.Value.GetString() ?? string.Empty : item.Value.ToString(),
+                item => item.Value.ValueKind == JsonValueKind.String
+                    ? item.Value.GetString() ?? string.Empty
+                    : item.Value.ToString(),
                 StringComparer.OrdinalIgnoreCase) ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
         catch
@@ -258,35 +262,39 @@ public sealed class ManagedDataExecutionService(
 
     private static ParsedHistorianValue? TryExtractHistorianValue(JsonElement element, string expectedIdentifier)
     {
-        switch (element.ValueKind)
+        return element.ValueKind switch
         {
-            case JsonValueKind.Object:
-                if (TryCreateSampleFromObject(element, expectedIdentifier, out ParsedHistorianValue? sample))
-                {
-                    return sample;
-                }
+            JsonValueKind.Object => TryExtractHistorianValueFromObject(element, expectedIdentifier),
+            JsonValueKind.Array => TryExtractHistorianValueFromChildren(element.EnumerateArray(), expectedIdentifier),
+            _ => null
+        };
+    }
 
-                foreach (JsonProperty property in element.EnumerateObject())
-                {
-                    ParsedHistorianValue? nested = TryExtractHistorianValue(property.Value, expectedIdentifier);
-                    if (nested is not null)
-                    {
-                        return nested;
-                    }
-                }
+    private static ParsedHistorianValue? TryExtractHistorianValueFromObject(
+        JsonElement element,
+        string expectedIdentifier)
+    {
+        if (TryCreateSampleFromObject(element, expectedIdentifier, out ParsedHistorianValue? sample))
+        {
+            return sample;
+        }
 
-                break;
-            case JsonValueKind.Array:
-                foreach (JsonElement item in element.EnumerateArray())
-                {
-                    ParsedHistorianValue? nested = TryExtractHistorianValue(item, expectedIdentifier);
-                    if (nested is not null)
-                    {
-                        return nested;
-                    }
-                }
+        return TryExtractHistorianValueFromChildren(
+            element.EnumerateObject().Select(static property => property.Value),
+            expectedIdentifier);
+    }
 
-                break;
+    private static ParsedHistorianValue? TryExtractHistorianValueFromChildren(
+        IEnumerable<JsonElement> elements,
+        string expectedIdentifier)
+    {
+        foreach (JsonElement child in elements)
+        {
+            ParsedHistorianValue? nested = TryExtractHistorianValue(child, expectedIdentifier);
+            if (nested is not null)
+            {
+                return nested;
+            }
         }
 
         return null;
@@ -304,10 +312,10 @@ public sealed class ManagedDataExecutionService(
             return false;
         }
 
-        decimal? value = TryGetDecimalProperty(element, "value")
-                         ?? TryGetDecimalProperty(element, "currentValue")
-                         ?? TryGetDecimalProperty(element, "Value")
-                         ?? TryGetDecimalProperty(element, "CurrentValue");
+        var value = TryGetDecimalProperty(element, "value")
+                    ?? TryGetDecimalProperty(element, "currentValue")
+                    ?? TryGetDecimalProperty(element, "Value")
+                    ?? TryGetDecimalProperty(element, "CurrentValue");
 
         if (value is null)
         {
@@ -330,9 +338,9 @@ public sealed class ManagedDataExecutionService(
     {
         string[] candidateKeys = ["tagName", "tagname", "name", "Name", "TagName"];
 
-        foreach (string key in candidateKeys)
+        foreach (var key in candidateKeys)
         {
-            if (TryGetStringProperty(element, key, out string? value) &&
+            if (TryGetStringProperty(element, key, out var value) &&
                 !string.IsNullOrWhiteSpace(value) &&
                 !string.IsNullOrWhiteSpace(expectedIdentifier) &&
                 !value.Equals(expectedIdentifier, StringComparison.OrdinalIgnoreCase))
@@ -351,13 +359,13 @@ public sealed class ManagedDataExecutionService(
             return null;
         }
 
-        if (property.ValueKind == JsonValueKind.Number && property.TryGetDecimal(out decimal number))
+        if (property.ValueKind == JsonValueKind.Number && property.TryGetDecimal(out var number))
         {
             return number;
         }
 
         if (property.ValueKind == JsonValueKind.String &&
-            decimal.TryParse(property.GetString(), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal stringValue))
+            decimal.TryParse(property.GetString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var stringValue))
         {
             return stringValue;
         }
@@ -385,7 +393,8 @@ public sealed class ManagedDataExecutionService(
     private static bool TryGetStringProperty(JsonElement element, string propertyName, out string? value)
     {
         value = null;
-        if (!element.TryGetProperty(propertyName, out JsonElement property) || property.ValueKind != JsonValueKind.String)
+        if (!element.TryGetProperty(propertyName, out JsonElement property) ||
+            property.ValueKind != JsonValueKind.String)
         {
             return false;
         }
@@ -396,7 +405,7 @@ public sealed class ManagedDataExecutionService(
 
     private static string GetValueOrDefault(IReadOnlyDictionary<string, string> dictionary, string key, string fallback)
     {
-        return dictionary.TryGetValue(key, out string? value) && !string.IsNullOrWhiteSpace(value)
+        return dictionary.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value)
             ? value
             : fallback;
     }

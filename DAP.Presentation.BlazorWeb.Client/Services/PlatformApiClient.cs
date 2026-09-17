@@ -60,7 +60,7 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         int historyLimit = 50,
         CancellationToken cancellationToken = default)
     {
-        ManagedDataDefinitionDetailsDto? details =
+        var details =
             await httpClient.GetFromJsonAsync<ManagedDataDefinitionDetailsDto>(
                 $"/api/managed-data-definitions/{id}?historyLimit={Math.Max(1, historyLimit)}",
                 cancellationToken);
@@ -75,7 +75,7 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
             await httpClient.PostAsJsonAsync("/api/managed-data-definitions", request, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        ManagedDataDefinitionDto? result =
+        var result =
             await response.Content.ReadFromJsonAsync<ManagedDataDefinitionDto>(cancellationToken);
 
         return result ?? throw new InvalidOperationException("服务端未返回保存后的后台数据定义。");
@@ -102,7 +102,7 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
             await httpClient.PostAsync($"/api/managed-data-definitions/{id}/debug-read", null, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        ManagedDataExecutionResultDto? result =
+        var result =
             await response.Content.ReadFromJsonAsync<ManagedDataExecutionResultDto>(cancellationToken);
 
         return result ?? throw new InvalidOperationException("服务端未返回后台数据调试读取结果。");
@@ -116,7 +116,7 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
             await httpClient.PostAsync($"/api/managed-data-definitions/{id}/collect", null, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        ManagedDataExecutionResultDto? result =
+        var result =
             await response.Content.ReadFromJsonAsync<ManagedDataExecutionResultDto>(cancellationToken);
 
         return result ?? throw new InvalidOperationException("服务端未返回后台数据采集结果。");
@@ -126,7 +126,8 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         CancellationToken cancellationToken = default)
     {
         var statuses =
-            await httpClient.GetFromJsonAsync<IReadOnlyList<ServerConnectionStatusDto>>("/api/server-connections/status",
+            await httpClient.GetFromJsonAsync<IReadOnlyList<ServerConnectionStatusDto>>(
+                "/api/server-connections/status",
                 cancellationToken);
         return statuses ?? [];
     }
@@ -136,10 +137,11 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         CancellationToken cancellationToken = default)
     {
         using HttpResponseMessage response =
-            await httpClient.PostAsJsonAsync("/api/managed-data-definitions/test-connection", request, cancellationToken);
+            await httpClient.PostAsJsonAsync("/api/managed-data-definitions/test-connection", request,
+                cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        ManagedDataConnectionTestResultDto? result =
+        var result =
             await response.Content.ReadFromJsonAsync<ManagedDataConnectionTestResultDto>(cancellationToken);
 
         return result ?? throw new InvalidOperationException("服务端未返回连接测试结果。");
@@ -153,7 +155,7 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
             await httpClient.PostAsJsonAsync("/api/history-api/current-value", request, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        HistoryApiQueryResponse? result =
+        var result =
             await response.Content.ReadFromJsonAsync<HistoryApiQueryResponse>(cancellationToken);
 
         return result ?? throw new InvalidOperationException("服务端未返回 History 最新值测试结果。");
@@ -167,7 +169,7 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
             await httpClient.PostAsJsonAsync("/api/history-api/raw-data", request, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        HistoryApiQueryResponse? result =
+        var result =
             await response.Content.ReadFromJsonAsync<HistoryApiQueryResponse>(cancellationToken);
 
         return result ?? throw new InvalidOperationException("服务端未返回 History 时间段数据测试结果。");

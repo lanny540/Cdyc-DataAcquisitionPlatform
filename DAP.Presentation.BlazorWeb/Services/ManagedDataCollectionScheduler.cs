@@ -28,8 +28,8 @@ public sealed class ManagedDataCollectionScheduler(
             return;
         }
 
-        int startupDelaySeconds = Math.Max(0, _options.StartupDelaySeconds);
-        int scanIntervalSeconds = Math.Max(1, _options.ScanIntervalSeconds);
+        var startupDelaySeconds = Math.Max(0, _options.StartupDelaySeconds);
+        var scanIntervalSeconds = Math.Max(1, _options.ScanIntervalSeconds);
 
         logger.LogInformation(
             "后台数据自动采集调度器已启动，启动延迟 {StartupDelaySeconds} 秒，扫描周期 {ScanIntervalSeconds} 秒。",
@@ -63,64 +63,96 @@ public sealed class ManagedDataCollectionScheduler(
     private async Task RunDispatchCycleAsync(CancellationToken cancellationToken)
     {
         await using AsyncServiceScope scope = serviceScopeFactory.CreateAsyncScope();
-        IDataAcquisitionPlatformService platformService =
+        var platformService =
             scope.ServiceProvider.GetRequiredService<IDataAcquisitionPlatformService>();
-        IManagedDataExecutionService executionService =
+        var executionService =
             scope.ServiceProvider.GetRequiredService<IManagedDataExecutionService>();
-        ICollectionPointRepository collectionPointRepository =
+        var collectionPointRepository =
             scope.ServiceProvider.GetRequiredService<ICollectionPointRepository>();
-        DataAcquisitionPlatformDbContext dbContext =
+        var dbContext =
             scope.ServiceProvider.GetRequiredService<DataAcquisitionPlatformDbContext>();
 
         IReadOnlyCollection<ManagedDataDefinitionDto> definitions =
             await platformService.GetManagedDataDefinitionsAsync(cancellationToken);
 
-        foreach (ManagedDataDefinitionDto definition in definitions
-                     .Where(item => item.IsEnabled)
-                     .OrderBy(item => item.CollectionIntervalSeconds)
-                     .ThenBy(item => item.Code))
+        foreach (ManagedDataDefinitionDto definition in GetDefinitionsToDispatch(definitions))
         {
-            ManagedDataDefinitionDetailsDto? details =
-                await platformService.GetManagedDataDefinitionDetailsAsync(definition.Id, 1, cancellationToken);
-
-            if (details is null || !IsDue(definition, details.CurrentRecord))
+            if (!await ShouldDispatchDefinitionAsync(platformService, definition, cancellationToken))
             {
                 continue;
             }
 
-            DateTimeOffset attemptAt = DateTimeOffset.UtcNow;
-            _lastAttemptTimes[definition.Id] = attemptAt;
-
-            logger.LogInformation(
-                "开始按计划采集后台数据 {Code}，采集频次 {IntervalSeconds} 秒。",
-                definition.Code,
-                definition.CollectionIntervalSeconds);
-
-            ManagedDataExecutionResultDto result =
-                await executionService.CollectAsync(definition.Id, cancellationToken);
-
-            await SyncCollectionPointStateAsync(
+            await CollectDefinitionAsync(
                 definition,
-                result,
+                executionService,
                 collectionPointRepository,
                 dbContext,
                 cancellationToken);
-
-            if (result.Success)
-            {
-                logger.LogInformation(
-                    "后台数据 {Code} 自动采集成功，值 {Value}。",
-                    definition.Code,
-                    result.ParsedValue);
-            }
-            else
-            {
-                logger.LogWarning(
-                    "后台数据 {Code} 自动采集失败：{ErrorMessage}",
-                    definition.Code,
-                    result.ErrorMessage ?? result.StatusMessage);
-            }
         }
+    }
+
+    private static IOrderedEnumerable<ManagedDataDefinitionDto> GetDefinitionsToDispatch(
+        IReadOnlyCollection<ManagedDataDefinitionDto> definitions)
+    {
+        return definitions
+            .Where(item => item.IsEnabled)
+            .OrderBy(item => item.CollectionIntervalSeconds)
+            .ThenBy(item => item.Code);
+    }
+
+    private async Task<bool> ShouldDispatchDefinitionAsync(
+        IDataAcquisitionPlatformService platformService,
+        ManagedDataDefinitionDto definition,
+        CancellationToken cancellationToken)
+    {
+        ManagedDataDefinitionDetailsDto? details =
+            await platformService.GetManagedDataDefinitionDetailsAsync(definition.Id, 1, cancellationToken);
+
+        return details is not null && IsDue(definition, details.CurrentRecord);
+    }
+
+    private async Task CollectDefinitionAsync(
+        ManagedDataDefinitionDto definition,
+        IManagedDataExecutionService executionService,
+        ICollectionPointRepository collectionPointRepository,
+        DataAcquisitionPlatformDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        _lastAttemptTimes[definition.Id] = DateTimeOffset.UtcNow;
+
+        logger.LogInformation(
+            "开始按计划采集后台数据 {Code}，采集频次 {IntervalSeconds} 秒。",
+            definition.Code,
+            definition.CollectionIntervalSeconds);
+
+        ManagedDataExecutionResultDto result =
+            await executionService.CollectAsync(definition.Id, cancellationToken);
+
+        await SyncCollectionPointStateAsync(
+            definition,
+            result,
+            collectionPointRepository,
+            dbContext,
+            cancellationToken);
+
+        LogCollectionResult(definition, result);
+    }
+
+    private void LogCollectionResult(ManagedDataDefinitionDto definition, ManagedDataExecutionResultDto result)
+    {
+        if (result.Success)
+        {
+            logger.LogInformation(
+                "后台数据 {Code} 自动采集成功，值 {Value}。",
+                definition.Code,
+                result.ParsedValue);
+            return;
+        }
+
+        logger.LogWarning(
+            "后台数据 {Code} 自动采集失败：{ErrorMessage}",
+            definition.Code,
+            result.ErrorMessage ?? result.StatusMessage);
     }
 
     private bool IsDue(ManagedDataDefinitionDto definition, CollectionDataRecordDto? currentRecord)
@@ -131,10 +163,11 @@ public sealed class ManagedDataCollectionScheduler(
             : null;
 
         DateTimeOffset referenceTime = latestRecordAt.HasValue && latestAttemptAt.HasValue
-            ? (latestRecordAt.Value > latestAttemptAt.Value ? latestRecordAt.Value : latestAttemptAt.Value)
+            ? latestRecordAt.Value > latestAttemptAt.Value ? latestRecordAt.Value : latestAttemptAt.Value
             : latestRecordAt ?? latestAttemptAt ?? DateTimeOffset.MinValue;
 
-        return DateTimeOffset.UtcNow - referenceTime >= TimeSpan.FromSeconds(Math.Max(1, definition.CollectionIntervalSeconds));
+        return DateTimeOffset.UtcNow - referenceTime >=
+               TimeSpan.FromSeconds(Math.Max(1, definition.CollectionIntervalSeconds));
     }
 
     private static async Task SyncCollectionPointStateAsync(

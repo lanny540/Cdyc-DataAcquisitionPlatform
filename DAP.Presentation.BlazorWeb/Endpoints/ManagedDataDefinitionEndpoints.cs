@@ -13,7 +13,8 @@ public static class ManagedDataDefinitionEndpoints
     /// </summary>
     public static IEndpointRouteBuilder MapManagedDataDefinitionEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        RouteGroupBuilder group = endpoints.MapGroup("/api/managed-data-definitions").WithTags("ManagedDataDefinitions");
+        RouteGroupBuilder group = endpoints.MapGroup("/api/managed-data-definitions")
+            .WithTags("ManagedDataDefinitions");
 
         group.MapGet(
                 "/",
@@ -58,7 +59,7 @@ public static class ManagedDataDefinitionEndpoints
                 "/{id:guid}",
                 async (Guid id, IDataAcquisitionPlatformService platformService, CancellationToken cancellationToken) =>
                 {
-                    bool deleted = await platformService.DeleteManagedDataDefinitionAsync(id, cancellationToken);
+                    var deleted = await platformService.DeleteManagedDataDefinitionAsync(id, cancellationToken);
                     return deleted ? Results.NoContent() : Results.NotFound();
                 })
             .WithName("DeleteManagedDataDefinition");

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using DAP.Core.Domain.Entities;
 using DAP.Core.Domain.Services;
 using DAP.Core.Shared.Contracts;
@@ -5,7 +6,6 @@ using DAP.Infrastructure.DataAccess.Persistence;
 using DAP.Infrastructure.DataAccess.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
-using System.Text.Json;
 
 namespace DAP.Infrastructure.DataAccess.Services;
 
@@ -144,7 +144,7 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
             : null;
 
         existingDefinition ??= await _managedDataDefinitionRepository.GetByCodeAsync(normalizedCode, cancellationToken);
-        string? originalCode = existingDefinition?.Code;
+        var originalCode = existingDefinition?.Code;
 
         DateTimeOffset updatedAt = DateTimeOffset.UtcNow;
 
@@ -502,7 +502,10 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
         {
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateException ex) when (ex.InnerException is PostgresException {SqlState: PostgresErrorCodes.UniqueViolation})
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException
+                                           {
+                                               SqlState: PostgresErrorCodes.UniqueViolation
+                                           })
         {
             throw new InvalidOperationException($"{codeDisplayName} {code} 已存在。", ex);
         }
