@@ -1,4 +1,3 @@
-using DAP.Infrastructure.DataAccess.Initialization;
 using DAP.Presentation.BlazorWeb.Endpoints;
 using DAP.Presentation.BlazorWeb.Components.Shell;
 using DAP.Presentation.BlazorWeb.Services;
@@ -8,12 +7,6 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.Services.AddPlatformPresentationServices(builder.Configuration, builder.Environment);
 
 WebApplication app = builder.Build();
-
-await using (AsyncServiceScope scope = app.Services.CreateAsyncScope())
-{
-    var initializer = scope.ServiceProvider.GetRequiredService<PostgreSqlDatabaseInitializer>();
-    await initializer.InitializeAsync();
-}
 
 if (app.Environment.IsDevelopment())
 {
