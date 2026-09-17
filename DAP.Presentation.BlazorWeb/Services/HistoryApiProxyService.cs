@@ -61,7 +61,12 @@ public sealed class HistoryApiProxyService(
         var requestUri =
             $"{NormalizePath(_options.CurrentValuePath)}?tagNames={Uri.EscapeDataString(trimmedTagNames)}";
 
-        return SendAuthorizedGetAsync("最新值", requestUri, baseAddressOverride, cancellationToken);
+        return SendAuthorizedGetAsync(
+            "最新值",
+            requestUri,
+            baseAddressOverride,
+            trimmedTagNames,
+            cancellationToken);
     }
 
     public Task<HistoryApiQueryResponse> GetRawDataAsync(
@@ -76,16 +81,23 @@ public sealed class HistoryApiProxyService(
         string? baseAddressOverride,
         CancellationToken cancellationToken = default)
     {
+        string tagName = request.TagName.Trim();
         var requestUri =
-            $"{NormalizePath(_options.RawDataPathPrefix)}/{Uri.EscapeDataString(request.TagName.Trim())}/{FormatUtcTimestamp(request.StartTime)}/{FormatUtcTimestamp(request.EndTime)}/{request.StartIndex}/{request.Count}";
+            $"{NormalizePath(_options.RawDataPathPrefix)}/{Uri.EscapeDataString(tagName)}/{FormatUtcTimestamp(request.StartTime)}/{FormatUtcTimestamp(request.EndTime)}/{request.StartIndex}/{request.Count}";
 
-        return SendAuthorizedGetAsync("时间段原始数据", requestUri, baseAddressOverride, cancellationToken);
+        return SendAuthorizedGetAsync(
+            "时间段原始数据",
+            requestUri,
+            baseAddressOverride,
+            tagName,
+            cancellationToken);
     }
 
     private async Task<HistoryApiQueryResponse> SendAuthorizedGetAsync(
         string queryType,
         string requestUri,
         string? baseAddressOverride,
+        string requestedTagNames,
         CancellationToken cancellationToken)
     {
         try
@@ -93,7 +105,7 @@ public sealed class HistoryApiProxyService(
             string resolvedBaseAddress = ResolveBaseAddress(baseAddressOverride);
             if (_options.UseMockResponses)
             {
-                return CreateMockResponse(queryType, requestUri, resolvedBaseAddress);
+                return CreateMockResponse(queryType, requestUri, resolvedBaseAddress, requestedTagNames);
             }
 
             ValidateConfiguration(resolvedBaseAddress);
@@ -133,41 +145,27 @@ public sealed class HistoryApiProxyService(
         }
     }
 
-    private HistoryApiQueryResponse CreateMockResponse(string queryType, string requestUri, string resolvedBaseAddress)
+    private HistoryApiQueryResponse CreateMockResponse(
+        string queryType,
+        string requestUri,
+        string resolvedBaseAddress,
+        string requestedTagNames)
     {
         DateTimeOffset now = DateTimeOffset.UtcNow;
         decimal currentValue = 12.10m + (now.Second % 17) * 0.07m;
         decimal midValue = currentValue - 0.11m;
         decimal earlyValue = currentValue - 0.24m;
-        string payload = queryType == "时间段原始数据"
-            ? $$"""
-              [
-                {
-                  "tagName": "tag001",
-                  "value": {{earlyValue.ToString(CultureInfo.InvariantCulture)}},
-                  "timestamp": "{{now.AddMinutes(-10).ToString("O", CultureInfo.InvariantCulture)}}"
-                },
-                {
-                  "tagName": "tag001",
-                  "value": {{midValue.ToString(CultureInfo.InvariantCulture)}},
-                  "timestamp": "{{now.AddMinutes(-5).ToString("O", CultureInfo.InvariantCulture)}}"
-                },
-                {
-                  "tagName": "tag001",
-                  "value": {{currentValue.ToString(CultureInfo.InvariantCulture)}},
-                  "timestamp": "{{now.ToString("O", CultureInfo.InvariantCulture)}}"
-                }
-              ]
-              """
-            : $$"""
-              [
-                {
-                  "tagName": "tag001",
-                  "value": {{currentValue.ToString(CultureInfo.InvariantCulture)}},
-                  "timestamp": "{{now.ToString("O", CultureInfo.InvariantCulture)}}"
-                }
-              ]
-              """;
+        string[] requestedTags = ResolveRequestedTags(requestedTagNames);
+        MockHistorySample[] payloadSamples = queryType == "时间段原始数据"
+            ? requestedTags.SelectMany(tagName => CreateRawMockSamples(tagName, now, earlyValue, midValue, currentValue))
+                .ToArray()
+            : requestedTags.Select((tagName, index) => new MockHistorySample(
+                tagName,
+                currentValue + index * 0.03m,
+                now.ToString("O", CultureInfo.InvariantCulture)))
+                .ToArray();
+
+        string payload = JsonSerializer.Serialize(payloadSamples);
 
         string requestTarget = string.IsNullOrWhiteSpace(resolvedBaseAddress)
             ? $"mock://history-api{requestUri}"
@@ -181,6 +179,41 @@ public sealed class HistoryApiProxyService(
             payload,
             now,
             "当前为开发环境 Mock 响应，未访问真实 Historian 服务。");
+    }
+
+    private static string[] ResolveRequestedTags(string requestedTagNames)
+    {
+        string[] tags = requestedTagNames
+            .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .Where(static tag => !string.IsNullOrWhiteSpace(tag))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        return tags.Length == 0 ? ["tag001"] : tags;
+    }
+
+    private static MockHistorySample[] CreateRawMockSamples(
+        string tagName,
+        DateTimeOffset now,
+        decimal earlyValue,
+        decimal midValue,
+        decimal currentValue)
+    {
+        return
+        [
+            new MockHistorySample(
+                tagName,
+                earlyValue,
+                now.AddMinutes(-10).ToString("O", CultureInfo.InvariantCulture)),
+            new MockHistorySample(
+                tagName,
+                midValue,
+                now.AddMinutes(-5).ToString("O", CultureInfo.InvariantCulture)),
+            new MockHistorySample(
+                tagName,
+                currentValue,
+                now.ToString("O", CultureInfo.InvariantCulture))
+        ];
     }
 
     private async Task<string> GetAccessTokenAsync(
@@ -317,6 +350,8 @@ public sealed class HistoryApiOptions
 }
 
 internal sealed record HistoryApiTokenCacheEntry(string AccessToken, DateTimeOffset ExpiresAt);
+
+internal sealed record MockHistorySample(string tagName, decimal value, string timestamp);
 
 internal sealed record HistoryApiTokenResponse(
     [property: JsonPropertyName("access_token")]

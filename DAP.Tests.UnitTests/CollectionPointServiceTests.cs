@@ -4,9 +4,9 @@ using DAP.Tests.UnitTests.TestDoubles;
 namespace DAP.Tests.UnitTests;
 
 /// <summary>
-/// 验证数据采集平台核心业务骨架的关键行为。
+/// 验证采集点相关核心行为。
 /// </summary>
-public class UnitTest1
+public class CollectionPointServiceTests
 {
     [Fact]
     public async Task UpsertCollectionPointAsync_ShouldCreateNewPoint()
@@ -67,33 +67,5 @@ public class UnitTest1
 
         Assert.True(deleted);
         Assert.DoesNotContain(points, item => item.Id == savedPoint.Id);
-    }
-
-    [Fact]
-    public async Task UpsertManagedDataDefinitionAsync_ShouldCreateNewDefinition()
-    {
-        var service = new InMemoryDataAcquisitionPlatformService();
-
-        ManagedDataDefinitionDto result = await service.UpsertManagedDataDefinitionAsync(
-            new ManagedDataDefinitionUpsertRequest(
-                null,
-                "HIS-001",
-                "蒸汽流量标签",
-                "Historian API",
-                "http://10.9.3.54:8080/historian-rest-api",
-                "tag001",
-                "BBB 部门",
-                "BBB223",
-                "蒸汽数据",
-                "t/h",
-                "用于报表统计。",
-                """{"tagName":"tag001"}""",
-                """{"能源介质":"蒸汽"}""",
-                60,
-                true));
-
-        IReadOnlyCollection<ManagedDataDefinitionDto> definitions = await service.GetManagedDataDefinitionsAsync();
-
-        Assert.Contains(definitions, item => item.Id == result.Id && item.Identifier == "tag001");
     }
 }

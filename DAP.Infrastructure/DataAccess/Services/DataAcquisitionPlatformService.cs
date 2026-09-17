@@ -144,6 +144,7 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
             : null;
 
         existingDefinition ??= await _managedDataDefinitionRepository.GetByCodeAsync(normalizedCode, cancellationToken);
+        string? originalCode = existingDefinition?.Code;
 
         DateTimeOffset updatedAt = DateTimeOffset.UtcNow;
 
@@ -190,7 +191,7 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
             existingDefinition.UpdatedAt = updatedAt;
         }
 
-        await UpsertCollectionPointForManagedDefinitionAsync(existingDefinition, cancellationToken);
+        await UpsertCollectionPointForManagedDefinitionAsync(existingDefinition, originalCode, cancellationToken);
         await SaveChangesAsync(normalizedCode, "后台数据编码", cancellationToken);
         return MapManagedDataDefinition(existingDefinition);
     }
@@ -204,6 +205,7 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
             return false;
         }
 
+        await RemoveCollectionPointForManagedDefinitionAsync(definition.Code, cancellationToken);
         _managedDataDefinitionRepository.Remove(definition);
         await _dbContext.SaveChangesAsync(cancellationToken);
         return true;
@@ -423,10 +425,17 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
 
     private async Task UpsertCollectionPointForManagedDefinitionAsync(
         ManagedDataDefinition definition,
+        string? originalCode,
         CancellationToken cancellationToken)
     {
-        CollectionPoint? collectionPoint =
-            await _collectionPointRepository.GetByCodeAsync(definition.Code, cancellationToken);
+        CollectionPoint? collectionPoint = null;
+        if (!string.IsNullOrWhiteSpace(originalCode) &&
+            !string.Equals(originalCode, definition.Code, StringComparison.OrdinalIgnoreCase))
+        {
+            collectionPoint = await _collectionPointRepository.GetByCodeAsync(originalCode, cancellationToken);
+        }
+
+        collectionPoint ??= await _collectionPointRepository.GetByCodeAsync(definition.Code, cancellationToken);
 
         if (collectionPoint is null)
         {
@@ -447,6 +456,7 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
             return;
         }
 
+        collectionPoint.Code = definition.Code;
         collectionPoint.Name = definition.Name;
         collectionPoint.Protocol = definition.AcquisitionType;
         collectionPoint.Endpoint = definition.ConnectionAddress;
@@ -455,6 +465,17 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
             ResolveCommunicationStatus(collectionPoint.CommunicationStatus, definition.IsEnabled);
         collectionPoint.Source = "Server";
         collectionPoint.UpdatedAt = definition.UpdatedAt;
+    }
+
+    private async Task RemoveCollectionPointForManagedDefinitionAsync(string code, CancellationToken cancellationToken)
+    {
+        CollectionPoint? collectionPoint = await _collectionPointRepository.GetByCodeAsync(code, cancellationToken);
+        if (collectionPoint is null)
+        {
+            return;
+        }
+
+        _collectionPointRepository.Remove(collectionPoint);
     }
 
     private static string NormalizeJsonOrEmptyObject(string json)

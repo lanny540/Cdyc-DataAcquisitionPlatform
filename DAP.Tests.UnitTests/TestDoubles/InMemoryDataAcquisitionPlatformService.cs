@@ -156,6 +156,7 @@ internal sealed class InMemoryDataAcquisitionPlatformService : IDataAcquisitionP
                 ? _managedDataDefinitions.FirstOrDefault(item => item.Id == request.Id.Value)
                 : _managedDataDefinitions.FirstOrDefault(item =>
                     item.Code.Equals(normalizedCode, StringComparison.OrdinalIgnoreCase));
+            string? originalCode = existingDefinition?.Code;
 
             var savedDefinition = new ManagedDataDefinitionDto(
                 existingDefinition?.Id ?? request.Id ?? Guid.NewGuid(),
@@ -185,6 +186,7 @@ internal sealed class InMemoryDataAcquisitionPlatformService : IDataAcquisitionP
                 _managedDataDefinitions[index] = savedDefinition;
             }
 
+            SyncCollectionPointForManagedDefinition(savedDefinition, originalCode);
             return Task.FromResult(savedDefinition);
         }
     }
@@ -200,6 +202,15 @@ internal sealed class InMemoryDataAcquisitionPlatformService : IDataAcquisitionP
             }
 
             _managedDataDefinitions.Remove(existingDefinition);
+            CollectionPointDto? existingPoint = _collectionPoints.FirstOrDefault(item =>
+                item.Code.Equals(existingDefinition.Code, StringComparison.OrdinalIgnoreCase));
+
+            if (existingPoint is not null)
+            {
+                _collectionPoints.Remove(existingPoint);
+                _records.RemoveAll(item => item.CollectionPointId == existingPoint.Id);
+            }
+
             return Task.FromResult(true);
         }
     }
@@ -305,6 +316,59 @@ internal sealed class InMemoryDataAcquisitionPlatformService : IDataAcquisitionP
                 updatedCount,
                 DateTimeOffset.UtcNow,
                 syncedIds));
+        }
+    }
+
+    private void SyncCollectionPointForManagedDefinition(ManagedDataDefinitionDto definition, string? originalCode)
+    {
+        CollectionPointDto? existingPoint = null;
+        if (!string.IsNullOrWhiteSpace(originalCode) &&
+            !originalCode.Equals(definition.Code, StringComparison.OrdinalIgnoreCase))
+        {
+            existingPoint = _collectionPoints.FirstOrDefault(item =>
+                item.Code.Equals(originalCode, StringComparison.OrdinalIgnoreCase));
+        }
+
+        existingPoint ??= _collectionPoints.FirstOrDefault(item =>
+            item.Code.Equals(definition.Code, StringComparison.OrdinalIgnoreCase));
+
+        var savedPoint = new CollectionPointDto(
+            existingPoint?.Id ?? Guid.NewGuid(),
+            definition.Code,
+            definition.Name,
+            definition.AcquisitionType,
+            definition.ConnectionAddress,
+            definition.IsEnabled,
+            definition.IsEnabled
+                ? existingPoint?.CommunicationStatus is "在线" or "离线" ? existingPoint.CommunicationStatus : "在线"
+                : "停用",
+            "Server",
+            existingPoint?.LastError,
+            definition.UpdatedAt);
+
+        if (existingPoint is null)
+        {
+            _collectionPoints.Add(savedPoint);
+        }
+        else
+        {
+            var index = _collectionPoints.IndexOf(existingPoint);
+            _collectionPoints[index] = savedPoint;
+        }
+
+        for (var index = 0; index < _records.Count; index++)
+        {
+            if (_records[index].CollectionPointId != savedPoint.Id)
+            {
+                continue;
+            }
+
+            CollectionDataRecordDto record = _records[index];
+            _records[index] = record with
+            {
+                CollectionPointCode = savedPoint.Code,
+                CollectionPointName = savedPoint.Name
+            };
         }
     }
 }
