@@ -38,6 +38,13 @@ public interface IPlatformApiClient
     Task<IReadOnlyList<ServerConnectionStatusDto>> GetServerConnectionStatusesAsync(
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<ServerConnectionStatusDto>> GetServerConnectionsAsync(
+        CancellationToken cancellationToken = default);
+
+    Task<ServerConnectionStatusDto> CheckServerConnectionStatusAsync(
+        string key,
+        CancellationToken cancellationToken = default);
+
     Task<ManagedDataConnectionTestResultDto> TestManagedDataConnectionAsync(
         ManagedDataDefinitionUpsertRequest request,
         CancellationToken cancellationToken = default);

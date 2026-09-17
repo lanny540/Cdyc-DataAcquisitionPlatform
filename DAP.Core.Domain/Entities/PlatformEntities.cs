@@ -133,6 +133,11 @@ public sealed class ManagedDataDefinition
     public string ConnectionAddress { get; set; } = string.Empty;
 
     /// <summary>
+    /// 获取或设置关联的外部服务器标识。
+    /// </summary>
+    public Guid? ServerConnectionId { get; set; }
+
+    /// <summary>
     /// 获取或设置数据标识。
     /// </summary>
     public string Identifier { get; set; } = string.Empty;
@@ -186,4 +191,60 @@ public sealed class ManagedDataDefinition
     /// 获取或设置最后更新时间。
     /// </summary>
     public DateTimeOffset UpdatedAt { get; set; }
+
+    /// <summary>
+    /// 获取或设置关联的外部服务器。
+    /// </summary>
+    public ServerConnection? ServerConnection { get; set; }
+}
+
+/// <summary>
+/// 表示独立维护的外部 API 或数采服务器配置。
+/// </summary>
+public sealed class ServerConnection
+{
+    /// <summary>
+    /// 获取或设置服务器标识。
+    /// </summary>
+    public Guid Id { get; set; }
+
+    /// <summary>
+    /// 获取或设置服务器编码。
+    /// </summary>
+    public string Code { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 获取或设置服务器显示名称。
+    /// </summary>
+    public string DisplayName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 获取或设置采集方式或 API 类型。
+    /// </summary>
+    public string AcquisitionType { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 获取或设置服务器基础地址。
+    /// </summary>
+    public string Address { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 获取或设置认证、Mock 等连接配置 JSON。
+    /// </summary>
+    public string ConfigurationJson { get; set; } = "{}";
+
+    /// <summary>
+    /// 获取或设置是否启用。
+    /// </summary>
+    public bool IsEnabled { get; set; }
+
+    /// <summary>
+    /// 获取或设置最后更新时间。
+    /// </summary>
+    public DateTimeOffset UpdatedAt { get; set; }
+
+    /// <summary>
+    /// 获取或设置关联的数据定义集合。
+    /// </summary>
+    public ICollection<ManagedDataDefinition> DataDefinitions { get; set; } = [];
 }

@@ -52,9 +52,12 @@ public partial class ManagedDataDefinitions
     private string _modbusRegisterAddress = string.Empty;
     private string _modbusBaudRate = "9600";
 
-    private string _historianBaseAddress = "http://10.9.3.54:8080/historian-rest-api";
+    private string _historianBaseAddress = string.Empty;
     private string _historianTagName = string.Empty;
     private string _historianQueryMode = "CurrentValue";
+    private string _historianClientId = string.Empty;
+    private string _historianClientSecret = string.Empty;
+    private bool _historianUseMockResponses;
 
     private string _mqttBrokerAddress = string.Empty;
     private string _mqttTopic = string.Empty;
@@ -329,9 +332,12 @@ public partial class ManagedDataDefinitions
         _modbusRegisterAddress = string.Empty;
         _modbusBaudRate = "9600";
 
-        _historianBaseAddress = "http://10.9.3.54:8080/historian-rest-api";
+        _historianBaseAddress = string.Empty;
         _historianTagName = string.Empty;
         _historianQueryMode = "CurrentValue";
+        _historianClientId = string.Empty;
+        _historianClientSecret = string.Empty;
+        _historianUseMockResponses = false;
 
         _mqttBrokerAddress = string.Empty;
         _mqttTopic = string.Empty;
@@ -481,7 +487,10 @@ public partial class ManagedDataDefinitions
             {
                 ["tagName"] = _historianTagName,
                 ["queryMode"] = _historianQueryMode,
-                ["baseAddress"] = _historianBaseAddress
+                ["baseAddress"] = _historianBaseAddress,
+                ["clientId"] = _historianClientId,
+                ["clientSecret"] = _historianClientSecret,
+                ["useMockResponses"] = _historianUseMockResponses.ToString()
             },
             "MQTT" => new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
@@ -527,7 +536,7 @@ public partial class ManagedDataDefinitions
         string[] reservedKeys = _acquisitionType switch
         {
             "Modbus" => ["protocolVariant", "slaveId", "registerAddress", "baudRate", "deviceAddress"],
-            "Historian API" => ["tagName", "queryMode", "baseAddress"],
+            "Historian API" => ["tagName", "queryMode", "baseAddress", "clientId", "clientSecret", "useMockResponses"],
             "MQTT" => ["topic", "qos", "brokerAddress"],
             "OPC DA" => ["itemId", "groupName", "serverAddress"],
             "HTTP API" => ["metricIdentifier", "path", "baseAddress"],
@@ -551,6 +560,11 @@ public partial class ManagedDataDefinitions
         _historianBaseAddress = GetValueOrDefault(configuration, "baseAddress", definition.ConnectionAddress);
         _historianTagName = GetValueOrDefault(configuration, "tagName", definition.Identifier);
         _historianQueryMode = GetValueOrDefault(configuration, "queryMode", "CurrentValue");
+        _historianClientId = GetValueOrDefault(configuration, "clientId", string.Empty);
+        _historianClientSecret = GetValueOrDefault(configuration, "clientSecret", string.Empty);
+        _historianUseMockResponses = bool.TryParse(
+            GetValueOrDefault(configuration, "useMockResponses", "False"),
+            out var useMockResponses) && useMockResponses;
 
         _mqttBrokerAddress = GetValueOrDefault(configuration, "brokerAddress", definition.ConnectionAddress);
         _mqttTopic = GetValueOrDefault(configuration, "topic", definition.Identifier);

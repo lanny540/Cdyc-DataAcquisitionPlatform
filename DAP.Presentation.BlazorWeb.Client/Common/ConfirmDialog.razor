@@ -5,7 +5,7 @@
                 LockScroll="true"
                 ZIndex="1300"
                 OnClick="@(_ => HandleBackdropClick())">
-        <MudPaper Class="pa-6" Elevation="8" Style="width:min(420px, 100%);" @onclick:stopPropagation="true">
+        <MudPaper Class="platform-dialog" Elevation="8" role="dialog" aria-modal="true" aria-label="@Title" @onclick:stopPropagation="true">
             <MudStack Spacing="2">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                     @if (!string.IsNullOrWhiteSpace(ResolvedIcon))

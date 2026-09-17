@@ -5,22 +5,28 @@ namespace DAP.Core.Shared.Contracts;
 /// </summary>
 /// <param name="Key">服务器键。</param>
 /// <param name="DisplayName">显示名称。</param>
+/// <param name="AcquisitionType">采集方式。</param>
 /// <param name="Address">服务器地址。</param>
 /// <param name="IsConfigured">是否已配置。</param>
 /// <param name="IsReachable">是否可达。</param>
 /// <param name="UseMockResponses">业务执行是否启用 Mock。</param>
 /// <param name="CredentialsConfigured">是否已配置凭据。</param>
+/// <param name="RelatedDefinitionCount">关联数据定义数量。</param>
+/// <param name="IsChecking">是否正在检测。</param>
 /// <param name="StatusMessage">状态说明。</param>
 /// <param name="CheckedAt">检查时间。</param>
 /// <param name="ErrorMessage">错误信息。</param>
 public sealed record ServerConnectionStatusDto(
     string Key,
     string DisplayName,
+    string AcquisitionType,
     string Address,
     bool IsConfigured,
     bool IsReachable,
     bool UseMockResponses,
     bool CredentialsConfigured,
+    int RelatedDefinitionCount,
+    bool IsChecking,
     string StatusMessage,
     DateTimeOffset CheckedAt,
     string? ErrorMessage = null);

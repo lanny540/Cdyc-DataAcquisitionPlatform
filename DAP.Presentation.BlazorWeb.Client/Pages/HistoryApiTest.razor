@@ -2,14 +2,13 @@
 
 <PageTitle>History 数据库 API 测试</PageTitle>
 
-<MudStack Class="platform-page-shell history-api-shell" Spacing="3">
-    <MudPaper Class="platform-page-hero history-api-hero pa-6" Elevation="0">
+<MudStack Class="platform-page-shell tw-gap-4" Spacing="2">
+    <MudPaper Class="platform-page-hero tw-p-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
             <MudStack Spacing="1">
                 <MudText Typo="Typo.h4">History 数据库 API 测试</MudText>
                 <MudText Typo="Typo.body1" Class="history-api-hero-description">
-                    通过 Web 管理端直接测试 GE History 实时数据库的 OAuth 鉴权、最新值查询与时间段原始数据查询，
-                    由服务端完成 Token 获取和上游接口代理，浏览器侧只负责参数录入与结果查看。
+                    测试 Historian 鉴权、实时值与历史数据，查看服务端代理响应。
                 </MudText>
                 <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mt-3">
                     <MudChip T="string" Variant="Variant.Outlined" Color="Color.Info">OAuth 自动取 Token</MudChip>
@@ -26,11 +25,11 @@
         <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
     }
 
-    <MudGrid>
-        <MudItem xs="12" xl="5">
-            <MudStack Spacing="3">
-                <MudPaper Class="platform-panel history-api-panel pa-5" Elevation="0">
-                    <MudStack Spacing="3">
+    <MudGrid Spacing="3">
+        <MudItem xs="12" lg="5">
+            <MudStack Spacing="2">
+                <MudPaper Class="platform-panel tw-p-4" Elevation="0">
+                    <MudStack Spacing="2">
                         <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.SpaceBetween"
                                   Wrap="Wrap.Wrap">
                             <MudStack Spacing="0">
@@ -43,14 +42,14 @@
                             <MudChip T="string" Variant="Variant.Text" Color="Color.Info">GET currentvalue</MudChip>
                         </MudStack>
 
-                        <MudTextField Label="标签名称"
+                        <MudTextField Margin="Margin.Dense" Label="标签名称"
                                       HelperText="支持单个标签，例如 tag001；也支持逗号分隔多个标签。"
                                       Variant="Variant.Outlined"
                                       @bind-Value="_currentTagNames"/>
 
-                        <MudPaper Class="platform-stat-card history-api-preview pa-3" Elevation="0">
-                            <MudText Typo="Typo.caption" Class="history-api-preview-label">上游请求预览</MudText>
-                            <MudText Typo="Typo.body2" Class="history-api-preview-value">@CurrentValuePreview</MudText>
+                        <MudPaper Class="platform-summary" Elevation="0">
+                            <MudText Typo="Typo.caption" Class="platform-field-label">上游请求预览</MudText>
+                            <MudText Typo="Typo.body2" Class="tw-break-all platform-inline-code">@CurrentValuePreview</MudText>
                         </MudPaper>
 
                         <MudButton Variant="Variant.Filled"
@@ -63,8 +62,8 @@
                     </MudStack>
                 </MudPaper>
 
-                <MudPaper Class="platform-panel history-api-panel pa-5" Elevation="0">
-                    <MudStack Spacing="3">
+                <MudPaper Class="platform-panel tw-p-4" Elevation="0">
+                    <MudStack Spacing="2">
                         <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.SpaceBetween"
                                   Wrap="Wrap.Wrap">
                             <MudStack Spacing="0">
@@ -76,30 +75,30 @@
                             <MudChip T="string" Variant="Variant.Text" Color="Color.Secondary">GET raw</MudChip>
                         </MudStack>
 
-                        <MudTextField Label="标签名称"
+                        <MudTextField Margin="Margin.Dense" Label="标签名称"
                                       Variant="Variant.Outlined"
                                       @bind-Value="_rawTagName"/>
 
-                        <MudTextField Label="开始时间（UTC）"
+                        <MudTextField Margin="Margin.Dense" Label="开始时间（UTC）"
                                       HelperText="示例：2026-09-01T00:00:00.000Z"
                                       Variant="Variant.Outlined"
                                       @bind-Value="_rawStartText"/>
 
-                        <MudTextField Label="结束时间（UTC）"
+                        <MudTextField Margin="Margin.Dense" Label="结束时间（UTC）"
                                       HelperText="示例：2026-09-01T01:00:00.000Z"
                                       Variant="Variant.Outlined"
                                       @bind-Value="_rawEndText"/>
 
                         <MudGrid Spacing="2">
                             <MudItem xs="12" sm="6">
-                                <MudNumericField T="int"
+                                <MudNumericField T="int" Margin="Margin.Dense"
                                                  Label="起始偏移量"
                                                  Variant="Variant.Outlined"
                                                  Min="0"
                                                  @bind-Value="_rawStartIndex"/>
                             </MudItem>
                             <MudItem xs="12" sm="6">
-                                <MudNumericField T="int"
+                                <MudNumericField T="int" Margin="Margin.Dense"
                                                  Label="返回条数"
                                                  Variant="Variant.Outlined"
                                                  Min="1"
@@ -123,18 +122,18 @@
                             </MudButton>
                         </MudStack>
 
-                        <MudPaper Class="platform-stat-card history-api-preview pa-3" Elevation="0">
-                            <MudText Typo="Typo.caption" Class="history-api-preview-label">上游请求预览</MudText>
-                            <MudText Typo="Typo.body2" Class="history-api-preview-value">@RawDataPreview</MudText>
+                        <MudPaper Class="platform-summary" Elevation="0">
+                            <MudText Typo="Typo.caption" Class="platform-field-label">上游请求预览</MudText>
+                            <MudText Typo="Typo.body2" Class="tw-break-all platform-inline-code">@RawDataPreview</MudText>
                         </MudPaper>
                     </MudStack>
                 </MudPaper>
             </MudStack>
         </MudItem>
 
-        <MudItem xs="12" xl="7">
-            <MudPaper Class="platform-panel history-api-result-panel pa-5" Elevation="0">
-                <MudStack Spacing="3">
+        <MudItem xs="12" lg="7">
+            <MudPaper Class="platform-panel tw-p-4" Elevation="0">
+                <MudStack Spacing="2">
                     <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap">
                         <MudStack Spacing="0">
                             <MudText Typo="Typo.h6" Class="platform-card-title">最近一次测试结果</MudText>
@@ -153,7 +152,7 @@
 
                     @if (_latestResponse is null)
                     {
-                        <MudStack AlignItems="AlignItems.Center" Class="history-api-empty-state">
+                        <MudStack AlignItems="AlignItems.Center" Class="tw-min-h-64 tw-justify-center tw-p-6">
                             <MudIcon Icon="@Icons.Material.Filled.Api" Size="Size.Large" Color="Color.Info"/>
                             <MudText Typo="Typo.h6" Class="mt-3">还没有测试结果</MudText>
                             <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">
@@ -163,7 +162,7 @@
                     }
                     else
                     {
-                        <MudGrid>
+                        <MudGrid Spacing="2">
                             <MudItem xs="12" md="4">
                                 <MudPaper Class="platform-stat-card history-api-metric-card pa-4" Elevation="0">
                                     <MudText Typo="Typo.caption">查询类型</MudText>
@@ -185,10 +184,10 @@
                             </MudItem>
                         </MudGrid>
 
-                        <MudPaper Class="platform-stat-card history-api-preview pa-3" Elevation="0">
-                            <MudText Typo="Typo.caption" Class="history-api-preview-label">上游实际请求地址</MudText>
+                        <MudPaper Class="platform-summary" Elevation="0">
+                            <MudText Typo="Typo.caption" Class="platform-field-label">上游实际请求地址</MudText>
                             <MudText Typo="Typo.body2"
-                                     Class="history-api-preview-value">@_latestResponse.RequestUrl</MudText>
+                                     Class="tw-break-all platform-inline-code">@_latestResponse.RequestUrl</MudText>
                         </MudPaper>
 
                         @if (!string.IsNullOrWhiteSpace(_latestResponse.ErrorMessage))
@@ -198,11 +197,11 @@
                             </MudAlert>
                         }
 
-                        <MudPaper Class="history-api-json-panel" Elevation="0">
-                            <div class="history-api-json-header">
+                        <MudPaper Class="platform-code-panel" Elevation="0">
+                            <div class="platform-code-heading">
                                 <span>原始 JSON 响应</span>
                             </div>
-                            <pre class="history-api-json-content">@_latestResponse.PayloadJson</pre>
+                            <pre class="platform-code-content">@_latestResponse.PayloadJson</pre>
                         </MudPaper>
                     }
                 </MudStack>

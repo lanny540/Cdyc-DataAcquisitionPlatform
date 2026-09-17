@@ -192,6 +192,9 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
         }
 
         await UpsertCollectionPointForManagedDefinitionAsync(existingDefinition, originalCode, cancellationToken);
+        ServerConnection serverConnection =
+            await EnsureServerConnectionForManagedDefinitionAsync(existingDefinition, cancellationToken);
+        existingDefinition.ServerConnectionId = serverConnection.Id;
         await SaveChangesAsync(normalizedCode, "后台数据编码", cancellationToken);
         return MapManagedDataDefinition(existingDefinition);
     }
@@ -476,6 +479,52 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
         }
 
         _collectionPointRepository.Remove(collectionPoint);
+    }
+
+    private async Task<ServerConnection> EnsureServerConnectionForManagedDefinitionAsync(
+        ManagedDataDefinition definition,
+        CancellationToken cancellationToken)
+    {
+        if (definition.ServerConnectionId.HasValue)
+        {
+            ServerConnection? boundConnection = await _dbContext.ServerConnections
+                .FirstOrDefaultAsync(item => item.Id == definition.ServerConnectionId.Value, cancellationToken);
+            if (boundConnection is not null)
+            {
+                return boundConnection;
+            }
+        }
+
+        var acquisitionType = definition.AcquisitionType.Trim();
+        var address = NormalizeServerAddress(definition.ConnectionAddress);
+
+        ServerConnection? existingConnection = await _dbContext.ServerConnections
+            .FirstOrDefaultAsync(
+                item => item.AcquisitionType == acquisitionType && item.Address == address,
+                cancellationToken);
+        if (existingConnection is not null)
+        {
+            return existingConnection;
+        }
+
+        var serverConnection = new ServerConnection
+        {
+            Id = Guid.NewGuid(),
+            Code = $"SRV_{Guid.NewGuid():N}".ToUpperInvariant(),
+            DisplayName = $"{acquisitionType} 服务器",
+            AcquisitionType = acquisitionType,
+            Address = address,
+            ConfigurationJson = definition.ConfigurationJson,
+            IsEnabled = definition.IsEnabled,
+            UpdatedAt = definition.UpdatedAt
+        };
+        _dbContext.ServerConnections.Add(serverConnection);
+        return serverConnection;
+    }
+
+    private static string NormalizeServerAddress(string address)
+    {
+        return address.Trim().TrimEnd('/');
     }
 
     private static string NormalizeJsonOrEmptyObject(string json)

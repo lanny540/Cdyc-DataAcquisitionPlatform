@@ -200,6 +200,21 @@ internal sealed class ServerPlatformApiClient(
         return (await connectionDiagnosticsService.GetServerStatusesAsync(cancellationToken)).ToList();
     }
 
+    public async Task<IReadOnlyList<ServerConnectionStatusDto>> GetServerConnectionsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return (await connectionDiagnosticsService.GetServerConnectionsAsync(cancellationToken)).ToList();
+    }
+
+    public async Task<ServerConnectionStatusDto> CheckServerConnectionStatusAsync(
+        string key,
+        CancellationToken cancellationToken = default)
+    {
+        ServerConnectionStatusDto? status =
+            await connectionDiagnosticsService.CheckServerStatusAsync(key, cancellationToken);
+        return status ?? throw new InvalidOperationException("指定的服务器连接不存在。");
+    }
+
     public Task<ManagedDataConnectionTestResultDto> TestManagedDataConnectionAsync(
         ManagedDataDefinitionUpsertRequest request,
         CancellationToken cancellationToken = default)

@@ -2,15 +2,15 @@
 
 <PageTitle>采集点管理</PageTitle>
 
-<MudStack Class="platform-page-shell collection-points-shell">
-    <MudPaper Class="platform-page-hero collection-points-hero pa-6" Elevation="0">
+<MudStack Class="platform-page-shell tw-gap-4" Spacing="2">
+    <MudPaper Class="platform-page-hero tw-p-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
             <MudStack Spacing="0">
                 <MudText Typo="Typo.h4" GutterBottom="true">采集点配置管理</MudText>
                 <MudText Typo="Typo.body1" Class="collection-points-hero-description">
-                    将新增、编辑操作统一收纳到侧边抽屉，主视图专注展示采集点全量数据、通信状态与来源信息，便于高密度巡检和批量管理。
+                    管理采集端点、通信协议与启用状态。
                 </MudText>
-                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mt-4">
+                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mt-2">
                     <MudChip T="string" Variant="Variant.Outlined"
                              Color="Color.Info">@($"{_collectionPoints.Count} 个采集点")</MudChip>
                     <MudChip T="string" Variant="Variant.Outlined"
@@ -62,7 +62,7 @@
             <MudStack Spacing="0">
                 <MudText Typo="Typo.h6" Class="platform-card-title">服务端采集点列表</MudText>
                 <MudText Typo="Typo.body2" Class="platform-card-description">
-                    列表已扩展为主工作区，适合持续查看状态与快速触发编辑。
+                    查看通信状态，或打开右侧表单修改配置。
                 </MudText>
             </MudStack>
             <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
@@ -77,6 +77,7 @@
                   Dense="true"
                   Hover="true"
                   Loading="_isLoading"
+                  RowsPerPage="10"
                   Breakpoint="Breakpoint.Sm"
                   Class="platform-data-table collection-points-table">
             <HeaderContent>
@@ -153,6 +154,7 @@
                     </MudButton>
                 </MudStack>
             </NoRecordsContent>
+            <PagerContent><MudTablePager PageSizeOptions="@(new[] { 10, 20, 50 })" RowsPerPageString="每页条数"/></PagerContent>
         </MudTable>
     </MudPaper>
 
@@ -160,11 +162,10 @@
                 DarkBackground="true"
                 LockScroll="true"
                 ZIndex="1400"
-                Class="collection-points-editor-overlay"
+                Class="platform-sheet-overlay"
                 OnClick="@(_ => CloseEditor())">
-        <MudPaper Class="collection-points-editor-panel" Elevation="0" @onclick:stopPropagation="true">
-            <MudStack Class="collection-points-editor" Spacing="0" @key="_editorRenderKey">
-                <MudStack Class="collection-points-editor-header" Row="true" AlignItems="AlignItems.Start"
+        <div class="platform-sheet" role="dialog" aria-modal="true" aria-label="@EditorTitle" @onclick:stopPropagation="true" @key="_editorRenderKey">
+                <MudStack Class="platform-sheet-header" Row="true" AlignItems="AlignItems.Start"
                           Justify="Justify.SpaceBetween" Spacing="2">
                     <MudStack Spacing="0">
                         <MudText Typo="Typo.h5">@EditorTitle</MudText>
@@ -172,31 +173,31 @@
                             @EditorDescription
                         </MudText>
                     </MudStack>
-                    <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Default" OnClick="CloseEditor"/>
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Default" OnClick="CloseEditor" aria-label="关闭编辑"/>
                 </MudStack>
 
-                <MudStack Class="collection-points-editor-body" Spacing="3">
+                <MudStack Class="platform-sheet-body" Spacing="2">
                     <MudAlert Severity="@(_editingId.HasValue ? Severity.Info : Severity.Success)" Dense="true"
                               Variant="Variant.Outlined">
                         @(_editingId.HasValue ? "当前正在编辑已有采集点，保存后会直接更新服务端配置。" : "正在创建新的服务端采集点，保存后会立即出现在列表中。")
                     </MudAlert>
 
-                    <MudTextField Label="采集点编码"
+                    <MudTextField Margin="Margin.Dense" Label="采集点编码"
                                   @bind-Value="_code"
                                   Variant="Variant.Outlined"
                                   Immediate="true"
                                   Placeholder="例如 CP-001"/>
-                    <MudTextField Label="采集点名称"
+                    <MudTextField Margin="Margin.Dense" Label="采集点名称"
                                   @bind-Value="_name"
                                   Variant="Variant.Outlined"
                                   Immediate="true"
                                   Placeholder="输入便于识别的点位名称"/>
-                    <MudTextField Label="采集协议"
+                    <MudTextField Margin="Margin.Dense" Label="采集协议"
                                   @bind-Value="_protocol"
                                   Variant="Variant.Outlined"
                                   Immediate="true"
                                   Placeholder="例如 Modbus TCP"/>
-                    <MudTextField Label="采集端点"
+                    <MudTextField Margin="Margin.Dense" Label="采集端点"
                                   @bind-Value="_endpoint"
                                   Variant="Variant.Outlined"
                                   Immediate="true"
@@ -205,7 +206,7 @@
                     <MudSwitch T="bool" @bind-Value="_isEnabled" Color="Color.Primary">启用采集点</MudSwitch>
                 </MudStack>
 
-                <MudStack Class="collection-points-editor-footer" Row="true" Spacing="2" Justify="Justify.FlexEnd">
+                <MudStack Class="platform-sheet-footer" Row="true" Spacing="2" Justify="Justify.FlexEnd" Wrap="Wrap.Wrap">
                     <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="CancelEditor">
                         取消
                     </MudButton>
@@ -216,7 +217,6 @@
                         @SaveButtonText
                     </MudButton>
                 </MudStack>
-            </MudStack>
-        </MudPaper>
+        </div>
     </MudOverlay>
 </MudStack>

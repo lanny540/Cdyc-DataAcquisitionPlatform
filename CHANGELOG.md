@@ -22,7 +22,15 @@
 
 - 统一 Blazor Web 管理端页面视觉风格，补齐布局、导航、卡片、表格和状态页样式。
 - 精修 `/managed-data-definitions` 页面信息层级与操作区布局，修复操作列图标与文字显示不协调的问题。
+- 服务器连接状态页改为异步卡片监控视图，支持逐台网络探测并展示协议、地址、凭据、执行模式和关联节点数量。
+- Historian 数据定义支持将地址、ClientId、ClientSecret 与 Mock 开关保存到数据库配置中。
+
+### 新增
+
+- 新增 `server_connections` 外部服务器主数据表、`AddServerConnections` 与 `LinkManagedDefinitionsToServerConnections` EF Core 迁移，并回填已有服务器记录及节点外键关联。
+- 保存后台数据定义时自动登记服务器并绑定节点，避免后续新增服务器无法出现在连接状态页；共享服务器连接配置不再被单个节点覆盖。
 
 ### 文档
 
 - 新增 `CHANGELOG.md`，明确后续提交说明与变更记录统一使用中文。
+- README 补充外部服务器数据库配置与 EF Core 迁移执行说明。

@@ -26,11 +26,14 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
     private bool _isLoading = true;
     private bool _isExecuting;
     private bool _isAutoRefreshing;
+    private bool _isInfoDrawerOpen;
     private int _historyLimit = 50;
+    private int _historyRowsPerPage = 10;
     private int _secondsUntilNextRefresh;
     private string? _message;
     private string? _autoRefreshError;
     private Severity _messageSeverity = Severity.Info;
+    private static readonly int[] HistoryPageSizeOptions = [10, 20, 50];
 
     private IReadOnlyDictionary<string, string> ConfigurationItems =>
         _details is null
@@ -57,8 +60,7 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
                 }
             ];
 
-    private string[] HistoryChartLabels =>
-        HistoryTrendRecords.Select(item => item.CollectedAt.ToLocalTime().ToString("HH:mm:ss")).ToArray();
+    private string[] HistoryChartLabels => BuildHistoryChartLabels();
 
     private bool HasLiveCurrentSnapshot =>
         _liveCurrentSnapshot is { Success: true, ParsedValue: not null };
@@ -234,6 +236,16 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
     private void GoBack()
     {
         NavigationManager.NavigateTo("/managed-data-definitions");
+    }
+
+    private void OpenInfoDrawer()
+    {
+        _isInfoDrawerOpen = true;
+    }
+
+    private void CloseInfoDrawer()
+    {
+        _isInfoDrawerOpen = false;
     }
 
     private async Task OnHistoryLimitChanged(int value)
@@ -412,6 +424,30 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
         {
             return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
+    }
+
+    private string[] BuildHistoryChartLabels()
+    {
+        if (HistoryTrendRecords.Length == 0)
+        {
+            return [];
+        }
+
+        if (HistoryTrendRecords.Length <= 8)
+        {
+            return HistoryTrendRecords
+                .Select(item => item.CollectedAt.ToLocalTime().ToString("HH:mm:ss"))
+                .ToArray();
+        }
+
+        var step = Math.Max(1, (int)Math.Ceiling((HistoryTrendRecords.Length - 1) / 9d));
+
+        return HistoryTrendRecords
+            .Select(
+                (item, index) => index == 0 || index == HistoryTrendRecords.Length - 1 || index % step == 0
+                    ? item.CollectedAt.ToLocalTime().ToString("HH:mm")
+                    : string.Empty)
+            .ToArray();
     }
 
     private static string FormatInterval(int intervalSeconds)

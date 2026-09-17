@@ -22,6 +22,11 @@ public interface IHistoryApiProxyService
         string? baseAddressOverride,
         CancellationToken cancellationToken = default);
 
+    Task<HistoryApiQueryResponse> GetCurrentValueAsync(
+        HistoryCurrentValueQueryRequest request,
+        HistoryApiConnectionOptions connectionOptions,
+        CancellationToken cancellationToken = default);
+
     Task<HistoryApiQueryResponse> GetRawDataAsync(
         HistoryRawDataQueryRequest request,
         CancellationToken cancellationToken = default);
@@ -29,6 +34,11 @@ public interface IHistoryApiProxyService
     Task<HistoryApiQueryResponse> GetRawDataAsync(
         HistoryRawDataQueryRequest request,
         string? baseAddressOverride,
+        CancellationToken cancellationToken = default);
+
+    Task<HistoryApiQueryResponse> GetRawDataAsync(
+        HistoryRawDataQueryRequest request,
+        HistoryApiConnectionOptions connectionOptions,
         CancellationToken cancellationToken = default);
 }
 
@@ -49,12 +59,23 @@ public sealed class HistoryApiProxyService(
         HistoryCurrentValueQueryRequest request,
         CancellationToken cancellationToken = default)
     {
-        return GetCurrentValueAsync(request, null, cancellationToken);
+        return GetCurrentValueAsync(request, new HistoryApiConnectionOptions(null), cancellationToken);
     }
 
     public Task<HistoryApiQueryResponse> GetCurrentValueAsync(
         HistoryCurrentValueQueryRequest request,
         string? baseAddressOverride,
+        CancellationToken cancellationToken = default)
+    {
+        return GetCurrentValueAsync(
+            request,
+            new HistoryApiConnectionOptions(baseAddressOverride),
+            cancellationToken);
+    }
+
+    public Task<HistoryApiQueryResponse> GetCurrentValueAsync(
+        HistoryCurrentValueQueryRequest request,
+        HistoryApiConnectionOptions connectionOptions,
         CancellationToken cancellationToken = default)
     {
         var trimmedTagNames = request.TagNames.Trim();
@@ -64,7 +85,7 @@ public sealed class HistoryApiProxyService(
         return SendAuthorizedGetAsync(
             "最新值",
             requestUri,
-            baseAddressOverride,
+            connectionOptions,
             trimmedTagNames,
             cancellationToken);
     }
@@ -73,12 +94,23 @@ public sealed class HistoryApiProxyService(
         HistoryRawDataQueryRequest request,
         CancellationToken cancellationToken = default)
     {
-        return GetRawDataAsync(request, null, cancellationToken);
+        return GetRawDataAsync(request, new HistoryApiConnectionOptions(null), cancellationToken);
     }
 
     public Task<HistoryApiQueryResponse> GetRawDataAsync(
         HistoryRawDataQueryRequest request,
         string? baseAddressOverride,
+        CancellationToken cancellationToken = default)
+    {
+        return GetRawDataAsync(
+            request,
+            new HistoryApiConnectionOptions(baseAddressOverride),
+            cancellationToken);
+    }
+
+    public Task<HistoryApiQueryResponse> GetRawDataAsync(
+        HistoryRawDataQueryRequest request,
+        HistoryApiConnectionOptions connectionOptions,
         CancellationToken cancellationToken = default)
     {
         var tagName = request.TagName.Trim();
@@ -88,7 +120,7 @@ public sealed class HistoryApiProxyService(
         return SendAuthorizedGetAsync(
             "时间段原始数据",
             requestUri,
-            baseAddressOverride,
+            connectionOptions,
             tagName,
             cancellationToken);
     }
@@ -96,22 +128,31 @@ public sealed class HistoryApiProxyService(
     private async Task<HistoryApiQueryResponse> SendAuthorizedGetAsync(
         string queryType,
         string requestUri,
-        string? baseAddressOverride,
+        HistoryApiConnectionOptions connectionOptions,
         string requestedTagNames,
         CancellationToken cancellationToken)
     {
         try
         {
-            var resolvedBaseAddress = ResolveBaseAddress(baseAddressOverride);
-            if (_options.UseMockResponses)
+            var resolvedBaseAddress = ResolveBaseAddress(connectionOptions.BaseAddress);
+            var useMockResponses = connectionOptions.UseMockResponses ?? _options.UseMockResponses;
+            var clientId = ResolveOptionValue(connectionOptions.ClientId, _options.ClientId);
+            var clientSecret = ResolveOptionValue(connectionOptions.ClientSecret, _options.ClientSecret);
+
+            if (useMockResponses)
             {
                 return CreateMockResponse(queryType, requestUri, resolvedBaseAddress, requestedTagNames);
             }
 
-            ValidateConfiguration(resolvedBaseAddress);
+            ValidateConfiguration(resolvedBaseAddress, clientId, clientSecret);
 
             using HttpClient client = CreateClient(resolvedBaseAddress);
-            var accessToken = await GetAccessTokenAsync(client, resolvedBaseAddress, cancellationToken);
+            var accessToken = await GetAccessTokenAsync(
+                client,
+                resolvedBaseAddress,
+                clientId,
+                clientSecret,
+                cancellationToken);
 
             using var requestMessage = new HttpRequestMessage(HttpMethod.Get, requestUri);
             requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
@@ -137,7 +178,7 @@ public sealed class HistoryApiProxyService(
             return new HistoryApiQueryResponse(
                 false,
                 queryType,
-                BuildAbsoluteUrl(requestUri, baseAddressOverride),
+                BuildAbsoluteUrl(requestUri, connectionOptions.BaseAddress),
                 0,
                 "{}",
                 DateTimeOffset.UtcNow,
@@ -220,9 +261,11 @@ public sealed class HistoryApiProxyService(
     private async Task<string> GetAccessTokenAsync(
         HttpClient client,
         string resolvedBaseAddress,
+        string clientId,
+        string clientSecret,
         CancellationToken cancellationToken)
     {
-        var tokenCacheKey = $"{TokenCacheKey}:{resolvedBaseAddress}";
+        var tokenCacheKey = $"{TokenCacheKey}:{resolvedBaseAddress}:{clientId}";
 
         if (memoryCache.TryGetValue<HistoryApiTokenCacheEntry>(tokenCacheKey,
                 out HistoryApiTokenCacheEntry? cachedEntry) &&
@@ -243,7 +286,7 @@ public sealed class HistoryApiProxyService(
         request.Headers.Authorization = new AuthenticationHeaderValue(
             "Basic",
             Convert.ToBase64String(
-                System.Text.Encoding.UTF8.GetBytes($"{_options.ClientId}:{_options.ClientSecret}")));
+                System.Text.Encoding.UTF8.GetBytes($"{clientId}:{clientSecret}")));
 
         using HttpResponseMessage response = await client.SendAsync(request, cancellationToken);
         var payload = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -269,16 +312,16 @@ public sealed class HistoryApiProxyService(
         return tokenResponse.AccessToken;
     }
 
-    private void ValidateConfiguration(string resolvedBaseAddress)
+    private static void ValidateConfiguration(string resolvedBaseAddress, string clientId, string clientSecret)
     {
         if (string.IsNullOrWhiteSpace(resolvedBaseAddress))
         {
-            throw new InvalidOperationException("未配置 HistoryApi:BaseAddress。");
+            throw new InvalidOperationException("未配置 Historian API 服务器地址。");
         }
 
-        if (string.IsNullOrWhiteSpace(_options.ClientId) || string.IsNullOrWhiteSpace(_options.ClientSecret))
+        if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret))
         {
-            throw new InvalidOperationException("未配置 HistoryApi:ClientId 或 HistoryApi:ClientSecret。");
+            throw new InvalidOperationException("未配置 Historian API ClientId 或 ClientSecret。");
         }
     }
 
@@ -302,6 +345,11 @@ public sealed class HistoryApiProxyService(
         return string.IsNullOrWhiteSpace(baseAddressOverride)
             ? _options.BaseAddress
             : baseAddressOverride.Trim();
+    }
+
+    private static string ResolveOptionValue(string? overrideValue, string fallback)
+    {
+        return overrideValue is null ? fallback : overrideValue.Trim();
     }
 
     private static string FormatUtcTimestamp(DateTimeOffset value)
@@ -351,6 +399,15 @@ public sealed class HistoryApiOptions
 
     public int RequestTimeoutSeconds { get; set; } = 30;
 }
+
+/// <summary>
+/// 表示单个 Historian 服务器的连接参数。
+/// </summary>
+public sealed record HistoryApiConnectionOptions(
+    string? BaseAddress,
+    string? ClientId = null,
+    string? ClientSecret = null,
+    bool? UseMockResponses = null);
 
 internal sealed record HistoryApiTokenCacheEntry(string AccessToken, DateTimeOffset ExpiresAt);
 

@@ -32,6 +32,11 @@ public sealed class DataAcquisitionPlatformDbContext : DbContext
     /// </summary>
     public DbSet<ManagedDataDefinition> ManagedDataDefinitions => Set<ManagedDataDefinition>();
 
+    /// <summary>
+    /// 获取外部服务器配置集合。
+    /// </summary>
+    public DbSet<ServerConnection> ServerConnections => Set<ServerConnection>();
+
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

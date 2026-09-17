@@ -2,15 +2,13 @@
 
 <PageTitle>后台数据管理</PageTitle>
 
-<MudStack Class="platform-page-shell managed-data-shell" Spacing="3">
-    <MudPaper Class="platform-page-hero managed-data-hero pa-6" Elevation="0">
+<div class="platform-page-shell tw-flex tw-flex-col tw-gap-4">
+    <MudPaper Class="platform-page-hero tw-p-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
             <MudStack Spacing="1">
                 <MudText Typo="Typo.h4">后台数据管理</MudText>
                 <MudText Typo="Typo.body1" Class="managed-data-hero-description">
-                    把不同采集方式的数据定义集中到同一个工作台中维护。公共业务标识字段直接入库，协议差异配置统一保存为结构化
-                    JSON，
-                    既方便管理员随时增删改查，也为后续扩展 MQTT、OPC DA、更多接口型数据源预留了空间。
+                    统一维护采集定义、业务标识与协议参数，支持调试读取和采集入库。
                 </MudText>
                 <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mt-3">
                     <MudChip T="string" Variant="Variant.Outlined"
@@ -76,7 +74,7 @@
 
         <MudGrid Spacing="2">
             <MudItem xs="12" md="8" lg="9">
-                <MudTextField Label="搜索编码、名称、部门、工序、数据标识"
+                <MudTextField Margin="Margin.Dense" Label="搜索编码、名称、部门、工序、数据标识"
                               Variant="Variant.Outlined"
                               Immediate="true"
                               Adornment="Adornment.Start"
@@ -84,7 +82,7 @@
                               @bind-Value="_searchTerm"/>
             </MudItem>
             <MudItem xs="12" md="4" lg="3">
-                <MudSelect T="string" Label="采集方式筛选" Variant="Variant.Outlined" @bind-Value="_typeFilter">
+                <MudSelect T="string" Margin="Margin.Dense" Label="采集方式筛选" Variant="Variant.Outlined" @bind-Value="_typeFilter">
                     <MudSelectItem T="string" Value="@AllTypeFilter">@AllTypeFilter</MudSelectItem>
                     @foreach (var item in _acquisitionTypeOptions)
                     {
@@ -115,7 +113,8 @@
                   Dense="true"
                   Hover="true"
                   Loading="_isLoading"
-                  Breakpoint="Breakpoint.Md"
+                  RowsPerPage="10"
+                  Breakpoint="Breakpoint.Sm"
                   Class="platform-data-table managed-data-table">
             <HeaderContent>
                 <MudTh>编码</MudTh>
@@ -127,7 +126,7 @@
                 <MudTh>采集频次</MudTh>
                 <MudTh>状态</MudTh>
                 <MudTh>更新时间</MudTh>
-                <MudTh Style="width: 320px;">操作</MudTh>
+                <MudTh Style="width: 200px;">操作</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="编码">
@@ -239,10 +238,11 @@
                     </MudText>
                 </MudStack>
             </NoRecordsContent>
+            <PagerContent><MudTablePager PageSizeOptions="@(new[] { 10, 20, 50 })" RowsPerPageString="每页条数"/></PagerContent>
         </MudTable>
     </MudPaper>
 
-    <MudPaper Class="platform-section-card managed-data-result-card pa-5" Elevation="0">
+    <MudPaper Class="platform-section-card tw-p-4" Elevation="0">
         <MudStack Spacing="3">
             <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap">
                 <MudStack Spacing="0">
@@ -306,12 +306,12 @@
                     </MudItem>
                 </MudGrid>
 
-                <MudPaper Class="managed-data-execution-summary pa-3" Elevation="0">
+                <MudPaper Class="platform-summary" Elevation="0">
                     <MudText Typo="Typo.caption" Class="managed-data-summary-label">执行摘要</MudText>
                     <MudText Typo="Typo.body2">@_lastExecutionResult.StatusMessage</MudText>
                 </MudPaper>
 
-                <MudPaper Class="managed-data-execution-summary pa-3" Elevation="0">
+                <MudPaper Class="platform-summary" Elevation="0">
                     <MudText Typo="Typo.caption" Class="managed-data-summary-label">访问目标</MudText>
                     <MudText Typo="Typo.body2"
                              Class="managed-data-monospace">@_lastExecutionResult.RequestTarget</MudText>
@@ -333,9 +333,9 @@
                     </MudAlert>
                 }
 
-                <MudPaper Class="managed-data-preview-panel" Elevation="0">
-                    <div class="managed-data-preview-header">原始 JSON 响应</div>
-                    <pre class="managed-data-preview-content">@_lastExecutionResult.PayloadJson</pre>
+                <MudPaper Class="platform-code-panel" Elevation="0">
+                    <div class="platform-code-heading">原始 JSON 响应</div>
+                    <pre class="platform-code-content">@_lastExecutionResult.PayloadJson</pre>
                 </MudPaper>
             }
         </MudStack>
@@ -345,11 +345,10 @@
                 DarkBackground="true"
                 LockScroll="true"
                 ZIndex="1400"
-                Class="managed-data-editor-overlay"
+                Class="platform-sheet-overlay"
                 OnClick="@(_ => CloseEditor())">
-        <MudPaper Class="managed-data-editor-panel" Elevation="0" @onclick:stopPropagation="true">
-            <MudStack Class="managed-data-editor" Spacing="0" @key="_editorRenderKey">
-                <MudStack Class="managed-data-editor-header" Row="true" AlignItems="AlignItems.Start"
+        <div class="platform-sheet platform-sheet--wide" role="dialog" aria-modal="true" aria-label="@EditorTitle" @onclick:stopPropagation="true" @key="_editorRenderKey">
+                <MudStack Class="platform-sheet-header" Row="true" AlignItems="AlignItems.Start"
                           Justify="Justify.SpaceBetween" Spacing="2">
                     <MudStack Spacing="0">
                         <MudText Typo="Typo.h5">@EditorTitle</MudText>
@@ -357,10 +356,10 @@
                             @EditorDescription
                         </MudText>
                     </MudStack>
-                    <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Default" OnClick="CloseEditor"/>
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Default" OnClick="CloseEditor" aria-label="关闭编辑"/>
                 </MudStack>
 
-                <MudStack Class="managed-data-editor-body" Spacing="4">
+                <MudStack Class="platform-sheet-body" Spacing="2">
                     <MudAlert Severity="@(_editingId.HasValue ? Severity.Info : Severity.Success)" Dense="true"
                               Variant="Variant.Outlined">
                         @(_editingId.HasValue ? "建议先核对公共业务标识，再检查协议配置和扩展字段。" : "建议先填写公共业务标识，再补充协议差异字段。")
@@ -379,20 +378,20 @@
                         </MudAlert>
                     }
 
-                    <MudPaper Class="managed-data-section pa-4" Elevation="0">
-                        <MudStack Spacing="3">
+                    <MudPaper Class="platform-sheet-section" Elevation="0">
+                        <MudStack Spacing="2">
                             <MudText Typo="Typo.h6">基础信息</MudText>
                             <MudGrid Spacing="2">
                                 <MudItem xs="12" md="6">
-                                    <MudTextField Label="数据编码" Variant="Variant.Outlined" Immediate="true"
+                                    <MudTextField Margin="Margin.Dense" Label="数据编码" Variant="Variant.Outlined" Immediate="true"
                                                   Placeholder="例如 MD-MB-POWER-001" @bind-Value="_code"/>
                                 </MudItem>
                                 <MudItem xs="12" md="6">
-                                    <MudTextField Label="数据名称" Variant="Variant.Outlined" Immediate="true"
+                                    <MudTextField Margin="Margin.Dense" Label="数据名称" Variant="Variant.Outlined" Immediate="true"
                                                   Placeholder="例如 锅炉房主进线有功功率" @bind-Value="_name"/>
                                 </MudItem>
                                 <MudItem xs="12" md="6">
-                                    <MudSelect T="string" Label="采集方式" Variant="Variant.Outlined"
+                                    <MudSelect T="string" Margin="Margin.Dense" Label="采集方式" Variant="Variant.Outlined"
                                                @bind-Value="_acquisitionType">
                                         @foreach (var item in _acquisitionTypeOptions)
                                         {
@@ -401,29 +400,29 @@
                                     </MudSelect>
                                 </MudItem>
                                 <MudItem xs="12" md="6">
-                                    <MudTextField Label="计量单位" Variant="Variant.Outlined" Immediate="true"
+                                    <MudTextField Margin="Margin.Dense" Label="计量单位" Variant="Variant.Outlined" Immediate="true"
                                                   Placeholder="例如 kW、t/h、Nm3/h" @bind-Value="_unit"/>
                                 </MudItem>
                                 <MudItem xs="12" md="6">
-                                    <MudNumericField T="int" Label="采集频次（秒）" Variant="Variant.Outlined"
+                                    <MudNumericField T="int" Margin="Margin.Dense" Label="采集频次（秒）" Variant="Variant.Outlined"
                                                      Min="1" Immediate="true" HideSpinButtons="false"
                                                      HelperText="用于定义该节点计划采集间隔，例如 30 秒、60 秒、300 秒。"
                                                      @bind-Value="_collectionIntervalSeconds"/>
                                 </MudItem>
-                                <MudItem xs="12" md="4">
-                                    <MudTextField Label="归属部门" Variant="Variant.Outlined" Immediate="true"
+                                <MudItem xs="12" md="6">
+                                    <MudTextField Margin="Margin.Dense" Label="归属部门" Variant="Variant.Outlined" Immediate="true"
                                                   Placeholder="例如 AAA 部门" @bind-Value="_department"/>
                                 </MudItem>
-                                <MudItem xs="12" md="4">
-                                    <MudTextField Label="工序编码" Variant="Variant.Outlined" Immediate="true"
+                                <MudItem xs="12" md="6">
+                                    <MudTextField Margin="Margin.Dense" Label="工序编码" Variant="Variant.Outlined" Immediate="true"
                                                   Placeholder="例如 AAA123" @bind-Value="_processCode"/>
                                 </MudItem>
-                                <MudItem xs="12" md="4">
-                                    <MudTextField Label="数据类别" Variant="Variant.Outlined" Immediate="true"
+                                <MudItem xs="12" md="6">
+                                    <MudTextField Margin="Margin.Dense" Label="数据类别" Variant="Variant.Outlined" Immediate="true"
                                                   Placeholder="例如 电力数据、蒸汽数据" @bind-Value="_dataCategory"/>
                                 </MudItem>
                                 <MudItem xs="12">
-                                    <MudTextField Label="说明" Variant="Variant.Outlined" Lines="3" Immediate="true"
+                                    <MudTextField Margin="Margin.Dense" Label="说明" Variant="Variant.Outlined" Lines="2" Immediate="true"
                                                   Placeholder="可记录采集目的、使用范围、字段含义等补充信息"
                                                   @bind-Value="_description"/>
                                 </MudItem>
@@ -433,8 +432,8 @@
                         </MudStack>
                     </MudPaper>
 
-                    <MudPaper Class="managed-data-section pa-4" Elevation="0">
-                        <MudStack Spacing="3">
+                    <MudPaper Class="platform-sheet-section" Elevation="0">
+                        <MudStack Spacing="2">
                             <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
                                 <MudText Typo="Typo.h6">协议配置</MudText>
                                 <MudChip T="string" Variant="Variant.Text"
@@ -445,27 +444,27 @@
                             {
                                 <MudGrid Spacing="2">
                                     <MudItem xs="12" md="6">
-                                        <MudSelect T="string" Label="协议变体" Variant="Variant.Outlined"
+                                        <MudSelect T="string" Margin="Margin.Dense" Label="协议变体" Variant="Variant.Outlined"
                                                    @bind-Value="_modbusProtocolVariant">
                                             <MudSelectItem T="string" Value="@("RTU")">RTU</MudSelectItem>
                                             <MudSelectItem T="string" Value="@("TCP")">TCP</MudSelectItem>
                                         </MudSelect>
                                     </MudItem>
                                     <MudItem xs="12" md="6">
-                                        <MudTextField Label="连接地址 / 端口" Variant="Variant.Outlined"
+                                        <MudTextField Margin="Margin.Dense" Label="连接地址 / 端口" Variant="Variant.Outlined"
                                                       Placeholder="例如 COM3 或 192.168.1.10:502"
                                                       @bind-Value="_modbusConnectionAddress"/>
                                     </MudItem>
                                     <MudItem xs="12" md="4">
-                                        <MudTextField Label="从站地址" Variant="Variant.Outlined"
+                                        <MudTextField Margin="Margin.Dense" Label="从站地址" Variant="Variant.Outlined"
                                                       @bind-Value="_modbusSlaveId"/>
                                     </MudItem>
                                     <MudItem xs="12" md="4">
-                                        <MudTextField Label="寄存器地址" Variant="Variant.Outlined"
+                                        <MudTextField Margin="Margin.Dense" Label="寄存器地址" Variant="Variant.Outlined"
                                                       Placeholder="例如 40001" @bind-Value="_modbusRegisterAddress"/>
                                     </MudItem>
                                     <MudItem xs="12" md="4">
-                                        <MudTextField Label="波特率" Variant="Variant.Outlined"
+                                        <MudTextField Margin="Margin.Dense" Label="波特率" Variant="Variant.Outlined"
                                                       Placeholder="例如 9600" @bind-Value="_modbusBaudRate"/>
                                     </MudItem>
                                 </MudGrid>
@@ -474,12 +473,12 @@
                             {
                                 <MudGrid Spacing="2">
                                     <MudItem xs="12" md="7">
-                                        <MudTextField Label="Historian API 地址" Variant="Variant.Outlined"
+                                        <MudTextField Margin="Margin.Dense" Label="Historian API 地址" Variant="Variant.Outlined"
                                                       Placeholder="例如 http://10.9.3.54:8080/historian-rest-api"
                                                       @bind-Value="_historianBaseAddress"/>
                                     </MudItem>
                                     <MudItem xs="12" md="5">
-                                        <MudSelect T="string" Label="查询模式" Variant="Variant.Outlined"
+                                        <MudSelect T="string" Margin="Margin.Dense" Label="查询模式" Variant="Variant.Outlined"
                                                    @bind-Value="_historianQueryMode">
                                             <MudSelectItem T="string" Value="@("CurrentValue")">CurrentValue
                                             </MudSelectItem>
@@ -490,8 +489,21 @@
                                         </MudSelect>
                                     </MudItem>
                                     <MudItem xs="12">
-                                        <MudTextField Label="Tag 名称" Variant="Variant.Outlined"
+                                        <MudTextField Margin="Margin.Dense" Label="Tag 名称" Variant="Variant.Outlined"
                                                       Placeholder="例如 tag001" @bind-Value="_historianTagName"/>
+                                    </MudItem>
+                                    <MudItem xs="12" md="5">
+                                        <MudTextField Margin="Margin.Dense" Label="ClientId" Variant="Variant.Outlined"
+                                                      @bind-Value="_historianClientId"/>
+                                    </MudItem>
+                                    <MudItem xs="12" md="5">
+                                        <MudTextField Margin="Margin.Dense" Label="ClientSecret" Variant="Variant.Outlined"
+                                                      InputType="InputType.Password"
+                                                      @bind-Value="_historianClientSecret"/>
+                                    </MudItem>
+                                    <MudItem xs="12" md="2" Class="tw-flex tw-items-center">
+                                        <MudCheckBox T="bool" Dense="true" Label="Mock"
+                                                     @bind-Value="_historianUseMockResponses"/>
                                     </MudItem>
                                 </MudGrid>
                             }
@@ -499,15 +511,15 @@
                             {
                                 <MudGrid Spacing="2">
                                     <MudItem xs="12" md="8">
-                                        <MudTextField Label="Broker 地址" Variant="Variant.Outlined"
+                                        <MudTextField Margin="Margin.Dense" Label="Broker 地址" Variant="Variant.Outlined"
                                                       Placeholder="例如 mqtt://broker.local:1883"
                                                       @bind-Value="_mqttBrokerAddress"/>
                                     </MudItem>
                                     <MudItem xs="12" md="4">
-                                        <MudTextField Label="QoS" Variant="Variant.Outlined" @bind-Value="_mqttQoS"/>
+                                        <MudTextField Margin="Margin.Dense" Label="QoS" Variant="Variant.Outlined" @bind-Value="_mqttQoS"/>
                                     </MudItem>
                                     <MudItem xs="12">
-                                        <MudTextField Label="Topic" Variant="Variant.Outlined"
+                                        <MudTextField Margin="Margin.Dense" Label="Topic" Variant="Variant.Outlined"
                                                       Placeholder="例如 factory/steam/flow" @bind-Value="_mqttTopic"/>
                                     </MudItem>
                                 </MudGrid>
@@ -516,16 +528,16 @@
                             {
                                 <MudGrid Spacing="2">
                                     <MudItem xs="12" md="6">
-                                        <MudTextField Label="OPC Server 地址" Variant="Variant.Outlined"
+                                        <MudTextField Margin="Margin.Dense" Label="OPC Server 地址" Variant="Variant.Outlined"
                                                       Placeholder="例如 opcda://compressor/station-03"
                                                       @bind-Value="_opcServerAddress"/>
                                     </MudItem>
                                     <MudItem xs="12" md="6">
-                                        <MudTextField Label="组名" Variant="Variant.Outlined"
+                                        <MudTextField Margin="Margin.Dense" Label="组名" Variant="Variant.Outlined"
                                                       Placeholder="例如 SteamGroup" @bind-Value="_opcGroupName"/>
                                     </MudItem>
                                     <MudItem xs="12">
-                                        <MudTextField Label="Item ID" Variant="Variant.Outlined"
+                                        <MudTextField Margin="Margin.Dense" Label="Item ID" Variant="Variant.Outlined"
                                                       Placeholder="例如 Channel1.Device1.Tag001"
                                                       @bind-Value="_opcItemId"/>
                                     </MudItem>
@@ -535,16 +547,16 @@
                             {
                                 <MudGrid Spacing="2">
                                     <MudItem xs="12" md="7">
-                                        <MudTextField Label="API 基地址" Variant="Variant.Outlined"
+                                        <MudTextField Margin="Margin.Dense" Label="API 基地址" Variant="Variant.Outlined"
                                                       Placeholder="例如 http://api.local:8080"
                                                       @bind-Value="_httpApiBaseAddress"/>
                                     </MudItem>
                                     <MudItem xs="12" md="5">
-                                        <MudTextField Label="请求路径" Variant="Variant.Outlined"
+                                        <MudTextField Margin="Margin.Dense" Label="请求路径" Variant="Variant.Outlined"
                                                       Placeholder="例如 /metrics/current" @bind-Value="_httpPath"/>
                                     </MudItem>
                                     <MudItem xs="12">
-                                        <MudTextField Label="数据标识 / 指标名" Variant="Variant.Outlined"
+                                        <MudTextField Margin="Margin.Dense" Label="数据标识 / 指标名" Variant="Variant.Outlined"
                                                       Placeholder="例如 steam_flow"
                                                       @bind-Value="_httpMetricIdentifier"/>
                                     </MudItem>
@@ -573,11 +585,11 @@
                                 {
                                     <MudGrid Spacing="2">
                                         <MudItem xs="12" md="5">
-                                            <MudTextField Label="字段名" Variant="Variant.Outlined" Immediate="true"
+                                            <MudTextField Margin="Margin.Dense" Label="字段名" Variant="Variant.Outlined" Immediate="true"
                                                           @bind-Value="row.Key"/>
                                         </MudItem>
                                         <MudItem xs="12" md="5">
-                                            <MudTextField Label="字段值" Variant="Variant.Outlined" Immediate="true"
+                                            <MudTextField Margin="Margin.Dense" Label="字段值" Variant="Variant.Outlined" Immediate="true"
                                                           @bind-Value="row.Value"/>
                                         </MudItem>
                                         <MudItem xs="12" md="2" Class="d-flex align-center">
@@ -592,8 +604,8 @@
                         </MudStack>
                     </MudPaper>
 
-                    <MudPaper Class="managed-data-section pa-4" Elevation="0">
-                        <MudStack Spacing="3">
+                    <MudPaper Class="platform-sheet-section" Elevation="0">
+                        <MudStack Spacing="2">
                             <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
                                 <MudText Typo="Typo.h6">业务标识字段</MudText>
                                 <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="AddBusinessTagRow">
@@ -613,11 +625,11 @@
                                 {
                                     <MudGrid Spacing="2">
                                         <MudItem xs="12" md="5">
-                                            <MudTextField Label="标识名" Variant="Variant.Outlined" Immediate="true"
+                                            <MudTextField Margin="Margin.Dense" Label="标识名" Variant="Variant.Outlined" Immediate="true"
                                                           @bind-Value="row.Key"/>
                                         </MudItem>
                                         <MudItem xs="12" md="5">
-                                            <MudTextField Label="标识值" Variant="Variant.Outlined" Immediate="true"
+                                            <MudTextField Margin="Margin.Dense" Label="标识值" Variant="Variant.Outlined" Immediate="true"
                                                           @bind-Value="row.Value"/>
                                         </MudItem>
                                         <MudItem xs="12" md="2" Class="d-flex align-center">
@@ -634,21 +646,21 @@
 
                     <MudGrid Spacing="2">
                         <MudItem xs="12" lg="6">
-                            <MudPaper Class="managed-data-preview-panel" Elevation="0">
-                                <div class="managed-data-preview-header">协议配置 JSON 预览</div>
-                                <pre class="managed-data-preview-content">@ConfigurationPreviewJson</pre>
+                            <MudPaper Class="platform-code-panel" Elevation="0">
+                                <div class="platform-code-heading">协议配置 JSON 预览</div>
+                                <pre class="platform-code-content">@ConfigurationPreviewJson</pre>
                             </MudPaper>
                         </MudItem>
                         <MudItem xs="12" lg="6">
-                            <MudPaper Class="managed-data-preview-panel" Elevation="0">
-                                <div class="managed-data-preview-header">业务标识 JSON 预览</div>
-                                <pre class="managed-data-preview-content">@BusinessTagsPreviewJson</pre>
+                            <MudPaper Class="platform-code-panel" Elevation="0">
+                                <div class="platform-code-heading">业务标识 JSON 预览</div>
+                                <pre class="platform-code-content">@BusinessTagsPreviewJson</pre>
                             </MudPaper>
                         </MudItem>
                     </MudGrid>
                 </MudStack>
 
-                <MudStack Class="managed-data-editor-footer" Row="true" Spacing="2" Justify="Justify.FlexEnd">
+                <MudStack Class="platform-sheet-footer" Row="true" Spacing="2" Justify="Justify.FlexEnd" Wrap="Wrap.Wrap">
                     <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="CancelEditor">
                         取消
                     </MudButton>
@@ -663,7 +675,6 @@
                         @SaveButtonText
                     </MudButton>
                 </MudStack>
-            </MudStack>
-        </MudPaper>
+        </div>
     </MudOverlay>
-</MudStack>
+</div>

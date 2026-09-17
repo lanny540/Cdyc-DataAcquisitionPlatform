@@ -1,0 +1,2 @@
+/* MudBlazor owns component resets; prefixed utilities only control layout. */
+@tailwind utilities;

@@ -2,21 +2,22 @@
 
 <PageTitle>采集节点详情</PageTitle>
 
-<MudStack Class="platform-page-shell node-details-shell" Spacing="3">
-    <MudPaper Class="platform-page-hero node-details-hero pa-6" Elevation="0">
+<div class="platform-page-shell tw-flex tw-flex-col tw-gap-4">
+    <MudPaper Class="platform-page-hero tw-p-4" Elevation="0">
+        <div class="node-details-back-strip">
+            <MudButton Variant="Variant.Text" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.ArrowBack"
+                       Class="node-details-back-button" OnClick="GoBack">
+                返回后台数据管理
+            </MudButton>
+        </div>
+
         <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
             <MudStack Spacing="1">
-                <MudButton Variant="Variant.Text" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.ArrowBack"
-                           Class="node-details-back-button" OnClick="GoBack">
-                    返回后台数据管理
-                </MudButton>
-
                 @if (_details is not null)
                 {
                     <MudText Typo="Typo.h4">@_details.Definition.Name</MudText>
                     <MudText Typo="Typo.body1" Class="node-details-subtitle">
-                        这是一个面向运行监控的节点观察面板。当前值会按照采集频次自动读取并刷新，历史区则持续展示已入库的趋势数据，
-                        方便管理员同时判断“实时状态”和“历史稳定性”。
+                        按采集频次刷新当前值，查看已入库数据的历史趋势与采样明细。
                     </MudText>
 
                     <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mt-3">
@@ -40,13 +41,19 @@
                 }
             </MudStack>
 
-            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
                 <MudSelect T="int" Value="_historyLimit" ValueChanged="OnHistoryLimitChanged"
-                           Label="历史数量" Variant="Variant.Outlined" Dense="true" Class="node-details-limit-select">
+                           Label="历史数量" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Class="node-details-limit-select">
                     <MudSelectItem T="int" Value="20">最近 20 条</MudSelectItem>
                     <MudSelectItem T="int" Value="50">最近 50 条</MudSelectItem>
                     <MudSelectItem T="int" Value="100">最近 100 条</MudSelectItem>
                 </MudSelect>
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.Tune"
+                           Disabled="_details is null"
+                           OnClick="OpenInfoDrawer">
+                    节点配置
+                </MudButton>
                 <MudButton Variant="Variant.Outlined" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Refresh"
                            Disabled="_isLoading || _isExecuting" OnClick="LoadAsync">
                     刷新详情
@@ -99,8 +106,8 @@
     }
     else
     {
-        <MudGrid>
-            <MudItem xs="12" md="3">
+        <MudGrid Spacing="3">
+            <MudItem xs="12" sm="6" lg="3">
                 <MudPaper Class="platform-stat-card node-details-metric node-details-metric-primary pa-4" Elevation="0">
                     <MudText Typo="Typo.caption">实时当前值</MudText>
                     <MudText Typo="Typo.h3">@CurrentValueText</MudText>
@@ -108,7 +115,7 @@
                     <MudText Typo="Typo.caption" Class="node-details-metric-subtle">@CurrentValueFootnote</MudText>
                 </MudPaper>
             </MudItem>
-            <MudItem xs="12" md="3">
+            <MudItem xs="12" sm="6" lg="3">
                 <MudPaper Class="platform-stat-card node-details-metric pa-4" Elevation="0">
                     <MudText Typo="Typo.caption">自动刷新节拍</MudText>
                     <MudText Typo="Typo.h5">@NextRefreshDisplay</MudText>
@@ -117,7 +124,7 @@
                                        Color="Color.Info"/>
                 </MudPaper>
             </MudItem>
-            <MudItem xs="12" md="3">
+            <MudItem xs="12" sm="6" lg="3">
                 <MudPaper Class="platform-stat-card node-details-metric pa-4" Elevation="0">
                     <MudText Typo="Typo.caption">历史波动区间</MudText>
                     <MudText Typo="Typo.h5">@HistoryRangeText</MudText>
@@ -127,7 +134,7 @@
                     </MudText>
                 </MudPaper>
             </MudItem>
-            <MudItem xs="12" md="3">
+            <MudItem xs="12" sm="6" lg="3">
                 <MudPaper Class="platform-stat-card node-details-metric pa-4" Elevation="0">
                     <MudText Typo="Typo.caption">节点运行状态</MudText>
                     <MudText Typo="Typo.h5">@(_details.CollectionPoint?.CommunicationStatus ?? "未生成采集点")</MudText>
@@ -140,16 +147,16 @@
         </MudGrid>
 
         <MudGrid>
-            <MudItem xs="12" lg="8">
+            <MudItem xs="12">
                 <MudStack Spacing="3">
-                    <MudPaper Class="platform-panel node-details-panel pa-5" Elevation="0">
+                    <MudPaper Class="platform-panel tw-p-4" Elevation="0">
                         <MudStack Spacing="3">
                             <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
                                       Wrap="Wrap.Wrap">
                                 <MudStack Spacing="0">
                                     <MudText Typo="Typo.h6" Class="platform-card-title">历史趋势</MudText>
                                     <MudText Typo="Typo.body2" Class="platform-card-description">
-                                        使用折线趋势来观察这个节点的历史变化走势；线下方仍保留明细表，便于你继续核对每一个采样点。
+                                        最近采样值的变化趋势。
                                     </MudText>
                                 </MudStack>
                                 <MudChip T="string" Variant="Variant.Outlined" Color="Color.Primary">
@@ -165,19 +172,19 @@
                             }
                             else
                             {
-                                <MudPaper Class="platform-stat-card node-details-chart-panel pa-4" Elevation="0">
+                                <MudPaper Class="node-details-chart-panel pa-3" Elevation="0">
                                     <MudChart T="double"
                                               ChartType="ChartType.Line"
                                               ChartSeries="@HistoryChartSeries"
                                               ChartLabels="@HistoryChartLabels"
                                               Width="100%"
-                                              Height="320px"/>
+                                              Height="360px"/>
                                 </MudPaper>
                             }
                         </MudStack>
                     </MudPaper>
 
-                    <MudPaper Class="platform-panel node-details-panel pa-5" Elevation="0">
+                    <MudPaper Class="platform-panel tw-p-4" Elevation="0">
                         <MudStack Spacing="3">
                             <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
                                       Wrap="Wrap.Wrap">
@@ -200,6 +207,7 @@
                             {
                                 <MudTable Items="_details.RecentRecords" Dense="true" Hover="true"
                                           Class="platform-data-table"
+                                          RowsPerPage="@_historyRowsPerPage"
                                           Breakpoint="Breakpoint.Sm">
                                     <HeaderContent>
                                         <MudTh>采集时间</MudTh>
@@ -227,12 +235,15 @@
                                             </MudText>
                                         </MudTd>
                                     </RowTemplate>
+                                    <PagerContent>
+                                        <MudTablePager PageSizeOptions="@HistoryPageSizeOptions" RowsPerPageString="每页条数"/>
+                                    </PagerContent>
                                 </MudTable>
                             }
 
                             @if (_lastExecutionResult is not null)
                             {
-                                <MudPaper Class="platform-stat-card node-details-execution-panel pa-3" Elevation="0">
+                                <MudPaper Class="platform-summary" Elevation="0">
                                     <MudText Typo="Typo.caption" Class="node-details-section-label">最近一次读取结果
                                     </MudText>
                                     <MudText Typo="Typo.body2">@_lastExecutionResult.StatusMessage</MudText>
@@ -244,86 +255,109 @@
                     </MudPaper>
                 </MudStack>
             </MudItem>
-
-            <MudItem xs="12" lg="4">
-                <MudStack Spacing="3">
-                    <MudPaper Class="platform-panel node-details-panel pa-5" Elevation="0">
-                        <MudStack Spacing="2">
-                            <MudText Typo="Typo.h6" Class="platform-card-title">节点配置摘要</MudText>
-                            <MudPaper Class="platform-stat-card node-details-summary-box pa-3" Elevation="0">
-                                <MudText Typo="Typo.caption" Class="node-details-section-label">连接地址</MudText>
-                                <MudText Typo="Typo.body2"
-                                         Class="node-details-monospace">@_details.Definition.ConnectionAddress</MudText>
-                            </MudPaper>
-                            <MudPaper Class="platform-stat-card node-details-summary-box pa-3" Elevation="0">
-                                <MudText Typo="Typo.caption" Class="node-details-section-label">采集频次</MudText>
-                                <MudText
-                                    Typo="Typo.body2">@($"每 {FormatInterval(_details.Definition.CollectionIntervalSeconds)} 读取 1 次")</MudText>
-                            </MudPaper>
-                            <MudPaper Class="platform-stat-card node-details-summary-box pa-3" Elevation="0">
-                                <MudText Typo="Typo.caption" Class="node-details-section-label">说明</MudText>
-                                <MudText
-                                    Typo="Typo.body2">@(!string.IsNullOrWhiteSpace(_details.Definition.Description) ? _details.Definition.Description : "暂无说明")</MudText>
-                            </MudPaper>
-                        </MudStack>
-                    </MudPaper>
-
-                    <MudPaper Class="platform-panel node-details-panel pa-5" Elevation="0">
-                        <MudStack Spacing="2">
-                            <MudText Typo="Typo.h6" Class="platform-card-title">业务标识</MudText>
-                            <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
-                                <MudChip T="string" Variant="Variant.Text"
-                                         Color="Color.Primary">@_details.Definition.Department</MudChip>
-                                <MudChip T="string" Variant="Variant.Text"
-                                         Color="Color.Secondary">@_details.Definition.ProcessCode</MudChip>
-                                <MudChip T="string" Variant="Variant.Text"
-                                         Color="Color.Info">@_details.Definition.DataCategory</MudChip>
-                            </MudStack>
-                            @if (BusinessTagItems.Count == 0)
-                            {
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">暂无扩展业务标识。</MudText>
-                            }
-                            else
-                            {
-                                @foreach (var item in BusinessTagItems)
-                                {
-                                    <MudPaper Class="platform-stat-card node-details-summary-box pa-3" Elevation="0">
-                                        <MudText Typo="Typo.caption"
-                                                 Class="node-details-section-label">@item.Key</MudText>
-                                        <MudText Typo="Typo.body2">@item.Value</MudText>
-                                    </MudPaper>
-                                }
-                            }
-                        </MudStack>
-                    </MudPaper>
-
-                    <MudPaper Class="platform-panel node-details-panel pa-5" Elevation="0">
-                        <MudStack Spacing="2">
-                            <MudText Typo="Typo.h6" Class="platform-card-title">协议配置</MudText>
-                            @if (ConfigurationItems.Count == 0)
-                            {
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">暂无协议配置字段。</MudText>
-                            }
-                            else
-                            {
-                                @foreach (var item in ConfigurationItems)
-                                {
-                                    <MudPaper Class="platform-stat-card node-details-summary-box pa-3" Elevation="0">
-                                        <MudText Typo="Typo.caption"
-                                                 Class="node-details-section-label">@item.Key</MudText>
-                                        <MudText Typo="Typo.body2">@item.Value</MudText>
-                                    </MudPaper>
-                                }
-                            }
-                            <MudPaper Class="node-details-json-panel" Elevation="0">
-                                <div class="node-details-json-header">配置 JSON</div>
-                                <pre
-                                    class="node-details-json-content">@FormatJson(_details.Definition.ConfigurationJson)</pre>
-                            </MudPaper>
-                        </MudStack>
-                    </MudPaper>
-                </MudStack>
-            </MudItem>
         </MudGrid>
+
+        @if (_isInfoDrawerOpen)
+        {
+            <MudOverlay Visible="true" DarkBackground="true" LockScroll="true" ZIndex="1400"
+                        Class="platform-sheet-overlay" OnClick="@(_ => CloseInfoDrawer())">
+                <aside class="platform-sheet" role="dialog" aria-modal="true" aria-label="节点配置详情" @onclick:stopPropagation="true">
+                        <div class="platform-sheet-header tw-flex tw-items-center tw-justify-between tw-gap-3">
+                            <div class="tw-min-w-0">
+                                <MudText Typo="Typo.h5">节点配置详情</MudText>
+                            </div>
+                            <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Default" OnClick="CloseInfoDrawer" aria-label="关闭节点配置"/>
+                        </div>
+
+                        <div class="platform-sheet-body tw-flex tw-flex-col tw-gap-3">
+                            <MudPaper Class="platform-sheet-section" Elevation="0">
+                                <MudStack Spacing="1">
+                                    <MudText Typo="Typo.h6" Class="platform-card-title">节点配置摘要</MudText>
+                                    <MudStack Spacing="1">
+                                        <div class="node-details-drawer-card">
+                                            <MudText Typo="Typo.caption" Class="node-details-section-label">连接地址</MudText>
+                                            <MudText Typo="Typo.body2" Class="node-details-monospace">
+                                                @_details.Definition.ConnectionAddress
+                                            </MudText>
+                                        </div>
+                                        <div class="node-details-drawer-card">
+                                            <MudText Typo="Typo.caption" Class="node-details-section-label">采集频次</MudText>
+                                            <MudText Typo="Typo.body2">
+                                                @($"每 {FormatInterval(_details.Definition.CollectionIntervalSeconds)} 读取 1 次")
+                                            </MudText>
+                                        </div>
+                                        <div class="node-details-drawer-card">
+                                            <MudText Typo="Typo.caption" Class="node-details-section-label">说明</MudText>
+                                            <MudText Typo="Typo.body2">
+                                                @(!string.IsNullOrWhiteSpace(_details.Definition.Description) ? _details.Definition.Description : "暂无说明")
+                                            </MudText>
+                                        </div>
+                                    </MudStack>
+                                </MudStack>
+                            </MudPaper>
+
+                            <MudPaper Class="platform-sheet-section" Elevation="0">
+                                <MudStack Spacing="1">
+                                    <MudText Typo="Typo.h6" Class="platform-card-title">业务标识</MudText>
+                                    <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                                        <MudChip T="string" Variant="Variant.Text" Color="Color.Primary">
+                                            @_details.Definition.Department
+                                        </MudChip>
+                                        <MudChip T="string" Variant="Variant.Text" Color="Color.Secondary">
+                                            @_details.Definition.ProcessCode
+                                        </MudChip>
+                                        <MudChip T="string" Variant="Variant.Text" Color="Color.Info">
+                                            @_details.Definition.DataCategory
+                                        </MudChip>
+                                    </MudStack>
+
+                                    @if (BusinessTagItems.Count == 0)
+                                    {
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">暂无扩展业务标识。</MudText>
+                                    }
+                                    else
+                                    {
+                                        <MudStack Spacing="1">
+                                            @foreach (var item in BusinessTagItems)
+                                            {
+                                                <div class="node-details-drawer-card">
+                                                    <MudText Typo="Typo.caption" Class="node-details-section-label">@item.Key</MudText>
+                                                    <MudText Typo="Typo.body2">@item.Value</MudText>
+                                                </div>
+                                            }
+                                        </MudStack>
+                                    }
+                                </MudStack>
+                            </MudPaper>
+
+                            <MudPaper Class="platform-sheet-section" Elevation="0">
+                                <MudStack Spacing="1">
+                                    <MudText Typo="Typo.h6" Class="platform-card-title">协议配置</MudText>
+                                    @if (ConfigurationItems.Count == 0)
+                                    {
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">暂无协议配置字段。</MudText>
+                                    }
+                                    else
+                                    {
+                                        <MudStack Spacing="1">
+                                            @foreach (var item in ConfigurationItems)
+                                            {
+                                                <div class="node-details-drawer-card">
+                                                    <MudText Typo="Typo.caption" Class="node-details-section-label">@item.Key</MudText>
+                                                    <MudText Typo="Typo.body2">@item.Value</MudText>
+                                                </div>
+                                            }
+                                        </MudStack>
+                                    }
+                                    <MudPaper Class="platform-code-panel" Elevation="0">
+                                        <div class="platform-code-heading">配置 JSON</div>
+                                        <pre class="platform-code-content">@FormatJson(_details.Definition.ConfigurationJson)</pre>
+                                    </MudPaper>
+                                </MudStack>
+                            </MudPaper>
+                        </div>
+                </aside>
+            </MudOverlay>
+        }
     }
-</MudStack>
+</div>

@@ -132,6 +132,27 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         return statuses ?? [];
     }
 
+    public async Task<IReadOnlyList<ServerConnectionStatusDto>> GetServerConnectionsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var statuses =
+            await httpClient.GetFromJsonAsync<IReadOnlyList<ServerConnectionStatusDto>>(
+                "/api/server-connections",
+                cancellationToken);
+        return statuses ?? [];
+    }
+
+    public async Task<ServerConnectionStatusDto> CheckServerConnectionStatusAsync(
+        string key,
+        CancellationToken cancellationToken = default)
+    {
+        var status =
+            await httpClient.GetFromJsonAsync<ServerConnectionStatusDto>(
+                $"/api/server-connections/{Uri.EscapeDataString(key)}/status",
+                cancellationToken);
+        return status ?? throw new InvalidOperationException("服务端未返回服务器连接状态。");
+    }
+
     public async Task<ManagedDataConnectionTestResultDto> TestManagedDataConnectionAsync(
         ManagedDataDefinitionUpsertRequest request,
         CancellationToken cancellationToken = default)

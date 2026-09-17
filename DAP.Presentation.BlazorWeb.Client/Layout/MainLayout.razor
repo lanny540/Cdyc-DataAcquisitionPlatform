@@ -1,13 +1,13 @@
 @inherits LayoutComponentBase
 
-<MudThemeProvider/>
+<MudThemeProvider Theme="_theme"/>
 <MudPopoverProvider/>
 <MudDialogProvider/>
 <MudSnackbarProvider/>
 <MudLayout Class="platform-layout">
     <MudAppBar Elevation="0" Class="platform-appbar">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
-                       Class="platform-menu-toggle"
+                       Class="platform-menu-toggle" aria-label="切换导航菜单"
                        OnClick="@((_) => DrawerToggle())"/>
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="platform-brand">
             <MudAvatar Size="Size.Medium" Rounded="true" Class="platform-brand-avatar">
@@ -18,7 +18,6 @@
                 <MudText Typo="Typo.caption" Class="platform-brand-subtitle">统一采集配置、连接诊断与运行观测</MudText>
             </MudStack>
         </MudStack>
-        <MudSpacer/>
         <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined" Class="platform-version-chip">
             Web 管理端 @AppVersion
         </MudChip>
@@ -26,34 +25,72 @@
     <MudDrawer @bind-Open="_drawerOpen"
                ClipMode="DrawerClipMode.Always"
                Elevation="0"
-               Width="296px"
+               Width="232px"
+               Variant="DrawerVariant.Responsive"
+               Breakpoint="Breakpoint.Md"
                Class="platform-drawer">
         <MudDrawerHeader Class="platform-drawer-header">
-            <MudStack Spacing="1">
-                <MudText Typo="Typo.caption" Class="platform-drawer-eyebrow">Platform Console</MudText>
-                <MudText Typo="Typo.h6">平台管理导航</MudText>
-                <MudText Typo="Typo.body2" Class="platform-drawer-description">
-                    面向采集配置、执行调试和连接诊断的一体化工作台。
-                </MudText>
-            </MudStack>
+            <MudText Typo="Typo.overline">工作空间</MudText>
         </MudDrawerHeader>
         <NavMenu/>
     </MudDrawer>
     <MudMainContent Class="platform-main-content">
-        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="platform-page-container">
+        <MudContainer MaxWidth="MaxWidth.False" Class="platform-page-container">
             @Body
         </MudContainer>
     </MudMainContent>
 </MudLayout>
 
 <div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
+    页面发生异常，请重新加载。
+    <a href="." class="reload">重新加载</a>
+    <button type="button" class="dismiss" aria-label="关闭错误提示">关闭</button>
 </div>
 
 @code {
     private bool _drawerOpen = true;
+
+    private readonly MudTheme _theme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#1565c0",
+            Secondary = "#546e7a",
+            Info = "#0277bd",
+            Success = "#2e7d32",
+            Warning = "#ed6c02",
+            Error = "#d32f2f",
+            Background = "#f4f6f8",
+            Surface = "#ffffff",
+            AppbarBackground = "#ffffff",
+            AppbarText = "#1c2733",
+            DrawerBackground = "#ffffff",
+            TextPrimary = "#1c2733",
+            TextSecondary = "#606e7b"
+        },
+        LayoutProperties = new LayoutProperties
+        {
+            DefaultBorderRadius = "4px",
+            AppbarHeight = "56px",
+            DrawerWidthLeft = "232px"
+        },
+        Typography = new Typography
+        {
+            Default = new DefaultTypography
+            {
+                FontFamily = ["PingFang SC", "Microsoft YaHei", "sans-serif"],
+                FontSize = "0.875rem",
+                LineHeight = "1.5"
+            },
+            H3 = new H3Typography { FontSize = "2rem", FontWeight = "600", LineHeight = "1.25" },
+            H4 = new H4Typography { FontSize = "1.375rem", FontWeight = "600", LineHeight = "1.4" },
+            H5 = new H5Typography { FontSize = "1.125rem", FontWeight = "600", LineHeight = "1.4" },
+            H6 = new H6Typography { FontSize = "1rem", FontWeight = "600", LineHeight = "1.5" },
+            Body1 = new Body1Typography { FontSize = "0.875rem", LineHeight = "1.5" },
+            Body2 = new Body2Typography { FontSize = "0.8125rem", LineHeight = "1.5" },
+            Button = new ButtonTypography { FontSize = "0.8125rem", FontWeight = "500", TextTransform = "none" }
+        }
+    };
 
     private string AppVersion => $"v{System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.0.0"}";
 

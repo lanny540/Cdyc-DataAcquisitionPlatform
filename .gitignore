@@ -24,3 +24,6 @@ TestResults/
 # macOS
 .DS_Store
 .trae-temp
+node_modules/
+test-results/
+playwright-report/

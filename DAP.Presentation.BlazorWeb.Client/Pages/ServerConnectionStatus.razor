@@ -2,20 +2,19 @@
 
 <PageTitle>服务器连接状态</PageTitle>
 
-<MudStack Class="platform-page-shell server-status-shell" Spacing="3">
-    <MudPaper Class="platform-page-hero server-status-hero pa-6" Elevation="0">
+<MudStack Class="platform-page-shell tw-gap-4" Spacing="2">
+    <MudPaper Class="platform-page-hero tw-p-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
             <MudStack Spacing="1">
                 <MudText Typo="Typo.h4">服务器连接状态</MudText>
                 <MudText Typo="Typo.body1" Class="server-status-hero-description">
-                    集中查看当前配置的外部服务器是否可达。开发环境即使无法连通生产地址，也能明确看到地址、凭据配置和当前探测结果，
-                    方便管理员在保存采集节点前先确认环境状态。
+                    从数据库读取已登记的数据源服务器，页面载入后并发执行真实网络探测。
                 </MudText>
             </MudStack>
 
             <MudButton Variant="Variant.Outlined" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Refresh"
-                       OnClick="LoadAsync">
-                刷新状态
+                       Disabled="@_isLoading" OnClick="LoadAsync">
+                @(_isCheckingStatuses ? "重新检测" : "刷新状态")
             </MudButton>
         </MudStack>
     </MudPaper>
@@ -25,7 +24,48 @@
         <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
     }
 
-    <MudGrid>
+    @if (_isLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" aria-label="正在载入服务器列表"/>
+    }
+
+    <MudGrid Spacing="3">
+        <MudItem xs="12" sm="6" lg="3">
+            <MudPaper Class="platform-stat-card server-status-stat pa-4" Elevation="0">
+                <MudText Typo="Typo.caption">登记服务器</MudText>
+                <MudText Typo="Typo.h3">@_statuses.Count</MudText>
+                <MudText Typo="Typo.body2" Class="platform-card-note">按采集方式与连接地址聚合</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" lg="3">
+            <MudPaper Class="platform-stat-card server-status-stat pa-4" Elevation="0">
+                <MudText Typo="Typo.caption">网络可达</MudText>
+                <MudText Typo="Typo.h3">@ReachableCount</MudText>
+                <MudText Typo="Typo.body2" Class="platform-card-note">实时 TCP 探测结果</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" lg="3">
+            <MudPaper Class="platform-stat-card server-status-stat pa-4" Elevation="0">
+                <MudText Typo="Typo.caption">正在检测</MudText>
+                <MudText Typo="Typo.h3">@CheckingCount</MudText>
+                <MudText Typo="Typo.body2" Class="platform-card-note">逐台异步刷新</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" lg="3">
+            <MudPaper Class="platform-stat-card server-status-stat pa-4" Elevation="0">
+                <MudText Typo="Typo.caption">关联数据节点</MudText>
+                <MudText Typo="Typo.h3">@RelatedDefinitionCount</MudText>
+                <MudText Typo="Typo.body2" Class="platform-card-note">来自后台数据定义</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @if (_isCheckingStatuses)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Info" aria-label="正在异步检测服务器连接"/>
+    }
+
+    <MudGrid Spacing="3">
         @if (_statuses.Count == 0 && !_isLoading)
         {
             <MudItem xs="12">
@@ -33,6 +73,9 @@
                     <MudStack AlignItems="AlignItems.Center" Spacing="2">
                         <MudIcon Icon="@Icons.Material.Filled.Router" Size="Size.Large" Color="Color.Default"/>
                         <MudText Typo="Typo.h6">当前还没有可显示的服务器状态</MudText>
+                        <MudText Typo="Typo.body2" Class="platform-card-note">
+                            请先在后台数据管理中新增数据定义，连接地址会作为服务器信息保存到数据库。
+                        </MudText>
                     </MudStack>
                 </MudPaper>
             </MudItem>
@@ -42,46 +85,61 @@
             @foreach (var item in _statuses)
             {
                 <MudItem xs="12" lg="6">
-                    <MudPaper Class="platform-panel server-status-card pa-5" Elevation="0">
-                        <MudStack Spacing="3">
+                    <MudPaper Class="@($"platform-panel server-status-card {GetStatusCardClass(item)} tw-p-4")" Elevation="0">
+                        <MudStack Spacing="2">
                             <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.SpaceBetween"
-                                      Wrap="Wrap.Wrap">
+                                      Wrap="Wrap.Wrap" Spacing="2">
                                 <MudStack Spacing="0">
-                                    <MudText Typo="Typo.h6" Class="platform-card-title">@item.DisplayName</MudText>
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="1">
+                                        <MudText Typo="Typo.h6" Class="platform-card-title">@item.DisplayName</MudText>
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">
+                                            @item.AcquisitionType
+                                        </MudChip>
+                                    </MudStack>
                                     <MudText Typo="Typo.body2"
-                                             Class="platform-card-description server-status-address">@item.Address</MudText>
+                                             Class="platform-card-description tw-break-all platform-inline-code">@item.Address</MudText>
                                 </MudStack>
-                                <MudChip T="string" Variant="Variant.Outlined" Color="@GetStatusColor(item)">
-                                    @GetStatusText(item)
-                                </MudChip>
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    @if (item.IsChecking)
+                                    {
+                                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Info"/>
+                                    }
+                                    <MudChip T="string" Variant="Variant.Outlined" Color="@GetStatusColor(item)">
+                                        @GetStatusText(item)
+                                    </MudChip>
+                                </MudStack>
                             </MudStack>
 
-                            <MudGrid>
-                                <MudItem xs="12" md="4">
-                                    <MudPaper Class="platform-stat-card server-status-metric pa-4" Elevation="0">
-                                        <MudText Typo="Typo.caption">服务器地址</MudText>
+                            <MudGrid Spacing="2">
+                                <MudItem xs="12" sm="6" xl="3">
+                                    <MudPaper Class="platform-summary" Elevation="0">
+                                        <MudText Typo="Typo.caption">地址配置</MudText>
                                         <MudText
                                             Typo="Typo.body1">@(!string.IsNullOrWhiteSpace(item.Address) ? "已配置" : "未配置")</MudText>
                                     </MudPaper>
                                 </MudItem>
-                                <MudItem xs="12" md="4">
-                                    <MudPaper Class="platform-stat-card server-status-metric pa-4" Elevation="0">
+                                <MudItem xs="12" sm="6" xl="3">
+                                    <MudPaper Class="platform-summary" Elevation="0">
                                         <MudText Typo="Typo.caption">凭据配置</MudText>
-                                        <MudText
-                                            Typo="Typo.body1">@(item.CredentialsConfigured ? "已配置" : "未配置")</MudText>
+                                        <MudText Typo="Typo.body1">@GetCredentialsText(item)</MudText>
                                     </MudPaper>
                                 </MudItem>
-                                <MudItem xs="12" md="4">
-                                    <MudPaper Class="platform-stat-card server-status-metric pa-4" Elevation="0">
+                                <MudItem xs="12" sm="6" xl="3">
+                                    <MudPaper Class="platform-summary" Elevation="0">
                                         <MudText Typo="Typo.caption">业务执行模式</MudText>
-                                        <MudText
-                                            Typo="Typo.body1">@(item.UseMockResponses ? "Mock" : "真实请求")</MudText>
+                                        <MudText Typo="Typo.body1">@GetModeText(item)</MudText>
+                                    </MudPaper>
+                                </MudItem>
+                                <MudItem xs="12" sm="6" xl="3">
+                                    <MudPaper Class="platform-summary" Elevation="0">
+                                        <MudText Typo="Typo.caption">关联数据节点</MudText>
+                                        <MudText Typo="Typo.body1">@item.RelatedDefinitionCount 条</MudText>
                                     </MudPaper>
                                 </MudItem>
                             </MudGrid>
 
-                            <MudPaper Class="server-status-summary pa-3" Elevation="0">
-                                <MudText Typo="Typo.caption" Class="server-status-summary-label">状态说明</MudText>
+                            <MudPaper Class="platform-summary" Elevation="0">
+                                <MudText Typo="Typo.caption" Class="platform-field-label">状态说明</MudText>
                                 <MudText Typo="Typo.body2">@item.StatusMessage</MudText>
                             </MudPaper>
 

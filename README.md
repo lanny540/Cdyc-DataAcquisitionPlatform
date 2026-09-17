@@ -47,6 +47,7 @@ Web（Blazor）与跨平台桌面（Avalonia）双终端展示方案。
 
 1. **环境准备**
     - 安装 [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
+    - 安装 Node.js 22+ 与 npm（用于 Web 端 Tailwind CSS 构建）。
     - 准备 PostgreSQL 与 Redis 服务环境。
 2. **编译解决方案**
    ```bash
@@ -61,6 +62,18 @@ Web（Blazor）与跨平台桌面（Avalonia）双终端展示方案。
    ```bash
    dotnet run --project DAP.Presentation.AvaloniaApp/DAP.Presentation.AvaloniaApp.csproj
    ```
+
+## 外部服务器配置与数据库迁移
+
+- 外部 API 与数采服务器统一保存于 PostgreSQL 的 `server_connections` 表；地址、认证信息和 Mock 开关保存在服务器配置 JSON 中，不再依赖 `appsettings.json` 中的固定服务器地址。
+- 保存后台数据定义时，平台会按“采集方式 + 连接地址”自动登记缺失服务器，并将节点绑定到对应服务器；已登记服务器的连接配置作为共享主数据，不会被任一节点覆盖。
+- `20260917080800_AddServerConnections` 迁移会将已有后台数据定义中的服务器地址去重回填到 `server_connections`；后续关联迁移会回填节点的服务器外键。
+- 更新数据库结构时执行：
+  ```bash
+  dotnet ef database update \
+    --project DAP.Infrastructure/DAP.Infrastructure.csproj \
+    --startup-project DAP.Presentation.BlazorWeb/DAP.Presentation.BlazorWeb.csproj
+  ```
 
 ## 提交与更新日志约定
 

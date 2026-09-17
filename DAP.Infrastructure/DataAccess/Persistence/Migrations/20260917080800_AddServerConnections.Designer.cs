@@ -3,6 +3,7 @@ using System;
 using DAP.Infrastructure.DataAccess.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DAP.Infrastructure.DataAccess.Persistence.Migrations
 {
     [DbContext(typeof(DataAcquisitionPlatformDbContext))]
-    partial class DataAcquisitionPlatformDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260917080800_AddServerConnections")]
+    partial class AddServerConnections
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -249,10 +252,6 @@ namespace DAP.Infrastructure.DataAccess.Persistence.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("process_code");
 
-                    b.Property<Guid?>("ServerConnectionId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("server_connection_id");
-
                     b.Property<string>("Unit")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -270,9 +269,6 @@ namespace DAP.Infrastructure.DataAccess.Persistence.Migrations
                     b.HasIndex("Code")
                         .IsUnique()
                         .HasDatabaseName("ux_managed_data_definitions_code");
-
-                    b.HasIndex("ServerConnectionId")
-                        .HasDatabaseName("ix_managed_data_definitions_server_connection_id");
 
                     b.HasIndex("Department", "ProcessCode")
                         .HasDatabaseName("ix_managed_data_definitions_department_process_code");
@@ -390,25 +386,9 @@ namespace DAP.Infrastructure.DataAccess.Persistence.Migrations
                     b.Navigation("CollectionPoint");
                 });
 
-            modelBuilder.Entity("DAP.Core.Domain.Entities.ManagedDataDefinition", b =>
-                {
-                    b.HasOne("DAP.Core.Domain.Entities.ServerConnection", "ServerConnection")
-                        .WithMany("DataDefinitions")
-                        .HasForeignKey("ServerConnectionId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("managed_data_definitions_server_connection_id_fkey");
-
-                    b.Navigation("ServerConnection");
-                });
-
             modelBuilder.Entity("DAP.Core.Domain.Entities.CollectionPoint", b =>
                 {
                     b.Navigation("Records");
-                });
-
-            modelBuilder.Entity("DAP.Core.Domain.Entities.ServerConnection", b =>
-                {
-                    b.Navigation("DataDefinitions");
                 });
 #pragma warning restore 612, 618
         }

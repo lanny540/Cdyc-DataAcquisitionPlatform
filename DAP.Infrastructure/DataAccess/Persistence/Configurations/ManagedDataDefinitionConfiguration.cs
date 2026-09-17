@@ -49,6 +49,7 @@ public sealed class ManagedDataDefinitionConfiguration : IEntityTypeConfiguratio
         builder.Property(item => item.AcquisitionType).HasColumnName("acquisition_type").HasMaxLength(100).IsRequired();
         builder.Property(item => item.ConnectionAddress).HasColumnName("connection_address").HasMaxLength(500)
             .IsRequired();
+        builder.Property(item => item.ServerConnectionId).HasColumnName("server_connection_id");
         builder.Property(item => item.Identifier).HasColumnName("identifier").HasMaxLength(200).IsRequired();
         builder.Property(item => item.Department).HasColumnName("department").HasMaxLength(100).IsRequired();
         builder.Property(item => item.ProcessCode).HasColumnName("process_code").HasMaxLength(100).IsRequired();
@@ -75,5 +76,14 @@ public sealed class ManagedDataDefinitionConfiguration : IEntityTypeConfiguratio
 
         builder.HasIndex(item => new {item.Department, item.ProcessCode})
             .HasDatabaseName("ix_managed_data_definitions_department_process_code");
+
+        builder.HasIndex(item => item.ServerConnectionId)
+            .HasDatabaseName("ix_managed_data_definitions_server_connection_id");
+
+        builder.HasOne(item => item.ServerConnection)
+            .WithMany(connection => connection.DataDefinitions)
+            .HasForeignKey(item => item.ServerConnectionId)
+            .HasConstraintName("managed_data_definitions_server_connection_id_fkey")
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

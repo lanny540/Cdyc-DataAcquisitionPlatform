@@ -14,6 +14,29 @@ public static class ConnectionDiagnosticsEndpoints
     public static IEndpointRouteBuilder MapConnectionDiagnosticsEndpoints(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGet(
+                "/api/server-connections",
+                async (IConnectionDiagnosticsService diagnosticsService, CancellationToken cancellationToken) =>
+                {
+                    IReadOnlyCollection<ServerConnectionStatusDto> statuses =
+                        await diagnosticsService.GetServerConnectionsAsync(cancellationToken);
+                    return Results.Ok(statuses);
+                })
+            .WithName("GetServerConnections")
+            .WithTags("ConnectionDiagnostics");
+
+        endpoints.MapGet(
+                "/api/server-connections/{key}/status",
+                async (string key, IConnectionDiagnosticsService diagnosticsService,
+                    CancellationToken cancellationToken) =>
+                {
+                    ServerConnectionStatusDto? status =
+                        await diagnosticsService.CheckServerStatusAsync(key, cancellationToken);
+                    return status is null ? Results.NotFound() : Results.Ok(status);
+                })
+            .WithName("CheckServerConnectionStatus")
+            .WithTags("ConnectionDiagnostics");
+
+        endpoints.MapGet(
                 "/api/server-connections/status",
                 async (IConnectionDiagnosticsService diagnosticsService, CancellationToken cancellationToken) =>
                 {

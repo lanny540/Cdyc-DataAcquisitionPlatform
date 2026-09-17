@@ -3,7 +3,9 @@ using System.Text.Json;
 using DAP.Core.Domain.Entities;
 using DAP.Core.Domain.Services;
 using DAP.Core.Shared.Contracts;
+using DAP.Infrastructure.DataAccess.Persistence;
 using DAP.Infrastructure.DataAccess.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 namespace DAP.Presentation.BlazorWeb.Services;
 
@@ -30,6 +32,7 @@ public sealed class ManagedDataExecutionService(
     IManagedDataDefinitionRepository managedDataDefinitionRepository,
     IHistoryApiProxyService historyApiProxyService,
     IDataAcquisitionPlatformService platformService,
+    DataAcquisitionPlatformDbContext dbContext,
     ILogger<ManagedDataExecutionService> logger) : IManagedDataExecutionService
 {
     public async Task<ManagedDataExecutionResultDto> DebugReadAsync(Guid id,
@@ -99,6 +102,8 @@ public sealed class ManagedDataExecutionService(
     {
         Dictionary<string, string> configuration = ParseConfiguration(definition.ConfigurationJson);
         var queryMode = GetValueOrDefault(configuration, "queryMode", "CurrentValue");
+        HistoryApiConnectionOptions connectionOptions =
+            await ResolveHistorianConnectionOptionsAsync(definition, configuration, cancellationToken);
 
         HistoryApiQueryResponse response = queryMode switch
         {
@@ -109,12 +114,15 @@ public sealed class ManagedDataExecutionService(
                     DateTimeOffset.UtcNow,
                     0,
                     100),
-                definition.ConnectionAddress,
+                connectionOptions,
                 cancellationToken),
-            "CurrentValueAndRaw" => await ExecuteHistorianCurrentOrRawFallbackAsync(definition, cancellationToken),
+            "CurrentValueAndRaw" => await ExecuteHistorianCurrentOrRawFallbackAsync(
+                definition,
+                connectionOptions,
+                cancellationToken),
             _ => await historyApiProxyService.GetCurrentValueAsync(
                 new HistoryCurrentValueQueryRequest(definition.Identifier),
-                definition.ConnectionAddress,
+                connectionOptions,
                 cancellationToken)
         };
 
@@ -190,11 +198,12 @@ public sealed class ManagedDataExecutionService(
 
     private async Task<HistoryApiQueryResponse> ExecuteHistorianCurrentOrRawFallbackAsync(
         ManagedDataDefinition definition,
+        HistoryApiConnectionOptions connectionOptions,
         CancellationToken cancellationToken)
     {
         HistoryApiQueryResponse currentResponse = await historyApiProxyService.GetCurrentValueAsync(
             new HistoryCurrentValueQueryRequest(definition.Identifier),
-            definition.ConnectionAddress,
+            connectionOptions,
             cancellationToken);
 
         if (currentResponse.Success)
@@ -209,7 +218,7 @@ public sealed class ManagedDataExecutionService(
                 DateTimeOffset.UtcNow,
                 0,
                 100),
-            definition.ConnectionAddress,
+            connectionOptions,
             cancellationToken);
     }
 
@@ -408,6 +417,45 @@ public sealed class ManagedDataExecutionService(
         return dictionary.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value)
             ? value
             : fallback;
+    }
+
+    private async Task<HistoryApiConnectionOptions> ResolveHistorianConnectionOptionsAsync(
+        ManagedDataDefinition definition,
+        IReadOnlyDictionary<string, string> definitionConfiguration,
+        CancellationToken cancellationToken)
+    {
+        ServerConnection? serverConnection = definition.ServerConnectionId.HasValue
+            ? await dbContext.ServerConnections
+                .AsNoTracking()
+                .SingleOrDefaultAsync(item => item.Id == definition.ServerConnectionId.Value, cancellationToken)
+            : await FindServerConnectionByAddressAsync(definition, cancellationToken);
+        IReadOnlyDictionary<string, string> configuration = serverConnection is null
+            ? definitionConfiguration
+            : ParseConfiguration(serverConnection.ConfigurationJson);
+        var useMockResponses = bool.TryParse(
+            GetValueOrDefault(configuration, "useMockResponses", string.Empty),
+            out var parsedUseMockResponses)
+            ? parsedUseMockResponses
+            : (bool?)null;
+
+        return new HistoryApiConnectionOptions(
+            serverConnection?.Address ?? GetValueOrDefault(configuration, "baseAddress", definition.ConnectionAddress),
+            GetValueOrDefault(configuration, "clientId", string.Empty),
+            GetValueOrDefault(configuration, "clientSecret", string.Empty),
+            useMockResponses);
+    }
+
+    private Task<ServerConnection?> FindServerConnectionByAddressAsync(
+        ManagedDataDefinition definition,
+        CancellationToken cancellationToken)
+    {
+        var normalizedAddress = definition.ConnectionAddress.Trim().TrimEnd('/');
+        return dbContext.ServerConnections
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                item => item.AcquisitionType == definition.AcquisitionType.Trim() &&
+                        item.Address == normalizedAddress,
+                cancellationToken);
     }
 
     private static ManagedDataExecutionResultDto CreateFailureResult(

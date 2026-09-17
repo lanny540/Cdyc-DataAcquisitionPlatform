@@ -3,13 +3,13 @@
 
 <PageTitle>平台概览</PageTitle>
 
-<MudStack Class="platform-page-shell home-page-shell" Spacing="3">
-    <MudPaper Class="platform-page-hero home-hero pa-6" Elevation="0">
+<MudStack Class="platform-page-shell tw-gap-4" Spacing="2">
+    <MudPaper Class="platform-page-hero tw-p-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
             <MudStack Spacing="1">
                 <MudText Typo="Typo.h4">数据采集平台概览</MudText>
                 <MudText Typo="Typo.body1" Class="home-hero-description">
-                    聚合查看采集点规模、在线状态和最近入库结果，用一个总览面板快速判断当前系统运行是否稳定。
+                    采集点运行状态与最新入库数据。
                 </MudText>
                 @if (_overview is not null)
                 {
@@ -49,29 +49,29 @@
     }
     else if (_overview is not null)
     {
-        <MudGrid Class="home-metrics-grid">
-            <MudItem xs="12" md="6" xl="3">
+        <MudGrid Spacing="3">
+            <MudItem xs="12" sm="6" lg="3">
                 <MudPaper Class="platform-stat-card home-stat-card pa-4" Elevation="0">
                     <MudText Typo="Typo.caption">采集点总数</MudText>
                     <MudText Typo="Typo.h3">@_overview.TotalCollectionPoints</MudText>
                     <MudText Typo="Typo.body2" Class="home-stat-supporting">当前已纳入平台统一管理</MudText>
                 </MudPaper>
             </MudItem>
-            <MudItem xs="12" md="6" xl="3">
+            <MudItem xs="12" sm="6" lg="3">
                 <MudPaper Class="platform-stat-card home-stat-card pa-4" Elevation="0">
                     <MudText Typo="Typo.caption">在线采集点</MudText>
                     <MudText Typo="Typo.h3" Color="Color.Success">@_overview.OnlineCollectionPoints</MudText>
                     <MudText Typo="Typo.body2" Class="home-stat-supporting">通信状态正常的节点数量</MudText>
                 </MudPaper>
             </MudItem>
-            <MudItem xs="12" md="6" xl="3">
+            <MudItem xs="12" sm="6" lg="3">
                 <MudPaper Class="platform-stat-card home-stat-card pa-4" Elevation="0">
                     <MudText Typo="Typo.caption">离线采集点</MudText>
                     <MudText Typo="Typo.h3" Color="Color.Error">@_overview.OfflineCollectionPoints</MudText>
                     <MudText Typo="Typo.body2" Class="home-stat-supporting">需要优先排查连接与配置</MudText>
                 </MudPaper>
             </MudItem>
-            <MudItem xs="12" md="6" xl="3">
+            <MudItem xs="12" sm="6" lg="3">
                 <MudPaper Class="platform-stat-card home-stat-card pa-4" Elevation="0">
                     <MudText Typo="Typo.caption">本地同步来源</MudText>
                     <MudText Typo="Typo.h3" Color="Color.Info">@_overview.LocalSourcedCollectionPoints</MudText>
@@ -80,7 +80,7 @@
             </MudItem>
         </MudGrid>
 
-        <MudGrid>
+        <MudGrid Spacing="3">
             <MudItem xs="12" lg="6">
                 <MudPaper Class="platform-panel home-panel pa-4" Elevation="0">
                     <MudStack Spacing="2">
@@ -88,7 +88,7 @@
                             <MudText Typo="Typo.h6" Class="platform-card-title">采集点通信状态</MudText>
                             <MudText Typo="Typo.body2" Class="platform-card-description">快速识别在线与离线节点。</MudText>
                         </MudStack>
-                        <MudTable Items="_overview.CollectionPoints" Dense="true" Hover="true" Class="platform-data-table">
+                        <MudTable Items="_overview.CollectionPoints" Dense="true" Hover="true" RowsPerPage="5" Class="platform-data-table">
                             <HeaderContent>
                                 <MudTh>编码</MudTh>
                                 <MudTh>名称</MudTh>
@@ -116,6 +116,7 @@
                                     </MudChip>
                                 </MudTd>
                             </RowTemplate>
+                            <PagerContent><MudTablePager PageSizeOptions="@(new[] { 5, 10, 20 })" RowsPerPageString="每页条数"/></PagerContent>
                         </MudTable>
                     </MudStack>
                 </MudPaper>
@@ -127,7 +128,7 @@
                             <MudText Typo="Typo.h6" Class="platform-card-title">最新采集数据</MudText>
                             <MudText Typo="Typo.body2" Class="platform-card-description">查看最近写入的采样记录。</MudText>
                         </MudStack>
-                        <MudTable Items="_overview.LatestRecords" Dense="true" Hover="true" Class="platform-data-table">
+                        <MudTable Items="_overview.LatestRecords" Dense="true" Hover="true" RowsPerPage="5" Class="platform-data-table">
                             <HeaderContent>
                                 <MudTh>采集点</MudTh>
                                 <MudTh>指标</MudTh>
@@ -154,6 +155,7 @@
                                     </MudText>
                                 </MudTd>
                             </RowTemplate>
+                            <PagerContent><MudTablePager PageSizeOptions="@(new[] { 5, 10, 20 })" RowsPerPageString="每页条数"/></PagerContent>
                         </MudTable>
                     </MudStack>
                 </MudPaper>

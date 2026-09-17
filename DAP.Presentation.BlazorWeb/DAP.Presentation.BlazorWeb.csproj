@@ -24,4 +24,10 @@
     <PackageReference Include="MudBlazor" Version="9.10.0"/>
   </ItemGroup>
 
+  <Target Name="BuildTailwind" BeforeTargets="BeforeBuild" Condition="'$(DesignTimeBuild)' != 'true'">
+    <Exec Command="npm ci --no-audit --no-fund" WorkingDirectory="$(MSBuildProjectDirectory)"
+          Condition="!Exists('$(MSBuildProjectDirectory)/node_modules/tailwindcss/package.json')" />
+    <Exec Command="npm run build:css" WorkingDirectory="$(MSBuildProjectDirectory)" />
+  </Target>
+
 </Project>
