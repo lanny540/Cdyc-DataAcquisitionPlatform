@@ -26,6 +26,7 @@ internal sealed class InMemoryDataAcquisitionPlatformService : IDataAcquisitionP
     ];
 
     private readonly List<CollectionDataRecordDto> _records = [];
+    private readonly List<ManagedDataDefinitionDto> _managedDataDefinitions = [];
 
     public Task<DashboardOverviewDto> GetDashboardOverviewAsync(CancellationToken cancellationToken = default)
     {
@@ -103,6 +104,102 @@ internal sealed class InMemoryDataAcquisitionPlatformService : IDataAcquisitionP
 
             _collectionPoints.Remove(existingPoint);
             _records.RemoveAll(item => item.CollectionPointId == id);
+            return Task.FromResult(true);
+        }
+    }
+
+    public Task<IReadOnlyCollection<ManagedDataDefinitionDto>> GetManagedDataDefinitionsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        lock (_syncRoot)
+        {
+            return Task.FromResult<IReadOnlyCollection<ManagedDataDefinitionDto>>(
+                _managedDataDefinitions.OrderBy(item => item.AcquisitionType).ThenBy(item => item.Code).ToArray());
+        }
+    }
+
+    public Task<ManagedDataDefinitionDetailsDto?> GetManagedDataDefinitionDetailsAsync(
+        Guid id,
+        int historyLimit = 50,
+        CancellationToken cancellationToken = default)
+    {
+        lock (_syncRoot)
+        {
+            ManagedDataDefinitionDto? definition = _managedDataDefinitions.FirstOrDefault(item => item.Id == id);
+            if (definition is null)
+            {
+                return Task.FromResult<ManagedDataDefinitionDetailsDto?>(null);
+            }
+
+            CollectionPointDto? point = _collectionPoints.FirstOrDefault(item =>
+                item.Code.Equals(definition.Code, StringComparison.OrdinalIgnoreCase));
+
+            CollectionDataRecordDto[] records = _records
+                .Where(item => item.CollectionPointCode.Equals(definition.Code, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(item => item.CollectedAt)
+                .Take(Math.Max(1, historyLimit))
+                .ToArray();
+
+            return Task.FromResult<ManagedDataDefinitionDetailsDto?>(
+                new ManagedDataDefinitionDetailsDto(definition, point, records.FirstOrDefault(), records));
+        }
+    }
+
+    public Task<ManagedDataDefinitionDto> UpsertManagedDataDefinitionAsync(
+        ManagedDataDefinitionUpsertRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        lock (_syncRoot)
+        {
+            var normalizedCode = request.Code.Trim().ToUpperInvariant();
+            ManagedDataDefinitionDto? existingDefinition = request.Id.HasValue
+                ? _managedDataDefinitions.FirstOrDefault(item => item.Id == request.Id.Value)
+                : _managedDataDefinitions.FirstOrDefault(item =>
+                    item.Code.Equals(normalizedCode, StringComparison.OrdinalIgnoreCase));
+
+            var savedDefinition = new ManagedDataDefinitionDto(
+                existingDefinition?.Id ?? request.Id ?? Guid.NewGuid(),
+                normalizedCode,
+                request.Name.Trim(),
+                request.AcquisitionType.Trim(),
+                request.ConnectionAddress.Trim(),
+                request.Identifier.Trim(),
+                request.Department.Trim(),
+                request.ProcessCode.Trim(),
+                request.DataCategory.Trim(),
+                request.Unit.Trim(),
+                request.Description.Trim(),
+                string.IsNullOrWhiteSpace(request.ConfigurationJson) ? "{}" : request.ConfigurationJson.Trim(),
+                string.IsNullOrWhiteSpace(request.BusinessTagsJson) ? "{}" : request.BusinessTagsJson.Trim(),
+                request.CollectionIntervalSeconds,
+                request.IsEnabled,
+                DateTimeOffset.UtcNow);
+
+            if (existingDefinition is null)
+            {
+                _managedDataDefinitions.Add(savedDefinition);
+            }
+            else
+            {
+                var index = _managedDataDefinitions.IndexOf(existingDefinition);
+                _managedDataDefinitions[index] = savedDefinition;
+            }
+
+            return Task.FromResult(savedDefinition);
+        }
+    }
+
+    public Task<bool> DeleteManagedDataDefinitionAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        lock (_syncRoot)
+        {
+            ManagedDataDefinitionDto? existingDefinition = _managedDataDefinitions.FirstOrDefault(item => item.Id == id);
+            if (existingDefinition is null)
+            {
+                return Task.FromResult(false);
+            }
+
+            _managedDataDefinitions.Remove(existingDefinition);
             return Task.FromResult(true);
         }
     }

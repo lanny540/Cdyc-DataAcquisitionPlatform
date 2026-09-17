@@ -1,0 +1,585 @@
+@page "/managed-data-definitions"
+
+<PageTitle>后台数据管理</PageTitle>
+
+<MudStack Class="managed-data-shell" Spacing="3">
+    <MudPaper Class="managed-data-hero pa-6" Elevation="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.h4">后台数据管理</MudText>
+                <MudText Typo="Typo.body1" Class="managed-data-hero-description">
+                    把不同采集方式的数据定义集中到同一个工作台中维护。公共业务标识字段直接入库，协议差异配置统一保存为结构化 JSON，
+                    既方便管理员随时增删改查，也为后续扩展 MQTT、OPC DA、更多接口型数据源预留了空间。
+                </MudText>
+                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mt-3">
+                    <MudChip T="string" Variant="Variant.Outlined" Color="Color.Info">@($"{_definitions.Count} 条已登记数据")</MudChip>
+                    <MudChip T="string" Variant="Variant.Outlined" Color="Color.Success">@($"{EnabledDefinitionCount} 条启用中")</MudChip>
+                    <MudChip T="string" Variant="Variant.Outlined" Color="Color.Primary">@($"{ModbusDefinitionCount} 条 Modbus")</MudChip>
+                    <MudChip T="string" Variant="Variant.Outlined" Color="Color.Secondary">@($"{HistorianDefinitionCount} 条 Historian API")</MudChip>
+                </MudStack>
+            </MudStack>
+
+            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                <MudButton Variant="Variant.Outlined" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Refresh"
+                           OnClick="LoadAsync">
+                    刷新列表
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="OpenCreateDrawer">
+                    新增后台数据
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
+    }
+
+    <ConfirmDialog IsOpen="_pendingDeleteDefinition is not null"
+                   Title="确认删除后台数据定义"
+                   DialogSeverity="Severity.Error"
+                   WarningText="删除后将无法继续用于采集配置，请确认操作。"
+                   ConfirmButtonText="确认删除"
+                   BusyButtonText="删除中..."
+                   ConfirmButtonColor="Color.Error"
+                   IsBusy="_isDeleting"
+                   CloseOnBackdropClick="true"
+                   OnCancel="CancelDelete"
+                   OnConfirm="ConfirmDeleteAsync">
+        @if (_pendingDeleteDefinition is not null)
+        {
+            <MudText Typo="Typo.body1">
+                即将删除后台数据定义 <b>@_pendingDeleteDefinition.Code</b>（@_pendingDeleteDefinition.Name）。
+            </MudText>
+        }
+    </ConfirmDialog>
+
+    <MudPaper Class="managed-data-filter-card pa-4" Elevation="0">
+        <MudGrid Spacing="2">
+            <MudItem xs="12" md="8" lg="9">
+                <MudTextField Label="搜索编码、名称、部门、工序、数据标识"
+                              Variant="Variant.Outlined"
+                              Immediate="true"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              @bind-Value="_searchTerm"/>
+            </MudItem>
+            <MudItem xs="12" md="4" lg="3">
+                <MudSelect T="string" Label="采集方式筛选" Variant="Variant.Outlined" @bind-Value="_typeFilter">
+                    <MudSelectItem T="string" Value="@AllTypeFilter">@AllTypeFilter</MudSelectItem>
+                    @foreach (string item in _acquisitionTypeOptions)
+                    {
+                        <MudSelectItem T="string" Value="@item">@item</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <MudPaper Class="managed-data-table-card" Elevation="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="2"
+                  Class="pa-4">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h6">后台数据定义列表</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    列表按采集方式和编码排序，支持快速定位不同部门、工序和能源类别的数据定义。
+                </MudText>
+            </MudStack>
+            <MudChip T="string" Variant="Variant.Text" Color="Color.Default">
+                当前筛选结果 @FilteredDefinitions.Count() 条
+            </MudChip>
+        </MudStack>
+
+        <MudDivider/>
+
+        <MudTable Items="FilteredDefinitions" Dense="true" Hover="true" Loading="_isLoading" Breakpoint="Breakpoint.Md">
+            <HeaderContent>
+                <MudTh>编码</MudTh>
+                <MudTh>数据名称</MudTh>
+                <MudTh>采集方式</MudTh>
+                <MudTh>数据标识</MudTh>
+                <MudTh>部门 / 工序</MudTh>
+                <MudTh>数据类别</MudTh>
+                <MudTh>采集频次</MudTh>
+                <MudTh>状态</MudTh>
+                <MudTh>更新时间</MudTh>
+                <MudTh Style="width: 340px;">操作</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="编码">
+                    <MudText Typo="Typo.body1">@context.Code</MudText>
+                </MudTd>
+                <MudTd DataLabel="数据名称">
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.body1">@context.Name</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ConnectionAddress</MudText>
+                    </MudStack>
+                </MudTd>
+                <MudTd DataLabel="采集方式">
+                    <MudChip T="string" Variant="Variant.Outlined" Color="@GetTypeChipColor(context.AcquisitionType)" Size="Size.Small">
+                        @context.AcquisitionType
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="数据标识">
+                    <MudText Typo="Typo.body2" Class="managed-data-monospace">@context.Identifier</MudText>
+                </MudTd>
+                <MudTd DataLabel="部门 / 工序">
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.body2">@context.Department</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ProcessCode</MudText>
+                    </MudStack>
+                </MudTd>
+                <MudTd DataLabel="数据类别">
+                    <MudChip T="string" Variant="Variant.Text" Color="Color.Info" Size="Size.Small">@context.DataCategory</MudChip>
+                </MudTd>
+                <MudTd DataLabel="采集频次">
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.body2">@($"{context.CollectionIntervalSeconds} 秒")</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@GetIntervalDisplayText(context.CollectionIntervalSeconds)</MudText>
+                    </MudStack>
+                </MudTd>
+                <MudTd DataLabel="状态">
+                    <MudChip T="string" Variant="Variant.Outlined" Color="@(context.IsEnabled ? Color.Success : Color.Default)" Size="Size.Small">
+                        @(context.IsEnabled ? "启用" : "停用")
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="更新时间">@context.UpdatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</MudTd>
+                <MudTd DataLabel="操作">
+                    <MudStack Row="true" Spacing="1">
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Visibility"
+                                   OnClick="@(() => OpenDetails(context))">
+                            节点详情
+                        </MudButton>
+                        <MudButton Variant="Variant.Text" Color="Color.Info" StartIcon="@Icons.Material.Filled.PlayCircleOutline"
+                                   Disabled="IsExecuting"
+                                   OnClick="@(() => DebugReadAsync(context))">
+                            @(IsExecutingDefinition(context.Id, false) ? "读取中..." : "调试读取")
+                        </MudButton>
+                        <MudButton Variant="Variant.Text" Color="Color.Success" StartIcon="@Icons.Material.Filled.CloudDownload"
+                                   Disabled="IsExecuting || !context.IsEnabled"
+                                   OnClick="@(() => CollectAsync(context))">
+                            @(IsExecutingDefinition(context.Id, true) ? "采集中..." : "采集入库")
+                        </MudButton>
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
+                                   OnClick="@(() => EditAsync(context))">
+                            编辑
+                        </MudButton>
+                        <MudButton Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.DeleteOutline"
+                                   OnClick="@(() => RequestDelete(context))">
+                            删除
+                        </MudButton>
+                    </MudStack>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudStack AlignItems="AlignItems.Center" Class="pa-10">
+                    <MudIcon Icon="@Icons.Material.Filled.Storage" Size="Size.Large" Color="Color.Default"/>
+                    <MudText Typo="Typo.h6" Class="mt-3">当前还没有符合条件的后台数据定义</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        可以直接新增 Modbus、Historian API 等数据定义，也可以调整筛选条件后再查看。
+                    </MudText>
+                </MudStack>
+            </NoRecordsContent>
+        </MudTable>
+    </MudPaper>
+
+    <MudPaper Class="managed-data-result-card pa-5" Elevation="0">
+        <MudStack Spacing="3">
+            <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap">
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.h6">最近一次执行结果</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        支持查看最近一次调试读取或采集入库的执行状态、解析值和原始 JSON 返回。
+                    </MudText>
+                </MudStack>
+
+                @if (_lastExecutionResult is not null)
+                {
+                    <MudChip T="string" Variant="Variant.Outlined" Color="@LatestExecutionColor">
+                        @(_lastExecutionResult.Success ? "执行成功" : "执行失败")
+                    </MudChip>
+                }
+            </MudStack>
+
+            @if (_lastExecutionResult is null)
+            {
+                <MudStack AlignItems="AlignItems.Center" Class="pa-8">
+                    <MudIcon Icon="@Icons.Material.Filled.PlayCircleOutline" Size="Size.Large" Color="Color.Info"/>
+                    <MudText Typo="Typo.h6" Class="mt-3">还没有执行记录</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        从列表中选择一条后台数据定义，执行“调试读取”或“采集入库”后，这里会展示详细结果。
+                    </MudText>
+                </MudStack>
+            }
+            else
+            {
+                <MudGrid>
+                    <MudItem xs="12" md="3">
+                        <MudPaper Class="managed-data-result-metric pa-4" Elevation="0">
+                            <MudText Typo="Typo.caption">执行对象</MudText>
+                            <MudText Typo="Typo.h6">@_lastExecutionResult.Code</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">@_lastExecutionResult.Name</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" md="3">
+                        <MudPaper Class="managed-data-result-metric pa-4" Elevation="0">
+                            <MudText Typo="Typo.caption">执行模式</MudText>
+                            <MudText Typo="Typo.h6">@_lastExecutionResult.ExecutionMode</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">@_lastExecutionResult.SourceQueryType</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" md="3">
+                        <MudPaper Class="managed-data-result-metric pa-4" Elevation="0">
+                            <MudText Typo="Typo.caption">解析值</MudText>
+                            <MudText Typo="Typo.h6">@(_lastExecutionResult.ParsedValue?.ToString() ?? "--")</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">@_lastExecutionResult.Unit</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" md="3">
+                        <MudPaper Class="managed-data-result-metric pa-4" Elevation="0">
+                            <MudText Typo="Typo.caption">样本时间</MudText>
+                            <MudText Typo="Typo.body1">@(_lastExecutionResult.SampledAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "--")</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">@_lastExecutionResult.ExecutedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</MudText>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+
+                <MudPaper Class="managed-data-execution-summary pa-3" Elevation="0">
+                    <MudText Typo="Typo.caption" Class="managed-data-summary-label">执行摘要</MudText>
+                    <MudText Typo="Typo.body2">@_lastExecutionResult.StatusMessage</MudText>
+                </MudPaper>
+
+                <MudPaper Class="managed-data-execution-summary pa-3" Elevation="0">
+                    <MudText Typo="Typo.caption" Class="managed-data-summary-label">访问目标</MudText>
+                    <MudText Typo="Typo.body2" Class="managed-data-monospace">@_lastExecutionResult.RequestTarget</MudText>
+                </MudPaper>
+
+                @if (_lastExecutionResult.SavedRecord is not null)
+                {
+                    <MudAlert Severity="Severity.Success" Dense="true" Variant="Variant.Outlined">
+                        已入库到采集数据表：采集点编码 <b>@_lastExecutionResult.SavedRecord.CollectionPointCode</b>，
+                        指标名称 <b>@_lastExecutionResult.SavedRecord.MetricName</b>，
+                        值 <b>@_lastExecutionResult.SavedRecord.Value</b>。
+                    </MudAlert>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(_lastExecutionResult.ErrorMessage) && !_lastExecutionResult.Success)
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true" Variant="Variant.Outlined">
+                        @_lastExecutionResult.ErrorMessage
+                    </MudAlert>
+                }
+
+                <MudPaper Class="managed-data-preview-panel" Elevation="0">
+                    <div class="managed-data-preview-header">原始 JSON 响应</div>
+                    <pre class="managed-data-preview-content">@_lastExecutionResult.PayloadJson</pre>
+                </MudPaper>
+            }
+        </MudStack>
+    </MudPaper>
+
+    <MudOverlay Visible="_isEditorOpen"
+                DarkBackground="true"
+                LockScroll="true"
+                ZIndex="1400"
+                Class="managed-data-editor-overlay"
+                OnClick="@(_ => CloseEditor())">
+        <MudPaper Class="managed-data-editor-panel" Elevation="0" @onclick:stopPropagation="true">
+            <MudStack Class="managed-data-editor" Spacing="0" @key="_editorRenderKey">
+                <MudStack Class="managed-data-editor-header" Row="true" AlignItems="AlignItems.Start"
+                          Justify="Justify.SpaceBetween" Spacing="2">
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.h5">@EditorTitle</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">
+                            @EditorDescription
+                        </MudText>
+                    </MudStack>
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Default" OnClick="CloseEditor"/>
+                </MudStack>
+
+                <MudStack Class="managed-data-editor-body" Spacing="4">
+                    <MudAlert Severity="@(_editingId.HasValue ? Severity.Info : Severity.Success)" Dense="true" Variant="Variant.Outlined">
+                        @(_editingId.HasValue ? "建议先核对公共业务标识，再检查协议配置和扩展字段。" : "建议先填写公共业务标识，再补充协议差异字段。")
+                    </MudAlert>
+
+                    @if (_lastConnectionTestResult is not null)
+                    {
+                        <MudAlert Severity="@(_lastConnectionTestResult.Success ? Severity.Success : Severity.Warning)"
+                                  Dense="true"
+                                  Variant="Variant.Outlined">
+                            <MudText Typo="Typo.body2">@_lastConnectionTestResult.StatusMessage</MudText>
+                            @if (!string.IsNullOrWhiteSpace(_lastConnectionTestResult.ErrorMessage))
+                            {
+                                <MudText Typo="Typo.caption">@_lastConnectionTestResult.ErrorMessage</MudText>
+                            }
+                        </MudAlert>
+                    }
+
+                    <MudPaper Class="managed-data-section pa-4" Elevation="0">
+                        <MudStack Spacing="3">
+                            <MudText Typo="Typo.h6">基础信息</MudText>
+                            <MudGrid Spacing="2">
+                                <MudItem xs="12" md="6">
+                                    <MudTextField Label="数据编码" Variant="Variant.Outlined" Immediate="true"
+                                                  Placeholder="例如 MD-MB-POWER-001" @bind-Value="_code"/>
+                                </MudItem>
+                                <MudItem xs="12" md="6">
+                                    <MudTextField Label="数据名称" Variant="Variant.Outlined" Immediate="true"
+                                                  Placeholder="例如 锅炉房主进线有功功率" @bind-Value="_name"/>
+                                </MudItem>
+                                <MudItem xs="12" md="6">
+                                    <MudSelect T="string" Label="采集方式" Variant="Variant.Outlined" @bind-Value="_acquisitionType">
+                                        @foreach (string item in _acquisitionTypeOptions)
+                                        {
+                                            <MudSelectItem T="string" Value="@item">@item</MudSelectItem>
+                                        }
+                                    </MudSelect>
+                                </MudItem>
+                                <MudItem xs="12" md="6">
+                                    <MudTextField Label="计量单位" Variant="Variant.Outlined" Immediate="true"
+                                                  Placeholder="例如 kW、t/h、Nm3/h" @bind-Value="_unit"/>
+                                </MudItem>
+                                <MudItem xs="12" md="6">
+                                    <MudNumericField T="int" Label="采集频次（秒）" Variant="Variant.Outlined"
+                                                     Min="1" Immediate="true" HideSpinButtons="false"
+                                                     HelperText="用于定义该节点计划采集间隔，例如 30 秒、60 秒、300 秒。"
+                                                     @bind-Value="_collectionIntervalSeconds"/>
+                                </MudItem>
+                                <MudItem xs="12" md="4">
+                                    <MudTextField Label="归属部门" Variant="Variant.Outlined" Immediate="true"
+                                                  Placeholder="例如 AAA 部门" @bind-Value="_department"/>
+                                </MudItem>
+                                <MudItem xs="12" md="4">
+                                    <MudTextField Label="工序编码" Variant="Variant.Outlined" Immediate="true"
+                                                  Placeholder="例如 AAA123" @bind-Value="_processCode"/>
+                                </MudItem>
+                                <MudItem xs="12" md="4">
+                                    <MudTextField Label="数据类别" Variant="Variant.Outlined" Immediate="true"
+                                                  Placeholder="例如 电力数据、蒸汽数据" @bind-Value="_dataCategory"/>
+                                </MudItem>
+                                <MudItem xs="12">
+                                    <MudTextField Label="说明" Variant="Variant.Outlined" Lines="3" Immediate="true"
+                                                  Placeholder="可记录采集目的、使用范围、字段含义等补充信息" @bind-Value="_description"/>
+                                </MudItem>
+                            </MudGrid>
+                            <MudSwitch T="bool" @bind-Value="_isEnabled" Color="Color.Primary">启用该数据定义</MudSwitch>
+                        </MudStack>
+                    </MudPaper>
+
+                    <MudPaper Class="managed-data-section pa-4" Elevation="0">
+                        <MudStack Spacing="3">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.h6">协议配置</MudText>
+                                <MudChip T="string" Variant="Variant.Text" Color="@GetTypeChipColor(_acquisitionType)">@_acquisitionType</MudChip>
+                            </MudStack>
+
+                            @if (_acquisitionType == "Modbus")
+                            {
+                                <MudGrid Spacing="2">
+                                    <MudItem xs="12" md="6">
+                                        <MudSelect T="string" Label="协议变体" Variant="Variant.Outlined" @bind-Value="_modbusProtocolVariant">
+                                            <MudSelectItem T="string" Value="@("RTU")">RTU</MudSelectItem>
+                                            <MudSelectItem T="string" Value="@("TCP")">TCP</MudSelectItem>
+                                        </MudSelect>
+                                    </MudItem>
+                                    <MudItem xs="12" md="6">
+                                        <MudTextField Label="连接地址 / 端口" Variant="Variant.Outlined"
+                                                      Placeholder="例如 COM3 或 192.168.1.10:502"
+                                                      @bind-Value="_modbusConnectionAddress"/>
+                                    </MudItem>
+                                    <MudItem xs="12" md="4">
+                                        <MudTextField Label="从站地址" Variant="Variant.Outlined" @bind-Value="_modbusSlaveId"/>
+                                    </MudItem>
+                                    <MudItem xs="12" md="4">
+                                        <MudTextField Label="寄存器地址" Variant="Variant.Outlined"
+                                                      Placeholder="例如 40001" @bind-Value="_modbusRegisterAddress"/>
+                                    </MudItem>
+                                    <MudItem xs="12" md="4">
+                                        <MudTextField Label="波特率" Variant="Variant.Outlined"
+                                                      Placeholder="例如 9600" @bind-Value="_modbusBaudRate"/>
+                                    </MudItem>
+                                </MudGrid>
+                            }
+                            else if (_acquisitionType == "Historian API")
+                            {
+                                <MudGrid Spacing="2">
+                                    <MudItem xs="12" md="7">
+                                        <MudTextField Label="Historian API 地址" Variant="Variant.Outlined"
+                                                      Placeholder="例如 http://10.9.3.54:8080/historian-rest-api"
+                                                      @bind-Value="_historianBaseAddress"/>
+                                    </MudItem>
+                                    <MudItem xs="12" md="5">
+                                        <MudSelect T="string" Label="查询模式" Variant="Variant.Outlined" @bind-Value="_historianQueryMode">
+                                            <MudSelectItem T="string" Value="@("CurrentValue")">CurrentValue</MudSelectItem>
+                                            <MudSelectItem T="string" Value="@("Raw")">Raw</MudSelectItem>
+                                            <MudSelectItem T="string" Value="@("CurrentValueAndRaw")">CurrentValueAndRaw</MudSelectItem>
+                                        </MudSelect>
+                                    </MudItem>
+                                    <MudItem xs="12">
+                                        <MudTextField Label="Tag 名称" Variant="Variant.Outlined"
+                                                      Placeholder="例如 tag001" @bind-Value="_historianTagName"/>
+                                    </MudItem>
+                                </MudGrid>
+                            }
+                            else if (_acquisitionType == "MQTT")
+                            {
+                                <MudGrid Spacing="2">
+                                    <MudItem xs="12" md="8">
+                                        <MudTextField Label="Broker 地址" Variant="Variant.Outlined"
+                                                      Placeholder="例如 mqtt://broker.local:1883" @bind-Value="_mqttBrokerAddress"/>
+                                    </MudItem>
+                                    <MudItem xs="12" md="4">
+                                        <MudTextField Label="QoS" Variant="Variant.Outlined" @bind-Value="_mqttQoS"/>
+                                    </MudItem>
+                                    <MudItem xs="12">
+                                        <MudTextField Label="Topic" Variant="Variant.Outlined"
+                                                      Placeholder="例如 factory/steam/flow" @bind-Value="_mqttTopic"/>
+                                    </MudItem>
+                                </MudGrid>
+                            }
+                            else if (_acquisitionType == "OPC DA")
+                            {
+                                <MudGrid Spacing="2">
+                                    <MudItem xs="12" md="6">
+                                        <MudTextField Label="OPC Server 地址" Variant="Variant.Outlined"
+                                                      Placeholder="例如 opcda://compressor/station-03"
+                                                      @bind-Value="_opcServerAddress"/>
+                                    </MudItem>
+                                    <MudItem xs="12" md="6">
+                                        <MudTextField Label="组名" Variant="Variant.Outlined"
+                                                      Placeholder="例如 SteamGroup" @bind-Value="_opcGroupName"/>
+                                    </MudItem>
+                                    <MudItem xs="12">
+                                        <MudTextField Label="Item ID" Variant="Variant.Outlined"
+                                                      Placeholder="例如 Channel1.Device1.Tag001" @bind-Value="_opcItemId"/>
+                                    </MudItem>
+                                </MudGrid>
+                            }
+                            else if (_acquisitionType == "HTTP API")
+                            {
+                                <MudGrid Spacing="2">
+                                    <MudItem xs="12" md="7">
+                                        <MudTextField Label="API 基地址" Variant="Variant.Outlined"
+                                                      Placeholder="例如 http://api.local:8080" @bind-Value="_httpApiBaseAddress"/>
+                                    </MudItem>
+                                    <MudItem xs="12" md="5">
+                                        <MudTextField Label="请求路径" Variant="Variant.Outlined"
+                                                      Placeholder="例如 /metrics/current" @bind-Value="_httpPath"/>
+                                    </MudItem>
+                                    <MudItem xs="12">
+                                        <MudTextField Label="数据标识 / 指标名" Variant="Variant.Outlined"
+                                                      Placeholder="例如 steam_flow" @bind-Value="_httpMetricIdentifier"/>
+                                    </MudItem>
+                                </MudGrid>
+                            }
+
+                            <MudDivider/>
+
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.body1">扩展协议字段</MudText>
+                                <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="AddExtraConfigurationRow">
+                                    添加字段
+                                </MudButton>
+                            </MudStack>
+
+                            @if (_extraConfigurationRows.Count == 0)
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                    当前没有额外协议字段。只有需要补充特殊参数时再新增。
+                                </MudText>
+                            }
+                            else
+                            {
+                                @foreach (var row in _extraConfigurationRows)
+                                {
+                                    <MudGrid Spacing="2">
+                                        <MudItem xs="12" md="5">
+                                            <MudTextField Label="字段名" Variant="Variant.Outlined" Immediate="true" @bind-Value="row.Key"/>
+                                        </MudItem>
+                                        <MudItem xs="12" md="5">
+                                            <MudTextField Label="字段值" Variant="Variant.Outlined" Immediate="true" @bind-Value="row.Value"/>
+                                        </MudItem>
+                                        <MudItem xs="12" md="2" Class="d-flex align-center">
+                                            <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="@(() => RemoveExtraConfigurationRow(row))">
+                                                删除
+                                            </MudButton>
+                                        </MudItem>
+                                    </MudGrid>
+                                }
+                            }
+                        </MudStack>
+                    </MudPaper>
+
+                    <MudPaper Class="managed-data-section pa-4" Elevation="0">
+                        <MudStack Spacing="3">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.h6">业务标识字段</MudText>
+                                <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="AddBusinessTagRow">
+                                    添加标识
+                                </MudButton>
+                            </MudStack>
+
+                            @if (_businessTagRows.Count == 0)
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                    当前没有扩展业务标识。部门、工序、数据类别会作为独立字段入库，其他个性化标识可在这里补充。
+                                </MudText>
+                            }
+                            else
+                            {
+                                @foreach (var row in _businessTagRows)
+                                {
+                                    <MudGrid Spacing="2">
+                                        <MudItem xs="12" md="5">
+                                            <MudTextField Label="标识名" Variant="Variant.Outlined" Immediate="true" @bind-Value="row.Key"/>
+                                        </MudItem>
+                                        <MudItem xs="12" md="5">
+                                            <MudTextField Label="标识值" Variant="Variant.Outlined" Immediate="true" @bind-Value="row.Value"/>
+                                        </MudItem>
+                                        <MudItem xs="12" md="2" Class="d-flex align-center">
+                                            <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="@(() => RemoveBusinessTagRow(row))">
+                                                删除
+                                            </MudButton>
+                                        </MudItem>
+                                    </MudGrid>
+                                }
+                            }
+                        </MudStack>
+                    </MudPaper>
+
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12" lg="6">
+                            <MudPaper Class="managed-data-preview-panel" Elevation="0">
+                                <div class="managed-data-preview-header">协议配置 JSON 预览</div>
+                                <pre class="managed-data-preview-content">@ConfigurationPreviewJson</pre>
+                            </MudPaper>
+                        </MudItem>
+                        <MudItem xs="12" lg="6">
+                            <MudPaper Class="managed-data-preview-panel" Elevation="0">
+                                <div class="managed-data-preview-header">业务标识 JSON 预览</div>
+                                <pre class="managed-data-preview-content">@BusinessTagsPreviewJson</pre>
+                            </MudPaper>
+                        </MudItem>
+                    </MudGrid>
+                </MudStack>
+
+                <MudStack Class="managed-data-editor-footer" Row="true" Spacing="2" Justify="Justify.FlexEnd">
+                    <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="CancelEditor">
+                        取消
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="ResetEditor">
+                        清空
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Info" Disabled="IsBusy" OnClick="TestConnectionAsync">
+                        @(_isTestingConnection ? "测试中..." : "测试连接")
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="IsBusy" OnClick="SaveAsync">
+                        @SaveButtonText
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    </MudOverlay>
+</MudStack>

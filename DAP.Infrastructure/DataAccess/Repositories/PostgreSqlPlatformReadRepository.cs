@@ -35,6 +35,62 @@ public sealed class PostgreSqlPlatformReadRepository : IPlatformReadRepository
     }
 
     /// <inheritdoc />
+    public async Task<IReadOnlyCollection<ManagedDataDefinitionDto>> GetManagedDataDefinitionsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await using NpgsqlConnection connection = await _dataSource.OpenConnectionAsync(cancellationToken);
+        IEnumerable<ManagedDataDefinitionReadModel> items = await connection.QueryAsync<ManagedDataDefinitionReadModel>(
+            new CommandDefinition(
+                PlatformReadSql.ManagedDataDefinitions,
+                cancellationToken: cancellationToken));
+
+        return items.Select(MapManagedDataDefinition).ToArray();
+    }
+
+    /// <inheritdoc />
+    public async Task<ManagedDataDefinitionDetailsDto?> GetManagedDataDefinitionDetailsAsync(
+        Guid id,
+        int historyLimit = 50,
+        CancellationToken cancellationToken = default)
+    {
+        await using NpgsqlConnection connection = await _dataSource.OpenConnectionAsync(cancellationToken);
+
+        ManagedDataDefinitionReadModel? definition =
+            await connection.QuerySingleOrDefaultAsync<ManagedDataDefinitionReadModel>(
+                new CommandDefinition(
+                    PlatformReadSql.ManagedDataDefinitionById,
+                    new { Id = id },
+                    cancellationToken: cancellationToken));
+
+        if (definition is null)
+        {
+            return null;
+        }
+
+        CollectionPointReadModel? collectionPoint =
+            await connection.QuerySingleOrDefaultAsync<CollectionPointReadModel>(
+                new CommandDefinition(
+                    PlatformReadSql.CollectionPointByCode,
+                    new { Code = definition.Code },
+                    cancellationToken: cancellationToken));
+
+        IEnumerable<CollectionDataRecordReadModel> records =
+            await connection.QueryAsync<CollectionDataRecordReadModel>(
+                new CommandDefinition(
+                    PlatformReadSql.CollectionDataByPointCode,
+                    new { Code = definition.Code, Limit = Math.Max(1, historyLimit) },
+                    cancellationToken: cancellationToken));
+
+        CollectionDataRecordDto[] recentRecords = records.Select(MapCollectionDataRecord).ToArray();
+
+        return new ManagedDataDefinitionDetailsDto(
+            MapManagedDataDefinition(definition),
+            collectionPoint is null ? null : MapCollectionPoint(collectionPoint),
+            recentRecords.FirstOrDefault(),
+            recentRecords);
+    }
+
+    /// <inheritdoc />
     public async Task<IReadOnlyCollection<CollectionDataRecordDto>> GetCollectionDataAsync(
         int limit = 20,
         CancellationToken cancellationToken = default)
@@ -255,6 +311,24 @@ public sealed class PostgreSqlPlatformReadRepository : IPlatformReadRepository
         string Unit,
         DateTime CollectedAt);
 
+    private sealed record ManagedDataDefinitionReadModel(
+        Guid Id,
+        string Code,
+        string Name,
+        string AcquisitionType,
+        string ConnectionAddress,
+        string Identifier,
+        string Department,
+        string ProcessCode,
+        string DataCategory,
+        string Unit,
+        string Description,
+        string ConfigurationJson,
+        string BusinessTagsJson,
+        int CollectionIntervalSeconds,
+        bool IsEnabled,
+        DateTime UpdatedAt);
+
     private static CollectionPointDto MapCollectionPoint(CollectionPointReadModel item)
     {
         return new CollectionPointDto(
@@ -281,5 +355,26 @@ public sealed class PostgreSqlPlatformReadRepository : IPlatformReadRepository
             item.Value,
             item.Unit,
             new DateTimeOffset(DateTime.SpecifyKind(item.CollectedAt, DateTimeKind.Utc)));
+    }
+
+    private static ManagedDataDefinitionDto MapManagedDataDefinition(ManagedDataDefinitionReadModel item)
+    {
+        return new ManagedDataDefinitionDto(
+            item.Id,
+            item.Code,
+            item.Name,
+            item.AcquisitionType,
+            item.ConnectionAddress,
+            item.Identifier,
+            item.Department,
+            item.ProcessCode,
+            item.DataCategory,
+            item.Unit,
+            item.Description,
+            item.ConfigurationJson,
+            item.BusinessTagsJson,
+            item.CollectionIntervalSeconds,
+            item.IsEnabled,
+            new DateTimeOffset(DateTime.SpecifyKind(item.UpdatedAt, DateTimeKind.Utc)));
     }
 }

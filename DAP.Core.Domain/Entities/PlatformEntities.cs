@@ -101,3 +101,89 @@ public sealed class CollectionDataRecord
     /// </summary>
     public CollectionPoint? CollectionPoint { get; set; }
 }
+
+/// <summary>
+/// 表示后台维护的数据定义。
+/// </summary>
+public sealed class ManagedDataDefinition
+{
+    /// <summary>
+    /// 获取或设置数据定义标识。
+    /// </summary>
+    public Guid Id { get; set; }
+
+    /// <summary>
+    /// 获取或设置数据编码。
+    /// </summary>
+    public string Code { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 获取或设置数据名称。
+    /// </summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 获取或设置采集方式。
+    /// </summary>
+    public string AcquisitionType { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 获取或设置连接地址或来源地址。
+    /// </summary>
+    public string ConnectionAddress { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 获取或设置数据标识。
+    /// </summary>
+    public string Identifier { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 获取或设置归属部门。
+    /// </summary>
+    public string Department { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 获取或设置工序编码。
+    /// </summary>
+    public string ProcessCode { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 获取或设置数据类别。
+    /// </summary>
+    public string DataCategory { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 获取或设置计量单位。
+    /// </summary>
+    public string Unit { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 获取或设置补充说明。
+    /// </summary>
+    public string Description { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 获取或设置协议配置 JSON。
+    /// </summary>
+    public string ConfigurationJson { get; set; } = "{}";
+
+    /// <summary>
+    /// 获取或设置业务标识 JSON。
+    /// </summary>
+    public string BusinessTagsJson { get; set; } = "{}";
+
+    /// <summary>
+    /// 获取或设置采集频次，单位为秒。
+    /// </summary>
+    public int CollectionIntervalSeconds { get; set; } = 300;
+
+    /// <summary>
+    /// 获取或设置是否启用。
+    /// </summary>
+    public bool IsEnabled { get; set; }
+
+    /// <summary>
+    /// 获取或设置最后更新时间。
+    /// </summary>
+    public DateTimeOffset UpdatedAt { get; set; }
+}

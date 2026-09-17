@@ -1,0 +1,139 @@
+.node-details-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+::deep .node-details-hero {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    background:
+        radial-gradient(circle at top right, rgba(14, 165, 233, 0.22), transparent 30%),
+        radial-gradient(circle at 15% 80%, rgba(34, 197, 94, 0.16), transparent 24%),
+        linear-gradient(135deg, rgba(2, 6, 23, 0.98), rgba(15, 23, 42, 0.95));
+    color: #f8fafc;
+}
+
+::deep .node-details-back-button {
+    align-self: flex-start;
+    padding-left: 0;
+}
+
+::deep .node-details-subtitle {
+    max-width: 920px;
+    color: rgba(226, 232, 240, 0.9);
+    line-height: 1.8;
+}
+
+::deep .node-details-subtitle span,
+::deep .node-details-monospace {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+::deep .node-details-limit-select {
+    min-width: 140px;
+}
+
+::deep .node-details-loading,
+::deep .node-details-panel,
+::deep .node-details-metric {
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
+}
+
+::deep .node-details-metric,
+::deep .node-details-summary-box,
+::deep .node-details-execution-panel,
+::deep .node-details-chart-panel {
+    border-radius: 22px;
+}
+
+::deep .node-details-metric {
+    position: relative;
+    overflow: hidden;
+    min-height: 188px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
+}
+
+::deep .node-details-metric::after {
+    content: "";
+    position: absolute;
+    inset: auto -22px -36px auto;
+    width: 110px;
+    height: 110px;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgba(148, 163, 184, 0.16), transparent 68%);
+}
+
+::deep .node-details-metric-primary {
+    background:
+        radial-gradient(circle at top right, rgba(14, 165, 233, 0.18), transparent 32%),
+        linear-gradient(180deg, rgba(239, 246, 255, 0.98), rgba(248, 250, 252, 0.98));
+}
+
+::deep .node-details-metric-support {
+    color: #0f172a;
+    line-height: 1.7;
+}
+
+::deep .node-details-metric-subtle {
+    color: #64748b;
+    line-height: 1.7;
+}
+
+::deep .node-details-panel {
+    border-radius: 28px;
+}
+
+::deep .node-details-summary-box,
+::deep .node-details-execution-panel {
+    background: rgba(15, 23, 42, 0.04);
+}
+
+::deep .node-details-section-label {
+    display: inline-block;
+    margin-bottom: 0.35rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+::deep .node-details-chart-panel {
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    background:
+        linear-gradient(180deg, rgba(248, 250, 252, 0.9), rgba(255, 255, 255, 0.98)),
+        radial-gradient(circle at top left, rgba(14, 165, 233, 0.08), transparent 26%);
+}
+
+::deep .node-details-chart-panel .mud-chart {
+    width: 100%;
+}
+
+::deep .node-details-json-panel {
+    overflow: hidden;
+    border-radius: 22px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: rgba(15, 23, 42, 0.95);
+}
+
+::deep .node-details-json-header {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+    color: rgba(226, 232, 240, 0.82);
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+::deep .node-details-json-content {
+    margin: 0;
+    padding: 1rem;
+    overflow-x: auto;
+    color: #cbd5e1;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.84rem;
+    line-height: 1.6;
+}

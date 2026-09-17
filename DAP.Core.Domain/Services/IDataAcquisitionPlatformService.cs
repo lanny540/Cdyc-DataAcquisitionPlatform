@@ -41,6 +41,44 @@ public interface IDataAcquisitionPlatformService
     Task<bool> DeleteCollectionPointAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// 获取后台维护的数据定义列表。
+    /// </summary>
+    /// <param name="cancellationToken">取消令牌。</param>
+    /// <returns>数据定义集合。</returns>
+    Task<IReadOnlyCollection<ManagedDataDefinitionDto>> GetManagedDataDefinitionsAsync(
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 获取后台数据节点详情。
+    /// </summary>
+    /// <param name="id">数据定义标识。</param>
+    /// <param name="historyLimit">历史记录数量。</param>
+    /// <param name="cancellationToken">取消令牌。</param>
+    /// <returns>数据节点详情。</returns>
+    Task<ManagedDataDefinitionDetailsDto?> GetManagedDataDefinitionDetailsAsync(
+        Guid id,
+        int historyLimit = 50,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 新增或更新后台维护的数据定义。
+    /// </summary>
+    /// <param name="request">数据定义请求。</param>
+    /// <param name="cancellationToken">取消令牌。</param>
+    /// <returns>保存后的数据定义。</returns>
+    Task<ManagedDataDefinitionDto> UpsertManagedDataDefinitionAsync(
+        ManagedDataDefinitionUpsertRequest request,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 删除指定后台数据定义。
+    /// </summary>
+    /// <param name="id">数据定义标识。</param>
+    /// <param name="cancellationToken">取消令牌。</param>
+    /// <returns>删除是否成功。</returns>
+    Task<bool> DeleteManagedDataDefinitionAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// 获取最新采集数据。
     /// </summary>
     /// <param name="limit">返回数量上限。</param>

@@ -27,6 +27,11 @@ public sealed class DataAcquisitionPlatformDbContext : DbContext
     /// </summary>
     public DbSet<CollectionDataRecord> CollectionDataRecords => Set<CollectionDataRecord>();
 
+    /// <summary>
+    /// 获取后台数据定义集合。
+    /// </summary>
+    public DbSet<ManagedDataDefinition> ManagedDataDefinitions => Set<ManagedDataDefinition>();
+
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

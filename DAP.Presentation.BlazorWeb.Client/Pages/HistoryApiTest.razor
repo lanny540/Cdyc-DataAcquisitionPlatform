@@ -1,0 +1,207 @@
+@page "/history-api-test"
+
+<PageTitle>History 数据库 API 测试</PageTitle>
+
+<MudStack Class="history-api-shell" Spacing="3">
+    <MudPaper Class="history-api-hero pa-6" Elevation="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.h4">History 数据库 API 测试</MudText>
+                <MudText Typo="Typo.body1" Class="history-api-hero-description">
+                    通过 Web 管理端直接测试 GE History 实时数据库的 OAuth 鉴权、最新值查询与时间段原始数据查询，
+                    由服务端完成 Token 获取和上游接口代理，浏览器侧只负责参数录入与结果查看。
+                </MudText>
+                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mt-3">
+                    <MudChip T="string" Variant="Variant.Outlined" Color="Color.Info">OAuth 自动取 Token</MudChip>
+                    <MudChip T="string" Variant="Variant.Outlined" Color="Color.Primary">支持最新值测试</MudChip>
+                    <MudChip T="string" Variant="Variant.Outlined" Color="Color.Secondary">支持时间段原始数据测试</MudChip>
+                </MudStack>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
+    }
+
+    <MudGrid>
+        <MudItem xs="12" xl="5">
+            <MudStack Spacing="3">
+                <MudPaper Class="history-api-panel pa-5" Elevation="0">
+                    <MudStack Spacing="3">
+                        <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap">
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.h6">最新值查询</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                    输入一个或多个标签名，系统会先请求 OAuth Token，再调用
+                                    <code>currentvalue</code> 接口。
+                                </MudText>
+                            </MudStack>
+                            <MudChip T="string" Variant="Variant.Text" Color="Color.Info">GET currentvalue</MudChip>
+                        </MudStack>
+
+                        <MudTextField Label="标签名称"
+                                      HelperText="支持单个标签，例如 tag001；也支持逗号分隔多个标签。"
+                                      Variant="Variant.Outlined"
+                                      @bind-Value="_currentTagNames"/>
+
+                        <MudPaper Class="history-api-preview pa-3" Elevation="0">
+                            <MudText Typo="Typo.caption" Class="history-api-preview-label">上游请求预览</MudText>
+                            <MudText Typo="Typo.body2" Class="history-api-preview-value">@CurrentValuePreview</MudText>
+                        </MudPaper>
+
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.PlayArrow"
+                                   Disabled="IsBusy"
+                                   OnClick="QueryCurrentValueAsync">
+                            查询最新值
+                        </MudButton>
+                    </MudStack>
+                </MudPaper>
+
+                <MudPaper Class="history-api-panel pa-5" Elevation="0">
+                    <MudStack Spacing="3">
+                        <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap">
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.h6">时间段原始数据查询</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                    输入标签、UTC 起止时间和分页参数，调用 <code>raw</code> 接口查看指定时间窗内的数据。
+                                </MudText>
+                            </MudStack>
+                            <MudChip T="string" Variant="Variant.Text" Color="Color.Secondary">GET raw</MudChip>
+                        </MudStack>
+
+                        <MudTextField Label="标签名称"
+                                      Variant="Variant.Outlined"
+                                      @bind-Value="_rawTagName"/>
+
+                        <MudTextField Label="开始时间（UTC）"
+                                      HelperText="示例：2026-09-01T00:00:00.000Z"
+                                      Variant="Variant.Outlined"
+                                      @bind-Value="_rawStartText"/>
+
+                        <MudTextField Label="结束时间（UTC）"
+                                      HelperText="示例：2026-09-01T01:00:00.000Z"
+                                      Variant="Variant.Outlined"
+                                      @bind-Value="_rawEndText"/>
+
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12" sm="6">
+                                <MudNumericField T="int"
+                                                 Label="起始偏移量"
+                                                 Variant="Variant.Outlined"
+                                                 Min="0"
+                                                 @bind-Value="_rawStartIndex"/>
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudNumericField T="int"
+                                                 Label="返回条数"
+                                                 Variant="Variant.Outlined"
+                                                 Min="1"
+                                                 @bind-Value="_rawCount"/>
+                            </MudItem>
+                        </MudGrid>
+
+                        <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Secondary"
+                                       Disabled="IsBusy"
+                                       OnClick="FillLastHourPreset">
+                                最近 1 小时预设
+                            </MudButton>
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Secondary"
+                                       StartIcon="@Icons.Material.Filled.Timeline"
+                                       Disabled="IsBusy"
+                                       OnClick="QueryRawDataAsync">
+                                查询时间段数据
+                            </MudButton>
+                        </MudStack>
+
+                        <MudPaper Class="history-api-preview pa-3" Elevation="0">
+                            <MudText Typo="Typo.caption" Class="history-api-preview-label">上游请求预览</MudText>
+                            <MudText Typo="Typo.body2" Class="history-api-preview-value">@RawDataPreview</MudText>
+                        </MudPaper>
+                    </MudStack>
+                </MudPaper>
+            </MudStack>
+        </MudItem>
+
+        <MudItem xs="12" xl="7">
+            <MudPaper Class="history-api-result-panel pa-5" Elevation="0">
+                <MudStack Spacing="3">
+                    <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h6">最近一次测试结果</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                这里展示由服务端代理返回的响应状态、上游地址和原始 JSON 结果，适合快速联调与排错。
+                            </MudText>
+                        </MudStack>
+
+                        @if (_latestResponse is not null)
+                        {
+                            <MudChip T="string" Color="@LatestResponseColor" Variant="Variant.Outlined">
+                                @(_latestResponse.Success ? "调用成功" : "调用失败")
+                            </MudChip>
+                        }
+                    </MudStack>
+
+                    @if (_latestResponse is null)
+                    {
+                        <MudStack AlignItems="AlignItems.Center" Class="history-api-empty-state">
+                            <MudIcon Icon="@Icons.Material.Filled.Api" Size="Size.Large" Color="Color.Info"/>
+                            <MudText Typo="Typo.h6" Class="mt-3">还没有测试结果</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">
+                                先执行一次“查询最新值”或“查询时间段数据”，这里就会显示上游返回的完整结果。
+                            </MudText>
+                        </MudStack>
+                    }
+                    else
+                    {
+                        <MudGrid>
+                            <MudItem xs="12" md="4">
+                                <MudPaper Class="history-api-metric-card pa-4" Elevation="0">
+                                    <MudText Typo="Typo.caption">查询类型</MudText>
+                                    <MudText Typo="Typo.h6">@_latestResponse.QueryType</MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" md="4">
+                                <MudPaper Class="history-api-metric-card pa-4" Elevation="0">
+                                    <MudText Typo="Typo.caption">HTTP 状态</MudText>
+                                    <MudText Typo="Typo.h6">@_latestResponse.StatusCode</MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" md="4">
+                                <MudPaper Class="history-api-metric-card pa-4" Elevation="0">
+                                    <MudText Typo="Typo.caption">执行时间</MudText>
+                                    <MudText Typo="Typo.body1">@_latestResponse.ExecutedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</MudText>
+                                </MudPaper>
+                            </MudItem>
+                        </MudGrid>
+
+                        <MudPaper Class="history-api-preview pa-3" Elevation="0">
+                            <MudText Typo="Typo.caption" Class="history-api-preview-label">上游实际请求地址</MudText>
+                            <MudText Typo="Typo.body2" Class="history-api-preview-value">@_latestResponse.RequestUrl</MudText>
+                        </MudPaper>
+
+                        @if (!string.IsNullOrWhiteSpace(_latestResponse.ErrorMessage))
+                        {
+                            <MudAlert Severity="Severity.Error" Dense="true" Variant="Variant.Outlined">
+                                @_latestResponse.ErrorMessage
+                            </MudAlert>
+                        }
+
+                        <MudPaper Class="history-api-json-panel" Elevation="0">
+                            <div class="history-api-json-header">
+                                <span>原始 JSON 响应</span>
+                            </div>
+                            <pre class="history-api-json-content">@_latestResponse.PayloadJson</pre>
+                        </MudPaper>
+                    }
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudStack>

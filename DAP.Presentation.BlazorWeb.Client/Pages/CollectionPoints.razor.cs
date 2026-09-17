@@ -10,7 +10,7 @@ namespace DAP.Presentation.BlazorWeb.Client.Pages;
 /// </summary>
 public partial class CollectionPoints
 {
-    [Inject] private IPlatformApiClient PlatformApiClient { get; set; } = default!;
+    [Inject] private IPlatformApiClient PlatformApiClient { get; set; } = null!;
 
     private readonly List<CollectionPointDto> _collectionPoints = [];
     private Guid? _editingId;

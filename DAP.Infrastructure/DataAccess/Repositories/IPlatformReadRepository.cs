@@ -14,6 +14,20 @@ public interface IPlatformReadRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// 获取后台数据定义列表。
+    /// </summary>
+    Task<IReadOnlyCollection<ManagedDataDefinitionDto>> GetManagedDataDefinitionsAsync(
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 获取后台数据定义详情。
+    /// </summary>
+    Task<ManagedDataDefinitionDetailsDto?> GetManagedDataDefinitionDetailsAsync(
+        Guid id,
+        int historyLimit = 50,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// 获取采集数据列表。
     /// </summary>
     Task<IReadOnlyCollection<CollectionDataRecordDto>> GetCollectionDataAsync(int limit = 20,

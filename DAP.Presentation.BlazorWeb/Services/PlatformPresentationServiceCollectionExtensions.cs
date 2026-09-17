@@ -1,6 +1,5 @@
 using DAP.Core.Domain.Services;
 using DAP.Core.Shared.Contracts;
-using DAP.Infrastructure.DataAccess.Initialization;
 using DAP.Infrastructure.DataAccess.Persistence;
 using DAP.Infrastructure.DataAccess.Repositories;
 using DAP.Infrastructure.DataAccess.Services;
@@ -36,7 +35,35 @@ public static class PlatformPresentationServiceCollectionExtensions
             .AddInteractiveWebAssemblyComponents();
 
         services.AddMudServices();
+        services.AddMemoryCache();
         services.AddOpenApi();
+        services.Configure<HistoryApiOptions>(configuration.GetSection(HistoryApiOptions.SectionName));
+        services.Configure<ManagedDataSchedulerOptions>(configuration.GetSection(ManagedDataSchedulerOptions.SectionName));
+
+        services.AddHttpClient("HistoryApi", (serviceProvider, client) =>
+            {
+                var historyOptions = serviceProvider
+                    .GetRequiredService<Microsoft.Extensions.Options.IOptions<HistoryApiOptions>>().Value;
+
+                if (!string.IsNullOrWhiteSpace(historyOptions.BaseAddress))
+                {
+                    client.BaseAddress = new Uri(AppendTrailingSlash(historyOptions.BaseAddress));
+                }
+
+                client.Timeout = TimeSpan.FromSeconds(Math.Max(historyOptions.RequestTimeoutSeconds, 5));
+            })
+            .ConfigurePrimaryHttpMessageHandler(serviceProvider =>
+            {
+                var historyOptions = serviceProvider
+                    .GetRequiredService<Microsoft.Extensions.Options.IOptions<HistoryApiOptions>>().Value;
+
+                return new HttpClientHandler
+                {
+                    ServerCertificateCustomValidationCallback = historyOptions.IgnoreServerCertificateErrors
+                        ? HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+                        : null
+                };
+            });
 
         services.AddSingleton(_ =>
         {
@@ -57,18 +84,22 @@ public static class PlatformPresentationServiceCollectionExtensions
         });
 
         services.AddScoped<ICollectionPointRepository, PostgreSqlCollectionPointRepository>();
+        services.AddScoped<IManagedDataDefinitionRepository, PostgreSqlManagedDataDefinitionRepository>();
         services.AddScoped<ICollectionDataRecordRepository, PostgreSqlCollectionDataRecordRepository>();
         services.AddScoped<IPlatformReadRepository, PostgreSqlPlatformReadRepository>();
         services.AddScoped<IDataAcquisitionPlatformService, DataAcquisitionPlatformService>();
+        services.AddScoped<IHistoryApiProxyService, HistoryApiProxyService>();
+        services.AddScoped<IManagedDataExecutionService, ManagedDataExecutionService>();
+        services.AddScoped<IConnectionDiagnosticsService, ConnectionDiagnosticsService>();
         services.AddScoped<IPlatformApiClient, ServerPlatformApiClient>();
-        services.AddScoped(sp =>
-        {
-            var settings = sp.GetRequiredService<PostgreSqlConnectionSettings>();
-            var dbContext = sp.GetRequiredService<DataAcquisitionPlatformDbContext>();
-            return new PostgreSqlDatabaseInitializer(settings.ConnectionString, dbContext);
-        });
+        services.AddHostedService<ManagedDataCollectionScheduler>();
 
         return services;
+    }
+
+    private static string AppendTrailingSlash(string value)
+    {
+        return value.EndsWith("/", StringComparison.Ordinal) ? value : $"{value}/";
     }
 }
 
@@ -92,7 +123,11 @@ internal static class ConnectionStringResolver
 /// <summary>
 /// 为 Auto 模式的首屏预渲染提供服务端 API 适配。
 /// </summary>
-internal sealed class ServerPlatformApiClient(IDataAcquisitionPlatformService platformService) : IPlatformApiClient
+internal sealed class ServerPlatformApiClient(
+    IDataAcquisitionPlatformService platformService,
+    IHistoryApiProxyService historyApiProxyService,
+    IManagedDataExecutionService managedDataExecutionService,
+    IConnectionDiagnosticsService connectionDiagnosticsService) : IPlatformApiClient
 {
     public Task<DashboardOverviewDto> GetDashboardOverviewAsync(CancellationToken cancellationToken = default)
     {
@@ -114,5 +149,74 @@ internal sealed class ServerPlatformApiClient(IDataAcquisitionPlatformService pl
     public Task<bool> DeleteCollectionPointAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return platformService.DeleteCollectionPointAsync(id, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ManagedDataDefinitionDto>> GetManagedDataDefinitionsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return (await platformService.GetManagedDataDefinitionsAsync(cancellationToken)).ToList();
+    }
+
+    public async Task<ManagedDataDefinitionDetailsDto> GetManagedDataDefinitionDetailsAsync(
+        Guid id,
+        int historyLimit = 50,
+        CancellationToken cancellationToken = default)
+    {
+        ManagedDataDefinitionDetailsDto? details =
+            await platformService.GetManagedDataDefinitionDetailsAsync(id, historyLimit, cancellationToken);
+        return details ?? throw new InvalidOperationException("指定的后台数据节点不存在。");
+    }
+
+    public Task<ManagedDataDefinitionDto> UpsertManagedDataDefinitionAsync(
+        ManagedDataDefinitionUpsertRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return platformService.UpsertManagedDataDefinitionAsync(request, cancellationToken);
+    }
+
+    public Task<bool> DeleteManagedDataDefinitionAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return platformService.DeleteManagedDataDefinitionAsync(id, cancellationToken);
+    }
+
+    public Task<ManagedDataExecutionResultDto> DebugReadManagedDataDefinitionAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        return managedDataExecutionService.DebugReadAsync(id, cancellationToken);
+    }
+
+    public Task<ManagedDataExecutionResultDto> CollectManagedDataDefinitionAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        return managedDataExecutionService.CollectAsync(id, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ServerConnectionStatusDto>> GetServerConnectionStatusesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return (await connectionDiagnosticsService.GetServerStatusesAsync(cancellationToken)).ToList();
+    }
+
+    public Task<ManagedDataConnectionTestResultDto> TestManagedDataConnectionAsync(
+        ManagedDataDefinitionUpsertRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return connectionDiagnosticsService.TestManagedDataConnectionAsync(request, cancellationToken);
+    }
+
+    public Task<HistoryApiQueryResponse> GetHistoryCurrentValueAsync(
+        HistoryCurrentValueQueryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return historyApiProxyService.GetCurrentValueAsync(request, cancellationToken);
+    }
+
+    public Task<HistoryApiQueryResponse> GetHistoryRawDataAsync(
+        HistoryRawDataQueryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return historyApiProxyService.GetRawDataAsync(request, cancellationToken);
     }
 }
