@@ -3,103 +3,164 @@
 
 <PageTitle>平台概览</PageTitle>
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
-    <MudStack Spacing="0">
-        <MudText Typo="Typo.h4">数据采集平台概览</MudText>
-        <MudText Typo="Typo.body1" Color="Color.Secondary">聚合展示采集点总量、通信状态以及最新入库数据。</MudText>
-    </MudStack>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh"
-               OnClick="LoadAsync">
-        刷新
-    </MudButton>
+<MudStack Class="platform-page-shell home-page-shell" Spacing="3">
+    <MudPaper Class="platform-page-hero home-hero pa-6" Elevation="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.h4">数据采集平台概览</MudText>
+                <MudText Typo="Typo.body1" Class="home-hero-description">
+                    聚合查看采集点规模、在线状态和最近入库结果，用一个总览面板快速判断当前系统运行是否稳定。
+                </MudText>
+                @if (_overview is not null)
+                {
+                    <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mt-3">
+                        <MudChip T="string" Variant="Variant.Outlined" Color="Color.Info">
+                            @_overview.TotalCollectionPoints 个采集点
+                        </MudChip>
+                        <MudChip T="string" Variant="Variant.Outlined" Color="Color.Success">
+                            @_overview.OnlineCollectionPoints 个在线
+                        </MudChip>
+                        <MudChip T="string" Variant="Variant.Outlined" Color="Color.Secondary">
+                            @_overview.LatestRecords.Count 条最新数据
+                        </MudChip>
+                    </MudStack>
+                }
+            </MudStack>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh"
+                       OnClick="LoadAsync">
+                刷新概览
+            </MudButton>
+        </MudStack>
+    </MudPaper>
+
+    @if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Outlined">@_errorMessage</MudAlert>
+    }
+
+    @if (_isLoading)
+    {
+        <MudPaper Class="platform-panel home-loading pa-10" Elevation="0">
+            <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+                <MudText Typo="Typo.body1">正在加载平台概览...</MudText>
+            </MudStack>
+        </MudPaper>
+    }
+    else if (_overview is not null)
+    {
+        <MudGrid Class="home-metrics-grid">
+            <MudItem xs="12" md="6" xl="3">
+                <MudPaper Class="platform-stat-card home-stat-card pa-4" Elevation="0">
+                    <MudText Typo="Typo.caption">采集点总数</MudText>
+                    <MudText Typo="Typo.h3">@_overview.TotalCollectionPoints</MudText>
+                    <MudText Typo="Typo.body2" Class="home-stat-supporting">当前已纳入平台统一管理</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" md="6" xl="3">
+                <MudPaper Class="platform-stat-card home-stat-card pa-4" Elevation="0">
+                    <MudText Typo="Typo.caption">在线采集点</MudText>
+                    <MudText Typo="Typo.h3" Color="Color.Success">@_overview.OnlineCollectionPoints</MudText>
+                    <MudText Typo="Typo.body2" Class="home-stat-supporting">通信状态正常的节点数量</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" md="6" xl="3">
+                <MudPaper Class="platform-stat-card home-stat-card pa-4" Elevation="0">
+                    <MudText Typo="Typo.caption">离线采集点</MudText>
+                    <MudText Typo="Typo.h3" Color="Color.Error">@_overview.OfflineCollectionPoints</MudText>
+                    <MudText Typo="Typo.body2" Class="home-stat-supporting">需要优先排查连接与配置</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" md="6" xl="3">
+                <MudPaper Class="platform-stat-card home-stat-card pa-4" Elevation="0">
+                    <MudText Typo="Typo.caption">本地同步来源</MudText>
+                    <MudText Typo="Typo.h3" Color="Color.Info">@_overview.LocalSourcedCollectionPoints</MudText>
+                    <MudText Typo="Typo.body2" Class="home-stat-supporting">来自客户端同步的采集点</MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        <MudGrid>
+            <MudItem xs="12" lg="6">
+                <MudPaper Class="platform-panel home-panel pa-4" Elevation="0">
+                    <MudStack Spacing="2">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h6" Class="platform-card-title">采集点通信状态</MudText>
+                            <MudText Typo="Typo.body2" Class="platform-card-description">快速识别在线与离线节点。</MudText>
+                        </MudStack>
+                        <MudTable Items="_overview.CollectionPoints" Dense="true" Hover="true" Class="platform-data-table">
+                            <HeaderContent>
+                                <MudTh>编码</MudTh>
+                                <MudTh>名称</MudTh>
+                                <MudTh>协议</MudTh>
+                                <MudTh>状态</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="编码">
+                                    <MudText Typo="Typo.body2" Class="platform-table-primary platform-inline-code">
+                                        @context.Code
+                                    </MudText>
+                                </MudTd>
+                                <MudTd DataLabel="名称">
+                                    <MudText Typo="Typo.body2" Class="platform-table-primary">@context.Name</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="协议">
+                                    <MudText Typo="Typo.body2" Class="platform-table-secondary">@context.Protocol</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="状态">
+                                    <MudChip T="string"
+                                             Color="@(context.CommunicationStatus == "在线" ? Color.Success : Color.Error)"
+                                             Variant="Variant.Outlined"
+                                             Size="Size.Small">
+                                        @context.CommunicationStatus
+                                    </MudChip>
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" lg="6">
+                <MudPaper Class="platform-panel home-panel pa-4" Elevation="0">
+                    <MudStack Spacing="2">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h6" Class="platform-card-title">最新采集数据</MudText>
+                            <MudText Typo="Typo.body2" Class="platform-card-description">查看最近写入的采样记录。</MudText>
+                        </MudStack>
+                        <MudTable Items="_overview.LatestRecords" Dense="true" Hover="true" Class="platform-data-table">
+                            <HeaderContent>
+                                <MudTh>采集点</MudTh>
+                                <MudTh>指标</MudTh>
+                                <MudTh>数值</MudTh>
+                                <MudTh>采集时间</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="采集点">
+                                    <MudText Typo="Typo.body2" Class="platform-table-primary">
+                                        @context.CollectionPointName
+                                    </MudText>
+                                </MudTd>
+                                <MudTd DataLabel="指标">
+                                    <MudText Typo="Typo.body2" Class="platform-table-secondary">@context.MetricName</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="数值">
+                                    <MudText Typo="Typo.body2" Class="platform-table-primary">
+                                        @($"{context.Value} {context.Unit}")
+                                    </MudText>
+                                </MudTd>
+                                <MudTd DataLabel="采集时间">
+                                    <MudText Typo="Typo.body2" Class="platform-timestamp">
+                                        @context.CollectedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+                                    </MudText>
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    }
 </MudStack>
-
-@if (!string.IsNullOrWhiteSpace(_errorMessage))
-{
-    <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-4">@_errorMessage</MudAlert>
-}
-
-@if (_isLoading)
-{
-    <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
-}
-else if (_overview is not null)
-{
-    <MudGrid Class="mb-6">
-        <MudItem xs="12" md="3">
-            <MudPaper Class="pa-4">
-                <MudText Typo="Typo.caption">采集点总数</MudText>
-                <MudText Typo="Typo.h4">@_overview.TotalCollectionPoints</MudText>
-            </MudPaper>
-        </MudItem>
-        <MudItem xs="12" md="3">
-            <MudPaper Class="pa-4">
-                <MudText Typo="Typo.caption">在线采集点</MudText>
-                <MudText Typo="Typo.h4" Color="Color.Success">@_overview.OnlineCollectionPoints</MudText>
-            </MudPaper>
-        </MudItem>
-        <MudItem xs="12" md="3">
-            <MudPaper Class="pa-4">
-                <MudText Typo="Typo.caption">离线采集点</MudText>
-                <MudText Typo="Typo.h4" Color="Color.Error">@_overview.OfflineCollectionPoints</MudText>
-            </MudPaper>
-        </MudItem>
-        <MudItem xs="12" md="3">
-            <MudPaper Class="pa-4">
-                <MudText Typo="Typo.caption">来自客户端同步</MudText>
-                <MudText Typo="Typo.h4" Color="Color.Info">@_overview.LocalSourcedCollectionPoints</MudText>
-            </MudPaper>
-        </MudItem>
-    </MudGrid>
-
-    <MudGrid>
-        <MudItem xs="12" lg="6">
-            <MudPaper Class="pa-4">
-                <MudText Typo="Typo.h6" Class="mb-3">采集点通信状态</MudText>
-                <MudTable Items="_overview.CollectionPoints" Dense="true" Hover="true">
-                    <HeaderContent>
-                        <MudTh>编码</MudTh>
-                        <MudTh>名称</MudTh>
-                        <MudTh>协议</MudTh>
-                        <MudTh>状态</MudTh>
-                    </HeaderContent>
-                    <RowTemplate>
-                        <MudTd DataLabel="编码">@context.Code</MudTd>
-                        <MudTd DataLabel="名称">@context.Name</MudTd>
-                        <MudTd DataLabel="协议">@context.Protocol</MudTd>
-                        <MudTd DataLabel="状态">
-                            <MudChip T="string"
-                                     Color="@(context.CommunicationStatus == "在线" ? Color.Success : Color.Error)"
-                                     Variant="Variant.Outlined">
-                                @context.CommunicationStatus
-                            </MudChip>
-                        </MudTd>
-                    </RowTemplate>
-                </MudTable>
-            </MudPaper>
-        </MudItem>
-        <MudItem xs="12" lg="6">
-            <MudPaper Class="pa-4">
-                <MudText Typo="Typo.h6" Class="mb-3">最新采集数据</MudText>
-                <MudTable Items="_overview.LatestRecords" Dense="true" Hover="true">
-                    <HeaderContent>
-                        <MudTh>采集点</MudTh>
-                        <MudTh>指标</MudTh>
-                        <MudTh>数值</MudTh>
-                        <MudTh>采集时间</MudTh>
-                    </HeaderContent>
-                    <RowTemplate>
-                        <MudTd DataLabel="采集点">@context.CollectionPointName</MudTd>
-                        <MudTd DataLabel="指标">@context.MetricName</MudTd>
-                        <MudTd DataLabel="数值">@($"{context.Value} {context.Unit}")</MudTd>
-                        <MudTd
-                            DataLabel="采集时间">@context.CollectedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</MudTd>
-                    </RowTemplate>
-                </MudTable>
-            </MudPaper>
-        </MudItem>
-    </MudGrid>
-}
 
 @code {
     private DashboardOverviewDto? _overview;

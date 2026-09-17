@@ -7,18 +7,16 @@
 ::deep .history-api-result-panel {
     border: 1px solid rgba(15, 23, 42, 0.08);
     border-radius: 24px;
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%);
     box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
 }
 
 ::deep .history-api-hero {
     position: relative;
     overflow: hidden;
-    background:
-        radial-gradient(circle at top right, rgba(59, 130, 246, 0.18), transparent 34%),
-        radial-gradient(circle at left center, rgba(14, 165, 233, 0.12), transparent 28%),
-        linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.94));
+    background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.18), transparent 34%),
+    radial-gradient(circle at left center, rgba(14, 165, 233, 0.12), transparent 28%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.94));
     color: #e2e8f0;
 }
 
@@ -33,6 +31,11 @@
     background: rgba(15, 23, 42, 0.04);
 }
 
+::deep .history-api-panel,
+::deep .history-api-result-panel {
+    overflow: hidden;
+}
+
 ::deep .history-api-preview-label {
     display: inline-block;
     margin-bottom: 0.35rem;
@@ -44,6 +47,22 @@
 ::deep .history-api-preview-value {
     font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
     word-break: break-all;
+}
+
+::deep .history-api-metric-card {
+    position: relative;
+    overflow: hidden;
+}
+
+::deep .history-api-metric-card::after {
+    content: "";
+    position: absolute;
+    right: -18px;
+    bottom: -26px;
+    width: 92px;
+    height: 92px;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.12), transparent 72%);
 }
 
 ::deep .history-api-empty-state {

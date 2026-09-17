@@ -2,8 +2,8 @@
 
 <PageTitle>服务器连接状态</PageTitle>
 
-<MudStack Class="server-status-shell" Spacing="3">
-    <MudPaper Class="server-status-hero pa-6" Elevation="0">
+<MudStack Class="platform-page-shell server-status-shell" Spacing="3">
+    <MudPaper Class="platform-page-hero server-status-hero pa-6" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
             <MudStack Spacing="1">
                 <MudText Typo="Typo.h4">服务器连接状态</MudText>
@@ -13,7 +13,8 @@
                 </MudText>
             </MudStack>
 
-            <MudButton Variant="Variant.Outlined" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadAsync">
+            <MudButton Variant="Variant.Outlined" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Refresh"
+                       OnClick="LoadAsync">
                 刷新状态
             </MudButton>
         </MudStack>
@@ -28,7 +29,7 @@
         @if (_statuses.Count == 0 && !_isLoading)
         {
             <MudItem xs="12">
-                <MudPaper Class="server-status-empty pa-8" Elevation="0">
+                <MudPaper Class="platform-panel server-status-empty pa-8" Elevation="0">
                     <MudStack AlignItems="AlignItems.Center" Spacing="2">
                         <MudIcon Icon="@Icons.Material.Filled.Router" Size="Size.Large" Color="Color.Default"/>
                         <MudText Typo="Typo.h6">当前还没有可显示的服务器状态</MudText>
@@ -38,15 +39,17 @@
         }
         else
         {
-            @foreach (ServerConnectionStatusDto item in _statuses)
+            @foreach (var item in _statuses)
             {
                 <MudItem xs="12" lg="6">
-                    <MudPaper Class="server-status-card pa-5" Elevation="0">
+                    <MudPaper Class="platform-panel server-status-card pa-5" Elevation="0">
                         <MudStack Spacing="3">
-                            <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap">
+                            <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.SpaceBetween"
+                                      Wrap="Wrap.Wrap">
                                 <MudStack Spacing="0">
-                                    <MudText Typo="Typo.h6">@item.DisplayName</MudText>
-                                    <MudText Typo="Typo.body2" Class="server-status-address">@item.Address</MudText>
+                                    <MudText Typo="Typo.h6" Class="platform-card-title">@item.DisplayName</MudText>
+                                    <MudText Typo="Typo.body2"
+                                             Class="platform-card-description server-status-address">@item.Address</MudText>
                                 </MudStack>
                                 <MudChip T="string" Variant="Variant.Outlined" Color="@GetStatusColor(item)">
                                     @GetStatusText(item)
@@ -55,21 +58,24 @@
 
                             <MudGrid>
                                 <MudItem xs="12" md="4">
-                                    <MudPaper Class="server-status-metric pa-4" Elevation="0">
+                                    <MudPaper Class="platform-stat-card server-status-metric pa-4" Elevation="0">
                                         <MudText Typo="Typo.caption">服务器地址</MudText>
-                                        <MudText Typo="Typo.body1">@(!string.IsNullOrWhiteSpace(item.Address) ? "已配置" : "未配置")</MudText>
+                                        <MudText
+                                            Typo="Typo.body1">@(!string.IsNullOrWhiteSpace(item.Address) ? "已配置" : "未配置")</MudText>
                                     </MudPaper>
                                 </MudItem>
                                 <MudItem xs="12" md="4">
-                                    <MudPaper Class="server-status-metric pa-4" Elevation="0">
+                                    <MudPaper Class="platform-stat-card server-status-metric pa-4" Elevation="0">
                                         <MudText Typo="Typo.caption">凭据配置</MudText>
-                                        <MudText Typo="Typo.body1">@(item.CredentialsConfigured ? "已配置" : "未配置")</MudText>
+                                        <MudText
+                                            Typo="Typo.body1">@(item.CredentialsConfigured ? "已配置" : "未配置")</MudText>
                                     </MudPaper>
                                 </MudItem>
                                 <MudItem xs="12" md="4">
-                                    <MudPaper Class="server-status-metric pa-4" Elevation="0">
+                                    <MudPaper Class="platform-stat-card server-status-metric pa-4" Elevation="0">
                                         <MudText Typo="Typo.caption">业务执行模式</MudText>
-                                        <MudText Typo="Typo.body1">@(item.UseMockResponses ? "Mock" : "真实请求")</MudText>
+                                        <MudText
+                                            Typo="Typo.body1">@(item.UseMockResponses ? "Mock" : "真实请求")</MudText>
                                     </MudPaper>
                                 </MudItem>
                             </MudGrid>

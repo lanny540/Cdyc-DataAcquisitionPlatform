@@ -4,22 +4,43 @@
 <MudPopoverProvider/>
 <MudDialogProvider/>
 <MudSnackbarProvider/>
-<MudLayout>
-    <MudAppBar Elevation="1">
+<MudLayout Class="platform-layout">
+    <MudAppBar Elevation="0" Class="platform-appbar">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                       Class="platform-menu-toggle"
                        OnClick="@((_) => DrawerToggle())"/>
-        <MudText Typo="Typo.h5" Class="ml-3">CDYC 数据采集平台</MudText>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="platform-brand">
+            <MudAvatar Size="Size.Medium" Rounded="true" Class="platform-brand-avatar">
+                <MudIcon Icon="@Icons.Material.Filled.Stream" Size="Size.Medium"/>
+            </MudAvatar>
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h6" Class="platform-brand-title">CDYC 数据采集平台</MudText>
+                <MudText Typo="Typo.caption" Class="platform-brand-subtitle">统一采集配置、连接诊断与运行观测</MudText>
+            </MudStack>
+        </MudStack>
         <MudSpacer/>
-        <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined">Web 管理端 @AppVersion</MudChip>
+        <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined" Class="platform-version-chip">
+            Web 管理端 @AppVersion
+        </MudChip>
     </MudAppBar>
-    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
-        <MudDrawerHeader>
-            <MudText Typo="Typo.h6">平台管理</MudText>
+    <MudDrawer @bind-Open="_drawerOpen"
+               ClipMode="DrawerClipMode.Always"
+               Elevation="0"
+               Width="296px"
+               Class="platform-drawer">
+        <MudDrawerHeader Class="platform-drawer-header">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.caption" Class="platform-drawer-eyebrow">Platform Console</MudText>
+                <MudText Typo="Typo.h6">平台管理导航</MudText>
+                <MudText Typo="Typo.body2" Class="platform-drawer-description">
+                    面向采集配置、执行调试和连接诊断的一体化工作台。
+                </MudText>
+            </MudStack>
         </MudDrawerHeader>
         <NavMenu/>
     </MudDrawer>
-    <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="my-4 pt-4">
+    <MudMainContent Class="platform-main-content">
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="platform-page-container">
             @Body
         </MudContainer>
     </MudMainContent>

@@ -1,15 +1,34 @@
-<MudNavMenu>
-    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">平台概览</MudNavLink>
-    <MudNavLink Href="collection-points" Match="NavLinkMatch.Prefix"
-                Icon="@Icons.Material.Filled.SettingsInputComponent">采集点管理
-    </MudNavLink>
-    <MudNavLink Href="managed-data-definitions" Match="NavLinkMatch.Prefix"
-                Icon="@Icons.Material.Filled.Storage">后台数据管理
-    </MudNavLink>
-    <MudNavLink Href="server-connection-status" Match="NavLinkMatch.Prefix"
-                Icon="@Icons.Material.Filled.Router">服务器连接状态
-    </MudNavLink>
-    <MudNavLink Href="history-api-test" Match="NavLinkMatch.Prefix"
-                Icon="@Icons.Material.Filled.Api">History API 测试
-    </MudNavLink>
-</MudNavMenu>
+<div class="platform-nav-shell">
+    <MudPaper Class="platform-nav-intro pa-4" Elevation="0">
+        <MudText Typo="Typo.caption" Class="platform-nav-intro-label">工作台</MudText>
+        <MudText Typo="Typo.body2" Class="platform-nav-intro-copy">
+            用统一视图管理采集点、数据定义、运行状态与接口联调。
+        </MudText>
+    </MudPaper>
+
+    <MudNavMenu Class="platform-nav-menu">
+        <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard" Class="platform-nav-link">
+            平台概览
+        </MudNavLink>
+        <MudNavLink Href="collection-points" Match="NavLinkMatch.Prefix"
+                    Icon="@Icons.Material.Filled.SettingsInputComponent"
+                    Class="platform-nav-link">
+            采集点管理
+        </MudNavLink>
+        <MudNavLink Href="managed-data-definitions" Match="NavLinkMatch.Prefix"
+                    Icon="@Icons.Material.Filled.Storage"
+                    Class="platform-nav-link">
+            后台数据管理
+        </MudNavLink>
+        <MudNavLink Href="server-connection-status" Match="NavLinkMatch.Prefix"
+                    Icon="@Icons.Material.Filled.Router"
+                    Class="platform-nav-link">
+            服务器连接状态
+        </MudNavLink>
+        <MudNavLink Href="history-api-test" Match="NavLinkMatch.Prefix"
+                    Icon="@Icons.Material.Filled.Api"
+                    Class="platform-nav-link">
+            History API 测试
+        </MudNavLink>
+    </MudNavMenu>
+</div>
