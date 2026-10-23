@@ -12,6 +12,8 @@ public partial class ServerConnectionStatus : IDisposable
 {
     [Inject] private IPlatformApiClient PlatformApiClient { get; set; } = null!;
 
+    [Inject] private ILogger<ServerConnectionStatus> Logger { get; set; } = null!;
+
     private readonly List<ServerConnectionStatusDto> _statuses = [];
     private CancellationTokenSource? _statusCheckCancellationTokenSource;
     private bool _isLoading;
@@ -59,7 +61,7 @@ public partial class ServerConnectionStatus : IDisposable
         }
         catch (Exception ex)
         {
-            _message = $"服务器状态加载失败：{ex.Message}";
+            _message = $"服务器状态加载失败：{UserFacingErrors.Describe(ex)}";
             _messageSeverity = Severity.Error;
         }
         finally
@@ -103,19 +105,23 @@ public partial class ServerConnectionStatus : IDisposable
         return item.IsReachable ? "可连接" : "不可连接";
     }
 
-    private string GetStatusCardClass(ServerConnectionStatusDto item)
+    /// <summary>
+    /// 按服务器实时状态返回对应的语义强调色类，
+    /// 使状态卡的左侧色条、底纹与标题颜色随状态联动。
+    /// </summary>
+    private static string GetStatusCardClass(ServerConnectionStatusDto item)
     {
         if (item.IsChecking)
         {
-            return "server-status-card--checking";
+            return "platform-accent-info";
         }
 
         if (!item.IsConfigured)
         {
-            return "server-status-card--empty";
+            return "platform-accent-neutral";
         }
 
-        return item.IsReachable ? "server-status-card--online" : "server-status-card--offline";
+        return item.IsReachable ? "platform-accent-success" : "platform-accent-warning";
     }
 
     private string GetModeText(ServerConnectionStatusDto item)
@@ -182,14 +188,17 @@ public partial class ServerConnectionStatus : IDisposable
         }
         catch (Exception ex)
         {
+            // 客户端调用探测接口失败：英文框架文案不出现在界面上，细节只进日志。
+            Logger.LogWarning(ex, "检测服务器 {ServerKey} 状态失败。", item.Key);
+
             await UpdateStatusAsync(
                 item with
                 {
                     IsChecking = false,
                     IsReachable = false,
-                    StatusMessage = "检测请求失败。",
+                    StatusMessage = "检测请求失败，请查看服务端日志。",
                     CheckedAt = DateTimeOffset.UtcNow,
-                    ErrorMessage = ex.Message
+                    ErrorMessage = null
                 },
                 refreshVersion,
                 cancellationToken);

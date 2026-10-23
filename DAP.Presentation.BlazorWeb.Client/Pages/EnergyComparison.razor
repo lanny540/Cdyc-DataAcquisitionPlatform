@@ -1,0 +1,266 @@
+@page "/energy-comparison"
+
+<PageTitle>班组横向对比</PageTitle>
+
+<MudStack Class="platform-page-shell" Spacing="2">
+    <MudPaper Class="platform-page-hero platform-accent-warning tw-p-4" Elevation="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h4" GutterBottom="true">班组横向对比</MudText>
+                <MudText Typo="Typo.body1">
+                    对比某一天、某一周或某一个月的全部班组指标，识别差异最大的班组。
+                </MudText>
+                @if (_comparison is not null)
+                {
+                    <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mt-2">
+                        <MudChip T="string" Variant="Variant.Outlined" Color="Color.Warning">
+                            @(_comparison.Label)
+                        </MudChip>
+                        <MudChip T="string" Variant="Variant.Outlined" Color="Color.Primary">
+                            @($"{_comparison.Teams.Count} 个班组")
+                        </MudChip>
+                        <MudChip T="string" Variant="Variant.Outlined" Color="Color.Info">
+                            @GranularityLabel(_comparison.Granularity)
+                        </MudChip>
+                    </MudStack>
+                }
+            </MudStack>
+            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
+                <MudSelect T="string" Label="统计口径" Value="_granularity" ValueChanged="OnGranularityChangedAsync"
+                           Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width: 130px;">
+                    <MudSelectItem T="string" Value="@GranularityDay">按日</MudSelectItem>
+                    <MudSelectItem T="string" Value="@GranularityWeek">按周</MudSelectItem>
+                    <MudSelectItem T="string" Value="@GranularityMonth">按月</MudSelectItem>
+                </MudSelect>
+                <MudDatePicker Label="参考日期" Date="@_referenceDate"
+                               DateChanged="@(value => OnReferenceDateChangedAsync(value))"
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               Style="min-width: 170px;"/>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh"
+                           OnClick="LoadAsync" Disabled="_isLoading">
+                    刷新
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
+    }
+
+    @if (_isLoading)
+    {
+        <MudPaper Class="platform-panel pa-10" Elevation="0">
+            <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+                <MudText Typo="Typo.body1">正在加载班组对比数据...</MudText>
+            </MudStack>
+        </MudPaper>
+    }
+    else if (_comparison is null || _comparison.Teams.Count == 0)
+    {
+        <MudPaper Class="platform-panel" Elevation="0">
+            <div class="platform-empty-state platform-accent-warning">
+                <span class="platform-empty-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.BarChart" Size="Size.Large"/>
+                </span>
+                <MudText Typo="Typo.h6">暂无可对比的班组数据</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    服务端未能返回班组对比结果，请调整参考日期后重试。
+                </MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-2" OnClick="LoadAsync">
+                    重新加载
+                </MudButton>
+            </div>
+        </MudPaper>
+    }
+    else
+    {
+        <MudGrid Spacing="3">
+            <MudItem xs="12" sm="6" lg="3">
+                <MudPaper Class="platform-stat-card platform-stat-card--tinted platform-accent-warning pa-4"
+                          Elevation="0">
+                    <div class="platform-stat-header">
+                        <span class="platform-section-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Small"/>
+                        </span>
+                        <MudText Typo="Typo.caption">参与对比班组</MudText>
+                    </div>
+                    <MudText Typo="Typo.h3">@_comparison.Teams.Count</MudText>
+                    <MudText Typo="Typo.body2" Class="home-stat-supporting">
+                        @(FormatRange(_comparison.RangeStart, _comparison.RangeEnd))
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" lg="3">
+                <MudPaper Class="platform-stat-card platform-stat-card--tinted platform-accent-primary pa-4"
+                          Elevation="0">
+                    <div class="platform-stat-header">
+                        <span class="platform-section-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.Leaderboard" Size="Size.Small"/>
+                        </span>
+                        <MudText Typo="Typo.caption">综合能耗最高</MudText>
+                    </div>
+                    <MudText Typo="Typo.h5">@HighestTeamName</MudText>
+                    <MudText Typo="Typo.body2" Class="home-stat-supporting">
+                        @($"{FormatValue(_highestTotal)} kgce，区间内综合能耗最高")
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" lg="3">
+                <MudPaper Class="platform-stat-card platform-stat-card--tinted platform-accent-success pa-4"
+                          Elevation="0">
+                    <div class="platform-stat-header">
+                        <span class="platform-section-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Size="Size.Small"/>
+                        </span>
+                        <MudText Typo="Typo.caption">综合能耗最低</MudText>
+                    </div>
+                    <MudText Typo="Typo.h5">@LowestTeamName</MudText>
+                    <MudText Typo="Typo.body2" Class="home-stat-supporting">
+                        @($"{FormatValue(_lowestTotal)} kgce，区间内综合能耗最低")
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" lg="3">
+                <MudPaper Class="platform-stat-card platform-stat-card--tinted platform-accent-info pa-4" Elevation="0">
+                    <div class="platform-stat-header">
+                        <span class="platform-section-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.Bolt" Size="Size.Small"/>
+                        </span>
+                        <MudText Typo="Typo.caption">极差</MudText>
+                    </div>
+                    <MudText Typo="Typo.h5">@FormatValue(_spread)</MudText>
+                    <MudText Typo="Typo.body2" Class="home-stat-supporting">
+                        最高与最低班组的综合能耗差值
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        <MudGrid Spacing="3">
+            @for (var i = 0; i < Metrics.Length && i < MetricAccents.Length; i++)
+            {
+                var metric = Metrics[i];
+                var metricIndex = i;
+
+                <MudItem xs="12" lg="6">
+                    <MudPaper
+                        Class="@($"platform-section-card platform-section-card--banded {MetricAccents[metricIndex]} pa-4")"
+                        Elevation="0">
+                        <MudStack Spacing="2">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <span class="platform-section-icon">
+                                    <MudIcon Icon="@MetricIcons[metricIndex]" Size="Size.Small"/>
+                                </span>
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.h6" Class="platform-card-title">@metric.MetricName</MudText>
+                                    <MudText Typo="Typo.body2" Class="platform-card-description">
+                                        @(BuildMetricSubtitle(metric))
+                                    </MudText>
+                                </MudStack>
+                            </MudStack>
+
+                            <div class="platform-chart-panel platform-chart-frame">
+                                <MudChart T="double"
+                                          ChartType="ChartType.Bar"
+                                          ChartSeries="@BuildTeamSeries(metric.MetricCode)"
+                                          ChartLabels="@BuildTeamLabels()"
+                                          ChartOptions="@BuildOptions(metric)"
+                                          MatchBoundsToSize="true"
+                                          Height="320px"
+                                          Width="100%"
+                                          Class="mud-chart"/>
+                            </div>
+
+                            <div class="platform-chart-legend">
+                                <span
+                                    class="@($"platform-chart-legend-item platform-chart-legend-item--metric-{metricIndex}")">
+                                    <span class="platform-chart-legend-swatch"></span>
+                                    @BuildTeamLegend(metric)
+                                </span>
+                            </div>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-primary pa-4"
+                  Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
+                      Spacing="2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <span class="platform-section-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.TableRows" Size="Size.Small"/>
+                    </span>
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.h6" Class="platform-card-title">班组对比明细</MudText>
+                        <MudText Typo="Typo.body2" Class="platform-card-description">
+                            含出勤班次与工时，便于按单位工时归一化后比较。
+                        </MudText>
+                    </MudStack>
+                </MudStack>
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Href="/energy-dashboard"
+                           StartIcon="@Icons.Material.Filled.SpaceDashboard">
+                    返回仪表板
+                </MudButton>
+            </MudStack>
+
+            <MudDivider/>
+
+            <MudTable Items="_comparison.Teams.OrderByDescending(item => item.TotalConsumption).ToList()"
+                      Dense="true" Hover="true" Breakpoint="Breakpoint.Sm" Class="platform-data-table">
+                <HeaderContent>
+                    <MudTh>班组</MudTh>
+                    @foreach (var metric in Metrics)
+                    {
+                        <MudTh>@metric.MetricName (@metric.Unit)</MudTh>
+                    }
+                    <MudTh>综合能耗 (kgce)</MudTh>
+                    <MudTh>出勤班次</MudTh>
+                    <MudTh>累计工时</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="班组">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudText Typo="Typo.body2" Class="platform-table-primary">@context.TeamName</MudText>
+                            @if (context.TeamName == HighestTeamName)
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Error">
+                                    最高
+                                </MudChip>
+                            }
+                            else if (context.TeamName == LowestTeamName)
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Success">
+                                    最低
+                                </MudChip>
+                            }
+                        </MudStack>
+                    </MudTd>
+                    @foreach (var metric in Metrics)
+                    {
+                        var value = context.MetricValues.FirstOrDefault(item => item.MetricCode == metric.MetricCode);
+                        <MudTd DataLabel="@metric.MetricName">
+                            <MudText Typo="Typo.body2" Class="platform-table-primary">
+                                @(value is null ? "--" : FormatValue(value.Value))
+                            </MudText>
+                        </MudTd>
+                    }
+                    <MudTd DataLabel="综合能耗">
+                        <MudText Typo="Typo.body2"
+                                 Class="platform-table-primary">@FormatValue(context.TotalConsumption)</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="出勤班次">
+                        <MudText Typo="Typo.body2">@context.ShiftCount</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="累计工时">
+                        <MudText Typo="Typo.body2">@($"{context.TotalHours:0.##} h")</MudText>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    }
+</MudStack>

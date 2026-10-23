@@ -2,8 +2,8 @@
 
 <PageTitle>History 数据库 API 测试</PageTitle>
 
-<MudStack Class="platform-page-shell tw-gap-4" Spacing="2">
-    <MudPaper Class="platform-page-hero tw-p-4" Elevation="0">
+<MudStack Class="platform-page-shell" Spacing="2">
+    <MudPaper Class="platform-page-hero platform-accent-warning tw-p-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
             <MudStack Spacing="1">
                 <MudText Typo="Typo.h4">History 数据库 API 测试</MudText>
@@ -28,16 +28,22 @@
     <MudGrid Spacing="3">
         <MudItem xs="12" lg="5">
             <MudStack Spacing="2">
-                <MudPaper Class="platform-panel tw-p-4" Elevation="0">
+                <MudPaper Class="platform-panel platform-section-card--tinted platform-accent-primary tw-p-4"
+                          Elevation="0">
                     <MudStack Spacing="2">
-                        <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.SpaceBetween"
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
                                   Wrap="Wrap.Wrap">
-                            <MudStack Spacing="0">
-                                <MudText Typo="Typo.h6" Class="platform-card-title">最新值查询</MudText>
-                                <MudText Typo="Typo.body2" Class="platform-card-description">
-                                    输入一个或多个标签名，系统会先请求 OAuth Token，再调用
-                                    <code>currentvalue</code> 接口。
-                                </MudText>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <span class="platform-section-icon">
+                                    <MudIcon Icon="@Icons.Material.Filled.Sensors" Size="Size.Small"/>
+                                </span>
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.h6" Class="platform-card-title">最新值查询</MudText>
+                                    <MudText Typo="Typo.body2" Class="platform-card-description">
+                                        输入一个或多个标签名，系统会先请求 OAuth Token，再调用
+                                        <code>currentvalue</code> 接口。
+                                    </MudText>
+                                </MudStack>
                             </MudStack>
                             <MudChip T="string" Variant="Variant.Text" Color="Color.Info">GET currentvalue</MudChip>
                         </MudStack>
@@ -49,7 +55,8 @@
 
                         <MudPaper Class="platform-summary" Elevation="0">
                             <MudText Typo="Typo.caption" Class="platform-field-label">上游请求预览</MudText>
-                            <MudText Typo="Typo.body2" Class="tw-break-all platform-inline-code">@CurrentValuePreview</MudText>
+                            <MudText Typo="Typo.body2"
+                                     Class="tw-break-all platform-inline-code">@CurrentValuePreview</MudText>
                         </MudPaper>
 
                         <MudButton Variant="Variant.Filled"
@@ -62,17 +69,23 @@
                     </MudStack>
                 </MudPaper>
 
-                <MudPaper Class="platform-panel tw-p-4" Elevation="0">
+                <MudPaper Class="platform-panel platform-section-card--tinted platform-accent-tertiary tw-p-4"
+                          Elevation="0">
                     <MudStack Spacing="2">
-                        <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.SpaceBetween"
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
                                   Wrap="Wrap.Wrap">
-                            <MudStack Spacing="0">
-                                <MudText Typo="Typo.h6" Class="platform-card-title">时间段原始数据查询</MudText>
-                                <MudText Typo="Typo.body2" Class="platform-card-description">
-                                    输入标签、UTC 起止时间和分页参数，调用 <code>raw</code> 接口查看指定时间窗内的数据。
-                                </MudText>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <span class="platform-section-icon">
+                                    <MudIcon Icon="@Icons.Material.Filled.Timeline" Size="Size.Small"/>
+                                </span>
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.h6" Class="platform-card-title">时间段原始数据查询</MudText>
+                                    <MudText Typo="Typo.body2" Class="platform-card-description">
+                                        输入标签、UTC 起止时间和分页参数，调用 <code>raw</code> 接口查看指定时间窗内的数据。
+                                    </MudText>
+                                </MudStack>
                             </MudStack>
-                            <MudChip T="string" Variant="Variant.Text" Color="Color.Secondary">GET raw</MudChip>
+                            <MudChip T="string" Variant="Variant.Text" Color="Color.Tertiary">GET raw</MudChip>
                         </MudStack>
 
                         <MudTextField Margin="Margin.Dense" Label="标签名称"
@@ -124,7 +137,8 @@
 
                         <MudPaper Class="platform-summary" Elevation="0">
                             <MudText Typo="Typo.caption" Class="platform-field-label">上游请求预览</MudText>
-                            <MudText Typo="Typo.body2" Class="tw-break-all platform-inline-code">@RawDataPreview</MudText>
+                            <MudText Typo="Typo.body2"
+                                     Class="tw-break-all platform-inline-code">@RawDataPreview</MudText>
                         </MudPaper>
                     </MudStack>
                 </MudPaper>
@@ -132,14 +146,19 @@
         </MudItem>
 
         <MudItem xs="12" lg="7">
-            <MudPaper Class="platform-panel tw-p-4" Elevation="0">
+            <MudPaper Class="platform-panel platform-panel--tinted platform-accent-info tw-p-4" Elevation="0">
                 <MudStack Spacing="2">
-                    <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap">
-                        <MudStack Spacing="0">
-                            <MudText Typo="Typo.h6" Class="platform-card-title">最近一次测试结果</MudText>
-                            <MudText Typo="Typo.body2" Class="platform-card-description">
-                                这里展示由服务端代理返回的响应状态、上游地址和原始 JSON 结果，适合快速联调与排错。
-                            </MudText>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <span class="platform-section-icon">
+                                <MudIcon Icon="@Icons.Material.Filled.Api" Size="Size.Small"/>
+                            </span>
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.h6" Class="platform-card-title">最近一次测试结果</MudText>
+                                <MudText Typo="Typo.body2" Class="platform-card-description">
+                                    这里展示由服务端代理返回的响应状态、上游地址和原始 JSON 结果，适合快速联调与排错。
+                                </MudText>
+                            </MudStack>
                         </MudStack>
 
                         @if (_latestResponse is not null)
@@ -152,31 +171,39 @@
 
                     @if (_latestResponse is null)
                     {
-                        <MudStack AlignItems="AlignItems.Center" Class="tw-min-h-64 tw-justify-center tw-p-6">
-                            <MudIcon Icon="@Icons.Material.Filled.Api" Size="Size.Large" Color="Color.Info"/>
-                            <MudText Typo="Typo.h6" Class="mt-3">还没有测试结果</MudText>
+                        <div class="platform-empty-state platform-accent-info">
+                            <span class="platform-empty-icon">
+                                <MudIcon Icon="@Icons.Material.Filled.Api" Size="Size.Large"/>
+                            </span>
+                            <MudText Typo="Typo.h6">还没有测试结果</MudText>
                             <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">
                                 先执行一次“查询最新值”或“查询时间段数据”，这里就会显示上游返回的完整结果。
                             </MudText>
-                        </MudStack>
+                        </div>
                     }
                     else
                     {
                         <MudGrid Spacing="2">
                             <MudItem xs="12" md="4">
-                                <MudPaper Class="platform-stat-card history-api-metric-card pa-4" Elevation="0">
+                                <MudPaper
+                                    Class="platform-stat-card platform-stat-card--tinted platform-accent-primary history-api-metric-card pa-4"
+                                    Elevation="0">
                                     <MudText Typo="Typo.caption">查询类型</MudText>
                                     <MudText Typo="Typo.h6">@_latestResponse.QueryType</MudText>
                                 </MudPaper>
                             </MudItem>
                             <MudItem xs="12" md="4">
-                                <MudPaper Class="platform-stat-card history-api-metric-card pa-4" Elevation="0">
+                                <MudPaper
+                                    Class="platform-stat-card platform-stat-card--tinted platform-accent-success history-api-metric-card pa-4"
+                                    Elevation="0">
                                     <MudText Typo="Typo.caption">HTTP 状态</MudText>
                                     <MudText Typo="Typo.h6">@_latestResponse.StatusCode</MudText>
                                 </MudPaper>
                             </MudItem>
                             <MudItem xs="12" md="4">
-                                <MudPaper Class="platform-stat-card history-api-metric-card pa-4" Elevation="0">
+                                <MudPaper
+                                    Class="platform-stat-card platform-stat-card--tinted platform-accent-secondary history-api-metric-card pa-4"
+                                    Elevation="0">
                                     <MudText Typo="Typo.caption">执行时间</MudText>
                                     <MudText
                                         Typo="Typo.body1">@_latestResponse.ExecutedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</MudText>

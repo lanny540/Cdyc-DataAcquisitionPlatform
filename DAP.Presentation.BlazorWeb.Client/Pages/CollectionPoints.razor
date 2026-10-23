@@ -2,8 +2,8 @@
 
 <PageTitle>采集点管理</PageTitle>
 
-<MudStack Class="platform-page-shell tw-gap-4" Spacing="2">
-    <MudPaper Class="platform-page-hero tw-p-4" Elevation="0">
+<MudStack Class="platform-page-shell" Spacing="2">
+    <MudPaper Class="platform-page-hero platform-accent-info tw-p-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
             <MudStack Spacing="0">
                 <MudText Typo="Typo.h4" GutterBottom="true">采集点配置管理</MudText>
@@ -37,33 +37,59 @@
         <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
     }
 
-    <ConfirmDialog IsOpen="_pendingDeletePoint is not null"
-                   Title="确认删除采集点"
-                   DialogSeverity="Severity.Error"
-                   WarningText="该操作不可撤销，请再次确认。"
-                   ConfirmButtonText="确认删除"
-                   BusyButtonText="删除中..."
-                   ConfirmButtonColor="Color.Error"
-                   IsBusy="_isDeleting"
-                   CloseOnBackdropClick="true"
-                   OnCancel="CancelDelete"
-                   OnConfirm="ConfirmDeleteAsync">
-        @if (_pendingDeletePoint is not null)
-        {
-            <MudText Typo="Typo.body1">
-                即将删除采集点 <b>@_pendingDeletePoint.Code</b>（@_pendingDeletePoint.Name），删除后将同时移除其关联采集数据记录。
-            </MudText>
-        }
-    </ConfirmDialog>
+    <MudDialog @bind-Visible="_isDeleteConfirmOpen"
+               Options="PlatformDialogs.Confirm"
+               AriaLabel="确认删除采集点">
+        <DialogContent>
+            <MudStack Spacing="2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudAvatar Size="Size.Medium" Class="platform-dialog-icon-error">
+                        <MudIcon Icon="@Icons.Material.Filled.WarningAmber" Size="Size.Small"/>
+                    </MudAvatar>
+                    <MudText Typo="Typo.h6">确认删除采集点</MudText>
+                </MudStack>
 
-    <MudPaper Class="platform-section-card collection-points-table-card" Elevation="0">
+                @if (_pendingDeletePoint is not null)
+                {
+                    <MudText Typo="Typo.body1">
+                        即将删除采集点 <b>@_pendingDeletePoint.Code</b>（@_pendingDeletePoint.Name），删除后将同时移除其关联采集数据记录。
+                    </MudText>
+                }
+
+                <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Outlined">
+                    该操作不可撤销，请再次确认。
+                </MudAlert>
+            </MudStack>
+        </DialogContent>
+        <DialogActions>
+            <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd" Class="w-100">
+                <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="CancelDelete" Disabled="_isDeleting">
+                    取消
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="ConfirmDeleteAsync"
+                           Disabled="_isDeleting"
+                           StartIcon="@(_isDeleting ? Icons.Material.Filled.HourglassTop : null)">
+                    @(_isDeleting ? "删除中..." : "确认删除")
+                </MudButton>
+            </MudStack>
+        </DialogActions>
+    </MudDialog>
+
+    <MudPaper
+        Class="platform-section-card platform-section-card--tinted platform-accent-info collection-points-table-card"
+        Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="2"
                   Class="pa-4">
-            <MudStack Spacing="0">
-                <MudText Typo="Typo.h6" Class="platform-card-title">服务端采集点列表</MudText>
-                <MudText Typo="Typo.body2" Class="platform-card-description">
-                    查看通信状态，或打开右侧表单修改配置。
-                </MudText>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <span class="platform-section-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.TableRows" Size="Size.Small"/>
+                </span>
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.h6" Class="platform-card-title">服务端采集点列表</MudText>
+                    <MudText Typo="Typo.body2" Class="platform-card-description">
+                        查看通信状态，或打开右侧表单修改配置。
+                    </MudText>
+                </MudStack>
             </MudStack>
             <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
                 <MudChip T="string" Variant="Variant.Text" Color="Color.Default">来源可区分 Server / Local</MudChip>
@@ -142,29 +168,30 @@
                 </MudTd>
             </RowTemplate>
             <NoRecordsContent>
-                <MudStack AlignItems="AlignItems.Center" Class="pa-10">
-                    <MudIcon Icon="@Icons.Material.Filled.SettingsInputComponent" Size="Size.Large"
-                             Color="Color.Default"/>
-                    <MudText Typo="Typo.h6" Class="mt-3">当前还没有采集点</MudText>
+                <div class="platform-empty-state platform-accent-info">
+                    <span class="platform-empty-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.SettingsInputComponent" Size="Size.Large"/>
+                    </span>
+                    <MudText Typo="Typo.h6">当前还没有采集点</MudText>
                     <MudText Typo="Typo.body2" Color="Color.Secondary">
                         可以从右上角新增采集点，或等待客户端同步后刷新查看。
                     </MudText>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="OpenCreateDrawer">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-2" OnClick="OpenCreateDrawer">
                         立即新增
                     </MudButton>
-                </MudStack>
+                </div>
             </NoRecordsContent>
-            <PagerContent><MudTablePager PageSizeOptions="@(new[] { 10, 20, 50 })" RowsPerPageString="每页条数"/></PagerContent>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="@(new[] {10, 20, 50})" RowsPerPageString="每页条数"/>
+            </PagerContent>
         </MudTable>
     </MudPaper>
 
-    <MudOverlay Visible="_isEditorOpen"
-                DarkBackground="true"
-                LockScroll="true"
-                ZIndex="1400"
-                Class="platform-sheet-overlay"
-                OnClick="@(_ => CloseEditor())">
-        <div class="platform-sheet" role="dialog" aria-modal="true" aria-label="@EditorTitle" @onclick:stopPropagation="true" @key="_editorRenderKey">
+    <MudDialog @bind-Visible="_isEditorOpen"
+               Options="PlatformDialogs.EditorSheet"
+               AriaLabel="@EditorTitle">
+        <DialogContent>
+            <MudStack Class="platform-sheet platform-accent-info" Spacing="0">
                 <MudStack Class="platform-sheet-header" Row="true" AlignItems="AlignItems.Start"
                           Justify="Justify.SpaceBetween" Spacing="2">
                     <MudStack Spacing="0">
@@ -173,7 +200,8 @@
                             @EditorDescription
                         </MudText>
                     </MudStack>
-                    <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Default" OnClick="CloseEditor" aria-label="关闭编辑"/>
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Default" OnClick="CloseEditor"
+                                   aria-label="关闭编辑"/>
                 </MudStack>
 
                 <MudStack Class="platform-sheet-body" Spacing="2">
@@ -205,18 +233,20 @@
                                   Placeholder="例如 192.168.1.10:502"/>
                     <MudSwitch T="bool" @bind-Value="_isEnabled" Color="Color.Primary">启用采集点</MudSwitch>
                 </MudStack>
-
-                <MudStack Class="platform-sheet-footer" Row="true" Spacing="2" Justify="Justify.FlexEnd" Wrap="Wrap.Wrap">
-                    <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="CancelEditor">
-                        取消
-                    </MudButton>
-                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="ResetEditor">
-                        清空
-                    </MudButton>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync">
-                        @SaveButtonText
-                    </MudButton>
-                </MudStack>
-        </div>
-    </MudOverlay>
+            </MudStack>
+        </DialogContent>
+        <DialogActions>
+            <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd" Wrap="Wrap.Wrap" Class="w-100">
+                <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="CancelEditor">
+                    取消
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="ResetEditor">
+                    清空
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync">
+                    @SaveButtonText
+                </MudButton>
+            </MudStack>
+        </DialogActions>
+    </MudDialog>
 </MudStack>

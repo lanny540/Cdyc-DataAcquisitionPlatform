@@ -1,0 +1,239 @@
+@page "/energy-history"
+
+<PageTitle>班组历史指标</PageTitle>
+
+<MudStack Class="platform-page-shell" Spacing="2">
+    <MudPaper Class="platform-page-hero platform-accent-tertiary tw-p-4" Elevation="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h4" GutterBottom="true">班组历史指标</MudText>
+                <MudText Typo="Typo.body1">
+                    按日、周、月查看指定班组四项原辅材料与能源消耗指标的历史趋势。
+                </MudText>
+                @if (_history is not null)
+                {
+                    <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mt-2">
+                        <MudChip T="string" Variant="Variant.Outlined" Color="Color.Tertiary">
+                            @(_history.TeamName)
+                        </MudChip>
+                        <MudChip T="string" Variant="Variant.Outlined" Color="Color.Primary">
+                            @GranularityLabel(_history.Granularity)
+                        </MudChip>
+                        <MudChip T="string" Variant="Variant.Outlined" Color="Color.Info">
+                            @(FormatRange(_history.RangeStart, _history.RangeEnd))
+                        </MudChip>
+                    </MudStack>
+                }
+            </MudStack>
+            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
+                <MudSelect T="string" Label="班组" Value="_teamCode" ValueChanged="OnTeamChangedAsync"
+                           Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width: 150px;">
+                    @foreach (var team in _teams)
+                    {
+                        <MudSelectItem T="string" Value="@team.TeamCode">@team.TeamName</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="string" Label="统计粒度" Value="_granularity" ValueChanged="OnGranularityChangedAsync"
+                           Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width: 130px;">
+                    <MudSelectItem T="string" Value="@GranularityDay">按日</MudSelectItem>
+                    <MudSelectItem T="string" Value="@GranularityWeek">按周</MudSelectItem>
+                    <MudSelectItem T="string" Value="@GranularityMonth">按月</MudSelectItem>
+                </MudSelect>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh"
+                           OnClick="LoadAsync" Disabled="_isLoading">
+                    刷新
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
+    }
+
+    <MudGrid Spacing="3">
+        @if (Trends.Length > 0)
+        {
+            for (var i = 0; i < Trends.Length && i < MetricAccents.Length; i++)
+            {
+                var trend = Trends[i];
+                var metricIndex = i;
+
+                <MudItem xs="12" sm="6" lg="3">
+                    <MudPaper
+                        Class="@($"platform-stat-card platform-stat-card--tinted {MetricAccents[metricIndex]} pa-4")"
+                        Elevation="0">
+                        <div class="platform-stat-header">
+                            <span class="platform-section-icon">
+                                <MudIcon Icon="@MetricIcons[metricIndex]" Size="Size.Small"/>
+                            </span>
+                            <MudText Typo="Typo.caption">@trend.MetricName</MudText>
+                        </div>
+                        <MudText Typo="Typo.h5">@FormatValue(trend.Average)</MudText>
+                        <MudText Typo="Typo.body2" Class="home-stat-supporting">
+                            @(BuildAverageSummary(trend))
+                        </MudText>
+                    </MudPaper>
+                </MudItem>
+            }
+        }
+    </MudGrid>
+
+    @if (_isLoading)
+    {
+        <MudPaper Class="platform-panel pa-10" Elevation="0">
+            <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+                <MudText Typo="Typo.body1">正在加载历史指标...</MudText>
+            </MudStack>
+        </MudPaper>
+    }
+    else if (_history is null || _history.Trends.Count == 0)
+    {
+        <MudPaper Class="platform-panel" Elevation="0">
+            <div class="platform-empty-state platform-accent-tertiary">
+                <span class="platform-empty-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.Timeline" Size="Size.Large"/>
+                </span>
+                <MudText Typo="Typo.h6">暂无历史指标数据</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    服务端未能返回该班组的历史指标，请调整时间范围后重试。
+                </MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-2" OnClick="LoadAsync">
+                    重新加载
+                </MudButton>
+            </div>
+        </MudPaper>
+    }
+    else
+    {
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-tertiary pa-4"
+                  Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
+                      Spacing="2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <span class="platform-section-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.Timeline" Size="Size.Small"/>
+                    </span>
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.h6" Class="platform-card-title">四项指标趋势</MudText>
+                        <MudText Typo="Typo.body2" Class="platform-card-description">
+                            @($"{_history.TeamName} 按{GranularityLabel(_history.Granularity)}统计，每项指标独立成图，便于识别单项波动。")
+                        </MudText>
+                    </MudStack>
+                </MudStack>
+                <MudChip T="string" Variant="Variant.Outlined" Color="Color.Tertiary">
+                    @($"共 {_history.Trends.Sum(trend => trend.Points.Count)} 个数据点")
+                </MudChip>
+            </MudStack>
+        </MudPaper>
+
+        <MudGrid Spacing="3">
+            @for (var i = 0; i < Trends.Length && i < MetricAccents.Length; i++)
+            {
+                var trend = Trends[i];
+                var metricIndex = i;
+
+                <MudItem xs="12" lg="6">
+                    <MudPaper
+                        Class="@($"platform-section-card platform-section-card--banded {MetricAccents[metricIndex]} pa-4")"
+                        Elevation="0">
+                        <MudStack Spacing="2">
+                            <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.SpaceBetween"
+                                      Spacing="2">
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.h6"
+                                             Class="platform-card-title">@($"{trend.MetricName}趋势")</MudText>
+                                    <MudText Typo="Typo.body2" Class="platform-card-description">
+                                        @(BuildTrendSubtitle(trend))
+                                    </MudText>
+                                </MudStack>
+                                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                             Color="Color.Primary">
+                                        合计 @FormatValue(trend.Total)
+                                    </MudChip>
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                             Color="@GetTrendColor(trend.TrendDirection)">
+                                        @TrendLabel(trend.TrendDirection)
+                                    </MudChip>
+                                </MudStack>
+                            </MudStack>
+
+                            <div class="platform-chart-panel platform-chart-frame">
+                                <MudChart T="double"
+                                          ChartType="ChartType.Line"
+                                          ChartSeries="@BuildSeries(trend)"
+                                          ChartLabels="@BuildLabels(trend)"
+                                          ChartOptions="@BuildOptions(trend)"
+                                          MatchBoundsToSize="true"
+                                          Height="320px"
+                                          Width="100%"
+                                          Class="mud-chart"/>
+                            </div>
+
+                            <div class="platform-chart-legend">
+                                <span
+                                    class="@($"platform-chart-legend-item platform-chart-legend-item--metric-{metricIndex}")">
+                                    <span class="platform-chart-legend-swatch"></span>
+                                    @BuildTrendLegend(trend)
+                                </span>
+                            </div>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-info pa-4" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
+                      Spacing="2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <span class="platform-section-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.TableRows" Size="Size.Small"/>
+                    </span>
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.h6" Class="platform-card-title">历史明细数据</MudText>
+                        <MudText Typo="Typo.body2" Class="platform-card-description">
+                            @($"{_history.DetailRows.Count} 行记录，与上方图表同源。")
+                        </MudText>
+                    </MudStack>
+                </MudStack>
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Href="/energy-comparison"
+                           StartIcon="@Icons.Material.Filled.BarChart">
+                    查看班组对比
+                </MudButton>
+            </MudStack>
+
+            <MudDivider/>
+
+            <MudTable Items="_pivotRows" Dense="true" Hover="true" RowsPerPage="10" Breakpoint="Breakpoint.Sm"
+                      Class="platform-data-table">
+                <HeaderContent>
+                    <MudTh>@GranularityLabel(_history.Granularity)</MudTh>
+                    @foreach (var metric in _history.Metrics)
+                    {
+                        <MudTh>@metric.MetricName (@metric.Unit)</MudTh>
+                    }
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="时间">
+                        <MudText Typo="Typo.body2" Class="platform-timestamp">@context.Label</MudText>
+                    </MudTd>
+                    @foreach (var value in context.Values)
+                    {
+                        <MudTd DataLabel="指标">
+                            <MudText Typo="Typo.body2" Class="platform-table-primary">
+                                @(value.HasValue ? FormatValue(value.Value) : "--")
+                            </MudText>
+                        </MudTd>
+                    }
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="@(new[] {10, 20, 50})" RowsPerPageString="每页条数"/>
+                </PagerContent>
+            </MudTable>
+        </MudPaper>
+    }
+</MudStack>

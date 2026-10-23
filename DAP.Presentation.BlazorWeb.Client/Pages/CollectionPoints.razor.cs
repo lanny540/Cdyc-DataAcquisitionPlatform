@@ -22,10 +22,10 @@ public partial class CollectionPoints
     private bool _isLoading;
     private bool _isDeleting;
     private bool _isEditorOpen;
+    private bool _isDeleteConfirmOpen;
     private string? _message;
     private Severity _messageSeverity = Severity.Info;
     private CollectionPointDto? _pendingDeletePoint;
-    private Guid _editorRenderKey = Guid.NewGuid();
 
     private int EnabledCollectionPointCount => _collectionPoints.Count(point => point.IsEnabled);
 
@@ -58,7 +58,7 @@ public partial class CollectionPoints
         }
         catch (Exception ex)
         {
-            _message = $"采集点列表加载失败：{ex.Message}";
+            _message = $"采集点列表加载失败：{UserFacingErrors.Describe(ex)}";
             _messageSeverity = Severity.Warning;
         }
         finally
@@ -77,7 +77,6 @@ public partial class CollectionPoints
         _isEnabled = point.IsEnabled;
         _message = $"已载入采集点 {point.Code}，可以直接编辑后保存。";
         _messageSeverity = Severity.Info;
-        ResetEditorRenderKey();
         _isEditorOpen = true;
         await InvokeAsync(StateHasChanged);
     }
@@ -114,7 +113,7 @@ public partial class CollectionPoints
         }
         catch (Exception ex)
         {
-            _message = $"采集点保存失败：{ex.Message}";
+            _message = $"采集点保存失败：{UserFacingErrors.Describe(ex)}";
             _messageSeverity = Severity.Error;
         }
     }
@@ -122,6 +121,7 @@ public partial class CollectionPoints
     private void RequestDelete(CollectionPointDto point)
     {
         _pendingDeletePoint = point;
+        _isDeleteConfirmOpen = true;
     }
 
     private void CancelDelete()
@@ -132,6 +132,7 @@ public partial class CollectionPoints
         }
 
         _pendingDeletePoint = null;
+        _isDeleteConfirmOpen = false;
     }
 
     private async Task ConfirmDeleteAsync()
@@ -165,13 +166,14 @@ public partial class CollectionPoints
         }
         catch (Exception ex)
         {
-            _message = $"采集点删除失败：{ex.Message}";
+            _message = $"采集点删除失败：{UserFacingErrors.Describe(ex)}";
             _messageSeverity = Severity.Error;
         }
         finally
         {
             _isDeleting = false;
             _pendingDeletePoint = null;
+            _isDeleteConfirmOpen = false;
         }
     }
 
@@ -183,7 +185,6 @@ public partial class CollectionPoints
         _protocol = "Modbus TCP";
         _endpoint = string.Empty;
         _isEnabled = true;
-        ResetEditorRenderKey();
     }
 
     private void OpenCreateDrawer()
@@ -202,10 +203,5 @@ public partial class CollectionPoints
     private void CloseEditor()
     {
         _isEditorOpen = false;
-    }
-
-    private void ResetEditorRenderKey()
-    {
-        _editorRenderKey = Guid.NewGuid();
     }
 }

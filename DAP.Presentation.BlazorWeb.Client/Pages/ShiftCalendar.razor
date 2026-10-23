@@ -1,0 +1,357 @@
+@page "/shift-calendar"
+
+<PageTitle>排班日历</PageTitle>
+
+<MudStack Class="platform-page-shell" Spacing="2">
+    <MudPaper Class="platform-page-hero platform-accent-info tw-p-4" Elevation="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h4" GutterBottom="true">排班日历</MudText>
+                <MudText Typo="Typo.body1">
+                    按月查看每个自然日的班次安排，也可切换到单个班组查看其完整轮转周期。
+                </MudText>
+                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mt-2">
+                    <MudChip T="string" Variant="Variant.Outlined" Color="Color.Info">
+                        @($"{_calendar.Count} 天有排班")
+                    </MudChip>
+                    <MudChip T="string" Variant="Variant.Outlined" Color="Color.Primary">
+                        @(_monthLabel)
+                    </MudChip>
+                    @if (_selectedTeamCode is not null)
+                    {
+                        <MudChip T="string" Variant="Variant.Outlined" Color="Color.Success">
+                            @($"仅看 {_selectedTeamName}")
+                        </MudChip>
+                    }
+                </MudStack>
+            </MudStack>
+            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
+                <MudSelect T="string" Label="班组视图" Value="_selectedTeamCode" ValueChanged="OnTeamChangedAsync"
+                           Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width: 180px;">
+                    <MudSelectItem T="string" Value="@AllTeamsValue">全部班组</MudSelectItem>
+                    @foreach (var team in _teams)
+                    {
+                        <MudSelectItem T="string" Value="@team.TeamCode">@team.TeamName</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudButton Variant="Variant.Outlined" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Refresh"
+                           OnClick="LoadAsync" Disabled="_isLoading">
+                    刷新
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
+    }
+
+    <MudGrid Spacing="3">
+        <MudItem xs="12" lg="8">
+            <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-info pa-4"
+                      Elevation="0">
+                <MudStack Spacing="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Spacing="2">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <span class="platform-section-icon">
+                                <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Small"/>
+                            </span>
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.h6" Class="platform-card-title">@_monthLabel</MudText>
+                                <MudText Typo="Typo.body2" Class="platform-card-description">
+                                    蓝色为在岗班次，琥珀色为轮休；带红框的日期表示当日排班未完整覆盖 24 小时。
+                                </MudText>
+                            </MudStack>
+                        </MudStack>
+                        <MudStack Row="true" Spacing="1">
+                            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" Color="Color.Default"
+                                           OnClick="@(() => ShiftMonth(-1))" aria-label="上个月"/>
+                            <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="GoToCurrentMonth">本月
+                            </MudButton>
+                            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" Color="Color.Default"
+                                           OnClick="@(() => ShiftMonth(1))" aria-label="下个月"/>
+                        </MudStack>
+                    </MudStack>
+
+                    @if (_isLoading)
+                    {
+                        <MudPaper Class="platform-panel pa-10" Elevation="0">
+                            <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                                <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+                                <MudText Typo="Typo.body1">正在加载排班日历...</MudText>
+                            </MudStack>
+                        </MudPaper>
+                    }
+                    else if (_calendar.Count == 0)
+                    {
+                        <div class="platform-empty-state platform-accent-info">
+                            <span class="platform-empty-icon">
+                                <MudIcon Icon="@Icons.Material.Filled.EventBusy" Size="Size.Large"/>
+                            </span>
+                            <MudText Typo="Typo.h6">该月份没有排班数据</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                请先到「班组排班管理」上传 Excel 台账，导入后这里会自动显示每日班次。
+                            </MudText>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-2"
+                                       Href="/shift-schedules"
+                                       StartIcon="@Icons.Material.Filled.UploadFile">
+                                去上传 Excel
+                            </MudButton>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="platform-calendar platform-accent-info">
+                            @foreach (var weekday in WeekdayLabels)
+                            {
+                                <div class="platform-calendar-weekday">@weekday</div>
+                            }
+                            @foreach (var cell in _cells)
+                            {
+                                <button type="button"
+                                        class="@BuildCellClass(cell)"
+                                        disabled="@(cell.IsOutsideMonth)"
+                                        @onclick="@(() => SelectDate(cell.Date))">
+                                    <div class="platform-calendar-date">
+                                        <span>@cell.Date.Day</span>
+                                        @if (cell.IsToday)
+                                        {
+                                            <span class="platform-calendar-today-badge">今天</span>
+                                        }
+                                        else if (cell.HasSchedule)
+                                        {
+                                            @if (cell.HasRest)
+                                            {
+                                                <span
+                                                    class="platform-calendar-badge platform-calendar-badge--rest">轮休</span>
+                                            }
+                                            else if (!cell.IsComplete)
+                                            {
+                                                <span
+                                                    class="platform-calendar-badge platform-calendar-badge--incomplete">不完整</span>
+                                            }
+                                        }
+                                    </div>
+                                    @if (cell.DutyShifts.Count > 0)
+                                    {
+                                        <div class="platform-calendar-shifts">
+                                            @foreach (var shift in cell.DutyShifts.Take(MaxShiftPreview))
+                                            {
+                                                <div class="platform-calendar-shift">
+                                                    <span class="platform-calendar-shift-name">@shift.TeamName</span>
+                                                    <span class="platform-calendar-shift-time">
+                                                        @($"{shift.StartTime:HH\\:mm}-{shift.EndTime:HH\\:mm}")
+                                                    </span>
+                                                </div>
+                                            }
+                                            @if (cell.DutyShifts.Count > MaxShiftPreview)
+                                            {
+                                                <span class="platform-calendar-more">
+                                                    还有 @(cell.DutyShifts.Count - MaxShiftPreview) 个班次
+                                                </span>
+                                            }
+                                        </div>
+                                    }
+                                </button>
+                            }
+                        </div>
+                    }
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" lg="4">
+            <MudStack Spacing="3">
+                <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-primary pa-4"
+                          Elevation="0">
+                    <MudStack Spacing="2">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <span class="platform-section-icon">
+                                <MudIcon Icon="@Icons.Material.Filled.EventAvailable" Size="Size.Small"/>
+                            </span>
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.h6" Class="platform-card-title">当日排班明细</MudText>
+                                <MudText Typo="Typo.body2"
+                                         Class="platform-card-description">@_selectedDateText</MudText>
+                            </MudStack>
+                        </MudStack>
+
+                        @if (_selectedDay is null || _selectedDay.Rows.Count == 0)
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                该日期没有排班记录。
+                            </MudText>
+                        }
+                        else
+                        {
+                            <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">
+                                    @($"{_selectedDay.OnDutyTeams.Count} 个班组在岗")
+                                </MudChip>
+                                @if (_selectedDay.RestTeams.Count > 0)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                             Color="Color.Warning">
+                                        @($"{string.Join("、", _selectedDay.RestTeams)} 轮休")
+                                    </MudChip>
+                                }
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                         Color="@(_selectedDay.CoverageComplete ? Color.Success : Color.Error)">
+                                    @(_selectedDay.CoverageComplete ? "完整覆盖 24 小时" : "覆盖不完整")
+                                </MudChip>
+                            </MudStack>
+
+                            <MudTable Items="_selectedDay.Rows" Dense="true" Hover="true" Class="platform-data-table">
+                                <HeaderContent>
+                                    <MudTh>班组</MudTh>
+                                    <MudTh>时段</MudTh>
+                                    <MudTh>工时</MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd DataLabel="班组">
+                                        <MudText Typo="Typo.body2"
+                                                 Class="platform-table-primary">@context.TeamName</MudText>
+                                    </MudTd>
+                                    <MudTd DataLabel="时段">
+                                        <MudText Typo="Typo.body2" Class="platform-timestamp">
+                                            @(context.IsRestDay
+                                                ? "轮休"
+                                                : $"{context.StartTime:HH\\:mm} - {context.EndTime:HH\\:mm}")
+                                        </MudText>
+                                    </MudTd>
+                                    <MudTd DataLabel="工时">
+                                        <MudText Typo="Typo.body2">
+                                            @(context.IsRestDay ? "--" : $"{context.DurationHours:0.##} h")
+                                        </MudText>
+                                    </MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                        }
+                    </MudStack>
+                </MudPaper>
+
+                <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-success pa-4"
+                          Elevation="0">
+                    <MudStack Spacing="2">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <span class="platform-section-icon">
+                                <MudIcon Icon="@Icons.Material.Filled.SwapHoriz" Size="Size.Small"/>
+                            </span>
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.h6" Class="platform-card-title">班组轮转周期</MudText>
+                                <MudText Typo="Typo.body2" Class="platform-card-description">
+                                    @(_selectedTeamCode is null
+                                        ? "选择单个班组可查看其轮转明细。"
+                                        : $"{_selectedTeamName} 在所选月份的出勤与轮休分布。")
+                                </MudText>
+                            </MudStack>
+                        </MudStack>
+
+                        @if (_selectedTeamCode is null)
+                        {
+                            <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
+                                当前展示全部班组的日历。在右上角选择某个班组后，这里会列出它每天的班次与累计工时。
+                            </MudAlert>
+                        }
+                        else if (_teamSummary is not null)
+                        {
+                            <MudGrid Spacing="2">
+                                <MudItem xs="6">
+                                    <MudPaper
+                                        Class="platform-stat-card platform-stat-card--tinted platform-accent-primary pa-3"
+                                        Elevation="0">
+                                        <div class="platform-stat-header">
+                                            <span class="platform-section-icon">
+                                                <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small"/>
+                                            </span>
+                                            <MudText Typo="Typo.caption">出勤班次</MudText>
+                                        </div>
+                                        <MudText Typo="Typo.h5">@_teamSummary.TotalShifts</MudText>
+                                    </MudPaper>
+                                </MudItem>
+                                <MudItem xs="6">
+                                    <MudPaper
+                                        Class="platform-stat-card platform-stat-card--tinted platform-accent-info pa-3"
+                                        Elevation="0">
+                                        <div class="platform-stat-header">
+                                            <span class="platform-section-icon">
+                                                <MudIcon Icon="@Icons.Material.Filled.Timer" Size="Size.Small"/>
+                                            </span>
+                                            <MudText Typo="Typo.caption">累计工时</MudText>
+                                        </div>
+                                        <MudText Typo="Typo.h5">@($"{_teamSummary.TotalHours:0.#} h")</MudText>
+                                    </MudPaper>
+                                </MudItem>
+                                <MudItem xs="6">
+                                    <MudPaper
+                                        Class="platform-stat-card platform-stat-card--tinted platform-accent-warning pa-3"
+                                        Elevation="0">
+                                        <div class="platform-stat-header">
+                                            <span class="platform-section-icon">
+                                                <MudIcon Icon="@Icons.Material.Filled.Bedtime" Size="Size.Small"/>
+                                            </span>
+                                            <MudText Typo="Typo.caption">轮休天数</MudText>
+                                        </div>
+                                        <MudText Typo="Typo.h5">@_teamSummary.RestDays</MudText>
+                                    </MudPaper>
+                                </MudItem>
+                                <MudItem xs="6">
+                                    <MudPaper
+                                        Class="platform-stat-card platform-stat-card--tinted platform-accent-secondary pa-3"
+                                        Elevation="0">
+                                        <div class="platform-stat-header">
+                                            <span class="platform-section-icon">
+                                                <MudIcon Icon="@Icons.Material.Filled.HourglassBottom"
+                                                         Size="Size.Small"/>
+                                            </span>
+                                            <MudText Typo="Typo.caption">日均工时</MudText>
+                                        </div>
+                                        <MudText Typo="Typo.h5">@($"{DailyAverageHours:0.##} h")</MudText>
+                                    </MudPaper>
+                                </MudItem>
+                            </MudGrid>
+
+                            <MudTable Items="_teamSummary.Rows.OrderBy(item => item.WorkDate).ToList()"
+                                      Dense="true" Hover="true" RowsPerPage="7" Breakpoint="Breakpoint.Sm"
+                                      Class="platform-data-table">
+                                <HeaderContent>
+                                    <MudTh>日期</MudTh>
+                                    <MudTh>班次</MudTh>
+                                    <MudTh>时段</MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd DataLabel="日期">
+                                        <MudText Typo="Typo.body2" Class="platform-timestamp">
+                                            @context.WorkDate.ToString("MM-dd")
+                                        </MudText>
+                                    </MudTd>
+                                    <MudTd DataLabel="班次">
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                                 Color="@(context.IsRestDay ? Color.Warning : Color.Primary)">
+                                            @context.ShiftName
+                                        </MudChip>
+                                    </MudTd>
+                                    <MudTd DataLabel="时段">
+                                        <MudText Typo="Typo.body2" Class="platform-timestamp">
+                                            @(context.IsRestDay ? "轮休" : $"{context.StartTime:HH\\:mm} - {context.EndTime:HH\\:mm}")
+                                        </MudText>
+                                    </MudTd>
+                                </RowTemplate>
+                                <PagerContent>
+                                    <MudTablePager PageSizeOptions="@(new[] {7, 14})" RowsPerPageString="每页条数"/>
+                                </PagerContent>
+                            </MudTable>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                该班组在所选月份没有排班记录。
+                            </MudText>
+                        }
+                    </MudStack>
+                </MudPaper>
+            </MudStack>
+        </MudItem>
+    </MudGrid>
+</MudStack>

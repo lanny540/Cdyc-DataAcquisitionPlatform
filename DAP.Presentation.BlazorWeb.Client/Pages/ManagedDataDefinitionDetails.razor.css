@@ -11,17 +11,66 @@
     color: var(--platform-primary);
 }
 
-::deep .node-details-limit-select { min-width: 132px; max-width: 160px; }
-::deep .node-details-metric { min-height: 136px; overflow-wrap: anywhere; }
-::deep .node-details-metric-primary { border-top: 3px solid var(--platform-primary); }
-::deep .node-details-metric-subtle { color: var(--platform-text-muted); }
-::deep .node-details-chart-panel { border: 1px solid var(--platform-border); border-radius: 4px; overflow: hidden; }
-::deep .node-details-chart-panel .mud-chart { width: 100%; min-width: 0; }
-::deep .node-details-chart-panel svg { display: block; width: 100%; max-width: 100%; }
-::deep .node-details-chart-panel .mud-charts-xaxis { font-size: 0.75rem; }
-::deep .node-details-monospace { font-family: Consolas, monospace; overflow-wrap: anywhere; }
-::deep .node-details-section-label { display: block; color: var(--platform-text-muted); margin-bottom: 4px; }
+::deep .node-details-limit-select {
+    min-width: 132px;
+    max-width: 160px;
+}
 
-.node-details-drawer-card { padding: 8px 0; border-bottom: 1px solid #edf0f3; }
-.node-details-drawer-card:last-child { border-bottom: 0; }
-.node-details-drawer-card ::deep .mud-typography { overflow-wrap: anywhere; }
+::deep .node-details-metric {
+    min-height: 136px;
+    overflow-wrap: anywhere;
+}
+
+::deep .node-details-metric-subtle {
+    color: var(--platform-text-muted);
+}
+
+::deep .node-details-metric-support {
+    color: var(--platform-text-muted);
+}
+
+::deep .node-details-chart-panel {
+    border: 1px solid var(--card-accent-soft, var(--platform-border));
+    border-radius: 4px;
+    overflow: hidden;
+    background: linear-gradient(180deg, var(--card-accent-tint, var(--platform-surface-muted)) 0%, #fff 120px);
+}
+
+::deep .node-details-chart-panel .mud-chart {
+    width: 100%;
+    min-width: 0;
+}
+
+::deep .node-details-chart-panel svg {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+}
+
+::deep .node-details-chart-panel .mud-charts-xaxis {
+    font-size: 0.75rem;
+}
+
+::deep .node-details-monospace {
+    font-family: Consolas, monospace;
+    overflow-wrap: anywhere;
+}
+
+::deep .node-details-section-label {
+    display: block;
+    color: var(--platform-text-muted);
+    margin-bottom: 4px;
+}
+
+.node-details-drawer-card {
+    padding: 8px 0;
+    border-bottom: 1px solid #edf0f3;
+}
+
+.node-details-drawer-card:last-child {
+    border-bottom: 0;
+}
+
+::deep .node-details-drawer-card .mud-typography {
+    overflow-wrap: anywhere;
+}

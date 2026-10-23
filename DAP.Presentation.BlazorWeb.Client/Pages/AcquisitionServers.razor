@@ -1,0 +1,523 @@
+@page "/acquisition-servers"
+
+<PageTitle>采集服务器配置</PageTitle>
+
+<MudStack Class="platform-page-shell" Spacing="2">
+    <MudPaper Class="platform-page-hero platform-accent-success tw-p-4" Elevation="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.h4">采集服务器配置</MudText>
+                <MudText Typo="Typo.body1" Class="managed-data-hero-description">
+                    集中登记 GE Historian、InfluxDB 等采集服务器及其鉴权与接口参数。节点配置时选择服务器，只需补充点位自身的采集信息。
+                </MudText>
+                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mt-3">
+                    <MudChip T="string" Variant="Variant.Outlined" Color="Color.Info">
+                        @($"{_servers.Count} 台服务器")
+                    </MudChip>
+                    <MudChip T="string" Variant="Variant.Outlined" Color="Color.Success">
+                        @($"{EnabledCount} 台启用中")
+                    </MudChip>
+                    <MudChip T="string" Variant="Variant.Outlined" Color="Color.Primary">
+                        @($"{ReachableCount} 台测试通过")
+                    </MudChip>
+                    <MudChip T="string" Variant="Variant.Outlined" Color="Color.Secondary">
+                        @($"{BoundNodeCount} 个节点引用")
+                    </MudChip>
+                </MudStack>
+            </MudStack>
+
+            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                <MudButton Variant="Variant.Outlined" Color="Color.Inherit"
+                           StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadAsync">
+                    刷新列表
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDrawer">
+                    新增采集服务器
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
+    }
+
+    <MudDialog @bind-Visible="_isDeleteConfirmOpen"
+               Options="PlatformDialogs.Confirm"
+               AriaLabel="确认删除采集服务器">
+        <DialogContent>
+            <MudStack Spacing="2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudAvatar Size="Size.Medium" Class="platform-dialog-icon-error">
+                        <MudIcon Icon="@Icons.Material.Filled.WarningAmber" Size="Size.Small"/>
+                    </MudAvatar>
+                    <MudText Typo="Typo.h6">确认删除采集服务器</MudText>
+                </MudStack>
+
+                @if (_pendingDeleteServer is not null)
+                {
+                    <MudText Typo="Typo.body1">
+                        即将删除采集服务器 <b>@_pendingDeleteServer.DisplayName</b>
+                        （@_pendingDeleteServer.ServerTypeName）。
+                    </MudText>
+                }
+
+                <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Outlined">
+                    仍被采集节点引用的服务器无法删除，请先调整节点绑定。
+                </MudAlert>
+            </MudStack>
+        </DialogContent>
+        <DialogActions>
+            <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd" Class="w-100">
+                <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="CancelDelete" Disabled="_isDeleting">
+                    取消
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="ConfirmDeleteAsync"
+                           Disabled="_isDeleting"
+                           StartIcon="@(_isDeleting ? Icons.Material.Filled.HourglassTop : null)">
+                    @(_isDeleting ? "删除中..." : "确认删除")
+                </MudButton>
+            </MudStack>
+        </DialogActions>
+    </MudDialog>
+
+    <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-info tw-p-4" Elevation="0">
+        <div class="platform-card-header platform-card-header--tight">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <span class="platform-section-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.FilterAlt" Size="Size.Small"/>
+                </span>
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.subtitle1" Class="platform-card-title">快速筛选</MudText>
+                    <MudText Typo="Typo.body2" Class="platform-card-description">
+                        按名称、编码、地址或服务器类型快速定位配置。
+                    </MudText>
+                </MudStack>
+            </MudStack>
+            <MudChip T="string" Variant="Variant.Text" Color="Color.Default">
+                当前筛选结果 @FilteredServers.Count() 条
+            </MudChip>
+        </div>
+
+        <MudGrid Spacing="2">
+            <MudItem xs="12" md="8" lg="9">
+                <MudTextField Margin="Margin.Dense" Label="搜索名称、编码或地址" Variant="Variant.Outlined"
+                              Immediate="true" Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              @bind-Value="_searchTerm"/>
+            </MudItem>
+            <MudItem xs="12" md="4" lg="3">
+                <MudSelect T="string" Margin="Margin.Dense" Label="服务器类型" Variant="Variant.Outlined"
+                           @bind-Value="_typeFilter">
+                    @foreach (var item in TypeFilterOptions)
+                    {
+                        <MudSelectItem T="string" Value="@item">@item</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-success" Elevation="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
+                  Wrap="Wrap.Wrap" Spacing="2" Class="pa-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <span class="platform-section-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.Dns" Size="Size.Small"/>
+                </span>
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.h6" Class="platform-card-title">采集服务器列表</MudText>
+                    <MudText Typo="Typo.body2" Class="platform-card-description">
+                        地址只填到主机与端口，接口路径在配置项中单独维护，避免运行时重复拼接。
+                    </MudText>
+                </MudStack>
+            </MudStack>
+        </MudStack>
+
+        <MudDivider/>
+
+        <MudTable Items="FilteredServers"
+                  Dense="true"
+                  Hover="true"
+                  Loading="_isLoading"
+                  RowsPerPage="10"
+                  Breakpoint="Breakpoint.Sm"
+                  Class="platform-data-table managed-data-table">
+            <HeaderContent>
+                <MudTh>服务器名称</MudTh>
+                <MudTh>类型</MudTh>
+                <MudTh>基础地址</MudTh>
+                <MudTh>关联节点</MudTh>
+                <MudTh>连通性</MudTh>
+                <MudTh>状态</MudTh>
+                <MudTh>更新时间</MudTh>
+                <MudTh Style="width: 220px;">操作</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="服务器名称">
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.body1" Class="platform-table-primary">
+                            @context.DisplayName
+                        </MudText>
+                        <MudText Typo="Typo.caption" Class="platform-table-secondary platform-inline-code">
+                            @context.Code
+                        </MudText>
+                    </MudStack>
+                </MudTd>
+                <MudTd DataLabel="类型">
+                    <MudChip T="string" Variant="Variant.Outlined" Color="@GetTypeChipColor(context.ServerType)"
+                             Size="Size.Small" Class="managed-data-chip">
+                        @context.ServerTypeName
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="基础地址">
+                    <MudText Typo="Typo.body2" Class="platform-monospace">
+                        @context.Address
+                    </MudText>
+                </MudTd>
+                <MudTd DataLabel="关联节点">
+                    <MudChip T="string" Variant="Variant.Text" Size="Size.Small" Color="Color.Info">
+                        @($"{context.RelatedNodeCount} 个节点")
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="连通性">
+                    <MudStack Spacing="0">
+                        <MudChip T="string" Variant="Variant.Outlined" Size="Size.Small"
+                                 Color="@GetProbeColor(context.LastProbeStatus)">
+                            @GetProbeText(context.LastProbeStatus)
+                        </MudChip>
+                        @if (context.LastProbedAt.HasValue)
+                        {
+                            <MudText Typo="Typo.caption" Class="platform-timestamp">
+                                @context.LastProbedAt.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                            </MudText>
+                        }
+                    </MudStack>
+                </MudTd>
+                <MudTd DataLabel="状态">
+                    <MudChip T="string" Variant="Variant.Outlined"
+                             Color="@(context.IsEnabled ? Color.Success : Color.Default)" Size="Size.Small"
+                             Class="managed-data-chip">
+                        @(context.IsEnabled ? "启用" : "停用")
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="更新时间">
+                    <MudText Typo="Typo.body2" Class="platform-timestamp">
+                        @context.UpdatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+                    </MudText>
+                </MudTd>
+                <MudTd DataLabel="操作" Class="table-action-cell">
+                    <div class="table-action-grid">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Info" Class="table-action-button"
+                                   FullWidth="true" StartIcon="@Icons.Material.Filled.NetworkCheck"
+                                   Disabled="@(_testingServerId != Guid.Empty)"
+                                   OnClick="@(() => TestSavedServerAsync(context))">
+                            @(_testingServerId == context.Id ? "测试中" : "测试")
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="table-action-button"
+                                   FullWidth="true" StartIcon="@Icons.Material.Filled.Edit"
+                                   OnClick="@(() => EditAsync(context))">
+                            编辑
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Error" Class="table-action-button"
+                                   FullWidth="true" StartIcon="@Icons.Material.Filled.DeleteOutline"
+                                   Disabled="@(context.RelatedNodeCount > 0)"
+                                   OnClick="@(() => RequestDelete(context))">
+                            删除
+                        </MudButton>
+                    </div>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <div class="platform-empty-state platform-accent-success">
+                    <span class="platform-empty-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.Dns" Size="Size.Large"/>
+                    </span>
+                    <MudText Typo="Typo.h6">还没有登记采集服务器</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        先新增 GE Historian 或 InfluxDB 等服务器，配置好地址与凭据后，节点配置就能直接选择使用。
+                    </MudText>
+                </div>
+            </NoRecordsContent>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="@(new[] {10, 20, 50})" RowsPerPageString="每页条数"/>
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+
+    @if (_lastProbeResult is not null)
+    {
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-primary tw-p-4"
+                  Elevation="0">
+            <MudStack Spacing="3">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
+                          Wrap="Wrap.Wrap">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <span class="platform-section-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.NetworkCheck" Size="Size.Small"/>
+                        </span>
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h6" Class="platform-card-title">最近一次连通性测试</MudText>
+                            <MudText Typo="Typo.body2" Class="platform-card-description">
+                                @_lastProbeResult.ProbeKind · @_lastProbeResult.StatusMessage
+                            </MudText>
+                        </MudStack>
+                    </MudStack>
+                    <MudChip T="string" Variant="Variant.Outlined"
+                             Color="@(_lastProbeResult.Success ? Color.Success : Color.Error)">
+                        @(_lastProbeResult.Success ? "连通" : "不通")
+                    </MudChip>
+                </MudStack>
+
+                <MudGrid>
+                    <MudItem xs="12" md="3">
+                        <MudPaper Class="platform-stat-card platform-stat-card--tinted platform-accent-info pa-4"
+                                  Elevation="0">
+                            <MudText Typo="Typo.caption">测试方式</MudText>
+                            <MudText Typo="Typo.h6">@_lastProbeResult.ProbeKind</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" md="3">
+                        <MudPaper Class="platform-stat-card platform-stat-card--tinted platform-accent-primary pa-4"
+                                  Elevation="0">
+                            <MudText Typo="Typo.caption">状态码</MudText>
+                            <MudText Typo="Typo.h6">
+                                @(_lastProbeResult.StatusCode == 0 ? "--" : _lastProbeResult.StatusCode)
+                            </MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" md="3">
+                        <MudPaper Class="platform-stat-card platform-stat-card--tinted platform-accent-tertiary pa-4"
+                                  Elevation="0">
+                            <MudText Typo="Typo.caption">耗时</MudText>
+                            <MudText Typo="Typo.h6">@($"{_lastProbeResult.ElapsedMilliseconds} ms")</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" md="3">
+                        <MudPaper Class="platform-stat-card platform-stat-card--tinted platform-accent-success pa-4"
+                                  Elevation="0">
+                            <MudText Typo="Typo.caption">解析数值</MudText>
+                            <MudText Typo="Typo.h6">@(_lastProbeResult.ParsedValue ?? "--")</MudText>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+
+                <MudPaper Class="platform-summary" Elevation="0">
+                    <MudText Typo="Typo.caption">访问目标</MudText>
+                    <MudText Typo="Typo.body2" Class="platform-monospace">
+                        @_lastProbeResult.RequestTarget
+                    </MudText>
+                </MudPaper>
+
+                @if (!string.IsNullOrWhiteSpace(_lastProbeResult.ErrorMessage))
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true" Variant="Variant.Outlined">
+                        @_lastProbeResult.ErrorMessage
+                    </MudAlert>
+                }
+
+                <MudPaper Class="platform-code-panel" Elevation="0">
+                    <div class="platform-code-heading">返回报文</div>
+                    <pre class="platform-code-content">@_lastProbeResult.PayloadJson</pre>
+                </MudPaper>
+            </MudStack>
+        </MudPaper>
+    }
+
+    <MudDialog @bind-Visible="_isEditorOpen"
+               Options="PlatformDialogs.EditorSheet"
+               AriaLabel="采集服务器配置">
+        <DialogContent>
+            <MudStack Class="platform-sheet platform-accent-success" Spacing="0">
+                <MudStack Class="platform-sheet-header" Row="true" AlignItems="AlignItems.Start"
+                          Justify="Justify.SpaceBetween" Spacing="2">
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.h5">
+                            @(_editingId.HasValue ? "编辑采集服务器" : "新增采集服务器")
+                        </MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">
+                            配置好服务器后，节点只需选择该服务器并填写点位标识。
+                        </MudText>
+                    </MudStack>
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Default" OnClick="CloseEditor"
+                                   aria-label="关闭编辑"/>
+                </MudStack>
+
+                <MudStack Class="platform-sheet-body" Spacing="2">
+                    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
+                        基础地址只填写主机与端口（例如 http://10.9.3.54:8080）。接口路径请在下方接口配置中单独维护，
+                        否则运行时会与接口路径重复拼接导致 404。
+                    </MudAlert>
+
+                    @if (_lastProbeResult is not null)
+                    {
+                        <MudAlert Severity="@(_lastProbeResult.Success ? Severity.Success : Severity.Warning)"
+                                  Dense="true" Variant="Variant.Outlined">
+                            <MudText Typo="Typo.body2">@_lastProbeResult.StatusMessage</MudText>
+                            @if (!string.IsNullOrWhiteSpace(_lastProbeResult.ParsedValue))
+                            {
+                                <MudText Typo="Typo.caption">
+                                    解析数值：@_lastProbeResult.ParsedValue
+                                </MudText>
+                            }
+                        </MudAlert>
+                    }
+
+                    <MudPaper Class="platform-sheet-section platform-accent-primary" Elevation="0">
+                        <MudStack Spacing="2">
+                            <MudText Typo="Typo.h6">基础信息</MudText>
+                            <MudGrid Spacing="2">
+                                <MudItem xs="12" md="6">
+                                    <MudSelect T="string" Margin="Margin.Dense" Label="服务器类型"
+                                               Variant="Variant.Outlined" Value="@_serverType"
+                                               ValueChanged="OnServerTypeChanged">
+                                        @foreach (var item in _serverTypes)
+                                        {
+                                            <MudSelectItem T="string" Value="@item.ServerType">
+                                                @item.DisplayName
+                                            </MudSelectItem>
+                                        }
+                                    </MudSelect>
+                                </MudItem>
+                                <MudItem xs="12" md="6">
+                                    <MudTextField Margin="Margin.Dense" Label="服务器编码" Variant="Variant.Outlined"
+                                                  Immediate="true" Placeholder="留空时自动生成"
+                                                  @bind-Value="_code"/>
+                                </MudItem>
+                                <MudItem xs="12" md="6">
+                                    <MudTextField Margin="Margin.Dense" Label="显示名称" Variant="Variant.Outlined"
+                                                  Immediate="true" Placeholder="留空时按类型与地址自动生成"
+                                                  @bind-Value="_displayName"/>
+                                </MudItem>
+                                <MudItem xs="12" md="6">
+                                    <MudTextField Margin="Margin.Dense"
+                                                  Label="@(CurrentType?.AddressLabel ?? "服务器基础地址")"
+                                                  Variant="Variant.Outlined" Immediate="true"
+                                                  Placeholder="@(CurrentType?.AddressPlaceholder)"
+                                                  @bind-Value="_address"/>
+                                </MudItem>
+                                <MudItem xs="12">
+                                    <MudTextField Margin="Margin.Dense" Label="说明" Variant="Variant.Outlined"
+                                                  Lines="2" Immediate="true"
+                                                  Placeholder="可记录服务器用途、所属系统等"
+                                                  @bind-Value="_description"/>
+                                </MudItem>
+                            </MudGrid>
+
+                            @if (CurrentType is not null)
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                    @CurrentType.Description
+                                </MudText>
+                            }
+
+                            <MudSwitch T="bool" @bind-Value="_isEnabled" Color="Color.Primary">
+                                启用该服务器
+                            </MudSwitch>
+                        </MudStack>
+                    </MudPaper>
+
+                    @if (CurrentType is not null && CurrentType.ServerFields.Count > 0)
+                    {
+                        <MudPaper Class="platform-sheet-section platform-accent-info" Elevation="0">
+                            <MudStack Spacing="2">
+                                <MudStack Row="true" AlignItems="AlignItems.Center"
+                                          Justify="Justify.SpaceBetween">
+                                    <MudText Typo="Typo.h6">连接配置</MudText>
+                                    <MudChip T="string" Variant="Variant.Text"
+                                             Color="@GetTypeChipColor(_serverType)">
+                                        @CurrentType.DisplayName
+                                    </MudChip>
+                                </MudStack>
+
+                                @foreach (var field in CurrentType.ServerFields)
+                                {
+                                    <div class="acquisition-server-field">
+                                        @RenderConfigField(field)
+                                    </div>
+                                }
+                            </MudStack>
+                        </MudPaper>
+                    }
+
+                    <MudPaper Class="platform-code-panel" Elevation="0">
+                        <div class="platform-code-heading">配置预览</div>
+                        <pre class="platform-code-content">@BuildConfigurationPreview()</pre>
+                    </MudPaper>
+                </MudStack>
+            </MudStack>
+        </DialogContent>
+        <DialogActions>
+            <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd" Wrap="Wrap.Wrap" Class="w-100">
+                <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="CancelEditor">
+                    取消
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Info" Disabled="IsBusy"
+                           StartIcon="@Icons.Material.Filled.NetworkCheck"
+                           OnClick="TestDraftAsync">
+                    @(_isTesting ? "测试中..." : "测试连通性")
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="IsBusy" OnClick="SaveAsync">
+                    @(_isSaving ? "保存中..." : _editingId.HasValue ? "保存修改" : "创建服务器")
+                </MudButton>
+            </MudStack>
+        </DialogActions>
+    </MudDialog>
+</MudStack>
+
+@code {
+
+    private RenderFragment RenderConfigField(AcquisitionServerFieldDescriptor field) =>
+        @<text>
+             @if (field.FieldType == AcquisitionServerFieldTypes.Boolean)
+             {
+                 <MudSwitch T="bool" Color="Color.Primary"
+                            Label="@GetFieldLabel(field)"
+                            Value="@(bool.TryParse(GetConfigValue(field.Key), out var flag) && flag)"
+                            ValueChanged="@(newValue => SetConfigValue(field.Key, newValue.ToString()))"/>
+             }
+             else if (field.FieldType == AcquisitionServerFieldTypes.Select)
+             {
+                 <MudSelect T="string" Margin="Margin.Dense" Label="@GetFieldLabel(field)"
+                            Variant="Variant.Outlined" HelperText="@field.HelperText"
+                            Value="@GetConfigValue(field.Key)"
+                            ValueChanged="@(newValue => SetConfigValue(field.Key, newValue ?? string.Empty))">
+                     @foreach (var option in field.Options ?? Array.Empty<string>())
+                     {
+                         <MudSelectItem T="string" Value="@option">@option</MudSelectItem>
+                     }
+                 </MudSelect>
+             }
+             else
+             {
+                 <MudTextField T="string" Margin="Margin.Dense" Label="@GetFieldLabel(field)"
+                               Variant="Variant.Outlined" Immediate="true"
+                               Placeholder="@field.Placeholder" HelperText="@field.HelperText"
+                               InputType="@(IsSecretField(field.Key) ? InputType.Password : InputType.Text)"
+                               Value="@GetConfigValue(field.Key)"
+                               ValueChanged="@(newValue => SetConfigValue(field.Key, newValue ?? string.Empty))"/>
+             }
+    </text>;
+
+    private static string GetFieldLabel(AcquisitionServerFieldDescriptor field)
+    {
+        return field.IsRequired ? $"{field.Label} *" : field.Label;
+    }
+
+    private string BuildConfigurationPreview()
+    {
+        return _configurationDraft.Count == 0
+            ? "{}"
+            : System.Text.Json.JsonSerializer.Serialize(
+                _configurationDraft.OrderBy(item => item.Key)
+                    .ToDictionary(item => item.Key, item => MaskIfSecret(item.Key, item.Value)));
+    }
+
+    private string MaskIfSecret(string key, string value)
+    {
+        return IsSecretField(key) && !string.IsNullOrWhiteSpace(value) ? "********" : value;
+    }
+
+}

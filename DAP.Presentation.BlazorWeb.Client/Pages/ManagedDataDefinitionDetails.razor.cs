@@ -11,7 +11,17 @@ namespace DAP.Presentation.BlazorWeb.Client.Pages;
 /// </summary>
 public partial class ManagedDataDefinitionDetails : IAsyncDisposable
 {
-    private static readonly JsonSerializerOptions JsonSerializerOptions = new() { WriteIndented = true };
+    /// <summary>
+    /// 折线图统一呈现配置：数据点标记、加粗线条、坐标轴线与悬停提示。
+    /// 纵轴标题取最近一条记录的单位，让量纲在图上一目了然。
+    /// 无记录时不设标题（该属性仅在图表分支被求值，此处防御式判空避免越界）。
+    /// </summary>
+    private LineChartOptions ChartOptions =>
+        PlatformChartDefaults.CreateLineOptions(
+            HistoryTrendRecords.Length > 0 ? ResolveUnit(HistoryTrendRecords[^1].Unit) : null,
+            "采集时间");
+
+    private static readonly JsonSerializerOptions JsonSerializerOptions = new() {WriteIndented = true};
 
     [Inject] private IPlatformApiClient PlatformApiClient { get; set; } = null!;
     [Inject] private NavigationManager NavigationManager { get; set; } = null!;
@@ -27,6 +37,7 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
     private bool _isExecuting;
     private bool _isAutoRefreshing;
     private bool _isInfoDrawerOpen;
+    private bool _isEditorOpen;
     private int _historyLimit = 50;
     private int _historyRowsPerPage = 10;
     private int _secondsUntilNextRefresh;
@@ -63,7 +74,7 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
     private string[] HistoryChartLabels => BuildHistoryChartLabels();
 
     private bool HasLiveCurrentSnapshot =>
-        _liveCurrentSnapshot is { Success: true, ParsedValue: not null };
+        _liveCurrentSnapshot is {Success: true, ParsedValue: not null};
 
     private string CurrentValueText =>
         HasLiveCurrentSnapshot
@@ -164,7 +175,11 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
         await LoadAsync();
     }
 
-    private async Task LoadAsync()
+    /// <summary>
+    /// 载入节点详情。实时读取属于「锦上添花」的补充数据，且采集服务器不可达时会等到超时，
+    /// 因此先渲染详情再在后台刷新当前值，避免首屏被上游超时阻塞。
+    /// </summary>
+    private async Task LoadAsync(bool skipLiveRefresh = false)
     {
         _isLoading = true;
         _message = null;
@@ -174,16 +189,16 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
             _details = await PlatformApiClient.GetManagedDataDefinitionDetailsAsync(Id, _historyLimit);
             RestartAutoRefreshLoop();
 
-            if (_details.Definition.IsEnabled && !HasLiveCurrentSnapshot)
+            if (!skipLiveRefresh && _details.Definition.IsEnabled && !HasLiveCurrentSnapshot)
             {
-                await RefreshCurrentValueAsync(false, CancellationToken.None);
+                _ = RefreshCurrentValueInBackgroundAsync();
             }
         }
         catch (Exception ex)
         {
             _details = null;
             StopAutoRefreshLoop();
-            _message = $"节点详情加载失败：{ex.Message}";
+            _message = $"节点详情加载失败：{UserFacingErrors.Describe(ex)}";
             _messageSeverity = Severity.Error;
         }
         finally
@@ -224,7 +239,7 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
         }
         catch (Exception ex)
         {
-            _message = $"节点执行失败：{ex.Message}";
+            _message = $"节点执行失败：{UserFacingErrors.Describe(ex)}";
             _messageSeverity = Severity.Error;
         }
         finally
@@ -248,10 +263,41 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
         _isInfoDrawerOpen = false;
     }
 
+    /// <summary>打开共享编辑抽屉，节点标识由路由参数 Id 提供。</summary>
+    private void OpenEditor()
+    {
+        _isEditorOpen = true;
+    }
+
+    /// <summary>编辑保存成功后刷新详情，让当前值、历史趋势与配置摘要立即反映最新配置。</summary>
+    private async Task OnEditorSaved(ManagedDataDefinitionDto saved)
+    {
+        _message = $"采集节点 {saved.Code} 已保存。";
+        _messageSeverity = Severity.Success;
+        await LoadAsync(true);
+    }
+
     private async Task OnHistoryLimitChanged(int value)
     {
         _historyLimit = value;
         await LoadAsync();
+    }
+
+    /// <summary>
+    /// 在后台补一次实时读取。失败只记录到自动刷新提示，不影响详情主体渲染。
+    /// </summary>
+    private async Task RefreshCurrentValueInBackgroundAsync()
+    {
+        try
+        {
+            await RefreshCurrentValueAsync(false, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            _autoRefreshError = $"实时读取失败：{UserFacingErrors.Describe(ex)}";
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task RefreshCurrentValueAsync(bool setStatusMessage, CancellationToken cancellationToken)
@@ -268,7 +314,7 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
             ManagedDataExecutionResultDto result =
                 await PlatformApiClient.DebugReadManagedDataDefinitionAsync(_details.Definition.Id, cancellationToken);
 
-            if (result is { Success: true, ParsedValue: not null })
+            if (result is {Success: true, ParsedValue: not null})
             {
                 _liveCurrentSnapshot = result;
                 _lastExecutionResult = result;
@@ -289,14 +335,20 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            // 页面离开或节点被停用时的正常取消，不作为错误提示。
+        }
+        catch (OperationCanceledException)
+        {
+            // 上游 HTTP 超时会以 TaskCanceledException 抛出，转成可读的连接提示。
+            _autoRefreshError = "实时读取超时，请检查采集服务器是否可达。";
         }
         catch (Exception ex)
         {
-            _autoRefreshError = ex.Message;
+            _autoRefreshError = $"实时读取失败：{UserFacingErrors.Describe(ex)}";
 
             if (setStatusMessage)
             {
-                _message = $"实时刷新失败：{ex.Message}";
+                _message = _autoRefreshError;
                 _messageSeverity = Severity.Warning;
             }
         }
@@ -440,13 +492,12 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
                 .ToArray();
         }
 
-        var step = Math.Max(1, (int)Math.Ceiling((HistoryTrendRecords.Length - 1) / 9d));
+        var step = Math.Max(1, (int) Math.Ceiling((HistoryTrendRecords.Length - 1) / 9d));
 
         return HistoryTrendRecords
-            .Select(
-                (item, index) => index == 0 || index == HistoryTrendRecords.Length - 1 || index % step == 0
-                    ? item.CollectedAt.ToLocalTime().ToString("HH:mm")
-                    : string.Empty)
+            .Select((item, index) => index == 0 || index == HistoryTrendRecords.Length - 1 || index % step == 0
+                ? item.CollectedAt.ToLocalTime().ToString("HH:mm")
+                : string.Empty)
             .ToArray();
     }
 
@@ -495,11 +546,15 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// 节点运行状态取色：停用为琥珀，在线为绿，启用但未连上为警示。
+    /// 按设计规范不用灰色表达业务状态。
+    /// </summary>
     private static Color GetStatusColor(bool isEnabled, CollectionPointDto? collectionPoint)
     {
         if (!isEnabled)
         {
-            return Color.Default;
+            return Color.Warning;
         }
 
         return collectionPoint?.CommunicationStatus == "在线" ? Color.Success : Color.Warning;

@@ -2,8 +2,8 @@
 
 <PageTitle>服务器连接状态</PageTitle>
 
-<MudStack Class="platform-page-shell tw-gap-4" Spacing="2">
-    <MudPaper Class="platform-page-hero tw-p-4" Elevation="0">
+<MudStack Class="platform-page-shell" Spacing="2">
+    <MudPaper Class="platform-page-hero platform-accent-info tw-p-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
             <MudStack Spacing="1">
                 <MudText Typo="Typo.h4">服务器连接状态</MudText>
@@ -31,29 +31,57 @@
 
     <MudGrid Spacing="3">
         <MudItem xs="12" sm="6" lg="3">
-            <MudPaper Class="platform-stat-card server-status-stat pa-4" Elevation="0">
-                <MudText Typo="Typo.caption">登记服务器</MudText>
+            <MudPaper
+                Class="platform-stat-card platform-stat-card--tinted platform-accent-secondary server-status-stat pa-4"
+                Elevation="0">
+                <div class="platform-stat-header">
+                    <span class="platform-section-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.Dns" Size="Size.Small"/>
+                    </span>
+                    <MudText Typo="Typo.caption">登记服务器</MudText>
+                </div>
                 <MudText Typo="Typo.h3">@_statuses.Count</MudText>
                 <MudText Typo="Typo.body2" Class="platform-card-note">按采集方式与连接地址聚合</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="6" lg="3">
-            <MudPaper Class="platform-stat-card server-status-stat pa-4" Elevation="0">
-                <MudText Typo="Typo.caption">网络可达</MudText>
+            <MudPaper
+                Class="platform-stat-card platform-stat-card--tinted platform-accent-success server-status-stat pa-4"
+                Elevation="0">
+                <div class="platform-stat-header">
+                    <span class="platform-section-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.WifiTethering" Size="Size.Small"/>
+                    </span>
+                    <MudText Typo="Typo.caption">网络可达</MudText>
+                </div>
                 <MudText Typo="Typo.h3">@ReachableCount</MudText>
                 <MudText Typo="Typo.body2" Class="platform-card-note">实时 TCP 探测结果</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="6" lg="3">
-            <MudPaper Class="platform-stat-card server-status-stat pa-4" Elevation="0">
-                <MudText Typo="Typo.caption">正在检测</MudText>
+            <MudPaper
+                Class="platform-stat-card platform-stat-card--tinted platform-accent-warning server-status-stat pa-4"
+                Elevation="0">
+                <div class="platform-stat-header">
+                    <span class="platform-section-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.HourglassTop" Size="Size.Small"/>
+                    </span>
+                    <MudText Typo="Typo.caption">正在检测</MudText>
+                </div>
                 <MudText Typo="Typo.h3">@CheckingCount</MudText>
                 <MudText Typo="Typo.body2" Class="platform-card-note">逐台异步刷新</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="6" lg="3">
-            <MudPaper Class="platform-stat-card server-status-stat pa-4" Elevation="0">
-                <MudText Typo="Typo.caption">关联数据节点</MudText>
+            <MudPaper
+                Class="platform-stat-card platform-stat-card--tinted platform-accent-tertiary server-status-stat pa-4"
+                Elevation="0">
+                <div class="platform-stat-header">
+                    <span class="platform-section-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.AccountTree" Size="Size.Small"/>
+                    </span>
+                    <MudText Typo="Typo.caption">关联数据节点</MudText>
+                </div>
                 <MudText Typo="Typo.h3">@RelatedDefinitionCount</MudText>
                 <MudText Typo="Typo.body2" Class="platform-card-note">来自后台数据定义</MudText>
             </MudPaper>
@@ -69,14 +97,17 @@
         @if (_statuses.Count == 0 && !_isLoading)
         {
             <MudItem xs="12">
-                <MudPaper Class="platform-panel server-status-empty pa-8" Elevation="0">
-                    <MudStack AlignItems="AlignItems.Center" Spacing="2">
-                        <MudIcon Icon="@Icons.Material.Filled.Router" Size="Size.Large" Color="Color.Default"/>
+                <MudPaper Class="platform-panel platform-panel--tinted platform-accent-neutral server-status-empty pa-8"
+                          Elevation="0">
+                    <div class="platform-empty-state">
+                        <span class="platform-empty-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.Router" Size="Size.Large"/>
+                        </span>
                         <MudText Typo="Typo.h6">当前还没有可显示的服务器状态</MudText>
                         <MudText Typo="Typo.body2" Class="platform-card-note">
                             请先在后台数据管理中新增数据定义，连接地址会作为服务器信息保存到数据库。
                         </MudText>
-                    </MudStack>
+                    </div>
                 </MudPaper>
             </MudItem>
         }
@@ -85,14 +116,16 @@
             @foreach (var item in _statuses)
             {
                 <MudItem xs="12" lg="6">
-                    <MudPaper Class="@($"platform-panel server-status-card {GetStatusCardClass(item)} tw-p-4")" Elevation="0">
+                    <MudPaper Class="@($"platform-panel server-status-card {GetStatusCardClass(item)} tw-p-4")"
+                              Elevation="0">
                         <MudStack Spacing="2">
                             <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.SpaceBetween"
                                       Wrap="Wrap.Wrap" Spacing="2">
                                 <MudStack Spacing="0">
                                     <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="1">
                                         <MudText Typo="Typo.h6" Class="platform-card-title">@item.DisplayName</MudText>
-                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                                 Color="Color.Primary">
                                             @item.AcquisitionType
                                         </MudChip>
                                     </MudStack>
