@@ -44,7 +44,7 @@ public partial class MonitorPageViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            StatusMessage = $"加载失败：{ex.Message}";
+            StatusMessage = $"加载失败：{UserFacingErrors.Describe(ex)}";
         }
         finally
         {

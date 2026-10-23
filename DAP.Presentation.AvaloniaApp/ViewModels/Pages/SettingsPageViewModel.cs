@@ -129,7 +129,7 @@ public partial class SettingsPageViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            StatusMessage = $"服务端采集点加载失败：{ex.Message}";
+            StatusMessage = $"服务端采集点加载失败：{UserFacingErrors.Describe(ex)}";
         }
     }
 
@@ -181,7 +181,7 @@ public partial class SettingsPageViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            StatusMessage = $"同步到服务端失败：{ex.Message}";
+            StatusMessage = $"同步到服务端失败：{UserFacingErrors.Describe(ex)}";
         }
     }
 

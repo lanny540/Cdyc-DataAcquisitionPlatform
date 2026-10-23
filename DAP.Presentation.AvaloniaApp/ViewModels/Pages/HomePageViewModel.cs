@@ -174,7 +174,7 @@ public partial class HomePageViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            StatusMessage = $"服务端概览加载失败：{ex.Message}";
+            StatusMessage = $"服务端概览加载失败：{UserFacingErrors.Describe(ex)}";
         }
         finally
         {
