@@ -27,3 +27,7 @@ TestResults/
 node_modules/
 test-results/
 playwright-report/
+
+# 智能体工作数据（非项目源码）
+/.workbuddy/
+/.workbuddy-ai/
