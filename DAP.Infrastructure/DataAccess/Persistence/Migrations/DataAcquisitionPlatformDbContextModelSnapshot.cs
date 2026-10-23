@@ -336,6 +336,20 @@ namespace DAP.Infrastructure.DataAccess.Persistence.Migrations
                         .HasColumnName("configuration_json")
                         .HasDefaultValueSql("'{}'::jsonb");
 
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasDefaultValue("")
+                        .HasColumnName("description");
+
                     b.Property<string>("DisplayName")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -345,6 +359,23 @@ namespace DAP.Infrastructure.DataAccess.Persistence.Migrations
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("boolean")
                         .HasColumnName("is_enabled");
+
+                    b.Property<string>("LastProbeMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("last_probe_message");
+
+                    b.Property<string>("LastProbeStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("未测试")
+                        .HasColumnName("last_probe_status");
+
+                    b.Property<DateTimeOffset?>("LastProbedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_probed_at");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")

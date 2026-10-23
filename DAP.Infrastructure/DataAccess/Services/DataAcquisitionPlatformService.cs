@@ -1,6 +1,7 @@
 using System.Text.Json;
 using DAP.Core.Domain.Entities;
 using DAP.Core.Domain.Services;
+using DAP.Core.Shared.Catalog;
 using DAP.Core.Shared.Contracts;
 using DAP.Infrastructure.DataAccess.Persistence;
 using DAP.Infrastructure.DataAccess.Repositories;
@@ -136,8 +137,6 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
         ManagedDataDefinitionUpsertRequest request,
         CancellationToken cancellationToken = default)
     {
-        ValidateManagedDataDefinitionRequest(request);
-
         var normalizedCode = NormalizeCode(request.Code);
         ManagedDataDefinition? existingDefinition = request.Id.HasValue
             ? await _managedDataDefinitionRepository.GetByIdAsync(request.Id.Value, cancellationToken)
@@ -146,7 +145,23 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
         existingDefinition ??= await _managedDataDefinitionRepository.GetByCodeAsync(normalizedCode, cancellationToken);
         var originalCode = existingDefinition?.Code;
 
+        // 选择采集服务器后，采集方式与连接地址由服务器决定，节点只需补充自身采集信息。
+        ServerConnection? boundServer = await ResolveBoundServerAsync(
+            request.ServerConnectionId ?? existingDefinition?.ServerConnectionId, cancellationToken);
+        var (acquisitionType, connectionAddress) = ResolveAcquisitionTarget(request, boundServer);
+
+        ValidateManagedDataDefinitionRequest(request, acquisitionType, connectionAddress);
+
+        Dictionary<string, string> nodeConfiguration = ParseJsonDictionary(request.ConfigurationJson);
+        IReadOnlyCollection<string> nodeErrors = AcquisitionServerCatalog.ValidateNode(
+            acquisitionType, request.Identifier, nodeConfiguration);
+        if (nodeErrors.Count > 0)
+        {
+            throw new InvalidOperationException(string.Join(" ", nodeErrors));
+        }
+
         DateTimeOffset updatedAt = DateTimeOffset.UtcNow;
+        Guid? serverConnectionId = boundServer?.Id ?? request.ServerConnectionId;
 
         if (existingDefinition is null)
         {
@@ -155,8 +170,9 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
                 Id = request.Id ?? Guid.NewGuid(),
                 Code = normalizedCode,
                 Name = request.Name.Trim(),
-                AcquisitionType = request.AcquisitionType.Trim(),
-                ConnectionAddress = request.ConnectionAddress.Trim(),
+                AcquisitionType = acquisitionType,
+                ConnectionAddress = connectionAddress,
+                ServerConnectionId = serverConnectionId,
                 Identifier = request.Identifier.Trim(),
                 Department = request.Department.Trim(),
                 ProcessCode = request.ProcessCode.Trim(),
@@ -176,8 +192,9 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
         {
             existingDefinition.Code = normalizedCode;
             existingDefinition.Name = request.Name.Trim();
-            existingDefinition.AcquisitionType = request.AcquisitionType.Trim();
-            existingDefinition.ConnectionAddress = request.ConnectionAddress.Trim();
+            existingDefinition.AcquisitionType = acquisitionType;
+            existingDefinition.ConnectionAddress = connectionAddress;
+            existingDefinition.ServerConnectionId = serverConnectionId;
             existingDefinition.Identifier = request.Identifier.Trim();
             existingDefinition.Department = request.Department.Trim();
             existingDefinition.ProcessCode = request.ProcessCode.Trim();
@@ -192,11 +209,15 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
         }
 
         await UpsertCollectionPointForManagedDefinitionAsync(existingDefinition, originalCode, cancellationToken);
-        ServerConnection serverConnection =
-            await EnsureServerConnectionForManagedDefinitionAsync(existingDefinition, cancellationToken);
-        existingDefinition.ServerConnectionId = serverConnection.Id;
+        if (boundServer is null && serverConnectionId is null)
+        {
+            ServerConnection ensuredServer =
+                await EnsureServerConnectionForManagedDefinitionAsync(existingDefinition, cancellationToken);
+            existingDefinition.ServerConnectionId = ensuredServer.Id;
+        }
+
         await SaveChangesAsync(normalizedCode, "后台数据编码", cancellationToken);
-        return MapManagedDataDefinition(existingDefinition);
+        return MapManagedDataDefinition(existingDefinition, boundServer?.DisplayName);
     }
 
     /// <inheritdoc />
@@ -354,20 +375,88 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
         }
     }
 
-    private static void ValidateManagedDataDefinitionRequest(ManagedDataDefinitionUpsertRequest request)
+    private static void ValidateManagedDataDefinitionRequest(
+        ManagedDataDefinitionUpsertRequest request,
+        string acquisitionType,
+        string connectionAddress)
     {
-        if (string.IsNullOrWhiteSpace(request.Code) ||
-            string.IsNullOrWhiteSpace(request.Name) ||
-            string.IsNullOrWhiteSpace(request.AcquisitionType) ||
-            string.IsNullOrWhiteSpace(request.ConnectionAddress) ||
-            string.IsNullOrWhiteSpace(request.Identifier) ||
-            string.IsNullOrWhiteSpace(request.Department) ||
-            string.IsNullOrWhiteSpace(request.ProcessCode) ||
-            string.IsNullOrWhiteSpace(request.DataCategory) ||
-            request.CollectionIntervalSeconds <= 0)
+        List<string> errors = [];
+
+        if (string.IsNullOrWhiteSpace(request.Code))
         {
-            throw new InvalidOperationException("编码、名称、采集方式、连接地址、数据标识、部门、工序、数据类别不能为空，且采集频次必须大于 0 秒。");
+            errors.Add("编码不能为空。");
         }
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            errors.Add("名称不能为空。");
+        }
+
+        if (string.IsNullOrWhiteSpace(acquisitionType))
+        {
+            errors.Add("采集方式不能为空。");
+        }
+
+        if (string.IsNullOrWhiteSpace(connectionAddress))
+        {
+            errors.Add("连接地址不能为空，请选择已配置地址的采集服务器。");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Identifier))
+        {
+            errors.Add("数据标识不能为空。");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Department))
+        {
+            errors.Add("部门不能为空。");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ProcessCode))
+        {
+            errors.Add("工序不能为空。");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.DataCategory))
+        {
+            errors.Add("数据类别不能为空。");
+        }
+
+        if (request.CollectionIntervalSeconds <= 0)
+        {
+            errors.Add("采集频次必须大于 0 秒。");
+        }
+
+        if (errors.Count > 0)
+        {
+            throw new InvalidOperationException(string.Join(" ", errors));
+        }
+    }
+
+    private async Task<ServerConnection?> ResolveBoundServerAsync(
+        Guid? serverConnectionId,
+        CancellationToken cancellationToken)
+    {
+        if (!serverConnectionId.HasValue)
+        {
+            return null;
+        }
+
+        return await _dbContext.ServerConnections
+            .AsNoTracking()
+            .FirstOrDefaultAsync(item => item.Id == serverConnectionId.Value, cancellationToken);
+    }
+
+    private static (string AcquisitionType, string ConnectionAddress) ResolveAcquisitionTarget(
+        ManagedDataDefinitionUpsertRequest request,
+        ServerConnection? boundServer)
+    {
+        if (boundServer is not null)
+        {
+            return (boundServer.AcquisitionType.Trim(), boundServer.Address.Trim());
+        }
+
+        return (request.AcquisitionType.Trim(), request.ConnectionAddress.Trim());
     }
 
     private static string NormalizeCode(string code)
@@ -405,7 +494,9 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
             item.UpdatedAt);
     }
 
-    private static ManagedDataDefinitionDto MapManagedDataDefinition(ManagedDataDefinition item)
+    private static ManagedDataDefinitionDto MapManagedDataDefinition(
+        ManagedDataDefinition item,
+        string? serverName = null)
     {
         return new ManagedDataDefinitionDto(
             item.Id,
@@ -423,7 +514,9 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
             item.BusinessTagsJson,
             item.CollectionIntervalSeconds,
             item.IsEnabled,
-            item.UpdatedAt);
+            item.UpdatedAt,
+            item.ServerConnectionId,
+            serverName ?? item.ServerConnection?.DisplayName);
     }
 
     private async Task UpsertCollectionPointForManagedDefinitionAsync(
@@ -542,6 +635,32 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
         catch (JsonException ex)
         {
             throw new InvalidOperationException("配置 JSON 或业务标识 JSON 格式不正确。", ex);
+        }
+    }
+
+    private static Dictionary<string, string> ParseJsonDictionary(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        try
+        {
+            var parsed =
+                JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
+
+            return parsed?.ToDictionary(
+                       item => item.Key,
+                       item => item.Value.ValueKind == JsonValueKind.String
+                           ? item.Value.GetString() ?? string.Empty
+                           : item.Value.ToString(),
+                       StringComparer.OrdinalIgnoreCase) ??
+                   new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
+        catch (JsonException)
+        {
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
     }
 

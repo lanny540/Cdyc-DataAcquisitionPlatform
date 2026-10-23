@@ -46,8 +46,11 @@ public static class PlatformReadSql
             d.business_tags_json::text AS "BusinessTagsJson",
             d.collection_interval_seconds AS "CollectionIntervalSeconds",
             d.is_enabled AS "IsEnabled",
-            d.updated_at AS "UpdatedAt"
+            d.updated_at AS "UpdatedAt",
+            d.server_connection_id AS "ServerConnectionId",
+            s.display_name AS "ServerName"
         FROM managed_data_definitions d
+        LEFT JOIN server_connections s ON s.id = d.server_connection_id
         ORDER BY d.acquisition_type, d.code;
         """;
 
@@ -72,8 +75,11 @@ public static class PlatformReadSql
             d.business_tags_json::text AS "BusinessTagsJson",
             d.collection_interval_seconds AS "CollectionIntervalSeconds",
             d.is_enabled AS "IsEnabled",
-            d.updated_at AS "UpdatedAt"
+            d.updated_at AS "UpdatedAt",
+            d.server_connection_id AS "ServerConnectionId",
+            s.display_name AS "ServerName"
         FROM managed_data_definitions d
+        LEFT JOIN server_connections s ON s.id = d.server_connection_id
         WHERE d.id = @Id;
         """;
 

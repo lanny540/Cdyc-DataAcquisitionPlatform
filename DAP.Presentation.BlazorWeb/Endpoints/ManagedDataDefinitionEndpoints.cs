@@ -69,22 +69,59 @@ public static class ManagedDataDefinitionEndpoints
 
     private static IResult? ValidateManagedDataDefinitionRequest(ManagedDataDefinitionUpsertRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Code) ||
-            string.IsNullOrWhiteSpace(request.Name) ||
-            string.IsNullOrWhiteSpace(request.AcquisitionType) ||
-            string.IsNullOrWhiteSpace(request.ConnectionAddress) ||
-            string.IsNullOrWhiteSpace(request.Identifier) ||
-            string.IsNullOrWhiteSpace(request.Department) ||
-            string.IsNullOrWhiteSpace(request.ProcessCode) ||
-            string.IsNullOrWhiteSpace(request.DataCategory) ||
-            request.CollectionIntervalSeconds <= 0)
+        List<string> errors = [];
+
+        if (string.IsNullOrWhiteSpace(request.Code))
         {
-            return Results.ValidationProblem(new Dictionary<string, string[]>
-            {
-                ["ManagedDataDefinition"] = ["编码、名称、采集方式、连接地址、数据标识、部门、工序和数据类别不能为空，且采集频次必须大于 0 秒。"]
-            });
+            errors.Add("编码不能为空。");
         }
 
-        return null;
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            errors.Add("名称不能为空。");
+        }
+
+        // 选择采集服务器后，采集方式与连接地址由服务器决定，无需重复填写。
+        if (!request.ServerConnectionId.HasValue && string.IsNullOrWhiteSpace(request.AcquisitionType))
+        {
+            errors.Add("采集方式不能为空。");
+        }
+
+        if (!request.ServerConnectionId.HasValue && string.IsNullOrWhiteSpace(request.ConnectionAddress))
+        {
+            errors.Add("连接地址不能为空，请选择已配置地址的采集服务器。");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Identifier))
+        {
+            errors.Add("数据标识不能为空。");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Department))
+        {
+            errors.Add("部门不能为空。");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ProcessCode))
+        {
+            errors.Add("工序不能为空。");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.DataCategory))
+        {
+            errors.Add("数据类别不能为空。");
+        }
+
+        if (request.CollectionIntervalSeconds <= 0)
+        {
+            errors.Add("采集频次必须大于 0 秒。");
+        }
+
+        return errors.Count == 0
+            ? null
+            : Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["ManagedDataDefinition"] = [string.Join(" ", errors)]
+            });
     }
 }

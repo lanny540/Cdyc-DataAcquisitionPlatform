@@ -229,7 +229,12 @@ public sealed class ServerConnection
     public string Address { get; set; } = string.Empty;
 
     /// <summary>
-    /// 获取或设置认证、Mock 等连接配置 JSON。
+    /// 获取或设置补充说明。
+    /// </summary>
+    public string Description { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 获取或设置认证、接口路径等连接配置 JSON。
     /// </summary>
     public string ConfigurationJson { get; set; } = "{}";
 
@@ -237,6 +242,26 @@ public sealed class ServerConnection
     /// 获取或设置是否启用。
     /// </summary>
     public bool IsEnabled { get; set; }
+
+    /// <summary>
+    /// 获取或设置最近一次连通性测试状态，例如成功、失败、未测试。
+    /// </summary>
+    public string LastProbeStatus { get; set; } = "未测试";
+
+    /// <summary>
+    /// 获取或设置最近一次测试的说明。
+    /// </summary>
+    public string? LastProbeMessage { get; set; }
+
+    /// <summary>
+    /// 获取或设置最近一次测试时间。
+    /// </summary>
+    public DateTimeOffset? LastProbedAt { get; set; }
+
+    /// <summary>
+    /// 获取或设置创建时间。
+    /// </summary>
+    public DateTimeOffset CreatedAt { get; set; }
 
     /// <summary>
     /// 获取或设置最后更新时间。

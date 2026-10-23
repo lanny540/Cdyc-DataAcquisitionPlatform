@@ -12,7 +12,7 @@ public static class HealthEndpoints
     /// <returns>当前端点路由构建器。</returns>
     public static IEndpointRouteBuilder MapHealthEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapGet("/api/health", () => Results.Ok(new { Status = "Healthy", Timestamp = DateTimeOffset.UtcNow }))
+        endpoints.MapGet("/api/health", () => Results.Ok(new {Status = "Healthy", Timestamp = DateTimeOffset.UtcNow}))
             .WithName("GetHealth");
 
         return endpoints;

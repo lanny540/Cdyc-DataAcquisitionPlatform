@@ -327,7 +327,9 @@ public sealed class PostgreSqlPlatformReadRepository : IPlatformReadRepository
         string BusinessTagsJson,
         int CollectionIntervalSeconds,
         bool IsEnabled,
-        DateTime UpdatedAt);
+        DateTime UpdatedAt,
+        Guid? ServerConnectionId,
+        string? ServerName);
 
     private static CollectionPointDto MapCollectionPoint(CollectionPointReadModel item)
     {
@@ -375,6 +377,8 @@ public sealed class PostgreSqlPlatformReadRepository : IPlatformReadRepository
             item.BusinessTagsJson,
             item.CollectionIntervalSeconds,
             item.IsEnabled,
-            new DateTimeOffset(DateTime.SpecifyKind(item.UpdatedAt, DateTimeKind.Utc)));
+            new DateTimeOffset(DateTime.SpecifyKind(item.UpdatedAt, DateTimeKind.Utc)),
+            item.ServerConnectionId,
+            item.ServerName);
     }
 }

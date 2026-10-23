@@ -19,6 +19,8 @@ namespace DAP.Core.Shared.Contracts;
 /// <param name="CollectionIntervalSeconds">采集频次，单位为秒。</param>
 /// <param name="IsEnabled">是否启用。</param>
 /// <param name="UpdatedAt">最后更新时间。</param>
+/// <param name="ServerConnectionId">绑定的采集服务器标识。</param>
+/// <param name="ServerName">绑定的采集服务器名称。</param>
 public sealed record ManagedDataDefinitionDto(
     Guid Id,
     string Code,
@@ -35,7 +37,9 @@ public sealed record ManagedDataDefinitionDto(
     string BusinessTagsJson,
     int CollectionIntervalSeconds,
     bool IsEnabled,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    Guid? ServerConnectionId = null,
+    string? ServerName = null);
 
 /// <summary>
 /// 表示后台数据定义的新增或更新请求。
@@ -55,6 +59,7 @@ public sealed record ManagedDataDefinitionDto(
 /// <param name="BusinessTagsJson">业务标识 JSON。</param>
 /// <param name="CollectionIntervalSeconds">采集频次，单位为秒。</param>
 /// <param name="IsEnabled">是否启用。</param>
+/// <param name="ServerConnectionId">绑定的采集服务器标识，为空时表示未绑定。</param>
 public sealed record ManagedDataDefinitionUpsertRequest(
     Guid? Id,
     string Code,
@@ -70,7 +75,8 @@ public sealed record ManagedDataDefinitionUpsertRequest(
     string ConfigurationJson,
     string BusinessTagsJson,
     int CollectionIntervalSeconds,
-    bool IsEnabled);
+    bool IsEnabled,
+    Guid? ServerConnectionId = null);
 
 /// <summary>
 /// 表示后台数据节点详情。

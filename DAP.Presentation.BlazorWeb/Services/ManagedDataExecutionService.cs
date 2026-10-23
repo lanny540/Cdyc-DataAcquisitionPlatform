@@ -2,10 +2,9 @@ using System.Globalization;
 using System.Text.Json;
 using DAP.Core.Domain.Entities;
 using DAP.Core.Domain.Services;
+using DAP.Core.Shared.Catalog;
 using DAP.Core.Shared.Contracts;
-using DAP.Infrastructure.DataAccess.Persistence;
 using DAP.Infrastructure.DataAccess.Repositories;
-using Microsoft.EntityFrameworkCore;
 
 namespace DAP.Presentation.BlazorWeb.Services;
 
@@ -32,7 +31,7 @@ public sealed class ManagedDataExecutionService(
     IManagedDataDefinitionRepository managedDataDefinitionRepository,
     IHistoryApiProxyService historyApiProxyService,
     IDataAcquisitionPlatformService platformService,
-    DataAcquisitionPlatformDbContext dbContext,
+    IAcquisitionServerConnectionResolver serverConnectionResolver,
     ILogger<ManagedDataExecutionService> logger) : IManagedDataExecutionService
 {
     public async Task<ManagedDataExecutionResultDto> DebugReadAsync(Guid id,
@@ -81,8 +80,23 @@ public sealed class ManagedDataExecutionService(
                     $"采集方式 {definition.AcquisitionType} 的执行器暂未实现。")
             };
         }
+        catch (OperationCanceledException)
+        {
+            // 上游 HttpClient 超时会以 TaskCanceledException 抛出，
+            // 直接透传会把 "A task was canceled" 这类框架文案暴露到界面。
+            logger.LogWarning("执行后台数据定义 {Code} 超时。", definition.Code);
+            return CreateFailureResult(
+                definition,
+                executionMode,
+                definition.AcquisitionType,
+                definition.ConnectionAddress,
+                "{}",
+                "采集服务器响应超时，请检查网络连通性或调大超时配置。");
+        }
         catch (Exception ex)
         {
+            // 兜底分支绝不透传 ex.Message：网络类异常的原始文案是英文框架消息，
+            // 还可能顺带泄漏内网地址。中文结论给界面，细节只进日志。
             logger.LogWarning(ex, "执行后台数据定义 {Code} 失败。", definition.Code);
             return CreateFailureResult(
                 definition,
@@ -90,7 +104,9 @@ public sealed class ManagedDataExecutionService(
                 definition.AcquisitionType,
                 definition.ConnectionAddress,
                 "{}",
-                ex.Message);
+                ex is HttpRequestException
+                    ? "无法连接采集服务器，请检查网络连通性与服务器地址配置。"
+                    : "采集执行失败，请查看服务端日志。");
         }
     }
 
@@ -103,7 +119,7 @@ public sealed class ManagedDataExecutionService(
         Dictionary<string, string> configuration = ParseConfiguration(definition.ConfigurationJson);
         var queryMode = GetValueOrDefault(configuration, "queryMode", "CurrentValue");
         HistoryApiConnectionOptions connectionOptions =
-            await ResolveHistorianConnectionOptionsAsync(definition, configuration, cancellationToken);
+            await ResolveHistorianConnectionOptionsAsync(definition, cancellationToken);
 
         HistoryApiQueryResponse response = queryMode switch
         {
@@ -421,41 +437,18 @@ public sealed class ManagedDataExecutionService(
 
     private async Task<HistoryApiConnectionOptions> ResolveHistorianConnectionOptionsAsync(
         ManagedDataDefinition definition,
-        IReadOnlyDictionary<string, string> definitionConfiguration,
         CancellationToken cancellationToken)
     {
-        ServerConnection? serverConnection = definition.ServerConnectionId.HasValue
-            ? await dbContext.ServerConnections
-                .AsNoTracking()
-                .SingleOrDefaultAsync(item => item.Id == definition.ServerConnectionId.Value, cancellationToken)
-            : await FindServerConnectionByAddressAsync(definition, cancellationToken);
-        IReadOnlyDictionary<string, string> configuration = serverConnection is null
-            ? definitionConfiguration
-            : ParseConfiguration(serverConnection.ConfigurationJson);
-        var useMockResponses = bool.TryParse(
-            GetValueOrDefault(configuration, "useMockResponses", string.Empty),
-            out var parsedUseMockResponses)
-            ? parsedUseMockResponses
-            : (bool?)null;
+        ServerConnectionSettings? settings = await serverConnectionResolver.ResolveAsync(
+            definition.ServerConnectionId, AcquisitionServerCatalog.Historian, cancellationToken);
 
-        return new HistoryApiConnectionOptions(
-            serverConnection?.Address ?? GetValueOrDefault(configuration, "baseAddress", definition.ConnectionAddress),
-            GetValueOrDefault(configuration, "clientId", string.Empty),
-            GetValueOrDefault(configuration, "clientSecret", string.Empty),
-            useMockResponses);
-    }
+        if (settings is null)
+        {
+            throw new InvalidOperationException(
+                "未在采集服务器配置中找到可用的 GE Historian 服务器，请先在采集服务器页面新增并启用。");
+        }
 
-    private Task<ServerConnection?> FindServerConnectionByAddressAsync(
-        ManagedDataDefinition definition,
-        CancellationToken cancellationToken)
-    {
-        var normalizedAddress = definition.ConnectionAddress.Trim().TrimEnd('/');
-        return dbContext.ServerConnections
-            .AsNoTracking()
-            .SingleOrDefaultAsync(
-                item => item.AcquisitionType == definition.AcquisitionType.Trim() &&
-                        item.Address == normalizedAddress,
-                cancellationToken);
+        return settings.ToHistorianOptions();
     }
 
     private static ManagedDataExecutionResultDto CreateFailureResult(

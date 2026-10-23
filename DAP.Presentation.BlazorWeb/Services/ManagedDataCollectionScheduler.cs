@@ -4,7 +4,6 @@ using DAP.Core.Domain.Services;
 using DAP.Core.Shared.Contracts;
 using DAP.Infrastructure.DataAccess.Persistence;
 using DAP.Infrastructure.DataAccess.Repositories;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace DAP.Presentation.BlazorWeb.Services;

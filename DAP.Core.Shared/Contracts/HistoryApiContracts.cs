@@ -4,7 +4,8 @@ namespace DAP.Core.Shared.Contracts;
 /// 表示查询 History 数据库最新值的请求。
 /// </summary>
 /// <param name="TagNames">标签名称，支持逗号分隔多个标签。</param>
-public sealed record HistoryCurrentValueQueryRequest(string TagNames);
+/// <param name="ServerConnectionId">采集服务器标识，为空时使用第一个启用的 Historian 服务器。</param>
+public sealed record HistoryCurrentValueQueryRequest(string TagNames, Guid? ServerConnectionId = null);
 
 /// <summary>
 /// 表示查询 History 数据库时间段原始数据的请求。
@@ -14,12 +15,14 @@ public sealed record HistoryCurrentValueQueryRequest(string TagNames);
 /// <param name="EndTime">结束时间。</param>
 /// <param name="StartIndex">起始偏移量。</param>
 /// <param name="Count">返回条数。</param>
+/// <param name="ServerConnectionId">采集服务器标识，为空时使用第一个启用的 Historian 服务器。</param>
 public sealed record HistoryRawDataQueryRequest(
     string TagName,
     DateTimeOffset StartTime,
     DateTimeOffset EndTime,
     int StartIndex,
-    int Count);
+    int Count,
+    Guid? ServerConnectionId = null);
 
 /// <summary>
 /// 表示 History 数据库测试查询的响应。

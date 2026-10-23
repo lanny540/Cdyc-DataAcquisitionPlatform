@@ -43,6 +43,7 @@ public interface IConnectionDiagnosticsService
 /// </summary>
 public sealed class ConnectionDiagnosticsService(
     DataAcquisitionPlatformDbContext dbContext,
+    IAcquisitionServerProbeService probeService,
     ILogger<ConnectionDiagnosticsService> logger) : IConnectionDiagnosticsService
 {
     private const int DefaultRequestTimeoutSeconds = 30;
@@ -91,8 +92,14 @@ public sealed class ConnectionDiagnosticsService(
         ManagedDataDefinitionUpsertRequest request,
         CancellationToken cancellationToken = default)
     {
-        var acquisitionType = request.AcquisitionType.Trim();
-        var address = request.ConnectionAddress.Trim();
+        ServerConnection? boundServer = request.ServerConnectionId.HasValue
+            ? await dbContext.ServerConnections
+                .AsNoTracking()
+                .FirstOrDefaultAsync(item => item.Id == request.ServerConnectionId.Value, cancellationToken)
+            : null;
+
+        var acquisitionType = boundServer?.AcquisitionType.Trim() ?? request.AcquisitionType.Trim();
+        var address = boundServer?.Address.Trim() ?? request.ConnectionAddress.Trim();
 
         ManagedDataConnectionTestResultDto? validationResult = ValidateConnectionTestRequest(acquisitionType, address);
         if (validationResult is not null)
@@ -106,14 +113,35 @@ public sealed class ConnectionDiagnosticsService(
             return validationResult;
         }
 
-        ConnectionProbeResult probeResult = await ProbeAddressAsync(address, cancellationToken);
+        // 节点测试沿用服务器的凭据与接口路径配置，只需提供节点自身的采集信息。
+        Dictionary<string, string> serverConfiguration = boundServer is null
+            ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            : ParseJsonDictionary(boundServer.ConfigurationJson);
+
+        Dictionary<string, string> nodeConfiguration = ParseJsonDictionary(request.ConfigurationJson);
+        var requestPath = nodeConfiguration.GetValueOrDefault("apiPath");
+
+        AcquisitionServerProbeResultDto probeResult = await probeService.ProbeAsync(
+            acquisitionType,
+            address,
+            serverConfiguration,
+            request.Identifier,
+            requestPath,
+            nodeConfiguration,
+            cancellationToken);
+
         return new ManagedDataConnectionTestResultDto(
             acquisitionType,
             address,
             probeResult.Success,
             probeResult.StatusMessage,
             probeResult.CheckedAt,
-            probeResult.ErrorMessage);
+            probeResult.ErrorMessage,
+            probeResult.ProbeKind,
+            probeResult.RequestTarget,
+            probeResult.StatusCode,
+            probeResult.PayloadJson,
+            probeResult.ParsedValue);
     }
 
     private async Task<ServerConnectionStatusDto> CheckServerStatusAsync(
@@ -161,13 +189,13 @@ public sealed class ConnectionDiagnosticsService(
         return await dbContext.ManagedDataDefinitions
             .AsNoTracking()
             .Where(item => item.ServerConnectionId.HasValue)
-            .GroupBy(
-                item => item.ServerConnectionId!.Value)
+            .GroupBy(item => item.ServerConnectionId!.Value)
             .Select(item => new {ServerConnectionId = item.Key, Count = item.Count()})
             .ToDictionaryAsync(item => item.ServerConnectionId, item => item.Count, cancellationToken);
     }
 
-    private static ServerConnectionStatusDto MapServerConnection(ServerConnection connection, int relatedDefinitionCount)
+    private static ServerConnectionStatusDto MapServerConnection(ServerConnection connection,
+        int relatedDefinitionCount)
     {
         Dictionary<string, string> configuration = ParseJsonDictionary(connection.ConfigurationJson);
         var address = NormalizeAddress(connection.Address);
@@ -213,15 +241,28 @@ public sealed class ConnectionDiagnosticsService(
                 $"已成功连接到 {host}:{port}。",
                 DateTimeOffset.UtcNow);
         }
+        catch (OperationCanceledException)
+        {
+            // 探测超时：CancelAfter 到点后 TCP 连接仍未建立。
+            // 超时异常的消息是英文框架文案（"The operation was canceled."），
+            // 只给中文结论，耗时细节写日志。
+            logger.LogInformation("探测服务器 {Address} 超时。", address);
+            return new ConnectionProbeResult(
+                false,
+                normalizedAddress,
+                $"连接超时，未能在 {DefaultRequestTimeoutSeconds} 秒内连接到 {host}:{port}。",
+                DateTimeOffset.UtcNow);
+        }
         catch (Exception ex)
         {
+            // 其余异常（DNS 解析失败等）不外泄原始文案：
+            // 英文框架消息与内网地址都不应出现在界面上，细节只进日志。
             logger.LogInformation(ex, "探测服务器 {Address} 失败。", address);
             return new ConnectionProbeResult(
                 false,
                 normalizedAddress,
-                $"无法连接到 {host}:{port}。",
-                DateTimeOffset.UtcNow,
-                ex.Message);
+                $"无法连接到 {host}:{port}，请查看服务端日志。",
+                DateTimeOffset.UtcNow);
         }
     }
 
@@ -296,7 +337,7 @@ public sealed class ConnectionDiagnosticsService(
     private static string CreateServerKey(string acquisitionType, string address)
     {
         var payload = $"{acquisitionType.Trim().ToUpperInvariant()}|{address.Trim().ToUpperInvariant()}";
-        byte[] hashBytes = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(payload));
+        var hashBytes = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(payload));
         return Convert.ToHexString(hashBytes[..8]).ToLowerInvariant();
     }
 
@@ -305,8 +346,8 @@ public sealed class ConnectionDiagnosticsService(
         return HasValue(configuration, "accessToken") ||
                HasValue(configuration, "apiKey") ||
                HasValue(configuration, "token") ||
-               HasValue(configuration, "username") && HasValue(configuration, "password") ||
-               HasValue(configuration, "clientId") && HasValue(configuration, "clientSecret");
+               (HasValue(configuration, "username") && HasValue(configuration, "password")) ||
+               (HasValue(configuration, "clientId") && HasValue(configuration, "clientSecret"));
     }
 
     private static bool IsEnabledConfigurationValue(IReadOnlyDictionary<string, string> configuration, string key)

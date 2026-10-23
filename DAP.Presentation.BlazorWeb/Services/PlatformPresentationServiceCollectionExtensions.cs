@@ -1,4 +1,5 @@
 using DAP.Core.Domain.Services;
+using DAP.Core.Shared.Catalog;
 using DAP.Core.Shared.Contracts;
 using DAP.Infrastructure.DataAccess.Persistence;
 using DAP.Infrastructure.DataAccess.Repositories;
@@ -37,34 +38,26 @@ public static class PlatformPresentationServiceCollectionExtensions
         services.AddMudServices();
         services.AddMemoryCache();
         services.AddOpenApi();
-        services.Configure<HistoryApiOptions>(configuration.GetSection(HistoryApiOptions.SectionName));
+
+        // 采集服务器的地址、凭据与接口路径保存在数据库中，这里只绑定进程级运行时开关。
+        services.Configure<AcquisitionServerRuntimeOptions>(
+            configuration.GetSection(AcquisitionServerRuntimeOptions.SectionName));
         services.Configure<ManagedDataSchedulerOptions>(
             configuration.GetSection(ManagedDataSchedulerOptions.SectionName));
 
         services.AddHttpClient("HistoryApi", (serviceProvider, client) =>
-            {
-                HistoryApiOptions historyOptions = serviceProvider
-                    .GetRequiredService<Microsoft.Extensions.Options.IOptions<HistoryApiOptions>>().Value;
+        {
+            AcquisitionServerRuntimeOptions runtimeOptions = serviceProvider
+                .GetRequiredService<Microsoft.Extensions.Options.IOptions<AcquisitionServerRuntimeOptions>>().Value;
 
-                if (!string.IsNullOrWhiteSpace(historyOptions.BaseAddress))
-                {
-                    client.BaseAddress = new Uri(AppendTrailingSlash(historyOptions.BaseAddress));
-                }
+            // 基地址与证书策略由每台采集服务器的配置决定，这里只设置兜底超时。
+            client.Timeout = TimeSpan.FromSeconds(Math.Max(runtimeOptions.DefaultRequestTimeoutSeconds, 5));
+        });
 
-                client.Timeout = TimeSpan.FromSeconds(Math.Max(historyOptions.RequestTimeoutSeconds, 5));
-            })
-            .ConfigurePrimaryHttpMessageHandler(serviceProvider =>
-            {
-                HistoryApiOptions historyOptions = serviceProvider
-                    .GetRequiredService<Microsoft.Extensions.Options.IOptions<HistoryApiOptions>>().Value;
-
-                return new HttpClientHandler
-                {
-                    ServerCertificateCustomValidationCallback = historyOptions.IgnoreServerCertificateErrors
-                        ? HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-                        : null
-                };
-            });
+        services.AddHttpClient("AcquisitionServerProbe", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
 
         services.AddSingleton(_ =>
         {
@@ -89,18 +82,21 @@ public static class PlatformPresentationServiceCollectionExtensions
         services.AddScoped<ICollectionDataRecordRepository, PostgreSqlCollectionDataRecordRepository>();
         services.AddScoped<IPlatformReadRepository, PostgreSqlPlatformReadRepository>();
         services.AddScoped<IDataAcquisitionPlatformService, DataAcquisitionPlatformService>();
+        services.AddScoped<IAcquisitionServerConnectionResolver, AcquisitionServerConnectionResolver>();
         services.AddScoped<IHistoryApiProxyService, HistoryApiProxyService>();
+        services.AddScoped<IAcquisitionServerProbeService, AcquisitionServerProbeService>();
+        services.AddScoped<IAcquisitionServerService, AcquisitionServerService>();
         services.AddScoped<IManagedDataExecutionService, ManagedDataExecutionService>();
         services.AddScoped<IConnectionDiagnosticsService, ConnectionDiagnosticsService>();
+
+        // 排班表是全站共享的配置数据，必须单例：Scoped 会让导入结果随请求结束而丢失。
+        services.AddSingleton<IShiftSchedulingService, InMemoryShiftSchedulingService>();
+        services.AddSingleton<TimeProvider>(TimeProvider.System);
+        services.AddScoped<IEnergyMetricService, DeterministicEnergyMetricService>();
         services.AddScoped<IPlatformApiClient, ServerPlatformApiClient>();
         services.AddHostedService<ManagedDataCollectionScheduler>();
 
         return services;
-    }
-
-    private static string AppendTrailingSlash(string value)
-    {
-        return value.EndsWith("/", StringComparison.Ordinal) ? value : $"{value}/";
     }
 }
 
@@ -127,8 +123,12 @@ internal static class ConnectionStringResolver
 internal sealed class ServerPlatformApiClient(
     IDataAcquisitionPlatformService platformService,
     IHistoryApiProxyService historyApiProxyService,
+    IAcquisitionServerConnectionResolver serverConnectionResolver,
+    IAcquisitionServerService acquisitionServerService,
     IManagedDataExecutionService managedDataExecutionService,
-    IConnectionDiagnosticsService connectionDiagnosticsService) : IPlatformApiClient
+    IConnectionDiagnosticsService connectionDiagnosticsService,
+    IShiftSchedulingService shiftSchedulingService,
+    IEnergyMetricService energyMetricService) : IPlatformApiClient
 {
     public Task<DashboardOverviewDto> GetDashboardOverviewAsync(CancellationToken cancellationToken = default)
     {
@@ -194,12 +194,6 @@ internal sealed class ServerPlatformApiClient(
         return managedDataExecutionService.CollectAsync(id, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<ServerConnectionStatusDto>> GetServerConnectionStatusesAsync(
-        CancellationToken cancellationToken = default)
-    {
-        return (await connectionDiagnosticsService.GetServerStatusesAsync(cancellationToken)).ToList();
-    }
-
     public async Task<IReadOnlyList<ServerConnectionStatusDto>> GetServerConnectionsAsync(
         CancellationToken cancellationToken = default)
     {
@@ -222,17 +216,169 @@ internal sealed class ServerPlatformApiClient(
         return connectionDiagnosticsService.TestManagedDataConnectionAsync(request, cancellationToken);
     }
 
-    public Task<HistoryApiQueryResponse> GetHistoryCurrentValueAsync(
+    public async Task<HistoryApiQueryResponse> GetHistoryCurrentValueAsync(
         HistoryCurrentValueQueryRequest request,
         CancellationToken cancellationToken = default)
     {
-        return historyApiProxyService.GetCurrentValueAsync(request, cancellationToken);
+        ServerConnectionSettings settings = await ResolveHistorianServerAsync(
+            request.ServerConnectionId, cancellationToken);
+
+        return await historyApiProxyService.GetCurrentValueAsync(
+            request, settings.ToHistorianOptions(), cancellationToken);
     }
 
-    public Task<HistoryApiQueryResponse> GetHistoryRawDataAsync(
+    public async Task<HistoryApiQueryResponse> GetHistoryRawDataAsync(
         HistoryRawDataQueryRequest request,
         CancellationToken cancellationToken = default)
     {
-        return historyApiProxyService.GetRawDataAsync(request, cancellationToken);
+        ServerConnectionSettings settings = await ResolveHistorianServerAsync(
+            request.ServerConnectionId, cancellationToken);
+
+        return await historyApiProxyService.GetRawDataAsync(
+            request, settings.ToHistorianOptions(), cancellationToken);
+    }
+
+    private async Task<ServerConnectionSettings> ResolveHistorianServerAsync(
+        Guid? serverConnectionId,
+        CancellationToken cancellationToken)
+    {
+        return await serverConnectionResolver.ResolveAsync(
+                   serverConnectionId, AcquisitionServerCatalog.Historian, cancellationToken)
+               ?? throw new InvalidOperationException(
+                   "尚未配置可用的 GE Historian 采集服务器，请先在采集服务器页面新增并启用。");
+    }
+
+    public async Task<IReadOnlyList<AcquisitionServerTypeDescriptor>> GetAcquisitionServerTypesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return AcquisitionServerCatalog.Descriptors;
+    }
+
+    public async Task<IReadOnlyList<AcquisitionServerDto>> GetAcquisitionServersAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return (await acquisitionServerService.GetServersAsync(cancellationToken)).ToList();
+    }
+
+    public Task<AcquisitionServerDto> UpsertAcquisitionServerAsync(
+        AcquisitionServerUpsertRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return acquisitionServerService.UpsertServerAsync(request, cancellationToken);
+    }
+
+    public async Task<bool> DeleteAcquisitionServerAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var (succeeded, errorMessage) =
+            await acquisitionServerService.DeleteServerAsync(id, cancellationToken);
+
+        if (!succeeded)
+        {
+            throw new InvalidOperationException(errorMessage ?? "删除采集服务器失败。");
+        }
+
+        return true;
+    }
+
+    public Task<AcquisitionServerProbeResultDto> TestAcquisitionServerAsync(
+        Guid? id,
+        AcquisitionServerProbeRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return acquisitionServerService.TestServerAsync(
+            request.ToUpsertRequest(id), request.Identifier, request.RequestPath, request.NodeConfiguration,
+            cancellationToken);
+    }
+
+    public Task<ShiftScheduleStatusDto> GetShiftScheduleStatusAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return shiftSchedulingService.GetStatusAsync(cancellationToken);
+    }
+
+    public async Task<ShiftScheduleValidationDto> GetShiftScheduleValidationAsync(
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyCollection<ShiftScheduleRowDto> rows =
+            await shiftSchedulingService.GetAllRowsAsync(cancellationToken);
+
+        return ShiftRotationValidator.Validate(rows);
+    }
+
+    public async Task<ShiftScheduleImportResultDto> ImportShiftScheduleAsync(
+        Stream excelStream,
+        string fileName,
+        CancellationToken cancellationToken = default)
+    {
+        // 预渲染阶段直接复用服务端服务，不经过 HTTP 自调用。
+        return await shiftSchedulingService.ImportAsync(fileName, excelStream, cancellationToken);
+    }
+
+    public async Task<bool> ClearShiftSchedulesAsync(CancellationToken cancellationToken = default)
+    {
+        return await shiftSchedulingService.ClearAsync();
+    }
+
+    public async Task<IReadOnlyList<DailyShiftScheduleDto>> GetShiftScheduleCalendarAsync(
+        DateOnly from,
+        DateOnly to,
+        string? teamCode = null,
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyCollection<DailyShiftScheduleDto> calendar =
+            await shiftSchedulingService.GetCalendarAsync(from, to, teamCode, cancellationToken);
+
+        return calendar.ToList();
+    }
+
+    public async Task<TeamShiftScheduleDto?> GetTeamShiftScheduleAsync(
+        string teamCode,
+        DateOnly from,
+        DateOnly to,
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyCollection<DailyShiftScheduleDto> calendar =
+            await shiftSchedulingService.GetCalendarAsync(from, to, teamCode, cancellationToken);
+
+        ShiftScheduleRowDto[] rows = calendar.SelectMany(item => item.Rows).ToArray();
+
+        if (rows.Length == 0)
+        {
+            return null;
+        }
+
+        return new TeamShiftScheduleDto(
+            rows[0].TeamCode,
+            rows[0].TeamName,
+            rows.OrderBy(item => item.WorkDate).ThenBy(item => item.StartTime).ToArray(),
+            rows.Count(item => !item.IsRestDay),
+            Math.Round(rows.Sum(item => item.DurationHours), 2),
+            rows.Count(item => item.IsRestDay));
+    }
+
+    public Task<EnergyDashboardDto> GetEnergyDashboardAsync(
+        int trendDays = 7,
+        string? teamCode = null,
+        CancellationToken cancellationToken = default)
+    {
+        return energyMetricService.GetDashboardAsync(trendDays, teamCode, cancellationToken);
+    }
+
+    public Task<EnergyHistoryDto> GetEnergyHistoryAsync(
+        string teamCode,
+        string granularity,
+        DateOnly from,
+        DateOnly to,
+        CancellationToken cancellationToken = default)
+    {
+        return energyMetricService.GetHistoryAsync(teamCode, granularity, from, to, cancellationToken);
+    }
+
+    public Task<EnergyComparisonDto> GetEnergyComparisonAsync(
+        string granularity,
+        DateOnly date,
+        CancellationToken cancellationToken = default)
+    {
+        return energyMetricService.GetComparisonAsync(granularity, date, cancellationToken);
     }
 }

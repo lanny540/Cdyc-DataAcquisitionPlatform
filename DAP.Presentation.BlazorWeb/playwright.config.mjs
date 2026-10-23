@@ -17,7 +17,7 @@ export default defineConfig({
     { name: "mobile", use: { viewport: { width: 390, height: 844 } } }
   ],
   webServer: {
-    command: "dotnet run --no-launch-profile -- --urls http://localhost:5077 --ManagedDataScheduler:Enabled=false --HistoryApi:UseMockResponses=true --HistoryApi:BaseAddress=http://localhost:5077 --HistoryApi:RequestTimeoutSeconds=5",
+    command: "dotnet run --no-launch-profile -- --urls http://localhost:5077 --ManagedDataScheduler:Enabled=false --AcquisitionServers:UseMockResponses=true --AcquisitionServers:DefaultRequestTimeoutSeconds=5",
     url: "http://localhost:5077",
     env: { ASPNETCORE_ENVIRONMENT: "Development" },
     reuseExistingServer: false,

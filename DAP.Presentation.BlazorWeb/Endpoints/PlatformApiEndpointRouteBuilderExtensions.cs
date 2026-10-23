@@ -14,12 +14,15 @@ public static class PlatformApiEndpointRouteBuilderExtensions
     {
         endpoints.MapHealthEndpoints();
         endpoints.MapConnectionDiagnosticsEndpoints();
+        endpoints.MapAcquisitionServerEndpoints();
         endpoints.MapDashboardEndpoints();
         endpoints.MapCollectionPointEndpoints();
         endpoints.MapManagedDataDefinitionEndpoints();
         endpoints.MapManagedDataExecutionEndpoints();
         endpoints.MapCollectionDataEndpoints();
         endpoints.MapHistoryApiEndpoints();
+        endpoints.MapShiftSchedulingEndpoints();
+        endpoints.MapEnergyMetricEndpoints();
 
         return endpoints;
     }

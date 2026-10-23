@@ -40,10 +40,20 @@ public sealed record ServerConnectionStatusDto(
 /// <param name="StatusMessage">状态说明。</param>
 /// <param name="CheckedAt">检查时间。</param>
 /// <param name="ErrorMessage">错误信息。</param>
+/// <param name="ProbeKind">测试方式，例如网络探测、接口读取。</param>
+/// <param name="RequestTarget">实际访问的地址。</param>
+/// <param name="StatusCode">上游返回状态码。</param>
+/// <param name="PayloadJson">上游返回的原始报文。</param>
+/// <param name="ParsedValue">解析出的数值。</param>
 public sealed record ManagedDataConnectionTestResultDto(
     string AcquisitionType,
     string Address,
     bool Success,
     string StatusMessage,
     DateTimeOffset CheckedAt,
-    string? ErrorMessage = null);
+    string? ErrorMessage = null,
+    string ProbeKind = "网络探测",
+    string RequestTarget = "",
+    int StatusCode = 0,
+    string PayloadJson = "",
+    string? ParsedValue = null);
