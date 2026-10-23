@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  CDYC 数据采集平台 · 统一品牌色板 (Single Source of Truth)
+
+  本文件是全项目配色的唯一权威来源（Web 与桌面端共用）。
+  所有端在初始化主题时，都必须从本文件读取色值，不得在页面或组件中硬编码十六进制。
+
+  色板定义：Material Design 3 角色色，每种角色给出三级深度：
+    - Base  主色，用于色条、强调文字、主按钮
+    - Soft  浅填充，用于图标底色、标签底、选中态背景
+    - Tint  极浅背景，用于卡片渐层、区域底纹
+
+  修改规则见 docs/DESIGN_SYSTEM.md。
+-->
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ============ 品牌核心色 ============ -->
+    <Color x:Key="DapPrimary">#0B4FC4</Color>
+    <SolidColorBrush x:Key="DapPrimaryBrush" Color="#0B4FC4" />
+    <SolidColorBrush x:Key="DapPrimarySoftBrush" Color="#C9DCF8" />
+    <SolidColorBrush x:Key="DapPrimaryTintBrush" Color="#DCE8FA" />
+
+    <Color x:Key="DapSecondary">#33475C</Color>
+    <SolidColorBrush x:Key="DapSecondaryBrush" Color="#33475C" />
+    <SolidColorBrush x:Key="DapSecondarySoftBrush" Color="#D3DDE8" />
+    <SolidColorBrush x:Key="DapSecondaryTintBrush" Color="#DFE6EE" />
+
+    <Color x:Key="DapTertiary">#7B2F9E</Color>
+    <SolidColorBrush x:Key="DapTertiaryBrush" Color="#7B2F9E" />
+    <SolidColorBrush x:Key="DapTertiarySoftBrush" Color="#ECDCF6" />
+    <SolidColorBrush x:Key="DapTertiaryTintBrush" Color="#ECDEF7" />
+
+    <!-- ============ 语义状态色 ============ -->
+    <Color x:Key="DapSuccess">#0D7A3C</Color>
+    <SolidColorBrush x:Key="DapSuccessBrush" Color="#0D7A3C" />
+    <SolidColorBrush x:Key="DapSuccessSoftBrush" Color="#C3E8D2" />
+    <SolidColorBrush x:Key="DapSuccessTintBrush" Color="#D7F0E1" />
+
+    <Color x:Key="DapWarning">#B15600</Color>
+    <SolidColorBrush x:Key="DapWarningBrush" Color="#B15600" />
+    <SolidColorBrush x:Key="DapWarningSoftBrush" Color="#FFDDB0" />
+    <SolidColorBrush x:Key="DapWarningTintBrush" Color="#FFE4BC" />
+
+    <Color x:Key="DapError">#B32318</Color>
+    <SolidColorBrush x:Key="DapErrorBrush" Color="#B32318" />
+    <SolidColorBrush x:Key="DapErrorSoftBrush" Color="#F7CCC7" />
+    <SolidColorBrush x:Key="DapErrorTintBrush" Color="#FBE0DC" />
+
+    <Color x:Key="DapInfo">#0F6FBD</Color>
+    <SolidColorBrush x:Key="DapInfoBrush" Color="#0F6FBD" />
+    <SolidColorBrush x:Key="DapInfoSoftBrush" Color="#C2DDF6" />
+    <SolidColorBrush x:Key="DapInfoTintBrush" Color="#D5E8FA" />
+
+    <!-- ============ 中性色阶 ============ -->
+    <Color x:Key="DapSurface">#FFFFFF</Color>
+    <SolidColorBrush x:Key="DapSurfaceBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="DapPageBackgroundBrush" Color="#F4F7FA" />
+    <SolidColorBrush x:Key="DapSurfaceMutedBrush" Color="#F8FAFC" />
+    <SolidColorBrush x:Key="DapSurfaceSunkenBrush" Color="#EEF2F7" />
+    <SolidColorBrush x:Key="DapBorderBrush" Color="#E1E7EE" />
+    <SolidColorBrush x:Key="DapBorderStrongBrush" Color="#C7D0DA" />
+
+    <Color x:Key="DapTextPrimary">#16202B</Color>
+    <SolidColorBrush x:Key="DapTextPrimaryBrush" Color="#16202B" />
+    <SolidColorBrush x:Key="DapTextSecondaryBrush" Color="#4E5A70" />
+    <SolidColorBrush x:Key="DapTextSubtleBrush" Color="#8593A6" />
+
+    <!-- ============ 深色代码 / 日志面板 ============ -->
+    <SolidColorBrush x:Key="DapCodePanelBrush" Color="#1D2937" />
+    <SolidColorBrush x:Key="DapCodePanelBorderBrush" Color="#2B3A4D" />
+    <SolidColorBrush x:Key="DapCodeHeadingBrush" Color="#A9C4E0" />
+    <SolidColorBrush x:Key="DapCodeTextBrush" Color="#DBE7F3" />
+
+</ResourceDictionary>

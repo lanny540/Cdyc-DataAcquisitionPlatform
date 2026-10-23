@@ -15,7 +15,6 @@ Web（Blazor）与跨平台桌面（Avalonia）双终端展示方案。
 - **混合持久化方案 (CQRS 思想)**：
     - **写入与复杂事务**：使用 **Entity Framework Core**（搭配 PostgreSQL）处理强一致性的复杂写入操作。
     - **只读与高性能查询**：使用 **Dapper** 编写原生 SQL，满足报表统计与高并发查询的性能要求。
-- **高可用与分布式**：通过 Redis 实现分布式缓存与会话状态保持，确保在多节点负载均衡（HA）下，单一服务器下线不会导致用户登录状态丢失。
 - **离线与边缘计算支持**：Web 端静态资源本地化（无需外部 CDN），桌面端内置 SQLite 进行离线数据同步与配置存储。
 
 ## 项目结构
@@ -23,25 +22,43 @@ Web（Blazor）与跨平台桌面（Avalonia）双终端展示方案。
 ```text
 ├── DAP.Core.Domain                 # 核心层：领域实体、业务接口规范
 ├── DAP.Core.Shared                 # 核心层：共享数据契约 (Contracts / DTOs)
-├── DAP.Infrastructure              # 基础设施：包含 PGSQL 数据库访问、Redis 缓存与时序数据库集成
-├── DAP.Collectors                  # 采集引擎：包含核心采集基类抽象及 Modbus、MQTT 协议支持
+├── DAP.Infrastructure              # 基础设施：PGSQL 数据库访问（EF Core 写入 + Dapper 只读）与 EF Core 迁移
 ├── DAP.Proxies.OpcDaProxy          # 代理服务：OPC DA 采集代理 Worker
 ├── DAP.Presentation.BlazorWeb      # 展示层：Blazor Web 服务端与 API 宿主 (Endpoints)
 ├── DAP.Presentation.BlazorWeb.Client # 展示层：Blazor WebAssembly 客户端
 ├── DAP.Presentation.AvaloniaApp    # 展示层：基于 Avalonia 12 的跨平台桌面应用
-└── DAP.Tests.UnitTests             # 测试：领域与基础设施单元测试
+│   └── Themes/                     # 统一品牌色板（DapPalette.axaml）与 Semi 主题覆盖
+├── DAP.Tests.UnitTests             # 测试：领域与基础设施单元测试
+├── docs/DESIGN_SYSTEM.md           # 设计规范（强制）
+└── AGENTS.md                       # AI 协作约束
 ```
 
 ## 技术栈
 
 - **基础框架**: .NET 10.0
-- **Web UI**: Blazor WebAssembly / Server, 采用 [MudBlazor](https://mudblazor.com/) 9.x 组件库与 Tailwind CSS 构建现代紧凑布局。
+- **Web UI**: Blazor WebAssembly / Server，全部页面统一采用 [MudBlazor](https://mudblazor.com/) 9.11 组件库（Material Design 设计体系），抽屉与对话框均使用官方 `MudDialog`（含内置遮罩、ESC 关闭与焦点管理），间距与断点直接使用 MudBlazor 内置的 `pa-*` / `mt-*` 工具类；Tailwind仅保留少量布局辅助（`tw-p-4`、`tw-break-all`），不启用 preflight 以避免覆盖 MudBlazor 基础样式。
 - **桌面 UI**: Avalonia
   12.1，采用 [CommunityToolkit.Mvvm](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/)
   ，结合 [Semi.Avalonia](https://semi.design/) 与 [Irihi.Ursa](https://irihi.tech/) 主题，提供精致的微观交互体验。
 - **数据库**: PostgreSQL 10.x (Npgsql), SQLite (桌面端本地存储)
 - **ORM**: EF Core 10.0, Dapper 2.1
 - **架构模式**: Clean Architecture, Minimal APIs
+
+## 设计规范
+
+全项目 UI 采用 **Material Design 3** 设计体系，Web 端与桌面端共用同一套品牌色板。
+
+| 文档 | 用途 |
+| --- | --- |
+| [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) | **强制设计规范**：色板定义、语义映射、组件规范、改动禁令、新增页面检查清单 |
+| [`AGENTS.md`](AGENTS.md) | AI 协作约束，改动 UI 前必读 |
+
+色板权威来源：
+
+- Web：`DAP.Presentation.BlazorWeb/wwwroot/app.css` 的 `:root` 变量
+- 桌面：`DAP.Presentation.AvaloniaApp/Themes/DapPalette.axaml`
+
+**核心约定**：项目使用 Primary / Secondary / Tertiary / Success / Warning / Error / Info 七色封闭体系，每色分Base / Soft / Tint 三级深度。Web 端通过 `.platform-accent-*` 修饰类切换配色（加类即可，不写新CSS 规则），桌面端通过 `{DynamicResource Dap*Brush}` 取色。页面中不得硬编码十六进制色值。
 
 ## 本地运行指南
 

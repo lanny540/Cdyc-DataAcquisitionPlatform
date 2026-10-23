@@ -11,7 +11,16 @@
     </Application.DataTemplates>
 
     <Application.Resources>
-        <!-- Use Semi.Avalonia standard theme variables natively. -->
+        <!-- 平台统一品牌色板：全项目配色的唯一权威来源，详见 docs/DESIGN_SYSTEM.md。
+             品牌色覆盖与 Semi 主题同处 Application.Resources：Semi 控件通过
+             DynamicResource 取色，此处优先级高于主题默认调色板，可在不改动
+             Semi 主题源码的前提下替换为平台品牌色。 -->
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://DAP.Presentation.AvaloniaApp/Themes/DapPalette.axaml" />
+                <ResourceInclude Source="avares://DAP.Presentation.AvaloniaApp/Themes/SemiBrandOverride.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </Application.Resources>
 
     <Application.Styles>

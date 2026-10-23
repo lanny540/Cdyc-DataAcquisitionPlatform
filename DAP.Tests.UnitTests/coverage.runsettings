@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <!--
+    单元测试覆盖率采集配置。
+
+    统计口径：只包含「可脱离数据库与宿主独立验证」的代码，即领域服务、契约转换、
+    Excel 解析与 HTTP 代理。
+
+    端点映射层（Endpoints 目录下的文件）与依赖 DbContext 的仓储服务需要真实宿主和
+    数据库才能执行到，属于集成测试范畴。当前 coverlet 版本的 ExcludeByFile 对这些
+    路径不生效，因此这里不做无效的排除，而是保持全量采集，由 scripts/core-coverage.sh
+    按文件类型分别汇总「核心逻辑」与「端点仓储层」两组指标，
+    避免用单一数字掩盖真实覆盖情况。
+
+    用法：./scripts/core-coverage.sh
+  -->
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <Include>[DAP.Core.Domain]*,[DAP.Core.Shared]*,[DAP.Presentation.BlazorWeb]*</Include>
+          <!-- 测试程序集与 Blazor 客户端（Razor 组件由浏览器实测覆盖）不计入 -->
+          <Exclude>[*.Tests.UnitTests]*,[DAP.Presentation.BlazorWeb.Client]*</Exclude>
+          <ExcludeByAttribute>GeneratedCodeAttribute,CompilerGeneratedAttribute</ExcludeByAttribute>
+          <IncludeTestAssembly>false</IncludeTestAssembly>
+          <SingleHit>false</SingleHit>
+          <SkipAutoProps>true</SkipAutoProps>
+          <UseSourceLink>true</UseSourceLink>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

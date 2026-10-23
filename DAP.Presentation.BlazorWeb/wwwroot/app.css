@@ -1,170 +1,1189 @@
+/* ============================================================
+   CDYC 数据采集平台 · 全局样式
+   色板定义遵循 Material Design 3，改动前请先阅读 docs/DESIGN_SYSTEM.md
+   AI 协作约束见仓库根目录 AGENTS.md
+   ============================================================ */
 :root {
     color-scheme: light;
-    --platform-bg: #f4f6f8;
+
+    /* ===== Material Design 3 角色色板 =====
+       每种角色提供 base（主色）/ soft（浅填充）/ tint（极浅背景）三级，
+       供卡片、标签、状态条等按语义取色，保证全站色彩一致。
+
+       配色取向：同色相内提高饱和度，并让 tint 明显区别于白底
+       （对比度 >= 1.20），避免卡片底色与白色表面混成一片。
+       各色值均已核验：白字在 base 上 >= 4.5:1（WCAG AA），
+       strong 色在 tint 上 >= 4.5:1，保证卡片数字可读。 */
+    --md-primary: #0b4fc4;
+    --md-primary-strong: #083a99;
+    --md-primary-soft: #c9dcf8;
+    --md-primary-tint: #dce8fa;
+
+    --md-secondary: #33475c;
+    --md-secondary-strong: #22323f;
+    --md-secondary-soft: #d3dde8;
+    --md-secondary-tint: #dfe6ee;
+
+    --md-tertiary: #7b2f9e;
+    --md-tertiary-strong: #5c1f78;
+    --md-tertiary-soft: #ecdcf6;
+    --md-tertiary-tint: #ecdef7;
+
+    --md-success: #0d7a3c;
+    --md-success-strong: #085829;
+    --md-success-soft: #c3e8d2;
+    --md-success-tint: #d7f0e1;
+
+    --md-warning: #b15600;
+    --md-warning-strong: #824000;
+    --md-warning-soft: #ffddb0;
+    --md-warning-tint: #ffe4bc;
+
+    --md-error: #b32318;
+    --md-error-strong: #861711;
+    --md-error-soft: #f7ccc7;
+    --md-error-tint: #fbe0dc;
+
+    --md-info: #0f6fbd;
+    --md-info-strong: #0a4f8a;
+    --md-info-soft: #c2ddf6;
+    --md-info-tint: #d5e8fa;
+
+    /* 中性色阶 */
+    --platform-bg: #f4f7fa;
     --platform-surface: #fff;
-    --platform-border: #dfe4ea;
-    --platform-text: #1c2733;
-    --platform-text-muted: #606e7b;
-    --platform-primary: #1565c0;
-    --platform-primary-soft: #e8f0fc;
-    --platform-shadow: 0 1px 3px #18283b0d;
+    --platform-surface-muted: #f8fafc;
+    --platform-surface-sunken: #eef2f7;
+    --platform-border: #e1e7ee;
+    --platform-border-strong: #c7d0da;
+    --platform-text: #16202b;
+    --platform-text-muted: #4e5a70;
+    --platform-text-subtle: #8593a6;
+
+    --platform-primary: var(--md-primary);
+    --platform-primary-soft: var(--md-primary-soft);
+    --platform-shadow: 0 1px 2px rgba(22, 32, 43, .04), 0 1px 3px rgba(22, 32, 43, .06);
+    --platform-shadow-raised: 0 6px 20px rgba(22, 32, 43, .1);
 }
 
-html, body { min-height: 100%; }
+html, body {
+    min-height: 100%;
+}
+
 body {
     margin: 0;
     background: var(--platform-bg);
     color: var(--platform-text);
     font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
 }
-a { color: inherit; }
-code, pre, .platform-inline-code, .platform-timestamp {
+
+a {
+    color: inherit;
+}
+
+code, pre, .platform-inline-code, .platform-timestamp, .platform-monospace {
     font-family: "SFMono-Regular", Consolas, monospace;
     font-variant-numeric: tabular-nums;
 }
-:focus-visible { outline: 2px solid var(--platform-primary); outline-offset: 3px; }
 
-.platform-layout { min-height: 100vh; }
+/* 等宽展示类：需在全局定义，供采集服务器与节点配置等跨页面复用。 */
+.platform-monospace {
+    overflow-wrap: anywhere;
+}
+
+:focus-visible {
+    outline: 2px solid var(--platform-primary);
+    outline-offset: 3px;
+}
+
+/* ===== 语义强调修饰类 =====
+   给任意容器附加一个色相，卡片、色条、图标底色会自动跟随取色。 */
+.platform-accent-primary {
+    --card-accent: var(--md-primary);
+    --card-accent-strong: var(--md-primary-strong);
+    --card-accent-soft: var(--md-primary-soft);
+    --card-accent-tint: var(--md-primary-tint);
+}
+
+.platform-accent-secondary {
+    --card-accent: var(--md-secondary);
+    --card-accent-strong: var(--md-secondary-strong);
+    --card-accent-soft: var(--md-secondary-soft);
+    --card-accent-tint: var(--md-secondary-tint);
+}
+
+.platform-accent-tertiary {
+    --card-accent: var(--md-tertiary);
+    --card-accent-strong: var(--md-tertiary-strong);
+    --card-accent-soft: var(--md-tertiary-soft);
+    --card-accent-tint: var(--md-tertiary-tint);
+}
+
+.platform-accent-success {
+    --card-accent: var(--md-success);
+    --card-accent-strong: var(--md-success-strong);
+    --card-accent-soft: var(--md-success-soft);
+    --card-accent-tint: var(--md-success-tint);
+}
+
+.platform-accent-warning {
+    --card-accent: var(--md-warning);
+    --card-accent-strong: var(--md-warning-strong);
+    --card-accent-soft: var(--md-warning-soft);
+    --card-accent-tint: var(--md-warning-tint);
+}
+
+.platform-accent-error {
+    --card-accent: var(--md-error);
+    --card-accent-strong: var(--md-error-strong);
+    --card-accent-soft: var(--md-error-soft);
+    --card-accent-tint: var(--md-error-tint);
+}
+
+.platform-accent-info {
+    --card-accent: var(--md-info);
+    --card-accent-strong: var(--md-info-strong);
+    --card-accent-soft: var(--md-info-soft);
+    --card-accent-tint: var(--md-info-tint);
+}
+
+.platform-accent-neutral {
+    --card-accent: var(--platform-border-strong);
+    --card-accent-strong: var(--md-secondary-strong);
+    --card-accent-soft: var(--platform-surface-sunken);
+    --card-accent-tint: var(--platform-surface-muted);
+}
+
+.platform-layout {
+    min-height: 100vh;
+}
+
+/* ===== 顶栏 ===== */
 .platform-appbar {
     border-bottom: 1px solid var(--platform-border);
     background: var(--platform-surface) !important;
     color: var(--platform-text) !important;
+    box-shadow: 0 1px 2px rgba(22, 32, 43, .05);
 }
-.platform-appbar .mud-toolbar { min-height: 56px; gap: 12px; padding: 0 20px; }
-.platform-menu-toggle { flex-shrink: 0; }
-.platform-brand { flex: 1; min-width: 0; }
-.platform-brand > .mud-stack { min-width: 0; }
-.platform-brand-avatar { width: 32px; height: 32px; background: var(--platform-primary); color: white; }
-.platform-brand-title { font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.platform-brand-subtitle { color: var(--platform-text-muted); font-size: 0.6875rem; }
-.platform-version-chip { flex-shrink: 0; white-space: nowrap; font-size: 0.75rem; }
-.platform-drawer { border-right: 1px solid var(--platform-border); }
-.platform-drawer-header { min-height: 48px; padding: 16px 20px 8px; color: var(--platform-text-muted); }
-.platform-nav-shell { padding: 0 8px 16px; }
-.platform-nav-link { margin-block: 4px; border-radius: 4px; }
-.platform-nav-link .mud-nav-link { min-height: 42px; border-radius: 4px; }
-.platform-nav-link .mud-nav-link.active, .platform-nav-link.active {
-    background: var(--platform-primary-soft); color: var(--platform-primary); font-weight: 600;
+
+.platform-appbar .mud-toolbar {
+    min-height: 56px;
+    gap: 12px;
+    padding: 0 20px;
 }
-.platform-main-content { min-width: 0; }
-.platform-page-container { max-width: 1760px; padding: 20px 24px 32px; }
-.platform-page-shell { min-width: 0; }
-.platform-page-shell .mud-grid-item, .platform-page-shell .mud-stack { min-width: 0; }
+
+.platform-menu-toggle {
+    flex-shrink: 0;
+}
+
+.platform-brand {
+    flex: 1;
+    min-width: 0;
+}
+
+.platform-brand > .mud-stack {
+    min-width: 0;
+}
+
+.platform-brand-avatar {
+    width: 32px;
+    height: 32px;
+    color: #fff;
+    background: linear-gradient(135deg, var(--md-primary) 0%, var(--md-info) 100%);
+}
+
+.platform-brand-title {
+    font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.platform-brand-subtitle {
+    color: var(--platform-text-muted);
+    font-size: 0.6875rem;
+}
+
+.platform-version-chip {
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-size: 0.75rem;
+}
+
+/* ===== 侧边导航 ===== */
+.platform-drawer {
+    border-right: 1px solid var(--platform-border);
+    background: var(--platform-surface);
+}
+
+.platform-drawer-header {
+    min-height: 48px;
+    padding: 16px 20px 8px;
+    color: var(--platform-text-subtle);
+}
+
+.platform-drawer-header .mud-typography {
+    letter-spacing: .08em;
+}
+
+.platform-nav-shell {
+    padding: 0 8px 16px;
+}
+
+.platform-nav-link {
+    margin-block: 4px;
+    border-radius: 4px;
+}
+
+/* 导航分组标题，用于区分采集运维、班组排班与能耗指标三块内容。 */
+.platform-nav-section {
+    display: block;
+    padding: 14px 16px 6px;
+    color: var(--platform-text-subtle);
+    font-size: 0.6875rem;
+    letter-spacing: .08em;
+}
+
+.platform-nav-link .mud-nav-link {
+    min-height: 42px;
+    border-radius: 4px;
+    transition: background-color .15s ease, color .15s ease;
+}
+
+.platform-nav-link .mud-nav-link:hover {
+    background: var(--md-primary-tint);
+}
+
+.platform-nav-link .mud-nav-link.active,
+.platform-nav-link.active {
+    background: var(--md-primary-soft);
+    color: var(--md-primary-strong);
+    font-weight: 600;
+}
+
+.platform-nav-link.active .mud-nav-link-icon {
+    color: var(--md-primary);
+}
+
+/* 导航按功能分区着色，非激活态也保留可辨识的色相。
+   导航已按「采集运维 / 班组排班 / 能耗指标」分组，nth-child 不再可靠，改用显式修饰类。 */
+.platform-nav-link--primary .mud-nav-link-icon {
+    color: var(--md-primary);
+}
+
+.platform-nav-link--info .mud-nav-link-icon {
+    color: var(--md-info);
+}
+
+.platform-nav-link--tertiary .mud-nav-link-icon {
+    color: var(--md-tertiary);
+}
+
+.platform-nav-link--success .mud-nav-link-icon {
+    color: var(--md-success);
+}
+
+.platform-nav-link--warning .mud-nav-link-icon {
+    color: var(--md-warning);
+}
+
+.platform-nav-link--primary-secondary .mud-nav-link-icon {
+    color: var(--md-secondary);
+}
+
+.platform-nav-link--primary .mud-nav-link.active .mud-nav-link-icon,
+.platform-nav-link--primary-secondary .mud-nav-link.active .mud-nav-link-icon {
+    color: var(--md-primary);
+}
+
+/* ===== 页面容器 ===== */
+.platform-main-content {
+    min-width: 0;
+}
+
+.platform-page-container {
+    max-width: 1760px;
+    padding: 20px 24px 32px;
+}
+
+.platform-page-shell {
+    min-width: 0;
+}
+
+.platform-page-shell .mud-grid-item, .platform-page-shell .mud-stack {
+    min-width: 0;
+}
+
+/* ===== 通用卡片 ===== */
 .platform-page-hero, .platform-section-card, .platform-panel, .platform-stat-card, .status-code-card {
     border: 1px solid var(--platform-border);
     border-radius: 4px;
     background: var(--platform-surface);
     box-shadow: var(--platform-shadow);
 }
-.platform-page-hero { border-left: 3px solid var(--platform-primary); }
-.platform-page-hero .mud-typography-body1 { color: var(--platform-text-muted); max-width: 820px; }
-.platform-page-hero .mud-chip { height: 26px; margin-left: 0; font-size: 0.75rem; }
-.platform-stat-card { height: 100%; min-height: 108px; }
-.platform-stat-card > .mud-typography-caption { display: block; color: var(--platform-text-muted); margin-bottom: 8px; }
-.platform-stat-card .mud-typography-h3 { margin-bottom: 6px; }
-.platform-card-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
-.platform-card-header--tight { margin-bottom: 12px; }
-.platform-card-title, .platform-table-primary { color: var(--platform-text); font-weight: 600; }
-.platform-card-description, .platform-card-note, .platform-table-secondary, .home-stat-supporting { color: var(--platform-text-muted); }
-.platform-timestamp { white-space: nowrap; font-size: 0.75rem; }
 
-.platform-data-table .mud-table-container { overflow-x: auto; }
+/* 区块卡片承载左侧色条，需自身建立定位上下文 */
+.platform-section-card, .platform-panel {
+    position: relative;
+    overflow: hidden;
+}
+
+/* 页面头部：主色描边 + 同色底纹，确立每页主色。 */
+.platform-page-hero {
+    position: relative;
+    overflow: hidden;
+    border-left: 4px solid var(--card-accent, var(--md-primary));
+    background: var(--card-accent-tint, var(--md-primary-tint));
+}
+
+.platform-page-hero::after {
+    content: "";
+    position: absolute;
+    top: -56px;
+    right: -32px;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: var(--card-accent, var(--md-primary));
+    opacity: .08;
+    pointer-events: none;
+}
+
+.platform-page-hero > * {
+    position: relative;
+    z-index: 1;
+}
+
+.platform-page-hero .mud-typography-h4 {
+    color: var(--card-accent-strong, var(--md-primary-strong));
+}
+
+.platform-page-hero .mud-typography-body1 {
+    color: var(--platform-text-muted);
+    max-width: 820px;
+}
+
+.platform-page-hero .mud-chip {
+    height: 26px;
+    margin-left: 0;
+    font-size: 0.75rem;
+}
+
+/* 统计卡片：左侧语义色条 + 同色底纹。
+   底纹铺满整卡而非只染左侧一小条，否则卡片九成面积仍是白色，
+   整屏看上去「没有颜色」。
+   统计卡用 soft 档（比区块卡的 tint 档更饱和），让关键数字所在处
+   在白底页面中更跳脱；卡内表格仍保持白色表面以确保可读。 */
+.platform-stat-card {
+    position: relative;
+    overflow: hidden;
+    height: 100%;
+    min-height: 108px;
+}
+
+.platform-stat-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background: var(--card-accent, var(--md-primary));
+}
+
+.platform-stat-card--tinted {
+    background: var(--card-accent-soft, var(--md-primary-soft));
+}
+
+.platform-stat-card--tinted > .platform-data-table {
+    background: var(--platform-surface);
+}
+
+.platform-stat-card > .mud-typography-caption {
+    display: block;
+    color: var(--platform-text-muted);
+    margin-bottom: 8px;
+}
+
+.platform-stat-card .mud-typography-h3, .platform-stat-card .mud-typography-h5 {
+    margin-bottom: 6px;
+    color: var(--card-accent-strong, var(--platform-text));
+}
+
+.platform-stat-card--tinted > .mud-typography-caption {
+    color: var(--card-accent-strong, var(--platform-text-muted));
+}
+
+/* 统计卡片标题行：图标底色块 + 标签 */
+.platform-stat-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.platform-stat-header .mud-typography {
+    color: var(--card-accent-strong, var(--platform-text-muted));
+    font-weight: 600;
+}
+
+.platform-stat-header .platform-section-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+}
+
+/* 区块卡片顶部色带，用于区分同级区块。 */
+.platform-section-card--banded {
+    border-top: 3px solid var(--card-accent, var(--md-primary));
+}
+
+/* 区块卡片的同色底纹变体。
+   只有顶部色带的区块卡在大片留白的页面里仍然显得「没上色」。
+   这里用「左侧色块 + 全幅浅底」的组合：
+   - 左侧色块提供明确的色彩锚点，让不同区块一眼可分；
+   - 全幅浅底保证卡片整体带有色调，而不是只有左上角一点颜色。 */
+.platform-section-card--tinted,
+.platform-panel--tinted {
+    background: var(--card-accent-tint, var(--md-primary-tint));
+}
+
+.platform-section-card--tinted::before,
+.platform-panel--tinted::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background: var(--card-accent, var(--md-primary));
+}
+
+/* 区块内的表格与表单仍用白色表面，与浅底形成层次 */
+.platform-section-card--tinted > .platform-data-table,
+.platform-panel--tinted > .platform-data-table,
+.platform-section-card--tinted .platform-sheet,
+.platform-panel--tinted .platform-sheet {
+    background: var(--platform-surface);
+}
+
+/* 卡片标题行 */
+.platform-card-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.platform-card-header--tight {
+    margin-bottom: 12px;
+}
+
+.platform-card-title, .platform-table-primary {
+    color: var(--platform-text);
+    font-weight: 600;
+}
+
+.platform-card-description, .platform-card-note, .platform-table-secondary, .home-stat-supporting {
+    color: var(--platform-text-muted);
+}
+
+.platform-timestamp {
+    white-space: nowrap;
+    font-size: 0.75rem;
+}
+
+/* 卡片标题前的色块图标，增强区块识别度。 */
+.platform-section-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: var(--card-accent-soft, var(--md-primary-soft));
+    color: var(--card-accent-strong, var(--md-primary-strong));
+}
+
+/* 空状态 */
+.platform-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 48px 16px;
+    text-align: center;
+}
+
+.platform-empty-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    margin-bottom: 4px;
+    border-radius: 50%;
+    background: var(--card-accent-soft, var(--md-primary-soft));
+    color: var(--card-accent-strong, var(--md-primary-strong));
+}
+
+/* ===== 数据表格 ===== */
+.platform-data-table .mud-table-container {
+    overflow-x: auto;
+}
+
 .platform-data-table .mud-table-head .mud-table-cell {
-    background: #f7f9fb;
-    color: #536170;
+    background: var(--card-accent-tint, var(--platform-surface-sunken));
+    color: var(--card-accent-strong, var(--platform-text-muted));
     font-size: 0.75rem;
     font-weight: 600;
     padding: 10px 12px;
     white-space: nowrap;
-    border-bottom: 1px solid var(--platform-border);
+    border-bottom: 1px solid var(--card-accent-soft, var(--platform-border));
 }
+
 .platform-data-table .mud-table-body .mud-table-cell {
     padding: 10px 12px;
     vertical-align: middle;
-    border-bottom: 1px solid #edf0f3;
+    border-bottom: 1px solid var(--platform-border);
 }
-.platform-data-table .mud-table-body .mud-table-row:hover { background: #f4f8fe; }
-.platform-data-table .mud-table-pagination { border-top: 1px solid var(--platform-border); }
-.platform-data-table .table-action-cell { min-width: 176px; }
-.platform-data-table .table-action-grid { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
-.platform-data-table .table-action-button {
-    flex: 0 0 auto; width: auto; min-width: 64px; min-height: 30px;
-    padding: 4px 8px; white-space: nowrap;
-}
-.platform-data-table .table-action-button .mud-button-label { display: flex; flex-wrap: nowrap; justify-content: flex-start; }
-.platform-data-table .table-action-button .mud-button-start-icon { margin-right: 4px; }
-.platform-data-table .table-action-button .mud-icon-root { font-size: 16px; }
-.platform-data-table .mud-chip { margin: 0; }
-.platform-data-table { box-shadow: none; }
-.platform-empty-state { justify-content: center; text-align: center; }
 
-/* Shared right-hand sheets: keep headers/actions fixed and scroll only the body. */
-.platform-sheet-overlay.mud-overlay { align-items: stretch; justify-content: flex-end; }
-.platform-sheet-overlay > .mud-overlay-content { height: 100%; max-width: 100%; }
-.platform-sheet {
-    width: min(480px, 100vw); height: 100vh; height: 100dvh;
-    display: flex; flex-direction: column;
-    background: var(--platform-surface); box-shadow: -4px 0 24px #18283b29;
+.platform-data-table .mud-table-body .mud-table-row:hover {
+    background: var(--md-primary-tint);
 }
-.platform-sheet--wide { width: min(720px, 100vw); }
-.platform-sheet-header, .platform-sheet-footer { flex: none; padding: 16px 20px; background: white; }
-.platform-sheet-header { border-bottom: 1px solid var(--platform-border); }
-.platform-sheet-header .mud-icon-button { flex-shrink: 0; }
-.platform-sheet-body { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 16px; background: var(--platform-bg); }
-.platform-sheet-body > * { flex-shrink: 0; }
-.platform-sheet-footer { border-top: 1px solid var(--platform-border); }
-.platform-sheet-section { padding: 16px; background: white; border: 1px solid var(--platform-border); border-radius: 4px; }
-.platform-field-row { padding: 8px 0; border-bottom: 1px solid #edf0f3; }
-.platform-field-row:last-child { border-bottom: 0; }
-.platform-field-row .mud-typography { overflow-wrap: anywhere; }
-.platform-field-label { display: block; color: var(--platform-text-muted); margin-bottom: 4px; font-size: 0.75rem; }
-.platform-code-panel { overflow: hidden; background: #19232e; border: 1px solid #2c3b4c; border-radius: 4px; }
-.platform-code-heading { padding: 10px 14px; color: #bbc9d8; border-bottom: 1px solid #344353; font-size: 0.75rem; }
-.platform-code-content { margin: 0; padding: 14px; max-height: 360px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; color: #e2eaf3; font-size: 0.75rem; line-height: 1.6; }
-.platform-summary { padding: 12px; background: #f5f7fa; border: 1px solid var(--platform-border); border-radius: 4px; }
-.server-status-stat { border-left: 3px solid var(--platform-primary); }
+
+.platform-data-table .mud-table-row:hover .platform-table-primary {
+    color: var(--md-primary-strong);
+}
+
+.platform-data-table .mud-table-pagination {
+    border-top: 1px solid var(--platform-border);
+}
+
+.platform-data-table .table-action-cell {
+    min-width: 176px;
+}
+
+.platform-data-table .table-action-grid {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+}
+
+.platform-data-table .table-action-button {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 64px;
+    min-height: 30px;
+    padding: 4px 8px;
+    white-space: nowrap;
+}
+
+.platform-data-table .table-action-button .mud-button-label {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+}
+
+.platform-data-table .table-action-button .mud-button-start-icon {
+    margin-right: 4px;
+}
+
+.platform-data-table .table-action-button .mud-icon-root {
+    font-size: 16px;
+}
+
+.platform-data-table .mud-chip {
+    margin: 0;
+}
+
+.platform-data-table {
+    box-shadow: none;
+}
+
+/* 表格行首编码块，等宽字体 + 淡底色，与其他文本拉开层次。 */
+.platform-table-primary.platform-inline-code,
+.platform-inline-code.platform-table-primary {
+    color: var(--md-primary-strong);
+}
+
+/* ===== 抽屉与对话框 ===== */
+/* Shared edit/detail sheets built on MudDialog: headers stay fixed, only the body scrolls. */
+/* 仅让含抽屉的对话框撑满视口，居中确认框保持自适应高度。 */
+.mud-dialog:has(.platform-sheet) {
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+}
+
+.mud-dialog:has(.platform-sheet) .mud-dialog-surface {
+    height: 100%;
+    min-height: 0;
+}
+
+.platform-sheet {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.platform-sheet-header {
+    flex: none;
+    padding: 16px 20px;
+    background: linear-gradient(100deg, var(--card-accent-tint, var(--md-primary-tint)) 0%, var(--platform-surface) 70%);
+    border-bottom: 1px solid var(--card-accent-soft, var(--platform-border));
+}
+
+.platform-sheet-header .mud-typography-h5 {
+    color: var(--card-accent-strong, var(--md-primary-strong));
+}
+
+.platform-sheet-header .mud-icon-button {
+    flex-shrink: 0;
+}
+
+.platform-sheet-body {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding: 16px;
+    background: var(--platform-bg);
+}
+
+.platform-sheet-body > * {
+    flex-shrink: 0;
+}
+
+.platform-sheet-section {
+    padding: 16px;
+    background: var(--platform-surface);
+    border: 1px solid var(--platform-border);
+    border-radius: 4px;
+    border-left: 3px solid var(--card-accent, var(--md-primary));
+    box-shadow: var(--platform-shadow);
+}
+
+.platform-sheet-section .mud-typography-h6 {
+    color: var(--card-accent-strong, var(--platform-text));
+}
+
+.platform-field-label {
+    display: block;
+    color: var(--platform-text-muted);
+    margin-bottom: 4px;
+    font-size: 0.75rem;
+}
+
+/* 深色代码 / 日志面板 */
+.platform-code-panel {
+    overflow: hidden;
+    background: linear-gradient(180deg, #1d2937 0%, #172130 100%);
+    border: 1px solid #2b3a4d;
+    border-radius: 4px;
+}
+
+.platform-code-heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    color: #a9c4e0;
+    background: rgba(255, 255, 255, .04);
+    border-bottom: 1px solid #31415a;
+    font-size: 0.75rem;
+}
+
+.platform-code-content {
+    margin: 0;
+    padding: 14px;
+    max-height: 360px;
+    overflow: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    color: #dbe7f3;
+    font-size: 0.75rem;
+    line-height: 1.6;
+}
+
+.platform-summary {
+    padding: 12px;
+    background: var(--card-accent-tint, var(--platform-surface-muted));
+    border: 1px solid var(--card-accent-soft, var(--platform-border));
+    border-radius: 4px;
+}
+
+.platform-summary > .mud-typography-caption {
+    color: var(--card-accent-strong, var(--platform-text-muted));
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+/* ===== 图表容器 =====
+   MudChart 为 SVG 渲染，容器负责统一高度与留白。
+   图表区铺一层 accent 极浅渐变底，与所在卡片主色呼应，同时保持网格线可读。 */
+.platform-chart-panel {
+    width: 100%;
+    /* 不裁剪：坐标轴文字（Y 轴刻度值、X 轴标签与轴标题）绘制在 SVG viewBox 之外，
+       裁剪会让它们完全看不见。 */
+    overflow: visible;
+}
+
+.platform-chart-frame {
+    width: 100%;
+    height: 340px;
+    /* 上部带同色底纹，向下渐隐为白：图表区域有了色调，又不会干扰读数 */
+    background: linear-gradient(180deg,
+    var(--card-accent-tint, var(--md-primary-tint)) 0%,
+    var(--platform-surface) 42%);
+    border: 1px solid var(--card-accent-soft, var(--platform-border));
+    border-radius: 3px;
+    /* 左侧留出刻度值的位置：MudChart 的 Y 轴文字以 text-anchor:end 绘制在
+       viewBox 边界上，SVG 默认 overflow:hidden 会把它们整个裁掉。
+       底部同理，X 轴日期标签与轴标题也需要空间。 */
+    padding: 8px 4px 22px 34px;
+    /* SVG 开了 overflow:visible，坐标轴文字会溢出到 viewBox 之外，
+       容器必须留出对应空间，否则 X 轴标签会被容器裁掉。 */
+    overflow: visible;
+}
+
+/* 允许坐标轴文字溢出到 viewBox 之外，
+   否则 Y 轴刻度值（110/120/130…）会因 SVG 默认裁剪而完全看不见。 */
+.platform-chart-frame .mud-chart svg {
+    overflow: visible;
+}
+
+.platform-chart-frame--compact {
+    min-height: 180px;
+}
+
+/* 图表高度由标记上的 Height 属性决定（配合 MatchBoundsToSize 让 SVG 铺满容器），
+   这里不再写死 height —— CSS 的 height 会覆盖 SVG 的内联高度属性，
+   两者不一致时 MudChart 会算错 viewBox，表现为坐标轴文字被裁到容器外。 */
+.platform-chart-frame .mud-chart {
+    width: 100%;
+}
+
+.platform-chart-frame--compact .mud-chart {
+    height: 200px;
+}
+
+/* ===== 图表系列配色 =====
+   MudChart 把系列颜色硬编码为 Material 默认蓝（#2979FF），写进 SVG 的
+   presentation attribute，与七色体系完全脱节。SVG presentation attribute
+   的优先级低于任何 CSS 规则，因此这里按所在卡片的 accent 变量覆盖：
+   折线、数据点、柱形与卡片色条/标题色保持同一色相。 */
+.platform-chart-frame path.mud-chart-line {
+    stroke: var(--card-accent, var(--md-primary));
+}
+
+.platform-chart-frame circle.mud-chart-point {
+    stroke: var(--card-accent, var(--md-primary));
+    fill: var(--platform-surface);
+}
+
+.platform-chart-frame path.mud-chart-bar {
+    fill: var(--card-accent, var(--md-primary));
+    stroke: var(--card-accent, var(--md-primary));
+    transition: fill .15s ease, stroke .15s ease;
+}
+
+/* 柱形悬停时加深一档，与悬停提示配合，强化“这根柱子对应的班组” */
+.platform-chart-frame path.mud-chart-bar:hover {
+    fill: var(--card-accent-strong, var(--md-primary-strong));
+    stroke: var(--card-accent-strong, var(--md-primary-strong));
+}
+
+/* 网格线与坐标轴线统一为中性边框色（MudBlazor 默认是生硬的 #e0e0e0）。
+   此规则必须写在系列配色之前或选择器更弱，避免覆盖系列颜色。 */
+.platform-chart-frame svg path {
+    stroke: var(--platform-border);
+}
+
+.platform-chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin-top: 12px;
+}
+
+.platform-chart-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: var(--platform-text-muted);
+}
+
+.platform-chart-legend-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    /* 图例色块与图表系列同源：都取所在卡片的 accent，
+       保证「图例颜色 = 折线/柱形颜色」在所有页面成立。 */
+    background: var(--card-accent, var(--md-primary));
+}
+
+/* 图表在窄屏下的适配：降低高度冗余、缩小轴标签字号，
+   X 轴标签倾斜排布避免相邻标签相互重叠。 */
+@media (max-width: 959px) {
+    .platform-chart-frame {
+        padding: 6px 4px 22px 30px;
+    }
+}
+
+@media (max-width: 599px) {
+    .platform-chart-frame {
+        height: 300px;
+        padding: 6px 2px 20px 26px;
+    }
+
+    /* X 轴标签旋转：MudChart 等距绘制全部标签，窄屏下水平排列会互相压字。
+       标签是 g.mud-charts-xaxis 分组内的 text 元素，围绕自身左上角倾斜。 */
+    .platform-chart-frame svg g.mud-charts-xaxis text {
+        transform: rotate(-35deg);
+        transform-box: fill-box;
+        transform-origin: left top;
+    }
+}
+
+/* ===== 排班日历 =====
+   MudBlazor 9.11 未提供独立日历组件，这里用网格自建月历。
+   色相全部来自所在容器的 accent 变量，不新增任何具体色相规则。 */
+.platform-calendar {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 1px;
+    /* 网格线跟随所在容器的 accent，用灰色会在有色底上显得突兀 */
+    background: var(--card-accent-soft, var(--platform-border));
+    border: 1px solid var(--card-accent-soft, var(--platform-border));
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.platform-calendar-weekday {
+    padding: 8px 6px;
+    background: var(--card-accent-tint, var(--platform-surface-muted));
+    color: var(--card-accent-strong, var(--platform-text-muted));
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.platform-calendar-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 108px;
+    padding: 8px;
+    /* 继承所在区块的底色，避免网格在有色区块内割裂成一块白 */
+    background: transparent;
+    text-align: left;
+    border: 0;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+    transition: background-color .15s ease;
+}
+
+.platform-calendar-cell:hover {
+    background: var(--card-accent-soft, var(--md-primary-soft));
+}
+
+.platform-calendar-cell--muted {
+    background: var(--platform-surface-muted);
+    opacity: .72;
+}
+
+.platform-calendar-cell--muted .platform-calendar-date {
+    color: var(--platform-text-subtle);
+}
+
+.platform-calendar-cell--today {
+    box-shadow: inset 0 0 0 2px var(--card-accent, var(--md-primary));
+}
+
+.platform-calendar-cell--selected {
+    background: var(--card-accent-soft, var(--md-primary-soft));
+    box-shadow: inset 0 0 0 2px var(--card-accent, var(--md-primary));
+}
+
+.platform-calendar-date {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--platform-text);
+}
+
+.platform-calendar-today-badge {
+    font-size: 0.625rem;
+    font-weight: 600;
+    color: var(--card-accent-strong, var(--md-primary-strong));
+}
+
+/* 日历状态标签。
+   底色用 base 档配白字而非 soft 档——日历格本身已是 tint 底，
+   soft 标签叠在 tint 上层次拉不开，状态提示会看不清。 */
+.platform-calendar-badge {
+    font-size: 0.625rem;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: var(--card-accent, var(--md-primary));
+    color: #fff;
+}
+
+.platform-calendar-badge--rest {
+    background: var(--md-warning);
+    color: #fff;
+}
+
+.platform-calendar-badge--incomplete {
+    background: var(--md-error);
+    color: #fff;
+}
+
+.platform-calendar-shifts {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.platform-calendar-shift {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: var(--platform-surface-sunken);
+    font-size: 0.6875rem;
+    line-height: 1.4;
+}
+
+.platform-calendar-shift-name {
+    font-weight: 600;
+    color: var(--card-accent-strong, var(--platform-text));
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.platform-calendar-shift-time {
+    color: var(--platform-text-muted);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.platform-calendar-more {
+    font-size: 0.625rem;
+    color: var(--platform-text-subtle);
+}
+
+/* 图表与日历在窄屏下改为单列，避免单元格被压扁到不可读。 */
+@media (max-width: 959px) {
+    .platform-calendar-cell {
+        min-height: 88px;
+        padding: 6px;
+    }
+
+    .platform-calendar-shift-time {
+        display: none;
+    }
+}
+
+@media (max-width: 599px) {
+    .platform-calendar {
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+    }
+
+    .platform-calendar-cell {
+        min-height: 64px;
+        padding: 4px;
+    }
+
+    .platform-calendar-shifts {
+        display: none;
+    }
+}
+
+/* ===== 采集服务器配置：按类型动态渲染的字段分组 ===== */
+.acquisition-server-field {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.acquisition-server-field > * {
+    min-width: 0;
+}
+
+.acquisition-server-picker {
+    border-left: 3px solid var(--card-accent, var(--md-primary));
+    background: linear-gradient(90deg, var(--card-accent-soft, var(--md-primary-soft)) 0, var(--platform-surface) 88px);
+}
+
+.node-server-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    padding: 10px 12px;
+    background: var(--md-info-tint);
+    border: 1px solid var(--md-info-soft);
+    border-radius: 4px;
+}
+
+.node-server-preview-item {
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+}
+
+.node-server-preview-label {
+    color: var(--platform-text-muted);
+    font-size: 0.75rem;
+}
+
+.node-server-preview-value {
+    color: var(--md-info-strong);
+    font-size: 0.8125rem;
+    overflow-wrap: anywhere;
+}
+
+/* ===== 服务器连接状态 ===== */
+.server-status-stat {
+    border-left: 3px solid var(--card-accent, var(--md-primary));
+}
+
+.server-status-stat::before {
+    display: none;
+}
+
 .server-status-card {
     position: relative;
     overflow: hidden;
     min-height: 252px;
+    background: linear-gradient(96deg, var(--card-accent-tint, var(--platform-surface-muted)) 0%, var(--platform-surface) 88px);
 }
+
 .server-status-card::before {
     content: "";
     position: absolute;
     inset: 0 auto 0 0;
     width: 4px;
-    background: #94a3b8;
+    background: var(--card-accent, var(--platform-border-strong));
 }
-.server-status-card--online::before { background: #16a34a; }
-.server-status-card--offline::before { background: #f59e0b; }
-.server-status-card--checking::before { background: #0284c7; }
-.server-status-card--empty::before { background: #94a3b8; }
-.server-status-card--checking { background: linear-gradient(90deg, #f0f9ff 0, #fff 72px); }
-.server-status-card--online { background: linear-gradient(90deg, #f0fdf4 0, #fff 72px); }
-.server-status-card--offline { background: linear-gradient(90deg, #fffbeb 0, #fff 72px); }
-.platform-dialog { width: min(440px, calc(100vw - 32px)); padding: 24px; }
-.status-code-shell { min-height: calc(100vh - 120px); display: grid; place-items: center; }
-.status-code-card { width: min(600px, 100%); padding: 32px; }
-.not-found-avatar, .server-error-avatar { background: #e8f0fc; width: 56px; height: 56px; }
-#blazor-error-ui { display: none; position: fixed; inset: auto 16px 16px; z-index: 2000; padding: 16px; border: 1px solid #ef9a9a; background: #fff4f4; border-radius: 4px; }
-#blazor-error-ui .reload, #blazor-error-ui .dismiss { margin-left: 12px; color: var(--platform-primary); cursor: pointer; }
-#blazor-error-ui .dismiss { border: 0; background: transparent; }
+
+.server-status-card .mud-typography-h6 {
+    color: var(--card-accent-strong, var(--platform-text));
+}
+
+.platform-dialog-icon-error {
+    background: var(--md-error-soft);
+    color: var(--md-error-strong);
+}
+
+.status-code-shell {
+    min-height: calc(100vh - 120px);
+    display: grid;
+    place-items: center;
+}
+
+.status-code-card {
+    width: min(600px, 100%);
+    padding: 32px;
+}
+
+.not-found-avatar, .server-error-avatar {
+    width: 56px;
+    height: 56px;
+    background: var(--md-warning-soft);
+    color: var(--md-warning-strong);
+}
+
+#blazor-error-ui {
+    display: none;
+    position: fixed;
+    inset: auto 16px 16px;
+    z-index: 2000;
+    padding: 16px;
+    border: 1px solid var(--md-error);
+    background: var(--md-error-tint);
+    border-radius: 4px;
+}
+
+#blazor-error-ui .reload, #blazor-error-ui .dismiss {
+    margin-left: 12px;
+    color: var(--md-error-strong);
+    cursor: pointer;
+}
+
+#blazor-error-ui .dismiss {
+    border: 0;
+    background: transparent;
+}
 
 @media (max-width: 959px) {
-    .platform-page-container { padding: 16px; }
-    .platform-brand-subtitle { display: none; }
+    .platform-page-container {
+        padding: 16px;
+    }
+
+    .platform-brand-subtitle {
+        display: none;
+    }
 }
+
 @media (max-width: 599px) {
-    .platform-appbar .mud-toolbar { padding-inline: 12px; gap: 4px; }
-    .platform-brand-avatar { display: none; }
-    .platform-brand-title { font-size: 0.875rem; }
-    .platform-version-chip { font-size: 0.625rem; padding-inline: 6px; }
-    .platform-page-container { padding: 12px; }
-    .platform-data-table .mud-xs-table .mud-table-cell { min-width: 0; gap: 12px; }
-    .platform-sheet-header, .platform-sheet-footer { padding: 12px 16px; }
-    .platform-sheet-body { padding: 12px; }
-    .status-code-card { padding: 24px; }
+    .platform-appbar .mud-toolbar {
+        padding-inline: 12px;
+        gap: 4px;
+    }
+
+    .platform-brand-avatar {
+        display: none;
+    }
+
+    .platform-brand-title {
+        font-size: 0.875rem;
+    }
+
+    .platform-version-chip {
+        font-size: 0.625rem;
+        padding-inline: 6px;
+    }
+
+    .platform-page-container {
+        padding: 12px;
+    }
+
+    .platform-data-table .mud-xs-table .mud-table-cell {
+        min-width: 0;
+        gap: 12px;
+    }
+
+    .platform-sheet-header {
+        padding: 12px 16px;
+    }
+
+    .platform-sheet-body {
+        padding: 12px;
+    }
+
+    .status-code-card {
+        padding: 24px;
+    }
 }
+
 @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
 }

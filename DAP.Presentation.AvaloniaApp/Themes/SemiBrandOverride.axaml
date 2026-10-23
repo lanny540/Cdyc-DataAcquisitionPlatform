@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  统一品牌色板 · Semi.Avalonia 覆盖层
+
+  将 Semi 主题的默认色（默认亮蓝 #0064fa / 绿 / 橙 / 红）替换为
+  与 Web 端 app.css 完全一致的品牌色板，保证双终端视觉统一。
+
+  覆盖的 10 个键均已核实存在于 Semi.Avalonia 12.1.0.1 的调色板中
+  （avares://Semi.Avalonia/Tokens/Palette/Light.axaml）。
+  新增覆盖键前，请先用反射/ TryGetResource 确认其存在，否则不会生效。
+
+  色值来源：Themes/DapPalette.axaml（唯一权威来源）。
+-->
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Primary：#0B4FC4，Active 用 dark 变体 -->
+    <SolidColorBrush x:Key="SemiColorPrimary" Color="#0B4FC4" />
+    <SolidColorBrush x:Key="SemiColorPrimaryActive" Color="#083A99" />
+    <SolidColorBrush x:Key="SemiColorPrimaryDisabled" Color="#8FB2E0" />
+
+    <!-- Success：#0D7A3C -->
+    <SolidColorBrush x:Key="SemiColorSuccess" Color="#0D7A3C" />
+    <SolidColorBrush x:Key="SemiColorSuccessActive" Color="#085829" />
+
+    <!-- Warning：#B15600 -->
+    <SolidColorBrush x:Key="SemiColorWarning" Color="#B15600" />
+    <SolidColorBrush x:Key="SemiColorWarningActive" Color="#824000" />
+
+    <!-- Danger（Semi 中对应 Error 语义）：#B32318 -->
+    <SolidColorBrush x:Key="SemiColorDanger" Color="#B32318" />
+    <SolidColorBrush x:Key="SemiColorDangerActive" Color="#861711" />
+
+    <!-- Link / Info：#0F6FBD -->
+    <SolidColorBrush x:Key="SemiColorLink" Color="#0F6FBD" />
+
+    <!-- 中性色阶：与 Web 端 platform 中性色变量对齐 -->
+    <SolidColorBrush x:Key="SemiColorFill0" Color="#16202B" />
+    <SolidColorBrush x:Key="SemiColorText0" Color="#16202B" />
+    <SolidColorBrush x:Key="SemiColorText1" Color="#4E5A70" />
+    <SolidColorBrush x:Key="SemiColorBorder" Color="#C7D0DA" />
+    <SolidColorBrush x:Key="SemiColorBackground0" Color="#F4F7FA" />
+
+</ResourceDictionary>
