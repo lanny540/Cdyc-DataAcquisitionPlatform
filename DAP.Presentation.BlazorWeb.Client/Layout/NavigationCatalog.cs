@@ -14,6 +14,14 @@ namespace DAP.Presentation.BlazorWeb.Client.Layout;
 /// <param name="PageKey">页面稳定标识，落库后不随路由改动而变化，是启动对账的比对键。</param>
 /// <param name="DomainCode">默认所属职能域。库中可覆盖，见 docs/AUTH_DESIGN.md 第 4 节。</param>
 /// <param name="AccessLevel">页面等级：1 查看类，2 配置类。</param>
+/// <param name="RequiredPermission">
+/// 页面要求的权限点。为空表示只按域与等级判定；非空时导航与页面闸门都要求持有该权限点。
+/// 部门管理员靠它看到「用户与角色」——权限点已在其角色里，不需要额外授予系统域。
+/// </param>
+/// <param name="IsShared">
+/// 是否为跨域共享页。共享页不依赖域授权（部门管理员的可见域是业务域，不是平台管理域），
+/// 改为「持有 RequiredPermission 即可见」，在导航里以「权限管理」合成域呈现。
+/// </param>
 public sealed record NavItem(
     string Title,
     string Href,
@@ -21,7 +29,9 @@ public sealed record NavItem(
     string Accent,
     string PageKey,
     string DomainCode = AuthorizationCatalog.BanknotePaperDomain,
-    int AccessLevel = AuthorizationCatalog.ViewAccessLevel)
+    int AccessLevel = AuthorizationCatalog.ViewAccessLevel,
+    string? RequiredPermission = null,
+    bool IsShared = false)
 {
     /// <summary>
     /// 根路由必须精确匹配：Prefix 匹配下 "/" 会命中所有页面，导致平台概览永远高亮。
@@ -37,6 +47,11 @@ public sealed record NavItem(
     /// 是否为配置类页面。
     /// </summary>
     public bool IsConfigurationPage => AccessLevel >= AuthorizationCatalog.ConfigureAccessLevel;
+
+    /// <summary>
+    /// 是否要求额外的权限点。
+    /// </summary>
+    public bool RequiresPermission => !string.IsNullOrWhiteSpace(RequiredPermission);
 }
 
 /// <summary>
@@ -177,12 +192,20 @@ public static class NavigationCatalog
                 ]),
                 new NavGroup("权限管理",
                 [
+                    new NavItem("用户与角色", "/user-management", Icons.Material.Filled.ManageAccounts,
+                        AccentInfo, "user-management", AuthorizationCatalog.PlatformDomain,
+                        AuthorizationCatalog.ConfigureAccessLevel,
+                        AuthorizationCatalog.UserManagePermission, IsShared: true),
                     new NavItem("域与页面配置", "/domain-config", Icons.Material.Filled.AccountTree, AccentPrimary,
                         "domain-config", AuthorizationCatalog.PlatformDomain,
                         AuthorizationCatalog.ConfigureAccessLevel),
                     new NavItem("部门与授权", "/department-grants", Icons.Material.Filled.Group, AccentSuccess,
                         "department-grants", AuthorizationCatalog.PlatformDomain,
-                        AuthorizationCatalog.ConfigureAccessLevel)
+                        AuthorizationCatalog.ConfigureAccessLevel),
+                    new NavItem("系统审计", "/system-audit", Icons.Material.Filled.FactCheck, AccentWarning,
+                        "system-audit", AuthorizationCatalog.PlatformDomain,
+                        AuthorizationCatalog.ConfigureAccessLevel,
+                        AuthorizationCatalog.SystemManagePermission)
                 ])
             ])
     ];
@@ -214,6 +237,50 @@ public static class NavigationCatalog
     /// 全部页面的扁平视图，含所属模块与分组标题。启动对账用它写入 domain_pages。
     /// </summary>
     public static IReadOnlyList<NavPageDescriptor> Pages => AllPages;
+
+    /// <summary>
+    /// 全部跨域共享页（<see cref="NavItem.IsShared"/>）。共享页不依赖域授权，
+    /// 改为「持有 <see cref="NavItem.RequiredPermission"/> 即可见」。
+    /// 用 Lazy 延迟到类型初始化完成后取数，避免与 <c>AllPages</c> 的静态初始化顺序耦合。
+    /// </summary>
+    public static IReadOnlyList<NavItem> SharedPages => SharedPagesCache.Value;
+
+    private static readonly Lazy<NavItem[]> SharedPagesCache =
+        new(() => [.. Pages.Where(page => page.Item.IsShared).Select(page => page.Item)]);
+
+    /// <summary>
+    /// 按路由反查共享页。采用最长前缀匹配，与页面闸门的匹配规则一致；
+    /// 非共享页或未登记路径返回 null。
+    /// </summary>
+    /// <param name="relativePath">相对基础路径的地址，例如 user-management。</param>
+    /// <returns>命中的共享页条目；未命中返回 null。</returns>
+    public static NavItem? ResolveSharedPage(string? relativePath)
+    {
+        var path = Normalize(relativePath);
+
+        NavItem? matched = null;
+        var matchedLength = -1;
+
+        foreach (NavItem item in SharedPages)
+        {
+            var href = Normalize(item.Href);
+
+            var isMatch = href.Length == 0
+                ? path.Length == 0
+                : path.Equals(href, StringComparison.OrdinalIgnoreCase)
+                  || path.StartsWith(href + "/", StringComparison.OrdinalIgnoreCase);
+
+            if (!isMatch || href.Length <= matchedLength)
+            {
+                continue;
+            }
+
+            matched = item;
+            matchedLength = href.Length;
+        }
+
+        return matched;
+    }
 
     private static readonly NavPageDescriptor[] AllPages = BuildPages();
 

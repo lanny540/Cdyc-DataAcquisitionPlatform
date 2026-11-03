@@ -6,7 +6,7 @@ namespace DAP.Presentation.BlazorWeb.Client;
 /// **为什么兜底 catch 绝不能拼 <c>ex.Message</c>**：
 /// 网络类异常的消息是英文框架文案（如 <c>No such host is known. (host:443)</c>、
 /// <c>The operation was canceled.</c>），拼进提示等于把英文和可能的内网地址
-/// 直接暴露给用户。按三类分支处理：
+/// 直接暴露给用户。按四类分支处理：
 /// <list type="bullet">
 /// <item><see cref="OperationCanceledException"/>（超时）→ 统一中文结论；</item>
 /// <item><see cref="InvalidOperationException"/>（服务端业务错误）→ 消息本身已是中文，可安全展示；</item>
@@ -26,9 +26,31 @@ public static class UserFacingErrors
         return ex switch
         {
             OperationCanceledException => "操作超时，请稍后重试。",
-            InvalidOperationException => ex.Message,
+            // InvalidOperationException 既承载业务错误（中文，可直接展示），
+            // 也承载框架错误（EF 的「A second operation was started on this context...」
+            // 之类，英文）。用「有没有汉字」区分两者：业务文案一定含中文。
+            InvalidOperationException when HasChinese(ex.Message) => ex.Message,
+            InvalidOperationException => fallback,
             HttpRequestException => "网络请求失败，请检查网络连接后重试。",
             _ => fallback
         };
+    }
+
+    private static bool HasChinese(string? text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return false;
+        }
+
+        foreach (var ch in text)
+        {
+            if (ch is >= '\u4e00' and <= '\u9fff')
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

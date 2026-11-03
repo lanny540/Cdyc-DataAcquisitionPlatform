@@ -128,4 +128,78 @@ public class NavigationCatalogTests
     {
         Assert.Equal(expectedSectionId, NavigationCatalog.ResolveSection(path).Id);
     }
+
+    /// <summary>
+    /// 页面声明的权限点必须已在授权目录登记。
+    /// 写错一个字符，导航与闸门都按「没有该权限」处理，页面从此谁都打不开且不报错。
+    /// </summary>
+    [Fact]
+    public void Required_Permissions_Should_Be_Declared()
+    {
+        var declared = AuthorizationCatalog.Permissions
+            .Select(permission => permission.Code)
+            .ToHashSet(StringComparer.Ordinal);
+
+        var offenders = NavigationCatalog.Pages
+            .Where(page => page.Item.RequiresPermission && !declared.Contains(page.Item.RequiredPermission!))
+            .Select(page => $"{page.Item.Title} → {page.Item.RequiredPermission}")
+            .ToList();
+
+        Assert.True(offenders.Count == 0, "页面引用了未声明的权限点：" + string.Join("、", offenders));
+    }
+
+    /// <summary>
+    /// 共享页靠权限点放行，因此必须声明权限点；同时共享页承载的是管理动作，
+    /// 等级必须为配置级——查看级共享页等于对只读用户开放管理入口的菜单项。
+    /// </summary>
+    [Fact]
+    public void Shared_Pages_Should_Require_Permission_And_Configure_Level()
+    {
+        Assert.NotEmpty(NavigationCatalog.SharedPages);
+
+        foreach (var page in NavigationCatalog.SharedPages)
+        {
+            Assert.True(page.RequiresPermission, $"共享页 {page.Title} 未声明权限点");
+            Assert.True(page.IsConfigurationPage, $"共享页 {page.Title} 不是配置级页面");
+        }
+    }
+
+    /// <summary>
+    /// 用户与角色是部门管理员的入口：跨域共享 + action.user.manage。
+    /// 改成依赖平台管理域的话，非超管永远进不去（系统域固定超管）。
+    /// </summary>
+    [Fact]
+    public void User_Management_Should_Be_Shared_With_User_Manage_Permission()
+    {
+        var page = NavigationCatalog.Pages.Single(item => item.Item.Href == "/user-management").Item;
+
+        Assert.True(page.IsShared);
+        Assert.Equal(AuthorizationCatalog.UserManagePermission, page.RequiredPermission);
+        Assert.Equal(AuthorizationCatalog.ConfigureAccessLevel, page.AccessLevel);
+        Assert.Equal(AuthorizationCatalog.PlatformDomain, page.DomainCode);
+    }
+
+    /// <summary>
+    /// 系统审计只给超管：不是共享页，权限点是 action.system.manage。
+    /// </summary>
+    [Fact]
+    public void System_Audit_Should_Require_System_Manage_Permission()
+    {
+        var page = NavigationCatalog.Pages.Single(item => item.Item.Href == "/system-audit").Item;
+
+        Assert.False(page.IsShared);
+        Assert.Equal(AuthorizationCatalog.SystemManagePermission, page.RequiredPermission);
+        Assert.Equal(AuthorizationCatalog.ConfigureAccessLevel, page.AccessLevel);
+    }
+
+    [Theory]
+    [InlineData("user-management", true)]
+    [InlineData("user-management/detail", true)]
+    [InlineData("platform-overview", false)]
+    [InlineData("domain-config", false)]
+    [InlineData("", false)]
+    public void Resolve_Shared_Page_Should_Match_Only_Shared_Routes(string path, bool expected)
+    {
+        Assert.Equal(expected, NavigationCatalog.ResolveSharedPage(path) is not null);
+    }
 }

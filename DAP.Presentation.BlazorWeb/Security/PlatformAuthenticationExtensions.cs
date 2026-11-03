@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Security.Claims;
 using DAP.Core.Shared.Catalog;
+using DAP.Presentation.BlazorWeb.Client.Layout;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -202,9 +203,20 @@ public static class PlatformAuthenticationExtensions
     /// <summary>
     /// 判定当前页面请求是否被域与等级拦下。路径未登记（如 /forbidden、/no-access）不判。
     /// 车间只读终端（等级 1）与普通用户在配置类页面（等级 2）上得到相同结果：被拦。
+    /// 跨域共享页（如用户与角色）不判域授权，改为判权限点——部门管理员的可见域是业务域，
+    /// 但用户管理是他们职责内的事，靠 action.user.manage 放行而非把系统域授予他们。
     /// </summary>
     private static async Task<bool> IsPageAccessDeniedAsync(IApplicationBuilder app, HttpContext context)
     {
+        NavItem? sharedPage = NavigationCatalog.ResolveSharedPage(context.Request.Path);
+
+        if (sharedPage is not null)
+        {
+            return (sharedPage.RequiresPermission
+                    && !PlatformClaimsFactory.HasPermission(context.User, sharedPage.RequiredPermission!))
+                   || PlatformClaimsFactory.ReadPageLevel(context.User) < sharedPage.AccessLevel;
+        }
+
         // 中间件无法构造注入，从根容器开 scope 取解析器；判定走 60 秒缓存，开销可控。
         using var scope = app.ApplicationServices.CreateScope();
         var resolver = scope.ServiceProvider.GetRequiredService<PageAccessResolver>();

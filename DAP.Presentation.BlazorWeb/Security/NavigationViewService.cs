@@ -16,7 +16,7 @@ namespace DAP.Presentation.BlazorWeb.Security;
 /// 页面按等级过滤、空域对普通用户隐藏、对超管保留并标记「未上线」。
 /// 页面结构来自 domain_pages（管理员可在后台覆盖归属与等级），图标由代码常量补充。
 /// </summary>
-public sealed class NavigationViewService(DataAcquisitionPlatformDbContext db)
+public sealed class NavigationViewService(IServiceScopeFactory scopeFactory)
 {
     /// <summary>
     /// 构建当前用户的导航树。
@@ -34,15 +34,30 @@ public sealed class NavigationViewService(DataAcquisitionPlatformDbContext db)
             .Select(claim => claim.Value)
             .ToHashSet(StringComparer.Ordinal);
 
-        List<BusinessDomain> domains = await db.BusinessDomains
-            .Where(domain => domain.IsEnabled)
-            .OrderBy(domain => domain.SortOrder)
-            .ToListAsync(cancellationToken);
+        // 自己开 scope 取上下文，不复用调用方的 scoped DbContext。
+        //
+        // 导航由 MainLayout 在渲染时加载，与页面自己的 OnInitializedAsync 并行发起；
+        // Blazor 渲染器不会把父子组件的异步初始化串行化，两者共用同一个 DbContext
+        // 就会撞上「A second operation was started on this context instance」。
+        // 这里只有两条只读查询、不参与任何跨服务事务，独立 scope 是最省心的解法。
+        List<BusinessDomain> domains;
+        List<DomainPage> pages;
 
-        List<DomainPage> pages = await db.DomainPages
-            .Where(page => page.IsEnabled && !page.IsOrphaned)
-            .OrderBy(page => page.SortOrder)
-            .ToListAsync(cancellationToken);
+        using (IServiceScope scope = scopeFactory.CreateScope())
+        {
+            DataAcquisitionPlatformDbContext db =
+                scope.ServiceProvider.GetRequiredService<DataAcquisitionPlatformDbContext>();
+
+            domains = await db.BusinessDomains
+                .Where(domain => domain.IsEnabled)
+                .OrderBy(domain => domain.SortOrder)
+                .ToListAsync(cancellationToken);
+
+            pages = await db.DomainPages
+                .Where(page => page.IsEnabled && !page.IsOrphaned)
+                .OrderBy(page => page.SortOrder)
+                .ToListAsync(cancellationToken);
+        }
 
         // 图标不落库（MudBlazor 图标常量是整段 SVG path），渲染时按 PageKey 从代码常量取。
         Dictionary<string, string> iconByPageKey = NavigationCatalog.Pages
@@ -115,7 +130,47 @@ public sealed class NavigationViewService(DataAcquisitionPlatformDbContext db)
                 groups));
         }
 
+        // 跨域共享页（如「用户与角色」）：不依赖域授权，持有权限点即可见。
+        // 非超管用户的本部门授权域是业务域，不会包含平台管理域，因此单独合成一个
+        // 「权限管理」域承接这类页面；超管已在平台管理域里看到，无需重复。
+        if (!isSuperAdmin)
+        {
+            List<NavigationPageDto> sharedPages =
+            [
+                .. NavigationCatalog.SharedPages
+                    .Where(item => pageLevel >= item.AccessLevel)
+                    .Where(item => !item.RequiresPermission || PlatformClaimsFactory.HasPermission(principal, item.RequiredPermission!))
+                    .Select(ToDto)
+            ];
+
+            if (sharedPages.Count > 0)
+            {
+                result.Add(new NavigationDomainDto(
+                    SharedDomainCode,
+                    "权限管理",
+                    false,
+                    false,
+                    [new NavigationGroupDto(string.Empty, sharedPages)]));
+            }
+        }
+
         return new NavigationDto(result);
+    }
+
+    /// <summary>
+    /// 共享页合成域的编码。不落库、不参与授权矩阵，仅用于顶栏渲染与高亮比对。
+    /// </summary>
+    public const string SharedDomainCode = "shared-admin";
+
+    private static NavigationPageDto ToDto(NavItem item)
+    {
+        return new NavigationPageDto(
+            item.PageKey,
+            item.Title,
+            item.Href,
+            item.Icon,
+            item.Accent,
+            item.AccessLevel);
     }
 
     private static NavigationPageDto ToDto(

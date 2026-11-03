@@ -29,6 +29,45 @@ public sealed class PlatformAuthOptions
     /// 获取或设置车间只读终端的 IP 白名单配置（docs/AUTH_DESIGN.md 6.6）。
     /// </summary>
     public BoardOptions Board { get; set; } = new();
+
+    /// <summary>
+    /// 获取或设置部门管理员启用开关（docs/AUTH_DESIGN.md 9.2）。
+    /// </summary>
+    public DepartmentAdminOptions DepartmentAdmin { get; set; } = new();
+
+    /// <summary>
+    /// 获取或设置审计日志保留策略（docs/AUTH_DESIGN.md 9.4）。
+    /// </summary>
+    public AuditOptions Audit { get; set; } = new();
+}
+
+/// <summary>
+/// 部门管理员启用开关。默认关闭：角色存在于库中但不可分配；
+/// 需要临时分担超管职责时打开，启动时会把内置角色的启用状态翻到启用。
+/// </summary>
+public sealed class DepartmentAdminOptions
+{
+    /// <summary>
+    /// 获取或设置是否启用部门管理员角色。默认关闭。
+    /// 关闭时不会把已被手工启用的角色改回去——人工决定优先于默认值。
+    /// </summary>
+    public bool Enabled { get; set; }
+}
+
+/// <summary>
+/// 审计日志保留策略。
+/// </summary>
+public sealed class AuditOptions
+{
+    /// <summary>
+    /// 获取或设置保留天数。默认 180 天；设为 0 或负数表示永不清理。
+    /// </summary>
+    public int RetentionDays { get; set; } = 180;
+
+    /// <summary>
+    /// 获取或设置清理任务的执行间隔（小时）。默认 24 小时。
+    /// </summary>
+    public int CleanupIntervalHours { get; set; } = 24;
 }
 
 /// <summary>

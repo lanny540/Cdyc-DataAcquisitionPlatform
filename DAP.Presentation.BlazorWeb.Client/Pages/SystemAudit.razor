@@ -1,0 +1,134 @@
+@page "/system-audit"
+@using DAP.Core.Shared.Contracts
+
+<PageTitle>系统审计</PageTitle>
+
+<MudStack Class="platform-page-shell" Spacing="2">
+    <MudPaper Class="platform-page-hero platform-accent-warning tw-p-4" Elevation="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
+                  Spacing="3">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.h4" GutterBottom="true">系统审计</MudText>
+                <MudText Typo="Typo.body1">
+                    只记录配置类写操作（排班、采集配置、域与页面、部门授权、账号与角色），
+                    不含查询与登录。审计日志只读，默认保留 180 天。
+                </MudText>
+            </MudStack>
+            <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.Download"
+                       Href="@ExportUrl" Target="_blank">
+                导出 CSV
+            </MudButton>
+        </MudStack>
+    </MudPaper>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
+    }
+
+    <MudPaper Class="platform-section-card--tinted platform-accent-warning tw-p-4" Elevation="0">
+        <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Wrap="Wrap.Wrap" Class="mb-2">
+            <MudDatePicker Label="起始日期" @bind-Date="_from" DateFormat="yyyy-MM-dd" Clearable="true"/>
+            <MudDatePicker Label="截止日期" @bind-Date="_to" DateFormat="yyyy-MM-dd" Clearable="true"/>
+            <MudTextField T="string" Label="操作人账号" @bind-Value="_userName" Immediate="true"
+                          Class="platform-filter-field"/>
+            <MudSelect T="string" Label="对象类型" @bind-Value="_targetType" Clearable="true"
+                       Class="platform-filter-select">
+                @foreach (var type in _targetTypes)
+                {
+                    <MudSelectItem T="string" Value="@type">@type</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="string" Label="结果" @bind-Value="_result" Clearable="true"
+                       Class="platform-filter-select">
+                <MudSelectItem T="string" Value="@("success")">成功</MudSelectItem>
+                <MudSelectItem T="string" Value="@("failed")">失败</MudSelectItem>
+            </MudSelect>
+            <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="@(() => LoadAsync(1))">查询</MudButton>
+            <MudButton Variant="Variant.Text" OnClick="ClearFilters">清空筛选</MudButton>
+        </MudStack>
+
+        @if (_isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Warning"/>
+            <MudText Typo="Typo.body2" Class="mt-2" Align="Align.Center">正在加载审计记录…</MudText>
+        }
+        else if (_items.Count == 0)
+        {
+            <div class="platform-empty-state">
+                <span class="platform-empty-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.FactCheck" Size="Size.Large"/>
+                </span>
+                <MudText Typo="Typo.subtitle2">没有匹配的审计记录</MudText>
+                <MudText Typo="Typo.body2" Class="platform-empty-hint">
+                    调整筛选条件。审计只记录配置类写操作，纯查询不会产生记录。
+                </MudText>
+            </div>
+        }
+        else
+        {
+            <MudTable Items="@_items" Hover="true" Dense="true" Class="platform-data-table"
+                      Breakpoint="Breakpoint.Sm">
+                <HeaderContent>
+                    <MudTh>时间</MudTh>
+                    <MudTh>操作人</MudTh>
+                    <MudTh>动作</MudTh>
+                    <MudTh>对象</MudTh>
+                    <MudTh>结果</MudTh>
+                    <MudTh>来源</MudTh>
+                    <MudTh Style="text-align: right;">详情</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="时间">@context.OccurredAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</MudTd>
+                    <MudTd DataLabel="操作人">
+                        <MudStack Spacing="0">
+                            <span>@(context.UserName ?? "未知")</span>
+                            @if (!string.IsNullOrWhiteSpace(context.DepartmentName))
+                            {
+                                <span class="platform-config-hint">@context.DepartmentName</span>
+                            }
+                        </MudStack>
+                    </MudTd>
+                    <MudTd DataLabel="动作">@context.ActionCode</MudTd>
+                    <MudTd DataLabel="对象">@($"{context.TargetType ?? "—"} / {context.TargetName ?? context.TargetId ?? "—"}")</MudTd>
+                    <MudTd DataLabel="结果">
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                 Color="@(context.Result == "success" ? Color.Success : Color.Error)">
+                            @(context.Result == "success" ? "成功" : "失败")
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="来源">@(context.Ip ?? "—")</MudTd>
+                    <MudTd Style="text-align: right;">
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Warning"
+                                   Disabled="@(string.IsNullOrWhiteSpace(context.Detail))"
+                                   OnClick="@(() => OpenDetail(context))">
+                            查看
+                        </MudButton>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mt-2"
+                      Wrap="Wrap.Wrap">
+                <MudText Typo="Typo.body2">共 @_total 条，第 @_page / @TotalPages 页</MudText>
+                <MudPagination Count="@TotalPages" Selected="_page" SelectedChanged="OnPageChanged"
+                               Color="Color.Warning" Variant="Variant.Text"/>
+            </MudStack>
+        }
+    </MudPaper>
+</MudStack>
+
+<MudDialog @bind-Visible="_isDetailOpen" Options="PlatformDialogs.EditorSheet" AriaLabel="审计详情">
+    <DialogContent>
+        <MudStack Spacing="3" Class="platform-sheet">
+            <section class="platform-sheet-section platform-accent-warning">
+                <MudText Typo="Typo.h6">变更详情</MudText>
+                <MudText Typo="Typo.body2">@_detailTitle</MudText>
+                <pre class="platform-code-content">@_detailContent</pre>
+            </section>
+            <MudStack Row="true" Style="justify-content: flex-end;">
+                <MudButton Variant="Variant.Text" OnClick="@(() => _isDetailOpen = false)">关闭</MudButton>
+            </MudStack>
+        </MudStack>
+    </DialogContent>
+</MudDialog>

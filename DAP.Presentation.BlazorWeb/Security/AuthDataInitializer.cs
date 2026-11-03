@@ -43,6 +43,7 @@ public sealed class AuthDataInitializer(
             }
 
             await EnsureRolesAsync(db, timeProvider, cancellationToken);
+            await ApplyDepartmentAdminSwitchAsync(db, timeProvider, cancellationToken);
             await EnsurePermissionsAsync(db, timeProvider, cancellationToken);
             await SyncRolePermissionsAsync(db, timeProvider, cancellationToken);
             await EnsureDomainsAsync(db, timeProvider, cancellationToken);
@@ -147,6 +148,39 @@ public sealed class AuthDataInitializer(
         }
 
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// 应用部门管理员启用开关（docs/AUTH_DESIGN.md 9.2）。
+    ///
+    /// 只朝一个方向生效：配置为 true 时把内置角色翻到启用；配置为 false 时**不**把
+    /// 已被手工启用的角色改回去——人工决定优先于默认值，否则一次重启就会让
+    /// 已经依赖部门管理员的现场失去入口。
+    /// </summary>
+    private async Task ApplyDepartmentAdminSwitchAsync(
+        DataAcquisitionPlatformDbContext db,
+        TimeProvider timeProvider,
+        CancellationToken cancellationToken)
+    {
+        if (!_options.DepartmentAdmin.Enabled)
+        {
+            return;
+        }
+
+        Role? role = await db.Roles.FirstOrDefaultAsync(
+            item => item.Code == AuthorizationCatalog.DepartmentAdminRole, cancellationToken);
+
+        if (role is null || role.IsEnabled)
+        {
+            return;
+        }
+
+        role.IsEnabled = true;
+        role.UpdatedAt = timeProvider.GetUtcNow();
+        await db.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation(
+            "部门管理员角色已按 Auth:DepartmentAdmin:Enabled 启用。可在用户管理页把该角色分配给部门负责人，其只能管理本部门账号。");
     }
 
     private async Task EnsurePermissionsAsync(

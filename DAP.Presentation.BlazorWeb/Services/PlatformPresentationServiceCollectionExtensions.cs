@@ -109,6 +109,9 @@ public static class PlatformPresentationServiceCollectionExtensions
         services.AddScoped<Security.Auditing.ICurrentUserContext, Security.Auditing.PlatformCurrentUserContext>();
         services.AddScoped<Security.Auditing.AuditLogWriter>();
         services.AddScoped<Security.AdminDomainService>();
+        services.AddScoped<Security.AdminUserService>();
+        services.AddScoped<Security.AdminAuditService>();
+        services.AddHostedService<Security.AuditRetentionService>();
         services.AddScoped<IDataAcquisitionPlatformService>(sp => new Security.Auditing.AuditedDataAcquisitionService(
             sp.GetRequiredService<DataAcquisitionPlatformService>(),
             sp.GetRequiredService<IServiceScopeFactory>()));
@@ -183,7 +186,9 @@ internal sealed class ServerPlatformApiClient(
     IConnectionDiagnosticsService connectionDiagnosticsService,
     IShiftSchedulingService shiftSchedulingService,
     IEnergyMetricService energyMetricService,
-    Security.AdminDomainService adminDomainService) : IPlatformApiClient
+    Security.AdminDomainService adminDomainService,
+    Security.AdminUserService adminUserService,
+    Security.AdminAuditService adminAuditService) : IPlatformApiClient
 {
     public Task<DashboardOverviewDto> GetDashboardOverviewAsync(CancellationToken cancellationToken = default)
     {
@@ -482,6 +487,125 @@ internal sealed class ServerPlatformApiClient(
         CancellationToken cancellationToken = default)
     {
         return SucceedAsync(adminDomainService.UpdateDepartmentGrantsAsync(departmentId, request, cancellationToken));
+    }
+
+    public Task<IReadOnlyList<AdminUserDto>> GetAdminUsersAsync(
+        string? keyword = null,
+        CancellationToken cancellationToken = default)
+    {
+        return adminUserService.GetUsersAsync(keyword, cancellationToken);
+    }
+
+    public Task<IReadOnlyList<AdminRoleDto>> GetAdminRolesAsync(CancellationToken cancellationToken = default)
+    {
+        return adminUserService.GetAssignableRolesAsync(cancellationToken);
+    }
+
+    public Task<bool> CreateAdminUserAsync(
+        AdminUserCreateRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return SucceedAsync(adminUserService.CreateUserAsync(request, cancellationToken));
+    }
+
+    public Task<bool> UpdateAdminUserAsync(
+        Guid userId,
+        AdminUserUpdateRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return SucceedAsync(adminUserService.UpdateUserAsync(userId, request, cancellationToken));
+    }
+
+    public Task<bool> UpdateAdminUserDepartmentAsync(
+        Guid userId,
+        AdminUserDepartmentRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return SucceedAsync(adminUserService.UpdateUserDepartmentAsync(userId, request, cancellationToken));
+    }
+
+    public Task<bool> UpdateAdminUserRolesAsync(
+        Guid userId,
+        AdminUserRolesRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return SucceedAsync(adminUserService.UpdateUserRolesAsync(userId, request, cancellationToken));
+    }
+
+    public Task<bool> ResetAdminUserPasswordAsync(
+        Guid userId,
+        AdminUserResetPasswordRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return SucceedAsync(adminUserService.ResetPasswordAsync(userId, request, cancellationToken));
+    }
+
+    public Task<bool> SetAdminUsersEnabledAsync(
+        AdminUserBatchStatusRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return SucceedAsync(adminUserService.SetUsersEnabledAsync(request, cancellationToken));
+    }
+
+    public Task<bool> HandoverSuperAdminAsync(
+        SuperAdminHandoverRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return SucceedAsync(adminUserService.HandoverSuperAdminAsync(request, cancellationToken));
+    }
+
+    public Task<AuditLogPageDto> GetAuditLogsAsync(
+        DateTimeOffset? from,
+        DateTimeOffset? to,
+        string? userName,
+        string? targetType,
+        string? result,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        return adminAuditService.QueryAsync(
+            new Security.AuditLogFilter(from, to, userName, targetType, result, page, pageSize), cancellationToken);
+    }
+
+    public string BuildAuditExportUrl(
+        DateTimeOffset? from,
+        DateTimeOffset? to,
+        string? userName,
+        string? targetType,
+        string? result)
+    {
+        // 首屏预渲染阶段只用于渲染链接，实际下载始终由浏览器直接请求端点。
+        List<string> query = [];
+
+        if (from is { } fromValue)
+        {
+            query.Add($"from={Uri.EscapeDataString(fromValue.ToString("O", System.Globalization.CultureInfo.InvariantCulture))}");
+        }
+
+        if (to is { } toValue)
+        {
+            query.Add($"to={Uri.EscapeDataString(toValue.ToString("O", System.Globalization.CultureInfo.InvariantCulture))}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(userName))
+        {
+            query.Add($"userName={Uri.EscapeDataString(userName.Trim())}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(targetType))
+        {
+            query.Add($"targetType={Uri.EscapeDataString(targetType.Trim())}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(result))
+        {
+            query.Add($"result={Uri.EscapeDataString(result.Trim())}");
+        }
+
+        return query.Count == 0
+            ? "/api/audit-logs/export"
+            : $"/api/audit-logs/export?{string.Join('&', query)}";
     }
 
     /// <summary>

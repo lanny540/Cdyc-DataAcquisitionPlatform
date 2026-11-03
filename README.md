@@ -92,8 +92,11 @@ Web（Blazor）与跨平台桌面（Avalonia）双终端展示方案。
   Auth__BootstrapAdmin__Password='换成强口令'
   ```
 - 连续输错 5 次锁定 15 分钟（`Auth:Lockout`）。超管全局唯一，启动自检发现数量不为 1 会拒绝启动。
-- 设计基线见 [`docs/AUTH_DESIGN.md`](docs/AUTH_DESIGN.md)（三层收窄：职能域 → 页面等级 → 权限点）。**P0 与 P1 均已落地**：登录认证、域授权矩阵（`/department-grants`）、页面等级与域配置（`/domain-config`）、配置类写操作审计（`audit_logs`）、领域服务授权装饰器、车间终端 IP 白名单免登录（`Auth:Board`，默认关闭）。
-- 车间公用电脑按 IP 白名单免登录：`Auth:Board:Enabled=true` 且客户端 IP 命中 `IpWhitelist`（单机地址）时自动签发只读会话，只能查看数据指标下的查看类页面；写操作与平台管理一律拒绝。用户管理与审计查询页属 P2。
+- 设计基线见 [`docs/AUTH_DESIGN.md`](docs/AUTH_DESIGN.md)（三层收窄：职能域 → 页面等级 → 权限点）。**P0 / P1 / P2 均已落地**：登录认证、域授权矩阵（`/department-grants`）、页面等级与域配置（`/domain-config`）、配置类写操作审计（`audit_logs`）、领域服务授权装饰器、车间终端 IP 白名单免登录（`Auth:Board`，默认关闭）、用户与角色（`/user-management`）、系统审计（`/system-audit`）、部门管理员（`Auth:DepartmentAdmin`，默认关闭）。
+- 账号与角色：账号必须对应员工个人，不得为班组设共享账号。角色变更与启停在**该用户下次登录时生效**（授权只认 Cookie 里的 claims，会话内不热切换）。超管全局唯一，更换只能走「移交超管」，移交后当前会话自动登出。
+- 部门管理员（`Auth:DepartmentAdmin:Enabled=true`，默认关闭）只能管本部门账号、只能授予「普通用户 / 技术人员」，跨部门调动与移交超管只对超管开放；越权尝试同样写入审计（`result=failed`）。
+- 审计只记录配置类写操作（排班、采集配置、域与页面、部门授权、账号与角色），不记查询与登录；默认保留 180 天，由后台任务分批清理（`Auth:Audit`）。
+- 车间公用电脑按 IP 白名单免登录：`Auth:Board:Enabled=true` 且客户端 IP 命中 `IpWhitelist`（单机地址）时自动签发只读会话，只能查看数据指标下的查看类页面；写操作与平台管理一律拒绝。
 
 ## 外部服务器配置与数据库迁移
 

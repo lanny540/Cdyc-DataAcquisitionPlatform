@@ -152,6 +152,8 @@
 | MQTT 测试 `/mqtt-test` | 平台管理 → 接口管理 | tertiary |
 | 域与页面配置 `/domain-config` | 平台管理 → 权限管理 | secondary |
 | 部门与授权 `/department-grants` | 平台管理 → 权限管理 | tertiary |
+| 用户与角色 `/user-management` | 平台管理 → 权限管理 | info |
+| 系统审计 `/system-audit` | 平台管理 → 权限管理 | warning |
 | 采集节点详情 `/managed-data-definitions/{id}` | 平台管理 → 采集配置 | primary |
 | 排班时间管理 `/shift-schedules` | 业务配置 → 班组管理 | primary |
 | 排班日历 `/shift-calendar` | 业务配置 → 班组管理 | info |

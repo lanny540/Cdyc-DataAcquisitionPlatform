@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -513,6 +514,205 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         }
 
         throw new InvalidOperationException(await ReadErrorMessageAsync(response, cancellationToken));
+    }
+
+    public async Task<IReadOnlyList<AdminUserDto>> GetAdminUsersAsync(
+        string? keyword = null,
+        CancellationToken cancellationToken = default)
+    {
+        var url = string.IsNullOrWhiteSpace(keyword)
+            ? "/api/admin/users"
+            : $"/api/admin/users?keyword={Uri.EscapeDataString(keyword.Trim())}";
+
+        var users = await httpClient.GetFromJsonAsync<IReadOnlyList<AdminUserDto>>(url, cancellationToken);
+        return users ?? [];
+    }
+
+    public async Task<IReadOnlyList<AdminRoleDto>> GetAdminRolesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var roles = await httpClient.GetFromJsonAsync<IReadOnlyList<AdminRoleDto>>(
+            "/api/admin/users/roles", cancellationToken);
+        return roles ?? [];
+    }
+
+    public async Task<bool> CreateAdminUserAsync(
+        AdminUserCreateRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await httpClient.PostAsJsonAsync(
+            "/api/admin/users", request, cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+
+        throw new InvalidOperationException(await ReadErrorMessageAsync(response, cancellationToken));
+    }
+
+    public async Task<bool> UpdateAdminUserAsync(
+        Guid userId,
+        AdminUserUpdateRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await httpClient.PutAsJsonAsync(
+            $"/api/admin/users/{userId}", request, cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+
+        throw new InvalidOperationException(await ReadErrorMessageAsync(response, cancellationToken));
+    }
+
+    public async Task<bool> UpdateAdminUserDepartmentAsync(
+        Guid userId,
+        AdminUserDepartmentRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await httpClient.PutAsJsonAsync(
+            $"/api/admin/users/{userId}/department", request, cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+
+        throw new InvalidOperationException(await ReadErrorMessageAsync(response, cancellationToken));
+    }
+
+    public async Task<bool> UpdateAdminUserRolesAsync(
+        Guid userId,
+        AdminUserRolesRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await httpClient.PutAsJsonAsync(
+            $"/api/admin/users/{userId}/roles", request, cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+
+        throw new InvalidOperationException(await ReadErrorMessageAsync(response, cancellationToken));
+    }
+
+    public async Task<bool> ResetAdminUserPasswordAsync(
+        Guid userId,
+        AdminUserResetPasswordRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await httpClient.PostAsJsonAsync(
+            $"/api/admin/users/{userId}/reset-password", request, cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+
+        throw new InvalidOperationException(await ReadErrorMessageAsync(response, cancellationToken));
+    }
+
+    public async Task<bool> SetAdminUsersEnabledAsync(
+        AdminUserBatchStatusRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await httpClient.PostAsJsonAsync(
+            "/api/admin/users/batch-status", request, cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+
+        throw new InvalidOperationException(await ReadErrorMessageAsync(response, cancellationToken));
+    }
+
+    public async Task<bool> HandoverSuperAdminAsync(
+        SuperAdminHandoverRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await httpClient.PostAsJsonAsync(
+            "/api/admin/users/handover", request, cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+
+        throw new InvalidOperationException(await ReadErrorMessageAsync(response, cancellationToken));
+    }
+
+    public async Task<AuditLogPageDto> GetAuditLogsAsync(
+        DateTimeOffset? from,
+        DateTimeOffset? to,
+        string? userName,
+        string? targetType,
+        string? result,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var query = BuildAuditQuery(from, to, userName, targetType, result);
+        query.Add($"page={page}");
+        query.Add($"pageSize={pageSize}");
+
+        var url = $"/api/audit-logs?{string.Join('&', query)}";
+        var payload = await httpClient.GetFromJsonAsync<AuditLogPageDto>(url, cancellationToken);
+
+        return payload ?? new AuditLogPageDto([], 0, page, pageSize, []);
+    }
+
+    public string BuildAuditExportUrl(
+        DateTimeOffset? from,
+        DateTimeOffset? to,
+        string? userName,
+        string? targetType,
+        string? result)
+    {
+        var query = BuildAuditQuery(from, to, userName, targetType, result);
+        return query.Count == 0
+            ? "/api/audit-logs/export"
+            : $"/api/audit-logs/export?{string.Join('&', query)}";
+    }
+
+    private static List<string> BuildAuditQuery(
+        DateTimeOffset? from,
+        DateTimeOffset? to,
+        string? userName,
+        string? targetType,
+        string? result)
+    {
+        List<string> query = [];
+
+        if (from is { } fromValue)
+        {
+            query.Add($"from={Uri.EscapeDataString(fromValue.ToString("O", CultureInfo.InvariantCulture))}");
+        }
+
+        if (to is { } toValue)
+        {
+            query.Add($"to={Uri.EscapeDataString(toValue.ToString("O", CultureInfo.InvariantCulture))}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(userName))
+        {
+            query.Add($"userName={Uri.EscapeDataString(userName.Trim())}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(targetType))
+        {
+            query.Add($"targetType={Uri.EscapeDataString(targetType.Trim())}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(result))
+        {
+            query.Add($"result={Uri.EscapeDataString(result.Trim())}");
+        }
+
+        return query;
     }
 
     private static async Task EnsureSuccessAsync(

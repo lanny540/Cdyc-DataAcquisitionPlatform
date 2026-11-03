@@ -137,4 +137,92 @@ public interface IPlatformApiClient
         Guid departmentId,
         AdminDepartmentGrantsRequest request,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 查询账号列表。超管返回全部，部门管理员只返回本部门。
+    /// </summary>
+    /// <param name="keyword">关键字，匹配账号或姓名。</param>
+    /// <param name="cancellationToken">取消令牌。</param>
+    /// <returns>账号列表。</returns>
+    Task<IReadOnlyList<AdminUserDto>> GetAdminUsersAsync(
+        string? keyword = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 查询当前操作者可分配的角色。
+    /// </summary>
+    /// <param name="cancellationToken">取消令牌。</param>
+    /// <returns>角色列表。</returns>
+    Task<IReadOnlyList<AdminRoleDto>> GetAdminRolesAsync(CancellationToken cancellationToken = default);
+
+    Task<bool> CreateAdminUserAsync(
+        AdminUserCreateRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> UpdateAdminUserAsync(
+        Guid userId,
+        AdminUserUpdateRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> UpdateAdminUserDepartmentAsync(
+        Guid userId,
+        AdminUserDepartmentRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> UpdateAdminUserRolesAsync(
+        Guid userId,
+        AdminUserRolesRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> ResetAdminUserPasswordAsync(
+        Guid userId,
+        AdminUserResetPasswordRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> SetAdminUsersEnabledAsync(
+        AdminUserBatchStatusRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> HandoverSuperAdminAsync(
+        SuperAdminHandoverRequest request,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 查询审计日志。
+    /// </summary>
+    /// <param name="from">起始时间（含）。</param>
+    /// <param name="to">截止时间（不含）。</param>
+    /// <param name="userName">操作人账号。</param>
+    /// <param name="targetType">对象类型。</param>
+    /// <param name="result">结果：success / failed。</param>
+    /// <param name="page">页码，从 1 开始。</param>
+    /// <param name="pageSize">每页条数。</param>
+    /// <param name="cancellationToken">取消令牌。</param>
+    /// <returns>一页审计记录。</returns>
+    Task<AuditLogPageDto> GetAuditLogsAsync(
+        DateTimeOffset? from,
+        DateTimeOffset? to,
+        string? userName,
+        string? targetType,
+        string? result,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 构造审计导出的下载地址。导出走浏览器直接下载，不经 WASM 中转，
+    /// 避免把几万行 CSV 读进内存再拼接。
+    /// </summary>
+    /// <param name="from">起始时间（含）。</param>
+    /// <param name="to">截止时间（不含）。</param>
+    /// <param name="userName">操作人账号。</param>
+    /// <param name="targetType">对象类型。</param>
+    /// <param name="result">结果。</param>
+    /// <returns>带查询串的相对地址。</returns>
+    string BuildAuditExportUrl(
+        DateTimeOffset? from,
+        DateTimeOffset? to,
+        string? userName,
+        string? targetType,
+        string? result);
 }

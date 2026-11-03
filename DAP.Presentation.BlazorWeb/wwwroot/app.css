@@ -1275,6 +1275,15 @@ code, pre, .platform-inline-code, .platform-timestamp, .platform-monospace {
     font-size: 0.75rem;
 }
 
+/* 列表页筛选控件：统一最小宽度，窄屏自动换行（外层 MudStack 负责 Wrap）。 */
+.platform-filter-field {
+    min-width: 220px;
+}
+
+.platform-filter-select {
+    min-width: 160px;
+}
+
 .status-code-shell {
     min-height: calc(100vh - 120px);
     display: grid;

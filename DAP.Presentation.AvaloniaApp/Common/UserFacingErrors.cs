@@ -21,9 +21,30 @@ public static class UserFacingErrors
         return ex switch
         {
             OperationCanceledException => "操作超时，请稍后重试。",
-            InvalidOperationException => ex.Message,
+            // 业务异常的消息是中文，框架异常（EF 并发、DI 解析等）是英文，
+            // 用「有没有汉字」区分，避免英文技术细节出现在状态栏。
+            InvalidOperationException when HasChinese(ex.Message) => ex.Message,
+            InvalidOperationException => fallback,
             HttpRequestException => "网络请求失败，请检查网络连接后重试。",
             _ => fallback
         };
+    }
+
+    private static bool HasChinese(string? text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return false;
+        }
+
+        foreach (var ch in text)
+        {
+            if (ch is >= '\u4e00' and <= '\u9fff')
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
