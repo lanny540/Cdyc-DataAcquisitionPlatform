@@ -103,6 +103,15 @@
                                      Color="@(context.IsEnabled ? Color.Success : Color.Error)">
                                 @(context.IsEnabled ? "启用" : "停用")
                             </MudChip>
+                            @* 停用来源必须看得见：手工停用的账号不会被目录同步自动恢复，
+                               管理员排查「为什么同步后他还是停用」时需要这个线索。 *@
+                            @if (!context.IsEnabled && !string.IsNullOrWhiteSpace(context.DisabledSource))
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                         Color="Color.Default">
+                                    @(context.DisabledSource == "manual" ? "手工停用" : "目录停用")
+                                </MudChip>
+                            }
                             @if (context.MustChangePassword)
                             {
                                 <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Warning">

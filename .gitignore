@@ -31,3 +31,6 @@ playwright-report/
 # 智能体工作数据（非项目源码）
 /.workbuddy/
 /.workbuddy-ai/
+
+# 数据保护密钥环：绝对不能入库（等同 Cookie 签名私钥）
+**/data-protection-keys/

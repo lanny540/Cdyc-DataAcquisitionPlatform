@@ -99,6 +99,23 @@ public sealed class AppUser
     public string? PasswordHash { get; set; }
 
     /// <summary>
+    /// 获取或设置停用来源。仅当 <see cref="IsEnabled"/> 为 false 时有意义：
+    /// <see cref="UserDisableSources.Manual"/> 表示管理员手工停用，同步不得自动启用；
+    /// <see cref="UserDisableSources.Directory"/> 表示由目录同步停用（目录里禁用或已删除）。
+    /// 为空表示启用中，或历史数据未记录来源（按目录来源处理，保持原有行为）。
+    /// </summary>
+    public string? DisabledSource { get; set; }
+
+    /// <summary>
+    /// 获取或设置会话安全戳。换值后，所有携带旧戳的 Cookie 立即失效。
+    ///
+    /// 用途：停用账号、管理员重置密码、改密之后，不能让已签发的会话继续活到绝对过期
+    /// （最长 12 小时）。不换值时的行为与之前一致——改角色仍然「下次登录生效」，
+    /// 这是刻意的：授权只认 Cookie 里的 claims，会话内不热切换。
+    /// </summary>
+    public Guid SecurityStamp { get; set; } = Guid.NewGuid();
+
+    /// <summary>
     /// 获取或设置连续登录失败次数。
     /// </summary>
     public int AccessFailedCount { get; set; }
@@ -137,6 +154,23 @@ public sealed class AppUser
     /// 获取或设置外部身份绑定集合。
     /// </summary>
     public ICollection<ExternalIdentity> ExternalIdentities { get; set; } = [];
+}
+
+/// <summary>
+/// 账号停用来源取值。区分「人停的」与「同步停的」是同步逻辑的前提：
+/// 前者不得被同步自动恢复，后者才能随目录恢复而恢复。
+/// </summary>
+public static class UserDisableSources
+{
+    /// <summary>
+    /// 管理员手工停用。
+    /// </summary>
+    public const string Manual = "manual";
+
+    /// <summary>
+    /// 目录同步停用（目录里禁用或账号已从目录删除）。
+    /// </summary>
+    public const string Directory = "directory";
 }
 
 /// <summary>

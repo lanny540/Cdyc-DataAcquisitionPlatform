@@ -160,6 +160,35 @@ Web（Blazor）与跨平台桌面（Avalonia）双终端展示方案。
 - **新增第二家 IdP 只需加一段 `Providers`**，claim 名、部门前缀、默认角色全部可配，代码零改动。
 - 多值部门 claim（如 `groups`）配 `DepartmentPrefix` 后按前缀挑，避免把 `staff` 当成部门。
 
+## 生产部署要点
+
+会话要能稳定工作，下面四项必须确认，缺一项的现象都像「系统故障」：
+
+| 项 | 默认值 | 不配置的后果 |
+|---|---|---|
+| `Auth:DataProtection:KeyPath` | 内容根目录下 `data-protection-keys` | 重新部署/换容器后密钥丢失，**所有人同时掉线**；多实例各有一把钥匙，用户在两台之间反复被踢 |
+| HTTPS（Kestrel 证书或反向代理终止 TLS） | 非 Development 强制 Secure Cookie | 纯 HTTP 部署时浏览器不回传会话 Cookie，表现为「登录成功后又回到登录页」 |
+| `Auth:ForwardedHeaders`（有反向代理时） | 关闭 | 客户端 IP 全是代理地址：车间 IP 白名单失效、限流全站共用一个桶 |
+| `Auth:Audit:RetentionDays` | 180 | 不配也有默认值；设为 0 表示不清理 |
+
+密钥目录必须挂持久卷并**排除在版本库之外**（`.gitignore` 已排除 `**/data-protection-keys/`）。它等价于 Cookie 的签名私钥，拿到就能伪造会话。
+
+```jsonc
+{
+  "Auth": {
+    "DataProtection": { "KeyPath": "/var/lib/dap/keys" },
+    "Cookie": { "RequireHttps": true },      // 仅物理隔离内网且无法上 TLS 时才设 false
+    "ForwardedHeaders": {                     // 有反向代理时才启用，且必须列地址
+      "Enabled": true,
+      "KnownProxies": ["10.0.0.5"],
+      "ForwardLimit": 1
+    }
+  }
+}
+```
+
+登录与改密按客户端 IP 限流 20 次/分钟（`PlatformRateLimiting`），超限返回 429；单账号仍受「连续 5 次失败锁定 15 分钟」约束。变更类请求另有同源校验（`Origin`/`Referer`），跨站提交直接 403。
+
 ## 外部服务器配置与数据库迁移
 
 - 外部 API 与数采服务器统一保存于 PostgreSQL 的 `server_connections` 表；地址、认证信息和 Mock 开关保存在服务器配置 JSON 中，不再依赖 `appsettings.json` 中的固定服务器地址。

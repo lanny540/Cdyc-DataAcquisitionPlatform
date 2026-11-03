@@ -154,4 +154,12 @@ public sealed class CookieSessionOptions
     /// 获取或设置绝对过期小时数。超过后即使一直在操作也要求重新登录。
     /// </summary>
     public int AbsoluteHours { get; set; } = 12;
+
+    /// <summary>
+    /// 获取或设置是否要求会话 Cookie 带 Secure 标志（非 Development 环境生效）。
+    ///
+    /// 默认 true。设为 false 只适用于「确认内网物理隔离、且无法上 TLS」的场景：
+    /// 关掉之后会话 Cookie 会随明文 HTTP 传输，任何能抓包的人都能直接复用会话。
+    /// </summary>
+    public bool RequireHttps { get; set; } = true;
 }

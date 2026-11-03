@@ -17,14 +17,15 @@ namespace DAP.Presentation.BlazorWeb.Security;
 /// 超管账号受硬约束保护：不可停用、不可改部门、不可被他人重置密码、不可删除。
 ///
 /// 角色与启停的变更**在下一次登录时生效**：授权判定只认 Cookie 里的 claims，
-/// 会话内不热切换（与域授权变更的处理一致）。需要立即阻断某个账号时先停用，
-/// 其后续登录会被拒绝；已签发的会话最迟在绝对有效期（默认 12 小时）后失效。
+/// 会话内不热切换（与域授权变更的处理一致）。**停用与重置密码例外**——
+/// 这两件事换掉安全戳，已签发的会话立即失效（docs/AUTH_DESIGN.md 9.5）。
 /// </summary>
 public sealed class AdminUserService(
     DataAcquisitionPlatformDbContext db,
     AuditLogWriter audit,
     ICurrentUserContext currentUser,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider,
+    UserSessionValidator sessionValidator)
 {
     /// <summary>
     /// 查询账号列表。超管返回全部，部门管理员只返回本部门。
@@ -87,7 +88,8 @@ public sealed class AdminUserService(
                     .Where(link => link.Role is not null)
                     .Select(link => toRoleDto(link.Role!))
                     .OrderBy(role => role.Name, StringComparer.Ordinal)],
-                user.UserRoles.Any(link => link.Role?.Code == AuthorizationCatalog.SuperAdminRole)))
+                user.UserRoles.Any(link => link.Role?.Code == AuthorizationCatalog.SuperAdminRole),
+                user.DisabledSource))
         ];
 
         static AdminRoleDto toRoleDto(Role role) => new(role.Id, role.Code, role.Name, role.PageLevel, []);
@@ -318,13 +320,19 @@ public sealed class AdminUserService(
         if (user.IsEnabled != request.IsEnabled)
         {
             user.IsEnabled = request.IsEnabled;
+            // 停用来源必须跟着状态走：管理端停用一律标 manual，
+            // 目录同步才不会在下一轮把这个人自动启用回来。
+            user.DisabledSource = request.IsEnabled ? null : UserDisableSources.Manual;
             changed = true;
 
             // 停用即清空失败计数与锁定，避免启用后仍被剩余锁定期拦在门外。
+            // 同时换安全戳：停用的目的就是「立刻不让这个人再操作」，
+            // 不换戳的话他手上的会话还能继续用到绝对过期（最长 12 小时）。
             if (!request.IsEnabled)
             {
                 user.AccessFailedCount = 0;
                 user.LockoutEndAt = null;
+                sessionValidator.RenewSecurityStamp(user);
             }
         }
 
@@ -545,11 +553,13 @@ public sealed class AdminUserService(
         user.MustChangePassword = true;
         user.AccessFailedCount = 0;
         user.LockoutEndAt = null;
+        // 重置密码通常意味着「这个账号可能被冒用过」，因此把已签发的会话一并作废。
+        sessionValidator.RenewSecurityStamp(user);
         user.UpdatedAt = timeProvider.GetUtcNow();
 
         await db.SaveChangesAsync(cancellationToken);
         await audit.RecordAsync(actor, "user.password.reset", "user", user.Id.ToString(), user.UserName, true,
-            new {reason = "管理员重置密码，下次登录强制修改"}, cancellationToken);
+            new {reason = "管理员重置密码，下次登录强制修改；已签发会话全部失效"}, cancellationToken);
 
         return new AuthOperationResultDto(true, null);
     }
@@ -611,6 +621,7 @@ public sealed class AdminUserService(
         foreach (AppUser user in users.Where(item => item.IsEnabled != request.IsEnabled))
         {
             user.IsEnabled = request.IsEnabled;
+            user.DisabledSource = request.IsEnabled ? null : UserDisableSources.Manual;
             user.UpdatedAt = now;
             changed.Add(user.UserName);
 
@@ -618,6 +629,7 @@ public sealed class AdminUserService(
             {
                 user.AccessFailedCount = 0;
                 user.LockoutEndAt = null;
+                sessionValidator.RenewSecurityStamp(user);
             }
         }
 
@@ -694,11 +706,24 @@ public sealed class AdminUserService(
 
         DateTimeOffset now = timeProvider.GetUtcNow();
 
+        AppUser? actorUser = await db.AppUsers
+            .FirstOrDefaultAsync(user => user.Id == actor.UserId, cancellationToken);
+
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
 
         db.UserRoles.Remove(currentLink);
         db.UserRoles.Add(new UserRole {UserId = target.Id, RoleId = superAdminRole.Id});
         target.UpdatedAt = now;
+
+        // 两边都换安全戳：移交后原超管的会话必须立刻结束（否则旧会话里还带着超管 claim），
+        // 接任者也要重新登录一次才能拿到超管权限——会话内不热切换是既定设计。
+        if (actorUser is not null)
+        {
+            sessionValidator.RenewSecurityStamp(actorUser);
+            actorUser.UpdatedAt = now;
+        }
+
+        sessionValidator.RenewSecurityStamp(target);
 
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);

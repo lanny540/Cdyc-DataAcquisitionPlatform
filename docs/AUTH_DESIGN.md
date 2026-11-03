@@ -276,7 +276,11 @@
 | JWT + 刷新令牌 | 不采用 | 前端需管理令牌生命周期，攻击面与复杂度都更高；当前没有第三方系统调本平台 API 的需求 |
 | OIDC 前端直连（PKCE） | 不采用 | 内部系统且有服务端，多一套令牌链路没有收益 |
 
-配置：`HttpOnly` + `Secure` + `SameSite=Lax`；滑动过期 8 小时，绝对过期 12 小时；登录失败 5 次锁定 15 分钟；写操作走 JSON（跨站表单无法伪造）。
+配置：`HttpOnly` + `Secure`（非 Development 强制，见下）+ `SameSite=Lax`；滑动过期 8 小时，绝对过期 12 小时；登录失败 5 次锁定 15 分钟；写操作走 JSON（跨站表单无法伪造）。
+
+`Secure` 的处理：`SameAsRequest` 的语义是「请求是 https 才加 Secure」，一旦站点被直接以 http 暴露，Cookie 就会明文过网。因此非 Development 一律强制 `Always`（`Auth:Cookie:RequireHttps` 默认 true）。**代价是纯 HTTP 部署时浏览器不会回传会话 Cookie，表现为「登录成功后又回到登录页」**——所以启动日志会明确提示「请确认前端为 HTTPS 或由反向代理终止 TLS」，而不是让运维去猜。
+
+CSRF 有两层：`SameSite=Lax` 挡住跨站表单 POST；`PlatformSameOriginGuard` 再校验 `Origin`/`Referer` 与本站一致（覆盖 SameSite 被削弱、或将来为嵌 iframe 改成 `None` 的场景）。OIDC 回调是 IdP 用 `form_post` 跨站 POST 回来的，已在豁免名单里。没有 Origin/Referer 的请求（curl、健康检查、将来的服务间调用）放行——真正的 CSRF 一定由浏览器发起，浏览器一定带 Origin。
 
 站点若是多人共用的终端（6.5），另开 `Auth:SharedTerminalMode`：空闲 15 分钟自动登出、禁用持久化 Cookie。它只影响该站点的浏览器行为，不改变服务端会话时长——否则个人办公电脑上的人每 15 分钟被踢一次，会被当成故障。
 
@@ -499,7 +503,7 @@ HTTP 端点 ──┐
 | 表 | 关键字段 | 说明 |
 |---|---|---|
 | `departments` | `id`, `code`(唯一), `name`, `external_code`, `is_enabled` | `external_code` 对应 LDAP 的 `department` 属性值或 OIDC 的组名 |
-| `app_users` | `id`, `user_name`(唯一), `display_name`, `department_id`, `email`, `is_enabled`, `must_change_password`, `password_hash` | `department_id` 单值可空（外部账号未同步到部门时为 null，此时不可见任何业务域） |
+| `app_users` | `id`, `user_name`(唯一), `display_name`, `department_id`, `email`, `is_enabled`, `disabled_source`, `security_stamp`, `must_change_password`, `password_hash` | `department_id` 单值可空（外部账号未同步到部门时为 null，此时不可见任何业务域）；`disabled_source` ∈ {`manual`, `directory`}，区分「人停的」与「同步停的」，见 9.5；`security_stamp` 换值即撤销该用户全部已签发会话，见 9.5 |
 | `external_identities` | `id`, `user_id`, `provider`, `external_id`, `employee_no`, `last_synced_at`，唯一键 `(provider, external_id)` | LDAP / OIDC 绑定，幂等 upsert 依据；`employee_no` 本期不用于鉴权，仅为人级排班预留关联键（见 3.5） |
 
 `departments` **刻意没有 `parent_id`**：已确认部门之间平级、无下级，与 LDAP 侧的组织模型一致。不预留层级字段是有意的——预留但不用，容易被误当成「将来会支持树形」而在权限判定里写进不该有的递归逻辑。若将来真出现层级需求，届时加字段并补迁移，成本低于现在猜一个用不上的结构。
@@ -634,6 +638,34 @@ directory_sync_issues  （独立待办表，只按 external_code 与部门表比
 
 `audit_logs` 的查询权限归 `action.system.manage`（平台管理域）。不新增独立权限点——审计页属于平台运维范畴，与现有超管职责一致。若将来要把审计权限单独授予合规岗，再加 `action.audit.read` 即可，表结构不用改。
 
+### 9.5 停用语义与会话撤销
+
+两件事必须分开看，混在一起会出两种相反的事故：
+
+**停用来源（`app_users.disabled_source`）**
+
+| 取值 | 谁写的 | 目录同步怎么处理 |
+|---|---|---|
+| `manual` | 管理端停用（单个或批量） | **保持停用**，不自动恢复 |
+| `directory` | 同步发现目录里禁用或账号已删除 | 目录恢复后自动启用 |
+| 空 | 历史数据 / 启用中 | 按 `directory` 处理（保持升级前的行为） |
+
+不分来源会怎样：管理员把某人临时停用（离职流程中、借调、调查期间），一小时后的定时同步发现「目录里这个人还在且启用」，就把它悄悄打开了——没有任何提示，界面上也看不出是谁打开的。
+
+反过来也要能自动恢复：目录里恢复的人如果还得挨个手工启用，同步就失去意义。所以判定的关键是「这次停用是谁做的」，而不是「目录里是什么状态」。
+
+**会话撤销（`app_users.security_stamp`）**
+
+授权只认 Cookie 里的 claims，会话一旦签发就与库脱钩。因此停用与重置密码这两件事原本要等绝对过期（默认 12 小时）才生效，而这正是最需要立刻生效的两个操作。
+
+- 签发时把 `security_stamp` 写进 claims；
+- 每个请求在 `OnValidatePrincipal` 里与库比对（30 秒缓存），不一致即拒绝并清 Cookie；
+- 停用、启用、重置密码、改密、移交超管都会换戳。
+
+**刻意不换戳的操作**：改角色、改域授权。原因是既定设计——「授权变更下次登录生效，会话内不热切换」。换戳会把用户当场踢下线，与这条设计冲突，也会让「改个角色」变成一次强制重新登录。
+
+**Blazor 电路的边界**：`OnValidatePrincipal` 只在 HTTP 请求上跑。已建立的 Server 电路不会因为换戳而断开，最长活到绝对过期。为此领域服务装饰器在每次写操作前额外回查一次「账号是否仍然启用」，把电路内的写操作也堵住。读页面（已渲染的数据）不做这个检查——数据已经发出去了，拦不住，也没必要。
+
 ---
 
 ## 10. 端点策略映射
@@ -676,7 +708,11 @@ directory_sync_issues  （独立待办表，只按 external_code 与部门表比
 | 属性 | `displayName` → 姓名；`mail` → 邮箱；`department` → 部门；`userAccountControl` → 启停 |
 | 部门回退 | `department` 为空时解析 DN 的 OU 层级，取配置指定层级的名称 |
 | 搜索 | 分页结果（AD 默认单页 1000，必须分页否则大目录静默截断） |
-| 同步 | 定时全量（默认每小时）+ `whenChanged` 增量；登录时再做一次实时校验，防止已停用账号继续登录 |
+| 同步 | 定时**全量**（默认每小时，`SyncIntervalMinutes` 配 0 则只手工触发）；登录时再做一次实时校验，防止已停用账号继续登录 |
+
+**增量同步（`whenChanged`）尚未实现**，当前只有全量分页。几千人以内的目录每小时全量拉一遍没有压力；如果将来对接的目录上万人，再补 `whenChanged` 增量（届时把同步时间戳落库，filter 改成 `(&(objectClass=user)(whenChanged>=...))`）。这一条写在文档里是为了避免「以为有增量、结果每小时扫全表」。
+
+**证书信任**：LDAPS / StartTLS 使用操作系统信任库校验服务器证书，平台**不提供**关闭校验的开关（这是刻意的——关掉校验等于把域账号密码交给任何能劫持 DNS 的人）。内网自签 CA 请把根证书装进操作系统的受信根（Linux：`/usr/local/share/ca-certificates` + `update-ca-certificates`；Windows：受信任的根证书颁发机构），而不是在应用里绕过。
 
 部门匹配策略：`departments.external_code` 与 LDAP 的 `department` 值比对；未匹配到时**不自动建部门**，记入待处理队列由超管确认——自动建部门会让组织树随目录里的脏数据膨胀。
 
@@ -824,6 +860,39 @@ P0 与 P1 必须一起上线：只做 P0 时所有部门都无域授权，除超
 
 模拟 IdP 的两处坑记在这里，省得下次重踩：**JWKS 的 `kty: oct`（HS256）不会被接受**（症状是 `IDX10500: No security keys were provided`），必须用 RS256 发布 `n`/`e`；换签名密钥后应用缓存的元数据不会立刻更新，**要重启应用**才生效。
 
+### 13.5 上线前加固批次（2026-11-03）
+
+P0–P4 做完之后做了一轮针对性审计，下面每条都是**核实过代码**的真实缺口，不是清单式补漏。
+
+| 编号 | 缺口 | 后果 | 处理 |
+|---|---|---|---|
+| A1 | 目录同步会把「管理员手工停用」的账号自动启用 | 离职流程中/借调/调查期间被停用的人，一小时后被同步悄悄打开，界面上看不出是谁打开的 | 新增 `disabled_source`（manual/directory），同步只自动恢复 `directory` 来源；用户列表用 Chip 标出「手工停用 / 目录停用」 |
+| A2 | DataProtection 密钥环没有持久化 | 重新部署或换容器即丢密钥 → 全员同时掉线；多实例各有一把钥匙 → 用户在两台之间反复被踢 | `PersistKeysToFileSystem` + `SetApplicationName("DAP")`，路径可配（`Auth:DataProtection:KeyPath`），启动日志打印 |
+| A3 | 后台任务无多实例互斥 | 两台实例同一分钟各跑一次全量同步 → 唯一索引冲突、审计翻倍 | PostgreSQL 咨询锁（`pg_try_advisory_lock`）包住同步与审计清理，拿不到锁直接跳过本轮 |
+| B1 | 登录只有账号级锁定，没有 IP 限流 | 密码喷洒（一个弱口令撞全部账号）不受限；PBKDF2 每请求几十毫秒 CPU，几百并发即可拖慢站点 | `/api/auth/login` 与 `/api/auth/change-password` 按 IP 固定窗口 20 次/分钟，超限 429 + 中文提示 |
+| B2 | 账号不存在时直接返回，不跑 PBKDF2 | 响应时间差可枚举账号（文案统一也没用） | 不存在分支补跑一次同代价的占位校验 |
+| B3 | `CookieSecurePolicy.SameAsRequest`，且无 HTTPS 强制 | 纯 HTTP 部署时会话 Cookie 明文过网，抓包即可复用会话 | 非 Development 强制 `Always`；启动日志说明「纯 HTTP 会表现为登录后又回登录页」 |
+| B3' | 反向代理下 `RemoteIpAddress` 全是代理地址 | 车间 IP 白名单失效（谁都能拿到只读会话）、限流全站共用一个桶 | `Auth:ForwardedHeaders` 显式启用 + 显式列出受信代理才还原，默认关闭 |
+| B4 | 表单端点无防伪令牌 | SameSite 被削弱时登录/改密可被跨站触发 | 增加 `PlatformSameOriginGuard`：变更类请求校验 Origin/Referer 与本站一致，OIDC 回调豁免 |
+| B5 | 停用、重置密码后旧会话仍活到绝对过期 | 账号停用了，人还能继续用到 12 小时后 | 新增 `security_stamp` 进 claims，每请求比对（30 秒缓存）；停用/启用/重置密码/改密/移交超管换戳 |
+| B5' | Blazor 电路不重新认证 | 已打开的页面里，被停用的人仍能执行写操作 | 领域服务装饰器每次写操作前回查「账号是否仍启用」 |
+| C1 | 登录建号与定时同步并发撞唯一索引 | 用户偶发「登录失败」，实际账号已建好 | 捕获冲突后重查既有账号并按成功返回；同步侧整轮回滚并提示重试 |
+| C5 | CSV 导出无公式注入防护 | 导出的文件在别人机器上执行 `=cmd\|...` | 以 `= + - @ \t \r` 开头的字段前缀单引号，抽成 `CsvField` 并单测 |
+| C6 | 「带扩展名即放行」当静态资源判定 | 将来新增 `/xxx.json` 型端点会被静默绕过登录闸门 | 改为扩展名白名单 |
+
+**实测记录**（本地 LDAP + 真实登录链路）：
+
+| 场景 | 结果 |
+|---|---|
+| 手工停用后立刻访问 | 旧 Cookie 立即 401 / 302 到登录页（不再等 12 小时） |
+| 手工停用后跑同步 | 摘要出现「手工停用保持 1」，账号保持停用 |
+| 目录删人 → 同步 → 恢复 | 标 `directory` 停用；目录恢复后自动启用，来源清空 |
+| 改密 | 新会话 200、改密前的会话 401（**此处首次实现有 bug：直接改戳没清缓存，导致新旧会话颠倒，实测发现后改走校验器**） |
+| 跨站 POST 登录 / 管理接口 | 403 + 「请求来源与本站不一致，已拒绝执行。」 |
+| 同站 POST / 无 Origin 客户端 | 正常通过 |
+| 连续 25 次登录 | 前 18 次（含窗口内已用 2 次）正常，其后 429 |
+| 重启 3 次后密钥目录 | 只有 1 个 key 文件，未重新生成 |
+
 ### 13.1 与印钞 / 能源排期的关系
 
 两域的页面已排期，但近期开发测试仍集中在钞纸。这个时序对分期有一个明确要求：
@@ -860,6 +929,12 @@ P0 与 P1 必须一起上线：只做 P0 时所有部门都无域授权，除超
 | 目录同名账号被合并 | 新人的数据挂到老账号名下，历史记录串号 | 记 `user-name-conflict` 并跳过，不自动并号（13.3） |
 | OIDC 两家 IdP 的 `sub` 撞号 | 两家的「第一个人」变成同一个平台账号 | `provider` 存 `oidc:{code}`，绑定键带提供方编码（13.3） |
 | 多值 `groups` 取第一个值 | `staff` 被当成部门，用户看不到本该有的数据 | 配了 `DepartmentPrefix` 就按前缀挑；挑不到进待处理表（13.3） |
+| 目录同步自动恢复「人工停用」 | 被停用的人一小时后重新能登录，且无人察觉 | `disabled_source` 区分来源，只恢复 `directory` 来源（9.5） |
+| 重新部署丢数据保护密钥 | 全员同时掉线，现象像网络故障 | 密钥环落盘 + 固定应用名，启动日志打印路径（13.5 A2） |
+| 多实例重复跑后台任务 | 唯一索引冲突、审计翻倍 | PostgreSQL 咨询锁互斥（13.5 A3） |
+| 密码喷洒 / PBKDF2 计算型 DoS | 站点被拖慢，且不需要知道任何账号 | 认证端点按 IP 限流 20 次/分钟（13.5 B1） |
+| 反向代理后客户端 IP 失真 | 白名单失效或全站共用一个限流桶 | 显式配置受信代理才还原转发头（13.5 B3'） |
+| 停用/重置密码后旧会话仍有效 | 被停用的人还能继续用 12 小时 | `security_stamp` 换戳撤销 + 装饰器回查启用状态（13.5 B5） |
 
 ### 14.1 已确认决策
 

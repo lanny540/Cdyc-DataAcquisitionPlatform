@@ -58,6 +58,12 @@ public sealed class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
                 tableBuilder.HasCheckConstraint(
                     "ck_app_users_access_failed_count",
                     "access_failed_count >= 0");
+
+                // 只约束取值，不约束「停用时必须有值」：历史行没有来源，
+                // 由同步按「未知即目录来源」兼容，不能因为加约束把存量数据拦住。
+                tableBuilder.HasCheckConstraint(
+                    "ck_app_users_disabled_source",
+                    "disabled_source is null or disabled_source in ('manual', 'directory')");
             });
 
         builder.HasKey(item => item.Id);
@@ -67,6 +73,13 @@ public sealed class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
         builder.Property(item => item.DepartmentId).HasColumnName("department_id");
         builder.Property(item => item.Email).HasColumnName("email").HasMaxLength(200);
         builder.Property(item => item.IsEnabled).HasColumnName("is_enabled").IsRequired();
+        builder.Property(item => item.DisabledSource).HasColumnName("disabled_source").HasMaxLength(20);
+        builder.Property(item => item.SecurityStamp)
+            .HasColumnName("security_stamp")
+            .IsRequired()
+            // 存量行需要一个各不相同的初值：统一填 Guid.Empty 会让「谁的戳都一样」，
+            // 虽然仍按 user_id 比对不会串号，但没有任何理由留着这种巧合。
+            .HasDefaultValueSql("gen_random_uuid()");
         builder.Property(item => item.MustChangePassword).HasColumnName("must_change_password").IsRequired();
         builder.Property(item => item.PasswordHash).HasColumnName("password_hash").HasMaxLength(500);
         builder.Property(item => item.AccessFailedCount).HasColumnName("access_failed_count").IsRequired();

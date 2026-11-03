@@ -44,6 +44,7 @@ public sealed record DirectorySyncStatusDto(
 /// <param name="Disabled">停用账号数。</param>
 /// <param name="Unchanged">无变化账号数。</param>
 /// <param name="Issues">本轮新增或命中的待处理项数。</param>
+/// <param name="KeptManualDisable">因管理员手工停用而保持停用的账号数。</param>
 public sealed record DirectorySyncRunDto(
     bool Succeeded,
     string Message,
@@ -51,7 +52,8 @@ public sealed record DirectorySyncRunDto(
     int Updated,
     int Disabled,
     int Unchanged,
-    int Issues);
+    int Issues,
+    int KeptManualDisable = 0);
 
 /// <summary>
 /// 表示登录页上可用的一个 OIDC 提供方。

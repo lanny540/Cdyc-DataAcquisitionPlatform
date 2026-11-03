@@ -4,6 +4,7 @@ using DAP.Core.Shared.Catalog;
 using DAP.Core.Shared.Contracts;
 using DAP.Infrastructure.DataAccess.Persistence;
 using DAP.Presentation.BlazorWeb.Security.Auditing;
+using DAP.Presentation.BlazorWeb.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -29,6 +30,8 @@ public sealed class DirectorySyncService(
     IOptions<PlatformAuthOptions> options,
     TimeProvider timeProvider,
     AuditLogWriter auditWriter,
+    PlatformAdvisoryLock advisoryLock,
+    UserSessionValidator sessionValidator,
     ILogger<DirectorySyncService> logger)
 {
     /// <summary>
@@ -66,6 +69,25 @@ public sealed class DirectorySyncService(
         if (!ldap.Enabled)
         {
             return new DirectorySyncRunDto(false, "目录认证未启用，未执行同步。", 0, 0, 0, 0, 0);
+        }
+
+        // 跨实例互斥：定时任务与手工触发都可能同时发生（两台实例同一分钟各跑一次，
+        // 或两名管理员同时点「立即同步」）。不互斥的后果是唯一索引冲突、审计记录翻倍。
+        await using IAsyncDisposable? lockHandle =
+            await advisoryLock.TryAcquireAsync("directory-sync", cancellationToken);
+
+        if (lockHandle is null)
+        {
+            logger.LogInformation("目录同步跳过：另一实例（或另一请求）正在同步中（触发方式 {Trigger}）。", trigger);
+
+            return new DirectorySyncRunDto(
+                false,
+                "已有同步任务正在执行，请稍后刷新查看结果。",
+                0,
+                0,
+                0,
+                0,
+                0);
         }
 
         IReadOnlyList<LdapDirectoryUser> records;
@@ -153,6 +175,7 @@ public sealed class DirectorySyncService(
         var updated = 0;
         var disabled = 0;
         var unchanged = 0;
+        var keptManualDisable = 0;
 
         foreach (LdapDirectoryUser record in records)
         {
@@ -186,6 +209,15 @@ public sealed class DirectorySyncService(
                 {
                     unchanged++;
 
+                    if (decision.KeptManualDisable)
+                    {
+                        keptManualDisable++;
+
+                        logger.LogInformation(
+                            "目录同步：账号 {UserName} 由管理员手工停用，目录中仍存在，保持停用（需人工恢复）。",
+                            user.UserName);
+                    }
+
                     if (identity is not null)
                     {
                         identity.LastSyncedAt = now;
@@ -198,6 +230,9 @@ public sealed class DirectorySyncService(
                 user.Email = decision.Email;
                 user.DepartmentId = decision.DepartmentId;
                 user.IsEnabled = decision.IsEnabled;
+                // 停用来源随状态改写：同步停用标记为 directory，重新启用则清空。
+                // 不清空的话，下次目录再禁用此人时会被误判成手工停用而不再自动停用。
+                user.DisabledSource = decision.IsEnabled ? null : UserDisableSources.Directory;
                 user.UpdatedAt = now;
 
                 if (identity is not null)
@@ -209,6 +244,9 @@ public sealed class DirectorySyncService(
 
                 if (decision.Action == DirectorySyncAction.Disable)
                 {
+                    // 目录停用同样要立刻踢掉会话：否则「人在目录里被停用了」这件事
+                    // 要等最长 12 小时才反映到他那台已经登录的电脑上。
+                    sessionValidator.RenewSecurityStamp(user);
                     disabled++;
                     logger.LogInformation("目录同步：账号 {UserName} 在目录中已停用，平台账号同步停用。", user.UserName);
                 }
@@ -272,6 +310,8 @@ public sealed class DirectorySyncService(
             }
 
             user.IsEnabled = false;
+            user.DisabledSource = UserDisableSources.Directory;
+            sessionValidator.RenewSecurityStamp(user);
             user.UpdatedAt = now;
             disabled++;
 
@@ -286,19 +326,52 @@ public sealed class DirectorySyncService(
 
         int issueCount = await PersistIssuesAsync(issues, now, cancellationToken);
 
-        await db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception)
+        {
+            // 与登录建号并发撞上唯一索引：整批回滚，下一轮重来即可。
+            // 不在这里逐条重试——同步是幂等的，整轮重跑比半途修补更容易推理。
+            logger.LogError(exception, "目录同步写库失败（可能与登录建号并发），本轮未生效，将在下一周期重试。");
+
+            await auditWriter.RecordAsync(
+                actor,
+                SyncActionCode,
+                "directory",
+                null,
+                "LDAP 目录",
+                false,
+                new {trigger, stage = "write", summary = "写库冲突，本轮未生效。"},
+                cancellationToken);
+
+            return new DirectorySyncRunDto(
+                false,
+                "同步过程中出现并发写入冲突，本轮未生效，请稍后重试。",
+                created,
+                updated,
+                disabled,
+                unchanged,
+                issueCount,
+                keptManualDisable);
+        }
 
         var elapsed = timeProvider.GetUtcNow() - startedAt;
 
-        var summary = $"同步完成：新建 {created}，更新 {updated}，停用 {disabled}，无变化 {unchanged}，待处理 {issueCount}。";
+        var summary = keptManualDisable > 0
+            ? $"同步完成：新建 {created}，更新 {updated}，停用 {disabled}，无变化 {unchanged}，"
+              + $"手工停用保持 {keptManualDisable}，待处理 {issueCount}。"
+            : $"同步完成：新建 {created}，更新 {updated}，停用 {disabled}，无变化 {unchanged}，待处理 {issueCount}。";
 
         logger.LogInformation(
-            "目录同步完成（触发方式 {Trigger}）：新建 {Created}，更新 {Updated}，停用 {Disabled}，无变化 {Unchanged}，待处理 {Issues}，耗时 {Elapsed}。",
+            "目录同步完成（触发方式 {Trigger}）：新建 {Created}，更新 {Updated}，停用 {Disabled}，无变化 {Unchanged}，手工停用保持 {KeptManual}，待处理 {Issues}，耗时 {Elapsed}。",
             trigger,
             created,
             updated,
             disabled,
             unchanged,
+            keptManualDisable,
             issueCount,
             elapsed);
 
@@ -309,10 +382,21 @@ public sealed class DirectorySyncService(
             null,
             "LDAP 目录",
             true,
-            new {trigger, summary, created, updated, disabled, unchanged, issues = issueCount},
+            new
+            {
+                trigger,
+                summary,
+                created,
+                updated,
+                disabled,
+                unchanged,
+                keptManualDisable,
+                issues = issueCount
+            },
             cancellationToken);
 
-        return new DirectorySyncRunDto(true, summary, created, updated, disabled, unchanged, issueCount);
+        return new DirectorySyncRunDto(
+            true, summary, created, updated, disabled, unchanged, issueCount, keptManualDisable);
     }
 
     /// <summary>
@@ -427,7 +511,8 @@ public sealed class DirectorySyncService(
             user.Email,
             user.DepartmentId,
             user.IsEnabled,
-            IsSuperAdmin(user));
+            IsSuperAdmin(user),
+            user.DisabledSource);
     }
 
     private static bool IsSuperAdmin(AppUser user)

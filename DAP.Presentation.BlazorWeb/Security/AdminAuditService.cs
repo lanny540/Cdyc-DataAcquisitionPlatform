@@ -3,6 +3,7 @@ using System.Text;
 using DAP.Core.Domain.Entities;
 using DAP.Core.Shared.Contracts;
 using DAP.Infrastructure.DataAccess.Persistence;
+using DAP.Presentation.BlazorWeb.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -113,23 +114,23 @@ public sealed class AdminAuditService(DataAcquisitionPlatformDbContext db)
 
         foreach (AuditLog log in logs)
         {
-            builder.Append(Escape(log.OccurredAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)));
+            builder.Append(CsvField.Escape(log.OccurredAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)));
             builder.Append(',');
-            builder.Append(Escape(log.UserName));
+            builder.Append(CsvField.Escape(log.UserName));
             builder.Append(',');
-            builder.Append(Escape(log.DepartmentName));
+            builder.Append(CsvField.Escape(log.DepartmentName));
             builder.Append(',');
-            builder.Append(Escape(log.ActionCode));
+            builder.Append(CsvField.Escape(log.ActionCode));
             builder.Append(',');
-            builder.Append(Escape(log.TargetType));
+            builder.Append(CsvField.Escape(log.TargetType));
             builder.Append(',');
-            builder.Append(Escape(log.TargetName));
+            builder.Append(CsvField.Escape(log.TargetName));
             builder.Append(',');
-            builder.Append(Escape(log.Result));
+            builder.Append(CsvField.Escape(log.Result));
             builder.Append(',');
-            builder.Append(Escape(log.Ip));
+            builder.Append(CsvField.Escape(log.Ip));
             builder.Append(',');
-            builder.Append(Escape(log.Detail));
+            builder.Append(CsvField.Escape(log.Detail));
             builder.AppendLine();
         }
 
@@ -176,23 +177,6 @@ public sealed class AdminAuditService(DataAcquisitionPlatformDbContext db)
         return query;
     }
 
-    /// <summary>
-    /// CSV 字段转义：含逗号、引号或换行时用双引号包裹，内部引号翻倍。
-    /// </summary>
-    private static string Escape(string? value)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
-            return string.Empty;
-        }
-
-        if (value.IndexOfAny([',', '"', '\r', '\n']) < 0)
-        {
-            return value;
-        }
-
-        return $"\"{value.Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
-    }
 }
 
 /// <summary>
@@ -204,6 +188,7 @@ public sealed class AuditRetentionService(
     IServiceScopeFactory scopeFactory,
     IOptions<PlatformAuthOptions> options,
     TimeProvider timeProvider,
+    PlatformAdvisoryLock advisoryLock,
     ILogger<AuditRetentionService> logger) : BackgroundService
 {
     /// <summary>
@@ -256,6 +241,17 @@ public sealed class AuditRetentionService(
 
     private async Task CleanupAsync(CancellationToken cancellationToken)
     {
+        // 多实例下只让一个实例删：两台同时删同一批行会互相抬高空更新与锁等待，
+        // 数据本身不会错，但没有必要付这份代价。
+        await using IAsyncDisposable? lockHandle =
+            await advisoryLock.TryAcquireAsync("audit-retention", cancellationToken);
+
+        if (lockHandle is null)
+        {
+            logger.LogDebug("审计保留期清理跳过：另一实例正在执行。");
+            return;
+        }
+
         DateTimeOffset cutoff = timeProvider.GetUtcNow().AddDays(-_options.RetentionDays);
         var total = 0;
 

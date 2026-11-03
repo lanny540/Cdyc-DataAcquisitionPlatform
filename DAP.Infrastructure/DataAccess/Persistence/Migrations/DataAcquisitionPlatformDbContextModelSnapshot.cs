@@ -41,6 +41,11 @@ namespace DAP.Infrastructure.DataAccess.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("department_id");
 
+                    b.Property<string>("DisabledSource")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("disabled_source");
+
                     b.Property<string>("DisplayName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -73,6 +78,12 @@ namespace DAP.Infrastructure.DataAccess.Persistence.Migrations
                         .HasColumnType("character varying(500)")
                         .HasColumnName("password_hash");
 
+                    b.Property<Guid>("SecurityStamp")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("security_stamp")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -95,6 +106,8 @@ namespace DAP.Infrastructure.DataAccess.Persistence.Migrations
                     b.ToTable("app_users", null, t =>
                         {
                             t.HasCheckConstraint("ck_app_users_access_failed_count", "access_failed_count >= 0");
+
+                            t.HasCheckConstraint("ck_app_users_disabled_source", "disabled_source is null or disabled_source in ('manual', 'directory')");
 
                             t.HasCheckConstraint("ck_app_users_display_name_not_blank", "btrim(display_name) <> ''");
 

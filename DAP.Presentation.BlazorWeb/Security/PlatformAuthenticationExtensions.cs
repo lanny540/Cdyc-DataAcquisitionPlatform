@@ -27,10 +27,12 @@ public static class PlatformAuthenticationExtensions
     /// </summary>
     /// <param name="services">服务集合。</param>
     /// <param name="configuration">应用配置。</param>
+    /// <param name="environment">宿主环境，用于判定是否强制 Secure Cookie。</param>
     /// <returns>当前服务集合。</returns>
     public static IServiceCollection AddPlatformAuthentication(
         this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IWebHostEnvironment environment)
     {
         services.Configure<PlatformAuthOptions>(configuration.GetSection(PlatformAuthOptions.SectionName));
 
@@ -41,6 +43,11 @@ public static class PlatformAuthenticationExtensions
         var slidingHours = Math.Max(1, cookieOptions.SlidingHours);
         var absoluteHours = Math.Max(slidingHours, cookieOptions.AbsoluteHours);
 
+        // 生产强制 Secure：SameAsRequest 的语义是「请求是 https 才加 Secure」，
+        // 一旦有人把站点直接以 http 暴露（内网图省事很常见），会话 Cookie 就会明文过网，
+        // 抓包即可复用会话。Development 保留 SameAsRequest，否则本机 http 调试登不进去。
+        var requireSecureCookie = cookieOptions.RequireHttps && !environment.IsDevelopment();
+
         BoardOptions boardOptions =
             configuration.GetSection($"{PlatformAuthOptions.SectionName}:Board").Get<BoardOptions>()
             ?? new BoardOptions();
@@ -50,6 +57,7 @@ public static class PlatformAuthenticationExtensions
         services.AddSingleton<IAuthorizationPolicyProvider, PlatformAuthorizationPolicyProvider>();
         services.AddScoped<PlatformAuthService>();
         services.AddScoped<PageAccessResolver>();
+        services.AddScoped<UserSessionValidator>();
 
         // 外部身份源（docs/AUTH_DESIGN.md 11）：LDAP 与 OIDC 都默认关闭，
         // 关闭时这些服务仍可解析，只是不产生任何外部调用。
@@ -67,7 +75,9 @@ public static class PlatformAuthenticationExtensions
                 options.Cookie.Name = CookieName;
                 options.Cookie.HttpOnly = true;
                 options.Cookie.SameSite = SameSiteMode.Lax;
-                options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+                options.Cookie.SecurePolicy = requireSecureCookie
+                    ? CookieSecurePolicy.Always
+                    : CookieSecurePolicy.SameAsRequest;
                 options.LoginPath = "/login";
                 options.LogoutPath = "/api/auth/logout";
                 options.AccessDeniedPath = "/forbidden";
@@ -108,6 +118,35 @@ public static class PlatformAuthenticationExtensions
                         }
 
                         if (issuedAt is null || DateTimeOffset.UtcNow - issuedAt.Value > TimeSpan.FromHours(absoluteHours))
+                        {
+                            context.RejectPrincipal();
+                            await context.HttpContext.SignOutAsync(
+                                CookieAuthenticationDefaults.AuthenticationScheme);
+                            return;
+                        }
+
+                        // 安全戳比对：停用账号、管理员重置密码后，旧会话必须立刻作废，
+                        // 而不是继续用到绝对过期。车间只读会话在上面已经 return，不走这里。
+                        var userIdValue = context.Principal?.FindFirst(
+                            AuthorizationCatalog.PlatformClaimTypes.UserId)?.Value;
+                        var stamp = context.Principal?.FindFirst(
+                            AuthorizationCatalog.PlatformClaimTypes.SecurityStamp)?.Value;
+
+                        if (!Guid.TryParse(userIdValue, out var userId))
+                        {
+                            context.RejectPrincipal();
+                            await context.HttpContext.SignOutAsync(
+                                CookieAuthenticationDefaults.AuthenticationScheme);
+                            return;
+                        }
+
+                        var validator = context.HttpContext.RequestServices
+                            .GetRequiredService<UserSessionValidator>();
+
+                        var stillValid = await validator.IsSessionValidAsync(
+                            userId, stamp, context.HttpContext.RequestAborted);
+
+                        if (!stillValid)
                         {
                             context.RejectPrincipal();
                             await context.HttpContext.SignOutAsync(
@@ -366,8 +405,12 @@ public static class PlatformAuthenticationExtensions
             return true;
         }
 
-        // 带扩展名的请求一律放行，避免 CSS/JS/图标被 302 成 HTML。
-        if (Path.HasExtension(value))
+        // 静态资源按扩展名白名单放行。
+        // 不写「带扩展名即放行」：那样将来新增 /api/export.json、/reports/xxx.xlsx 这类端点
+        // 会被静默当成静态资源，登录闸门与页面归属判定一起失效，而且不会有任何报错。
+        var extension = Path.GetExtension(value);
+
+        if (extension.Length > 1 && IsStaticAssetExtension(extension))
         {
             return true;
         }
@@ -385,5 +428,22 @@ public static class PlatformAuthenticationExtensions
     private static bool IsApiRequest(HttpRequest request)
     {
         return request.Path.StartsWithSegments("/api");
+    }
+
+    /// <summary>
+    /// 静态资源扩展名白名单。只列框架与前端实际会用到的类型。
+    /// </summary>
+    private static readonly HashSet<string> StaticAssetExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".css", ".js", ".mjs", ".map", ".json", ".webmanifest",
+        ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".webp", ".bmp",
+        ".woff", ".woff2", ".ttf", ".eot", ".otf",
+        ".wasm", ".dat", ".blat", ".pdb",
+        ".txt", ".xml", ".pdf"
+    };
+
+    private static bool IsStaticAssetExtension(string extension)
+    {
+        return StaticAssetExtensions.Contains(extension);
     }
 }

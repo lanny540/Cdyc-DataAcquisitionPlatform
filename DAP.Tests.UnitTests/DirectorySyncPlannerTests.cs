@@ -1,3 +1,4 @@
+using DAP.Core.Domain.Entities;
 using DAP.Presentation.BlazorWeb.Security.Directory;
 
 namespace DAP.Tests.UnitTests;
@@ -27,10 +28,11 @@ public class DirectorySyncPlannerTests
         string? email = "zhang3@example.com",
         Guid? departmentId = null,
         bool isEnabled = true,
-        bool isSuperAdmin = false)
+        bool isSuperAdmin = false,
+        string? disabledSource = null)
     {
         return new DirectoryAccountSnapshot(
-            Guid.NewGuid(), "zhang3", displayName, email, departmentId, isEnabled, isSuperAdmin);
+            Guid.NewGuid(), "zhang3", displayName, email, departmentId, isEnabled, isSuperAdmin, disabledSource);
     }
 
     [Fact]
@@ -139,6 +141,80 @@ public class DirectorySyncPlannerTests
         Assert.Equal(DirectorySyncAction.Update, decision.Action);
         Assert.True(decision.IsEnabled);
         Assert.Equal(["is_enabled"], decision.ChangedFields);
+    }
+
+    /// <summary>
+    /// 目录里「还有这个人且启用」不代表平台上的停用该被撤销。
+    /// 管理员手工停用的账号（离职流程中、借调、调查期间）必须保持停用。
+    /// </summary>
+    [Fact]
+    public void Manually_Disabled_Account_Should_Stay_Disabled()
+    {
+        DirectorySyncDecision decision = DirectorySyncPlanner.Decide(
+            Record(),
+            Local(isEnabled: false, departmentId: DepartmentA, disabledSource: UserDisableSources.Manual),
+            DepartmentA);
+
+        Assert.Equal(DirectorySyncAction.Unchanged, decision.Action);
+        Assert.False(decision.RequiresWrite);
+        Assert.False(decision.IsEnabled);
+        Assert.True(decision.KeptManualDisable);
+        Assert.Empty(decision.ChangedFields);
+    }
+
+    /// <summary>
+    /// 手工停用不该挡住其它字段的同步：姓名与部门仍以目录为准，只是启用状态不动。
+    /// </summary>
+    [Fact]
+    public void Manually_Disabled_Account_Should_Still_Sync_Other_Fields()
+    {
+        DirectorySyncDecision decision = DirectorySyncPlanner.Decide(
+            Record(displayName: "张三（新）"),
+            Local(displayName: "张三", isEnabled: false, departmentId: DepartmentA,
+                disabledSource: UserDisableSources.Manual),
+            DepartmentA);
+
+        Assert.Equal(DirectorySyncAction.Update, decision.Action);
+        Assert.Equal("张三（新）", decision.DisplayName);
+        Assert.False(decision.IsEnabled);
+        Assert.True(decision.KeptManualDisable);
+        Assert.Equal(["display_name"], decision.ChangedFields);
+    }
+
+    /// <summary>
+    /// 由同步停用的账号，目录恢复后应当自动恢复——否则目录恢复正常了，
+    /// 平台上一批人还停着，得挨个手工点。
+    /// </summary>
+    [Fact]
+    public void Directory_Disabled_Account_Should_Be_Re_Enabled()
+    {
+        DirectorySyncDecision decision = DirectorySyncPlanner.Decide(
+            Record(),
+            Local(isEnabled: false, departmentId: DepartmentA, disabledSource: UserDisableSources.Directory),
+            DepartmentA);
+
+        Assert.Equal(DirectorySyncAction.Update, decision.Action);
+        Assert.True(decision.IsEnabled);
+        Assert.False(decision.KeptManualDisable);
+        Assert.Equal(["is_enabled"], decision.ChangedFields);
+    }
+
+    /// <summary>
+    /// 新建的域账号若目录里本就是停用状态，来源要标成 directory，
+    /// 否则它会被当成「未知来源」，下一轮目录启用时无法自动恢复。
+    /// </summary>
+    [Fact]
+    public void Create_Should_Mark_Directory_Disable_Source()
+    {
+        AppUser disabled = DirectoryUserFactory.CreateUser(
+            Record(isEnabled: false), null, DateTimeOffset.UtcNow);
+        AppUser enabled = DirectoryUserFactory.CreateUser(
+            Record(isEnabled: true), null, DateTimeOffset.UtcNow);
+
+        Assert.False(disabled.IsEnabled);
+        Assert.Equal(UserDisableSources.Directory, disabled.DisabledSource);
+        Assert.True(enabled.IsEnabled);
+        Assert.Null(enabled.DisabledSource);
     }
 
     [Fact]

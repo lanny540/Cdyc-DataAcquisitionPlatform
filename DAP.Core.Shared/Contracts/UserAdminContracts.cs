@@ -42,7 +42,8 @@ public sealed record AdminUserDto(
     bool IsLockedOut,
     DateTimeOffset? LastLoginAt,
     IReadOnlyList<AdminRoleDto> Roles,
-    bool IsSuperAdmin);
+    bool IsSuperAdmin,
+    string? DisabledSource = null);
 
 /// <summary>
 /// 新建账号请求。初始密码由管理员设置，账号首次登录强制改密。

@@ -38,6 +38,7 @@ public enum DirectorySyncAction
 /// <param name="DepartmentId">部门标识。</param>
 /// <param name="IsEnabled">是否启用。</param>
 /// <param name="IsSuperAdmin">是否超级管理员。</param>
+/// <param name="DisabledSource">停用来源（manual / directory）；启用中或历史数据为 null。</param>
 public sealed record DirectoryAccountSnapshot(
     Guid UserId,
     string UserName,
@@ -45,7 +46,8 @@ public sealed record DirectoryAccountSnapshot(
     string? Email,
     Guid? DepartmentId,
     bool IsEnabled,
-    bool IsSuperAdmin);
+    bool IsSuperAdmin,
+    string? DisabledSource = null);
 
 /// <summary>
 /// 一条目录记录对应的同步决定。
@@ -56,13 +58,15 @@ public sealed record DirectoryAccountSnapshot(
 /// <param name="DepartmentId">目标部门。</param>
 /// <param name="IsEnabled">目标启用状态。</param>
 /// <param name="ChangedFields">变化的字段名，写审计用。</param>
+/// <param name="KeptManualDisable">是否因「管理员手工停用」而保持停用（用于同步摘要提示）。</param>
 public sealed record DirectorySyncDecision(
     DirectorySyncAction Action,
     string DisplayName,
     string? Email,
     Guid? DepartmentId,
     bool IsEnabled,
-    IReadOnlyList<string> ChangedFields)
+    IReadOnlyList<string> ChangedFields,
+    bool KeptManualDisable = false)
 {
     /// <summary>
     /// 获取是否需要写库。
@@ -138,6 +142,7 @@ public static class DirectorySyncPlanner
         }
 
         var isEnabled = local.IsEnabled;
+        var keptManualDisable = false;
 
         if (!record.IsEnabled && local.IsEnabled && !local.IsSuperAdmin)
         {
@@ -146,8 +151,19 @@ public static class DirectorySyncPlanner
         }
         else if (record.IsEnabled && !local.IsEnabled)
         {
-            isEnabled = true;
-            changed.Add("is_enabled");
+            // 关键区分：目录里「有这个人且启用」只能说明她还在职，
+            // 不能说明平台上的停用是同步做的。管理员手工停用的账号
+            // （离职流程中、借调、调查期间）必须保持停用，否则一小时后的
+            // 同步会把它悄悄打开，而且界面上看不出是谁打开的。
+            if (string.Equals(local.DisabledSource, UserDisableSources.Manual, StringComparison.Ordinal))
+            {
+                keptManualDisable = true;
+            }
+            else
+            {
+                isEnabled = true;
+                changed.Add("is_enabled");
+            }
         }
 
         var action = changed.Count == 0
@@ -156,7 +172,7 @@ public static class DirectorySyncPlanner
                 ? DirectorySyncAction.Disable
                 : DirectorySyncAction.Update;
 
-        return new DirectorySyncDecision(action, displayName, email, departmentId, isEnabled, changed);
+        return new DirectorySyncDecision(action, displayName, email, departmentId, isEnabled, changed, keptManualDisable);
     }
 }
 
@@ -203,6 +219,7 @@ public static class DirectoryUserFactory
             DepartmentId = departmentId,
             Email = record.Email,
             IsEnabled = record.IsEnabled,
+            DisabledSource = record.IsEnabled ? null : UserDisableSources.Directory,
             MustChangePassword = false,
             PasswordHash = null,
             AccessFailedCount = 0,

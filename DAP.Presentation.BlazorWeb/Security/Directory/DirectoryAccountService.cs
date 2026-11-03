@@ -140,10 +140,81 @@ public sealed class DirectoryAccountService(
                 _options.Ldap.DefaultRoleCode);
         }
 
-        await db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception)
+        {
+            // 并发建号：登录与定时同步可能同时为同一个人建号，
+            // 唯一索引会把后来的那条拒掉。这不是错误——重查一次返回既有账号即可，
+            // 否则用户看到的是「登录失败」，而实际上他的账号已经建好了。
+            DirectoryProvisionResult? existing = await TryResolveExistingAsync(record, cancellationToken);
+
+            if (existing is not null)
+            {
+                logger.LogInformation(
+                    "域账号 {UserName} 在并发建号中被另一路径抢先创建，已改为复用既有账号。",
+                    record.UserName);
+
+                return existing;
+            }
+
+            logger.LogError(exception, "域账号 {UserName} 建号失败（数据库拒绝写入）。", record.UserName);
+
+            return new DirectoryProvisionResult(false, null, "建号失败，请稍后重试或联系管理员。");
+        }
 
         logger.LogInformation("域账号 {UserName} 首次登录，已建号。", user.UserName);
         return new DirectoryProvisionResult(true, user, null);
+    }
+
+    /// <summary>
+    /// 建号失败后重查既有账号：先按外部身份，再按账号名（同名冲突时给出可读提示）。
+    /// </summary>
+    private async Task<DirectoryProvisionResult?> TryResolveExistingAsync(
+        LdapDirectoryUser record,
+        CancellationToken cancellationToken)
+    {
+        // 先把失败的 Added 实体摘掉，否则重查会把它们一起带出来，且再次保存仍会撞索引。
+        foreach (var entry in db.ChangeTracker.Entries()
+                     .Where(item => item.State == EntityState.Added)
+                     .ToList())
+        {
+            entry.State = EntityState.Detached;
+        }
+
+        Guid? userId = await db.ExternalIdentities
+            .AsNoTracking()
+            .Where(identity => identity.Provider == DirectorySyncService.LdapProvider
+                               && identity.ExternalId == record.ExternalId)
+            .Select(identity => (Guid?)identity.UserId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (userId is { } id)
+        {
+            AppUser? existing = await db.AppUsers
+                .AsNoTracking()
+                .Include(item => item.ExternalIdentities)
+                .Include(item => item.UserRoles)
+                .ThenInclude(link => link.Role)
+                .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+
+            return existing is null ? null : new DirectoryProvisionResult(true, existing, null);
+        }
+
+        var userName = DirectoryUserFactory.DeriveUserName(record);
+
+        var nameTaken = await db.AppUsers
+            .AsNoTracking()
+            .AnyAsync(item => item.UserName == userName, cancellationToken);
+
+        return nameTaken
+            ? new DirectoryProvisionResult(
+                false,
+                null,
+                $"账号 {userName} 已被平台上的本地账号占用，请联系管理员处理后再登录。")
+            : null;
     }
 
     private static DirectoryAccountSnapshot Snapshot(AppUser user)
@@ -158,7 +229,8 @@ public sealed class DirectoryAccountService(
             user.Email,
             user.DepartmentId,
             user.IsEnabled,
-            isSuperAdmin);
+            isSuperAdmin,
+            user.DisabledSource);
     }
 }
 

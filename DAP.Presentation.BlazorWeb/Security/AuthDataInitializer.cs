@@ -418,7 +418,9 @@ public sealed class AuthDataInitializer(
         else
         {
             // 账号已存在但没有超管角色：补上角色并重置为初始密码，符合「超管必须存在」的硬约束。
+            // 这是「零超管」的自救路径，只在启动自检发现无可用超管时才会走到。
             user.IsEnabled = true;
+            user.DisabledSource = null;
             user.MustChangePassword = true;
             user.PasswordHash = PasswordHasher.Hash(password);
             user.AccessFailedCount = 0;

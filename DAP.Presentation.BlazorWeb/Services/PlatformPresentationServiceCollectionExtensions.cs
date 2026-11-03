@@ -39,6 +39,11 @@ public static class PlatformPresentationServiceCollectionExtensions
         services.AddMudServices();
         services.AddMemoryCache();
 
+        // Cookie 与应用内数据保护用的密钥环必须落盘并固定应用名：
+        // 放进默认位置时，重新部署/换容器即丢密钥，所有会话立刻失效（用户表现为「突然全部掉线」）；
+        // 多实例部署下每个实例各有一套密钥，用户会在实例之间反复被踢。
+        services.AddPlatformDataProtection(configuration, environment);
+
         // 导航树：服务端按级联认证状态直调构建服务（SSR 与 Server 电路共用），
         // WASM 端在自身 Program.cs 注册 HTTP 实现，两端接口一致。
         services.AddHttpContextAccessor();
@@ -46,9 +51,12 @@ public static class PlatformPresentationServiceCollectionExtensions
         services.AddScoped<INavigationViewClient, ServerNavigationViewClient>();
         services.AddOpenApi();
 
+        // 认证端点的限流：挡密码喷洒与 PBKDF2 计算型 DoS（见 PlatformRateLimiting）。
+        services.AddPlatformRateLimiting();
+
         // 认证与授权：Cookie 服务端会话 + 三态授权数据。初始化器必须先跑完，
         // 否则启用登录后角色或超管缺失会让所有人进不去。
-        services.AddPlatformAuthentication(configuration);
+        services.AddPlatformAuthentication(configuration, environment);
         services.AddHostedService<AuthDataInitializer>();
 
         // 采集服务器的地址、凭据与接口路径保存在数据库中，这里只绑定进程级运行时开关。
@@ -76,6 +84,9 @@ public static class PlatformPresentationServiceCollectionExtensions
             return new PostgreSqlConnectionSettings(
                 ConnectionStringResolver.GetPostgreSqlConnectionString(configuration));
         });
+
+        // 跨实例互斥：后台任务与手工触发共用，避免多实例重复执行。
+        services.AddSingleton<PlatformAdvisoryLock>();
 
         services.AddSingleton(sp =>
         {
@@ -161,7 +172,7 @@ internal sealed class ServerNavigationViewClient(
 /// 表示 PostgreSQL 连接配置。
 /// </summary>
 /// <param name="ConnectionString">数据库连接字符串。</param>
-internal sealed record PostgreSqlConnectionSettings(string ConnectionString);
+public sealed record PostgreSqlConnectionSettings(string ConnectionString);
 
 internal static class ConnectionStringResolver
 {

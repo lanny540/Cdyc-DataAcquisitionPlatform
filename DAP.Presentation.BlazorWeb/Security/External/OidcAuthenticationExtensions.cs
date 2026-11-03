@@ -118,7 +118,10 @@ public static class OidcAuthenticationExtensions
 
         await context.HttpContext.SignInAsync(
             CookieAuthenticationDefaults.AuthenticationScheme,
-            PlatformClaimsFactory.CreatePrincipal(user, DateTimeOffset.UtcNow),
+            PlatformClaimsFactory.CreatePrincipal(
+                user,
+                DateTimeOffset.UtcNow,
+                await authService.GetSecurityStampAsync(user.Id, cancellationToken)),
             new AuthenticationProperties {IsPersistent = true});
 
         // 统一登录不走「先改密」分支：外部 IdP 已经完成了身份校验，

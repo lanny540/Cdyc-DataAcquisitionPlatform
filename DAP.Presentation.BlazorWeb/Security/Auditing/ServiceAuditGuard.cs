@@ -1,3 +1,5 @@
+using DAP.Infrastructure.DataAccess.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DAP.Presentation.BlazorWeb.Security.Auditing;
@@ -51,6 +53,25 @@ internal static class ServiceAuditGuard
             await writer.RecordAsync(null, actionCode, targetType, targetId, targetName, false,
                 new {reason = "会话没有可识别的操作者"}, cancellationToken);
             throw new ForbiddenAccessException("页面仍在加载或会话已失效，请刷新页面后重试。");
+        }
+
+        // 账号是否仍然启用必须在写操作前回查一次库：
+        // 停用与安全戳只对 HTTP 请求生效，而 Blazor Server 的写操作走 SignalR 电路，
+        // 电路建立后不再重新认证——不查库的话，被停用的人可以在已打开的页面里继续改数据。
+        if (user.UserId is { } userId)
+        {
+            var db = scope.ServiceProvider.GetRequiredService<DataAcquisitionPlatformDbContext>();
+
+            var stillEnabled = await db.AppUsers
+                .AsNoTracking()
+                .AnyAsync(item => item.Id == userId && item.IsEnabled, cancellationToken);
+
+            if (!stillEnabled)
+            {
+                await writer.RecordAsync(user, actionCode, targetType, targetId, targetName, false,
+                    new {reason = "账号已停用或不存在"}, cancellationToken);
+                throw new ForbiddenAccessException("账号已停用，请联系管理员。");
+            }
         }
 
         if (!user.HasPermission(permissionCode))

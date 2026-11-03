@@ -159,6 +159,12 @@ public static class AuthorizationCatalog
         /// <summary>是否必须先修改密码。存在即表示必须改，改密后重新签发会话不再带此 claim。</summary>
         public const string MustChangePassword = "dap:must_change_password";
 
+        /// <summary>
+        /// 会话安全戳。与 <c>app_users.security_stamp</c> 比对，不一致即作废会话——
+        /// 停用账号、管理员重置密码后，已签发的 Cookie 不再等到绝对过期才失效。
+        /// </summary>
+        public const string SecurityStamp = "dap:security_stamp";
+
         /// <summary>车间只读终端标记，P1 的 IP 白名单会话使用。</summary>
         public const string BoardTerminal = "dap:board_terminal";
 

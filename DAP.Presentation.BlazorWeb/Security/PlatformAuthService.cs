@@ -15,14 +15,21 @@ namespace DAP.Presentation.BlazorWeb.Security;
 /// <param name="Succeeded">是否成功。</param>
 /// <param name="ErrorMessage">失败原因，成功时为空。文案直接面向用户，不含框架英文信息。</param>
 /// <param name="User">成功时的用户授权视图。</param>
-public sealed record AuthSignInResult(bool Succeeded, string? ErrorMessage, AuthUserDto? User)
+/// <param name="SecurityStamp">成功时的会话安全戳，写入 Cookie 用于撤销判定。</param>
+public sealed record AuthSignInResult(
+    bool Succeeded,
+    string? ErrorMessage,
+    AuthUserDto? User,
+    string? SecurityStamp = null)
 {
     /// <summary>
     /// 创建成功结果。
     /// </summary>
     /// <param name="user">用户授权视图。</param>
+    /// <param name="securityStamp">会话安全戳。</param>
     /// <returns>登录结果。</returns>
-    public static AuthSignInResult Success(AuthUserDto user) => new(true, null, user);
+    public static AuthSignInResult Success(AuthUserDto user, string? securityStamp) =>
+        new(true, null, user, securityStamp);
 
     /// <summary>
     /// 创建失败结果。
@@ -31,7 +38,6 @@ public sealed record AuthSignInResult(bool Succeeded, string? ErrorMessage, Auth
     /// <returns>登录结果。</returns>
     public static AuthSignInResult Failed(string message) => new(false, message, null);
 }
-
 /// <summary>
 /// 承担本地账号的登录校验、授权视图构建与落地页计算。
 ///
@@ -44,9 +50,17 @@ public sealed class PlatformAuthService(
     TimeProvider timeProvider,
     ILdapDirectory ldapDirectory,
     DirectoryAccountService directoryAccounts,
+    UserSessionValidator sessionValidator,
     ILogger<PlatformAuthService> logger)
 {
     private readonly PlatformAuthOptions _options = options.Value;
+
+    /// <summary>
+    /// 用于「账号不存在」分支的占位哈希：只为了让该分支付出与真实校验相同的计算代价，
+    /// 从而抹平响应时间差。不参与任何真实身份判断。
+    /// </summary>
+    private static readonly string DummyPasswordHash =
+        PasswordHasher.Hash("dap-dummy-password-for-timing-equalization");
 
     /// <summary>
     /// 校验账号密码并返回授权视图。
@@ -90,7 +104,11 @@ public sealed class PlatformAuthService(
 
         if (user is null)
         {
-            // 账号不存在与密码错误返回同一句：避免通过提示差异枚举账号。
+            // 账号不存在与密码错误返回同一句，但文案一致挡不住计时旁路：
+            // 存在且密码错时要跑一次 PBKDF2（21 万次迭代，几十毫秒），不存在时立刻返回，
+            // 两者的响应时间差足以用来枚举账号。这里补跑一次同代价的校验把时间抹平。
+            PasswordHasher.Verify(password, DummyPasswordHash);
+
             logger.LogWarning("登录失败：账号 {UserName} 不存在。", normalizedUserName);
             return AuthSignInResult.Failed("账号或密码不正确。");
         }
@@ -131,7 +149,7 @@ public sealed class PlatformAuthService(
         AuthUserDto dto = await BuildUserDtoAsync(user, cancellationToken);
         logger.LogInformation("登录成功：账号 {UserName}。", user.UserName);
 
-        return AuthSignInResult.Success(dto);
+        return AuthSignInResult.Success(dto, user.SecurityStamp.ToString());
     }
 
     /// <summary>
@@ -181,7 +199,9 @@ public sealed class PlatformAuthService(
         await db.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("目录登录成功：账号 {UserName}。", reloaded.UserName);
-        return AuthSignInResult.Success(await BuildUserDtoAsync(reloaded, cancellationToken));
+        return AuthSignInResult.Success(
+            await BuildUserDtoAsync(reloaded, cancellationToken),
+            reloaded.SecurityStamp.ToString());
     }
 
     /// <summary>
@@ -293,11 +313,34 @@ public sealed class PlatformAuthService(
         user.MustChangePassword = false;
         user.AccessFailedCount = 0;
         user.LockoutEndAt = null;
+        // 换安全戳：改密等于「我怀疑旧密码可能外泄」，那之前签发的会话必须一起作废。
+        // 当前这次会话由端点重新签发（见 AuthEndpoints.ChangePasswordAsync），用户无感。
+        // 必须走校验器而不是直接赋值：它同时清掉会话缓存，否则新旧会话会有一段时间完全颠倒。
+        sessionValidator.RenewSecurityStamp(user);
         user.UpdatedAt = timeProvider.GetUtcNow();
         await db.SaveChangesAsync(cancellationToken);
 
-        logger.LogInformation("账号 {UserName} 已修改密码。", user.UserName);
+        logger.LogInformation("账号 {UserName} 已修改密码，已签发会话全部失效。", user.UserName);
         return new AuthOperationResultDto(true, null);
+    }
+
+    /// <summary>
+    /// 读取用户当前的安全戳，用于重新签发会话。
+    /// </summary>
+    /// <param name="userId">用户标识。</param>
+    /// <param name="cancellationToken">取消令牌。</param>
+    /// <returns>安全戳字符串；用户不存在时返回 null。</returns>
+    public async Task<string?> GetSecurityStampAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        Guid? stamp = await db.AppUsers
+            .AsNoTracking()
+            .Where(user => user.Id == userId)
+            .Select(user => (Guid?)user.SecurityStamp)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return stamp?.ToString();
     }
 
     /// <summary>

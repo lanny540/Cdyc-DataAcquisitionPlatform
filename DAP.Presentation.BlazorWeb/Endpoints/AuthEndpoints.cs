@@ -29,8 +29,10 @@ public static class AuthEndpoints
 
         // 三个处理器的首个参数是 HttpContext，写成方法组会被推断成 RequestDelegate，
         // 返回值（重定向）会被丢弃。显式转成 Delegate 走路由处理器重载。
+        // 登录与改密要限流：两者都会跑密码哈希校验，是可被批量触发的高开销操作。
         group.MapPost("/login", (Delegate)LoginAsync)
             .WithName("AuthLogin")
+            .RequireRateLimiting(PlatformRateLimiting.CredentialPolicy)
             .DisableAntiforgery();
 
         group.MapPost("/logout", (Delegate)LogoutAsync)
@@ -39,6 +41,7 @@ public static class AuthEndpoints
 
         group.MapPost("/change-password", (Delegate)ChangePasswordAsync)
             .WithName("AuthChangePassword")
+            .RequireRateLimiting(PlatformRateLimiting.CredentialPolicy)
             .DisableAntiforgery();
 
         group.MapGet("/me", GetCurrentUserAsync)
@@ -124,7 +127,7 @@ public static class AuthEndpoints
 
         await httpContext.SignInAsync(
             CookieAuthenticationDefaults.AuthenticationScheme,
-            PlatformClaimsFactory.CreatePrincipal(user, DateTimeOffset.UtcNow),
+            PlatformClaimsFactory.CreatePrincipal(user, DateTimeOffset.UtcNow, result.SecurityStamp),
             new AuthenticationProperties {IsPersistent = true});
 
         if (user.MustChangePassword)
@@ -190,7 +193,10 @@ public static class AuthEndpoints
 
         await httpContext.SignInAsync(
             CookieAuthenticationDefaults.AuthenticationScheme,
-            PlatformClaimsFactory.CreatePrincipal(user, DateTimeOffset.UtcNow),
+            PlatformClaimsFactory.CreatePrincipal(
+                user,
+                DateTimeOffset.UtcNow,
+                await authService.GetSecurityStampAsync(user.Id, cancellationToken)),
             new AuthenticationProperties {IsPersistent = true});
 
         return Results.Redirect(await authService.ResolveLandingPageAsync(user, cancellationToken));
