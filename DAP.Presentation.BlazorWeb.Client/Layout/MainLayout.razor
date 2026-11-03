@@ -1,3 +1,6 @@
+@using System.Security.Claims
+@using DAP.Core.Shared.Catalog
+@using Microsoft.AspNetCore.Components.Authorization
 @inherits LayoutComponentBase
 @implements IDisposable
 @inject NavigationManager Nav
@@ -36,6 +39,25 @@
         <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined" Class="platform-version-chip">
             Web 管理端 @AppVersion
         </MudChip>
+        @* 账号区只读当前会话里的 claims，不额外请求 /api/auth/me：
+           会话失效时由路由守卫与服务端闸门拦到登录页，这里不做第二套判定。 *@
+        <AuthorizeView>
+            <Authorized>
+                <div class="platform-user-area">
+                    <span class="platform-user-avatar">
+                        <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small"/>
+                    </span>
+                    <span class="platform-user-name">@ResolveDisplayName(context.User)</span>
+                    @* 原生表单提交而非 @onsubmit：InteractiveAuto 下页面可能落在 Server 电路里，
+                       电路内拿不到 HttpContext，签不掉 Cookie。浏览器直接 POST 由端点完成登出。 *@
+                    <form method="post" action="/api/auth/logout" class="platform-logout-form">
+                        <button type="submit" class="platform-logout-button" aria-label="退出登录" title="退出登录">
+                            <MudIcon Icon="@Icons.Material.Filled.Logout" Size="Size.Small"/>
+                        </button>
+                    </form>
+                </div>
+            </Authorized>
+        </AuthorizeView>
     </MudAppBar>
     <MudDrawer @bind-Open="_drawerOpen"
                ClipMode="DrawerClipMode.Always"
@@ -143,73 +165,24 @@
     }
 
     /// <summary>
-    /// 平台统一色板（Material Design 3）。
-    /// 此处色值须与 app.css 的 --md-* 变量保持同步，改动规则见 docs/DESIGN_SYSTEM.md。
+    /// 平台统一色板（Material Design 3）。定义见 <see cref="PlatformTheme"/>，
+    /// 登录页与主框架共用同一份，避免未登录时看到另一套配色。
     /// </summary>
-    private readonly MudTheme _theme = new()
-    {
-        PaletteLight = new PaletteLight
-        {
-            Primary = "#0b4fc4",
-            PrimaryContrastText = "#ffffff",
-            Secondary = "#33475c",
-            SecondaryContrastText = "#ffffff",
-            Tertiary = "#7b2f9e",
-            TertiaryContrastText = "#ffffff",
-            Info = "#0f6fbd",
-            InfoContrastText = "#ffffff",
-            Success = "#0d7a3c",
-            SuccessContrastText = "#ffffff",
-            Warning = "#b15600",
-            WarningContrastText = "#ffffff",
-            Error = "#b32318",
-            ErrorContrastText = "#ffffff",
-            Background = "#f4f7fa",
-            BackgroundGray = "#eef2f7",
-            Surface = "#ffffff",
-            AppbarBackground = "#ffffff",
-            AppbarText = "#16202b",
-            DrawerBackground = "#ffffff",
-            DrawerIcon = "#4a5c70",
-            DrawerText = "#16202b",
-            TextPrimary = "#16202b",
-            TextSecondary = "#4e5a70",
-            TextDisabled = "#9aa6b6",
-            ActionDefault = "#16202b",
-            Divider = "#e1e7ee",
-            DividerLight = "#eef2f7",
-            LinesDefault = "#e1e7ee",
-            LinesInputs = "#c7d0da",
-            TableLines = "#e1e7ee",
-            TableHover = "#dce8fa",
-            TableStriped = "#f8fafc",
-            Skeleton = "#e7ecf3"
-        },
-        LayoutProperties = new LayoutProperties
-        {
-            DefaultBorderRadius = "4px",
-            AppbarHeight = "56px",
-            DrawerWidthLeft = "232px"
-        },
-        Typography = new Typography
-        {
-            Default = new DefaultTypography
-            {
-                FontFamily = ["PingFang SC", "Microsoft YaHei", "sans-serif"],
-                FontSize = "0.875rem",
-                LineHeight = "1.5"
-            },
-            H3 = new H3Typography {FontSize = "2rem", FontWeight = "600", LineHeight = "1.25"},
-            H4 = new H4Typography {FontSize = "1.375rem", FontWeight = "600", LineHeight = "1.4"},
-            H5 = new H5Typography {FontSize = "1.125rem", FontWeight = "600", LineHeight = "1.4"},
-            H6 = new H6Typography {FontSize = "1rem", FontWeight = "600", LineHeight = "1.5"},
-            Body1 = new Body1Typography {FontSize = "0.875rem", LineHeight = "1.5"},
-            Body2 = new Body2Typography {FontSize = "0.8125rem", LineHeight = "1.5"},
-            Button = new ButtonTypography {FontSize = "0.8125rem", FontWeight = "500", TextTransform = "none"}
-        }
-    };
+    private readonly MudTheme _theme = PlatformTheme.Create();
 
     private string AppVersion => $"v{System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.0.0"}";
+
+    /// <summary>
+    /// 顶栏展示的姓名：优先 display_name，缺失时退回账号名。
+    /// </summary>
+    private static string ResolveDisplayName(ClaimsPrincipal user)
+    {
+        var displayName = user.FindFirst(AuthorizationCatalog.PlatformClaimTypes.DisplayName)?.Value;
+
+        return string.IsNullOrWhiteSpace(displayName)
+            ? user.Identity?.Name ?? "未命名账号"
+            : displayName;
+    }
 
     private void DrawerToggle()
     {

@@ -13,6 +13,7 @@ public static class PlatformApiEndpointRouteBuilderExtensions
     public static IEndpointRouteBuilder MapPlatformApiEndpoints(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapHealthEndpoints();
+        endpoints.MapAuthEndpoints();
         endpoints.MapConnectionDiagnosticsEndpoints();
         endpoints.MapAcquisitionServerEndpoints();
         endpoints.MapDashboardEndpoints();

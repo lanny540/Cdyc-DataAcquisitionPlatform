@@ -1,6 +1,24 @@
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Routing
+
+@* 路由守卫。未认证时不在客户端渲染任何业务内容，直接回登录页并带上回跳地址。
+   服务端侧还有一道认证闸门（见 PlatformAuthenticationExtensions），两层各司其职：
+   闸门保证「未登录连页面外壳都不渲染」，这里保证「会话失效后切页立刻被拦」。 *@
 <Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFound)">
     <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)"/>
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)">
+            <NotAuthorized>
+                <RedirectToLogin/>
+            </NotAuthorized>
+            <Authorizing>
+                <div class="status-code-shell">
+                    <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                        <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">正在校验登录状态…</MudText>
+                    </MudStack>
+                </div>
+            </Authorizing>
+        </AuthorizeRouteView>
         <FocusOnNavigate RouteData="routeData" Selector=".mud-typography-h4"/>
     </Found>
 </Router>

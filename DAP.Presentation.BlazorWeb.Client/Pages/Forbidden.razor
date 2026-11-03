@@ -1,0 +1,24 @@
+@page "/forbidden"
+
+<PageTitle>无权访问</PageTitle>
+
+<MudStack Class="platform-page-shell" Spacing="2">
+    <div class="status-code-shell">
+        <MudPaper Class="status-code-card platform-accent-error" Elevation="0">
+            <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                <MudAvatar Size="Size.Large" Class="not-found-avatar"
+                           Style="background: var(--md-error-soft); color: var(--md-error-strong);">
+                    <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Large"/>
+                </MudAvatar>
+                <MudText Typo="Typo.h4">无权访问该页面</MudText>
+                <MudText Typo="Typo.body1" Align="Align.Center" Color="Color.Secondary">
+                    你的账号没有这个页面的访问权限。若确实需要使用，请联系管理员调整你的角色或部门授权。
+                </MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/"
+                           StartIcon="@Icons.Material.Filled.Home">
+                    返回首页
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+    </div>
+</MudStack>

@@ -123,9 +123,28 @@ MudChart 把系列色硬编码为 Material 默认蓝（`#2979FF`）。`app.css` 
 改配色不是只改一个文件，需同步：
 
 1. `DAP.Presentation.BlazorWeb/wwwroot/app.css` → `:root`
-2. `DAP.Presentation.BlazorWeb.Client/Layout/MainLayout.razor` → `MudTheme.PaletteLight`
+2. `DAP.Presentation.BlazorWeb.Client/Layout/PlatformTheme.cs` → `MudTheme.PaletteLight`
 3. `DAP.Presentation.AvaloniaApp/Themes/DapPalette.axaml`
 4. `DAP.Presentation.AvaloniaApp/Themes/SemiBrandOverride.axaml`
+
+`PaletteLight` 原先写在 `MainLayout.razor`，因登录页也要用同一份色板，已抽到
+`PlatformTheme.cs`。守卫测试 `AppCss_And_MudTheme_Should_Share_Same_Color` 读的是新文件，
+改回布局里会让构建失败。
+
+### 登录与页面登记
+
+全站已启用登录（Cookie 服务端会话），新增页面不需要加 `[Authorize]`——
+服务端闸门会拦住未登录请求，`AuthorizeRouteView` 会拦住会话失效后的切页。要注意的是：
+
+- 新增业务页面必须在 `Layout/NavigationCatalog.cs` 登记，并给出**唯一的 `PageKey`**
+  与所属 `DomainCode`：启动对账据此写入 `domain_pages`，缺了页面不会报错但会从授权矩阵里消失。
+- 页面等级只有两档：`ViewAccessLevel`（1，只看）与 `ConfigureAccessLevel`（2，可改）。
+  写操作页面（导入、编辑、清空）必须是 2。
+- 登录、改密这类页面用 `@layout AuthLayout`（无顶栏与抽屉）；其余页面的根容器是
+  `platform-page-shell`，页面外壳守卫按 `@layout AuthLayout` 自动豁免，不要按文件名开口子。
+- 表单提交走原生 `method="post"`，不要挂 `@onsubmit`：InteractiveAuto 下页面可能落在
+  Server 电路里，电路内没有 `HttpContext`，签不出也签不掉 Cookie。
+- 设计基线见 `docs/AUTH_DESIGN.md`；当前只落地 P0，域授权矩阵与审计属 P1。
 
 ### 组件 API 不可臆测
 
@@ -146,6 +165,18 @@ dotnet test DAP.Tests.UnitTests   # 期望全绿
 
 改了 Web 端配色需启动应用截图核对；`dotnet build` 返回码非 0 但输出 `Build succeeded` 时，
 真实原因常是沙箱拦截 `~/Library/Application Support/AvaloniaUI/` 的文件删除，与代码无关。
+
+改动登录、会话或路由守卫后，另跑一次浏览器用例：
+
+```bash
+cd DAP.Presentation.BlazorWeb
+npx playwright test --config auth.playwright.config.mjs
+```
+
+它会自起一个 5077 端口的实例（关闭采集调度），验证未登录拦截、错误密码提示、
+首登强制改密、登录后落地、刷新保持与登出。注意：首次运行会把开发库超管密码
+改为用例里的新密码，之后重复运行会自动识别。`ui.spec.mjs` 写于登录改造之前，
+当前不可直接运行，不要用它判断登录是否正常。
 
 ### 提交前更新文档
 

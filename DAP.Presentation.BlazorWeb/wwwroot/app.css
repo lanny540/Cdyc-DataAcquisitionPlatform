@@ -210,6 +210,68 @@ code, pre, .platform-inline-code, .platform-timestamp, .platform-monospace {
     font-size: 0.75rem;
 }
 
+/* ===== 顶栏账号区 =====
+   只读当前会话的姓名，登出用原生表单 POST，避免在 Blazor 电路里拿不到 HttpContext。 */
+.platform-user-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    padding-left: 12px;
+    margin-left: 4px;
+    border-left: 1px solid var(--platform-border);
+}
+
+.platform-user-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--md-primary-soft);
+    color: var(--md-primary-strong);
+}
+
+.platform-user-name {
+    max-width: 120px;
+    overflow: hidden;
+    color: var(--platform-text);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.platform-logout-form {
+    display: inline-flex;
+    margin: 0;
+}
+
+.platform-logout-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--platform-text-muted);
+    cursor: pointer;
+    transition: background-color .15s ease, color .15s ease;
+}
+
+.platform-logout-button:hover {
+    background: var(--md-error-tint);
+    color: var(--md-error-strong);
+}
+
+.platform-logout-button .mud-icon-root {
+    color: currentColor;
+}
+
 /* ===== 顶栏一级导航 =====
    三个顶级模块（数据指标 / 业务配置 / 平台管理）切换左侧菜单。
    激活态用 primary 的 soft 底 + 2px 下划线表达，颜色全部取自变量。 */
@@ -1179,6 +1241,155 @@ code, pre, .platform-inline-code, .platform-timestamp, .platform-monospace {
     color: var(--md-warning-strong);
 }
 
+/* ===== 登录页 =====
+   登录页不套用主框架（没有顶栏与抽屉），但复用同一套色板与圆角，
+   避免「未登录时像是另一个系统」的观感。表单元素用原生 input：
+   登录必须能在没有交互电路的情况下提交，见 docs/AUTH_DESIGN.md 6.2。 */
+.platform-auth-shell {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 32px 16px;
+    background: var(--platform-bg);
+}
+
+.platform-auth-panel {
+    width: min(420px, 100%);
+    padding: 28px 28px 24px;
+    background: var(--platform-surface);
+    border: 1px solid var(--platform-border);
+    border-top: 4px solid var(--md-primary);
+    border-radius: 4px;
+    box-shadow: var(--platform-shadow-raised);
+}
+
+.platform-auth-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.platform-auth-logo {
+    display: grid;
+    place-items: center;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    border-radius: 4px;
+    background: var(--md-primary-soft);
+    color: var(--md-primary-strong);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+}
+
+.platform-auth-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--platform-text);
+}
+
+.platform-auth-subtitle {
+    margin-top: 2px;
+    font-size: 0.8125rem;
+    color: var(--platform-text-muted);
+}
+
+.platform-auth-form {
+    display: grid;
+    gap: 14px;
+}
+
+.platform-auth-field {
+    display: grid;
+    gap: 6px;
+}
+
+.platform-auth-label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--platform-text-muted);
+}
+
+.platform-auth-input {
+    height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--platform-border-strong);
+    border-radius: 4px;
+    background: var(--platform-surface);
+    color: var(--platform-text);
+    font: inherit;
+}
+
+.platform-auth-input:focus-visible {
+    outline: 2px solid var(--md-primary);
+    outline-offset: 1px;
+    border-color: var(--md-primary);
+}
+
+.platform-auth-hint {
+    font-size: 0.75rem;
+    color: var(--platform-text-subtle);
+}
+
+/* 登录/改密页内的区块小标题，与外壳的品牌名区分开。 */
+.platform-auth-section {
+    margin-bottom: 16px;
+}
+
+.platform-auth-section-title {
+    margin-bottom: 4px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--platform-text);
+}
+
+.platform-auth-error {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    padding: 10px 12px;
+    border: 1px solid var(--md-error);
+    border-left: 4px solid var(--md-error);
+    border-radius: 4px;
+    background: var(--md-error-tint);
+    color: var(--md-error-strong);
+    font-size: 0.8125rem;
+}
+
+.platform-auth-submit {
+    height: 40px;
+    border: 0;
+    border-radius: 4px;
+    background: var(--md-primary);
+    color: #ffffff;
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.platform-auth-submit:hover {
+    background: var(--md-primary-strong);
+}
+
+.platform-auth-meta {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--platform-border);
+    font-size: 0.75rem;
+    color: var(--platform-text-subtle);
+}
+
+.platform-auth-footer {
+    font-size: 0.75rem;
+    color: var(--platform-text-subtle);
+}
+
 #blazor-error-ui {
     display: none;
     position: fixed;
@@ -1232,6 +1443,24 @@ code, pre, .platform-inline-code, .platform-timestamp, .platform-monospace {
     }
 
     .platform-version-chip {
+        display: none;
+    }
+
+    /* 窄屏只保留登出按钮：姓名与头像让位给三个顶级菜单，
+       否则第三项会被账号区压住（实测 390px 下溢出 37px）。 */
+    .platform-user-name,
+    .platform-user-avatar {
+        display: none;
+    }
+
+    .platform-user-area {
+        padding-left: 8px;
+        margin-left: 0;
+        gap: 0;
+    }
+
+    /* 顶级菜单只显示文字：图标占 24px/项，去掉后三项才能完整落在视口内。 */
+    .platform-topnav-item .mud-icon-root {
         display: none;
     }
 

@@ -15,7 +15,7 @@
 | Web | `DAP.Presentation.BlazorWeb/wwwroot/app.css` 的 `:root` 变量 | `--md-*` / `--platform-*` |
 |桌面 | `DAP.Presentation.AvaloniaApp/Themes/DapPalette.axaml` | `Dap*Brush` / `Dap*Color` |
 | 桌面主题对接 | `DAP.Presentation.AvaloniaApp/Themes/SemiBrandOverride.axaml` | 覆盖 Semi 默认调色板 |
-| Web 组件对接 | `MainLayout.razor` 的 `MudTheme.PaletteLight` | 传给 MudBlazor |
+| Web 组件对接 | `DAP.Presentation.BlazorWeb.Client/Layout/PlatformTheme.cs` 的 `MudTheme.PaletteLight` | 传给 MudBlazor；主框架与登录页共用同一份 |
 
 **改色流程**：先改权威文件 → 再同步到对接文件 → 验证双端一致。禁止只改其中一处。
 
@@ -157,6 +157,8 @@
 | 历史指标 `/energy-history` | 数据指标 → 能耗指标 | tertiary |
 | 班组横向对比 `/energy-comparison` | 数据指标 → 能耗指标 | warning |
 | 班组能耗报表 `/energy-report` | 数据指标 → 数据报表 | primary |
+| 登录 `/login`、改密 `/change-password` | 不在菜单内（AuthLayout） | primary |
+| 无权限 `/no-access`、无访问权 `/forbidden`、未上线 `/coming-soon` | 不在菜单内（状态页） | info |
 
 新增页面时必须在本表中登记主色。
 

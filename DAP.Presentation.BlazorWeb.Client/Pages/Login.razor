@@ -1,0 +1,54 @@
+@page "/login"
+@layout AuthLayout
+
+<PageTitle>登录 · CDYC 数据采集平台</PageTitle>
+
+@* 表单用原生提交（method/action），不挂 @onsubmit：
+   InteractiveAuto 下页面可能落在 Server 电路里，电路内拿不到 HttpContext，签不出 Cookie。
+   原生提交由浏览器直接请求端点，服务端完成签发后 302 到落地页，两种渲染模式行为一致。 *@
+@if (!string.IsNullOrWhiteSpace(ErrorMessage))
+{
+    <div class="platform-auth-error" role="alert">
+        <span>@ErrorMessage</span>
+    </div>
+}
+
+<form method="post" action="/api/auth/login" class="platform-auth-form">
+    <input type="hidden" name="returnUrl" value="@ReturnUrl"/>
+    <div class="platform-auth-field">
+        <label class="platform-auth-label" for="userName">账号</label>
+        <input class="platform-auth-input" id="userName" name="userName" type="text"
+               autocomplete="username" required autofocus value="@UserName"
+               placeholder="请输入账号"/>
+    </div>
+    <div class="platform-auth-field">
+        <label class="platform-auth-label" for="password">密码</label>
+        <input class="platform-auth-input" id="password" name="password" type="password"
+               autocomplete="current-password" required placeholder="请输入密码"/>
+    </div>
+    <button type="submit" class="platform-auth-submit">登录</button>
+</form>
+
+<div class="platform-auth-meta">
+    账号由管理员分配。连续输错 5 次将锁定 15 分钟；首次登录需要修改初始密码。
+</div>
+
+@code {
+    /// <summary>
+    /// 登录失败原因。由端点通过查询串回传，直接展示，不再拼接框架异常信息。
+    /// </summary>
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? ErrorMessage { get; set; }
+
+    /// <summary>
+    /// 回填的账号，避免用户重新输入。
+    /// </summary>
+    [SupplyParameterFromQuery(Name = "userName")]
+    public string? UserName { get; set; }
+
+    /// <summary>
+    /// 登录成功后要回到的原始地址。
+    /// </summary>
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
+}

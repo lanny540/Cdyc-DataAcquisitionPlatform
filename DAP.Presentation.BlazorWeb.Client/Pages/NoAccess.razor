@@ -1,0 +1,21 @@
+@page "/no-access"
+
+<PageTitle>暂无可用板块</PageTitle>
+
+<MudStack Class="platform-page-shell" Spacing="2">
+    <div class="status-code-shell">
+        <MudPaper Class="status-code-card platform-accent-info" Elevation="0">
+            <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                <MudAvatar Size="Size.Large" Class="not-found-avatar"
+                           Style="background: var(--md-info-soft); color: var(--md-info-strong);">
+                    <MudIcon Icon="@Icons.Material.Filled.KeyOff" Size="Size.Large"/>
+                </MudAvatar>
+                <MudText Typo="Typo.h4">你的部门尚未被授予业务板块</MudText>
+                <MudText Typo="Typo.body1" Align="Align.Center" Color="Color.Secondary">
+                    账号与部门都已就绪，但所在部门还没有被授权任何职能域，因此暂时没有可访问的页面。
+                    请联系管理员在「部门与授权」中为本部门勾选业务板块。
+                </MudText>
+            </MudStack>
+        </MudPaper>
+    </div>
+</MudStack>

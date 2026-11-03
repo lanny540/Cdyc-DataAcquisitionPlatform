@@ -13,8 +13,9 @@ public partial class DesignSystemGuardTests
     /// <summary>
     /// 业务页面中禁止硬编码十六进制色值，必须走CSS 变量或 MudBlazor 语义色。
     ///
-    /// 豁免：Layout/MainLayout.razor 的 MudTheme.PaletteLight 是色板的对接文件，
-    /// 按设计规范它必须显式写出色值；其一致性由AppCss_And_MudTheme_Should_Share_Same_Color 保证。
+    /// 色板的唯一落点是 Layout/PlatformTheme.cs（.cs 文件，不在本守卫的扫描范围内），
+    /// 因此这里不做文件豁免：只要 .razor 里出现色值就判违规。
+    /// 其一致性由 AppCss_And_MudTheme_Should_Share_Same_Color 保证。
     /// </summary>
     [Fact]
     public void Razor_Pages_Should_Not_Hardcode_Hex_Colors()
@@ -23,11 +24,6 @@ public partial class DesignSystemGuardTests
 
         foreach (var file in RazorFiles())
         {
-            if (IsPaletteHostFile(file))
-            {
-                continue;
-            }
-
             var lines = ReadLines(file);
             for (var i = 0; i < lines.Length; i++)
             {
@@ -67,10 +63,13 @@ public partial class DesignSystemGuardTests
     public void AppCss_And_MudTheme_Should_Share_Same_Color(string hex)
     {
         var appCss = ReadRepoFile("DAP.Presentation.BlazorWeb/wwwroot/app.css");
-        var mainLayout = ReadRepoFile("DAP.Presentation.BlazorWeb.Client/Layout/MainLayout.razor");
+
+        // 色板的 MudTheme 对接文件。原先写在 MainLayout.razor 里，
+        // 认证页也要用同一份色板，已抽到 PlatformTheme.cs 供两个布局共用。
+        var platformTheme = ReadRepoFile("DAP.Presentation.BlazorWeb.Client/Layout/PlatformTheme.cs");
 
         Assert.Contains(hex, appCss, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains(hex, mainLayout, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(hex, platformTheme, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -479,6 +478,10 @@ public partial class DesignSystemGuardTests
 
     /// <summary>
     /// 页面根容器统一为 platform-page-shell，保证全站间距体系一致。
+    ///
+    /// 例外是登录与改密页：它们走 AuthLayout（platform-auth-shell），
+    /// 没有顶栏与抽屉，套用业务页外壳反而会多出一层留白。
+    /// 判断依据是页面自己声明了 @layout AuthLayout，不是按文件名逐个豁免。
     /// </summary>
     [Fact]
     public void Pages_Should_Use_Platform_Page_Shell_Root()
@@ -489,6 +492,11 @@ public partial class DesignSystemGuardTests
         {
             var text = ReadRepoFile(file);
             if (!text.Contains("@page", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (text.Contains("@layout AuthLayout", StringComparison.Ordinal))
             {
                 continue;
             }
@@ -827,14 +835,6 @@ public partial class DesignSystemGuardTests
         @"ChartSeries\s*=\s*""@(?<series>\w+)\([^""]*\)[^""]*""[\s\S]{0,300}?ChartLabels\s*=\s*""@(?<labels>\w+)\([^""]*\)""",
         RegexOptions.IgnoreCase)]
     private static partial Regex ChartBindingRegex();
-
-    /// <summary>
-    /// 判定是否为色板承载文件（允许显式写出十六进制色值）。
-    /// </summary>
-    private static bool IsPaletteHostFile(string path)
-    {
-        return Path.GetFileName(path).Equals("MainLayout.razor", StringComparison.OrdinalIgnoreCase);
-    }
 
     /// <summary>
     /// 提取 Axaml 中的资源定义行（Brush / Color 元素），剔除注释与普通文本行。

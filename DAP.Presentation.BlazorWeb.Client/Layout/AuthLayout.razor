@@ -1,0 +1,28 @@
+@inherits LayoutComponentBase
+
+@* 登录与改密页的极简外壳：没有顶栏、抽屉与菜单。
+   未登录时若仍渲染主框架，用户会看到一个点不动的导航，误以为是故障。 *@
+<MudThemeProvider Theme="_theme"/>
+<MudPopoverProvider/>
+<MudSnackbarProvider/>
+
+<div class="platform-auth-shell">
+    <div class="platform-auth-panel">
+        <div class="platform-auth-brand">
+            <div class="platform-auth-logo">CDYC</div>
+            <div>
+                <div class="platform-auth-title">CDYC 数据采集平台</div>
+                <div class="platform-auth-subtitle">统一采集配置、连接诊断与运行观测</div>
+            </div>
+        </div>
+        @Body
+    </div>
+    <div class="platform-auth-footer">内部系统 · 请使用本人账号登录</div>
+</div>
+
+@code {
+    /// <summary>
+    /// 与主框架共用同一份色板，避免两处各写一套导致配色漂移。
+    /// </summary>
+    private readonly MudTheme _theme = PlatformTheme.Create();
+}

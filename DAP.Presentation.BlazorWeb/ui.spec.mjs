@@ -1,5 +1,10 @@
 import { test, expect } from "@playwright/test";
 
+// 历史遗留的界面回归脚本：写于「登录」与「顶栏三级导航」两次改造之前，
+// 仍假设 / 是平台概览、菜单里还有「采集点管理」。当前不可直接运行，
+// 需要连同登录（见 auth.spec.mjs）与新的导航结构一起重写后再纳入回归。
+// 认证相关的契约由 auth.spec.mjs 守护，不要用本文件判断登录是否正常。
+
 async function checkViewport(page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBeTruthy();
   const chip = page.locator(".platform-version-chip");

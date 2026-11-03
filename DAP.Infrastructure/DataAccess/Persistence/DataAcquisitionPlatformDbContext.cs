@@ -37,6 +37,62 @@ public sealed class DataAcquisitionPlatformDbContext : DbContext
     /// </summary>
     public DbSet<ServerConnection> ServerConnections => Set<ServerConnection>();
 
+    /// <summary>
+    /// 获取部门集合。
+    /// </summary>
+    public DbSet<Department> Departments => Set<Department>();
+
+    /// <summary>
+    /// 获取平台账号集合。
+    /// </summary>
+    public DbSet<AppUser> AppUsers => Set<AppUser>();
+
+    /// <summary>
+    /// 获取外部身份绑定集合。
+    /// </summary>
+    public DbSet<ExternalIdentity> ExternalIdentities => Set<ExternalIdentity>();
+
+    /// <summary>
+    /// 获取职能域集合。
+    /// </summary>
+    public DbSet<BusinessDomain> BusinessDomains => Set<BusinessDomain>();
+
+    /// <summary>
+    /// 获取域内页面集合。
+    /// </summary>
+    public DbSet<DomainPage> DomainPages => Set<DomainPage>();
+
+    /// <summary>
+    /// 获取部门域授权集合。
+    /// </summary>
+    public DbSet<DepartmentDomainGrant> DepartmentDomainGrants => Set<DepartmentDomainGrant>();
+
+    /// <summary>
+    /// 获取角色集合。
+    /// </summary>
+    public DbSet<Role> Roles => Set<Role>();
+
+    /// <summary>
+    /// 获取权限点集合。
+    /// </summary>
+    public DbSet<Permission> Permissions => Set<Permission>();
+
+    /// <summary>
+    /// 获取角色权限关联集合。
+    /// </summary>
+    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+
+    /// <summary>
+    /// 获取用户角色关联集合。
+    /// </summary>
+    public DbSet<UserRole> UserRoles => Set<UserRole>();
+
+    /// <summary>
+    /// 获取审计日志集合。
+    /// </summary>
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+
+
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

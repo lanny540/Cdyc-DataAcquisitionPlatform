@@ -5,6 +5,7 @@ using DAP.Infrastructure.DataAccess.Persistence;
 using DAP.Infrastructure.DataAccess.Repositories;
 using DAP.Infrastructure.DataAccess.Services;
 using DAP.Presentation.BlazorWeb.Client.Services;
+using DAP.Presentation.BlazorWeb.Security;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using Npgsql;
@@ -38,6 +39,11 @@ public static class PlatformPresentationServiceCollectionExtensions
         services.AddMudServices();
         services.AddMemoryCache();
         services.AddOpenApi();
+
+        // 认证与授权：Cookie 服务端会话 + 三态授权数据。初始化器必须先跑完，
+        // 否则启用登录后角色或超管缺失会让所有人进不去。
+        services.AddPlatformAuthentication(configuration);
+        services.AddHostedService<AuthDataInitializer>();
 
         // 采集服务器的地址、凭据与接口路径保存在数据库中，这里只绑定进程级运行时开关。
         services.Configure<AcquisitionServerRuntimeOptions>(

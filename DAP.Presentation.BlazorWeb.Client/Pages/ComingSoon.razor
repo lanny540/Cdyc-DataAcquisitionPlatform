@@ -1,0 +1,22 @@
+@page "/coming-soon"
+
+<PageTitle>板块建设中</PageTitle>
+
+@* 文案刻意不使用「无权限」：这里的成因是内容未就绪，不是缺授权。
+   两种情况在界面上极易混淆，措辞必须区分，否则用户会去找管理员要一个已经给过的权限。 *@
+<MudStack Class="platform-page-shell" Spacing="2">
+    <div class="status-code-shell">
+        <MudPaper Class="status-code-card platform-accent-warning" Elevation="0">
+            <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                <MudAvatar Size="Size.Large" Class="not-found-avatar">
+                    <MudIcon Icon="@Icons.Material.Filled.Construction" Size="Size.Large"/>
+                </MudAvatar>
+                <MudText Typo="Typo.h4">你所在的部门已获授权，板块正在建设中</MudText>
+                <MudText Typo="Typo.body1" Align="Align.Center" Color="Color.Secondary">
+                    权限已经配置好，只是对应业务板块的页面尚未上线。上线后无需任何操作即可访问。
+                    如需了解进度，请联系平台管理员。
+                </MudText>
+            </MudStack>
+        </MudPaper>
+    </div>
+</MudStack>

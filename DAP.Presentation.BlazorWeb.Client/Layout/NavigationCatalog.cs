@@ -1,3 +1,4 @@
+using DAP.Core.Shared.Catalog;
 using Microsoft.AspNetCore.Components.Routing;
 using MudBlazor;
 
@@ -10,7 +11,17 @@ namespace DAP.Presentation.BlazorWeb.Client.Layout;
 /// <param name="Href">目标路由，根路由写 "/"。</param>
 /// <param name="Icon">Material 图标常量，必须确认存在于 Icons.Material.Filled。</param>
 /// <param name="Accent">导航图标取色类，取值来自 app.css 已定义的 platform-nav-link--* 修饰类。</param>
-public sealed record NavItem(string Title, string Href, string Icon, string Accent)
+/// <param name="PageKey">页面稳定标识，落库后不随路由改动而变化，是启动对账的比对键。</param>
+/// <param name="DomainCode">默认所属职能域。库中可覆盖，见 docs/AUTH_DESIGN.md 第 4 节。</param>
+/// <param name="AccessLevel">页面等级：1 查看类，2 配置类。</param>
+public sealed record NavItem(
+    string Title,
+    string Href,
+    string Icon,
+    string Accent,
+    string PageKey,
+    string DomainCode = AuthorizationCatalog.BanknotePaperDomain,
+    int AccessLevel = AuthorizationCatalog.ViewAccessLevel)
 {
     /// <summary>
     /// 根路由必须精确匹配：Prefix 匹配下 "/" 会命中所有页面，导致平台概览永远高亮。
@@ -21,6 +32,11 @@ public sealed record NavItem(string Title, string Href, string Icon, string Acce
     /// MudNavLink 使用的匹配方式。
     /// </summary>
     public NavLinkMatch Match => RequiresExactMatch ? NavLinkMatch.All : NavLinkMatch.Prefix;
+
+    /// <summary>
+    /// 是否为配置类页面。
+    /// </summary>
+    public bool IsConfigurationPage => AccessLevel >= AuthorizationCatalog.ConfigureAccessLevel;
 }
 
 /// <summary>
@@ -59,6 +75,14 @@ public sealed record NavSection(
 }
 
 /// <summary>
+/// 表示导航中的一个页面及其所在层级。启动对账据此写入域与页面归属。
+/// </summary>
+/// <param name="Item">页面条目。</param>
+/// <param name="Section">所属顶级模块。</param>
+/// <param name="GroupTitle">分组标题；直接挂在模块下的条目为空。</param>
+public sealed record NavPageDescriptor(NavItem Item, NavSection Section, string? GroupTitle);
+
+/// <summary>
 /// 平台三级导航目录：顶级模块 → 分组 → 页面。
 ///
 /// 顶栏与左侧菜单共用本目录，避免两处各写一份菜单导致层级与路由漂移。
@@ -93,13 +117,17 @@ public static class NavigationCatalog
                 new NavGroup("能耗指标",
                 [
                     // 根路由交给能耗仪表板：启动应用即落在「数据指标」，而不是平台管理。
-                    new NavItem("能耗仪表板", "/", Icons.Material.Filled.QueryStats, AccentSuccess),
-                    new NavItem("历史指标", "/energy-history", Icons.Material.Filled.Timeline, AccentTertiary),
-                    new NavItem("班组横向对比", "/energy-comparison", Icons.Material.Filled.Leaderboard, AccentWarning)
+                    new NavItem("能耗仪表板", "/", Icons.Material.Filled.QueryStats, AccentSuccess,
+                        "energy-dashboard"),
+                    new NavItem("历史指标", "/energy-history", Icons.Material.Filled.Timeline, AccentTertiary,
+                        "energy-history"),
+                    new NavItem("班组横向对比", "/energy-comparison", Icons.Material.Filled.Leaderboard, AccentWarning,
+                        "energy-comparison")
                 ]),
                 new NavGroup("数据报表",
                 [
-                    new NavItem("班组能耗报表", "/energy-report", Icons.Material.Filled.Assessment, AccentPrimary)
+                    new NavItem("班组能耗报表", "/energy-report", Icons.Material.Filled.Assessment, AccentPrimary,
+                        "energy-report")
                 ])
             ]),
         new(
@@ -111,8 +139,10 @@ public static class NavigationCatalog
             [
                 new NavGroup("班组管理",
                 [
-                    new NavItem("排班时间管理", "/shift-schedules", Icons.Material.Filled.UploadFile, AccentPrimary),
-                    new NavItem("排班日历", "/shift-calendar", Icons.Material.Filled.CalendarMonth, AccentInfo)
+                    new NavItem("排班时间管理", "/shift-schedules", Icons.Material.Filled.UploadFile, AccentPrimary,
+                        "shift-schedules", AccessLevel: AuthorizationCatalog.ConfigureAccessLevel),
+                    new NavItem("排班日历", "/shift-calendar", Icons.Material.Filled.CalendarMonth, AccentInfo,
+                        "shift-calendar", AccessLevel: AuthorizationCatalog.ConfigureAccessLevel)
                 ])
             ]),
         new(
@@ -121,21 +151,29 @@ public static class NavigationCatalog
             "采集配置与接口联调",
             Icons.Material.Filled.AdminPanelSettings,
             [
-                new NavItem("平台概览", "/platform-overview", Icons.Material.Filled.Dashboard, AccentPrimary),
-                new NavItem("服务器状态查询", "/server-connection-status", Icons.Material.Filled.Router, AccentInfo)
+                new NavItem("平台概览", "/platform-overview", Icons.Material.Filled.Dashboard, AccentPrimary,
+                    "platform-overview", AuthorizationCatalog.PlatformDomain),
+                new NavItem("服务器状态查询", "/server-connection-status", Icons.Material.Filled.Router, AccentInfo,
+                    "server-connection-status", AuthorizationCatalog.PlatformDomain)
             ],
             [
                 new NavGroup("采集配置",
                 [
                     new NavItem("点位配置", "/collection-points", Icons.Material.Filled.SettingsInputComponent,
-                        AccentInfo),
+                        AccentInfo, "collection-points", AuthorizationCatalog.PlatformDomain,
+                        AuthorizationCatalog.ConfigureAccessLevel),
                     new NavItem("点位数据管理", "/managed-data-definitions", Icons.Material.Filled.Storage,
-                        AccentTertiary)
+                        AccentTertiary, "managed-data-definitions", AuthorizationCatalog.PlatformDomain,
+                        AuthorizationCatalog.ConfigureAccessLevel)
                 ]),
                 new NavGroup("接口管理",
                 [
-                    new NavItem("History API 测试", "/history-api-test", Icons.Material.Filled.Api, AccentWarning),
-                    new NavItem("MQTT 测试", "/mqtt-test", Icons.Material.Filled.Sensors, AccentTertiary)
+                    new NavItem("History API 测试", "/history-api-test", Icons.Material.Filled.Api, AccentWarning,
+                        "history-api-test", AuthorizationCatalog.PlatformDomain,
+                        AuthorizationCatalog.ConfigureAccessLevel),
+                    new NavItem("MQTT 测试", "/mqtt-test", Icons.Material.Filled.Sensors, AccentTertiary,
+                        "mqtt-test", AuthorizationCatalog.PlatformDomain,
+                        AuthorizationCatalog.ConfigureAccessLevel)
                 ])
             ])
     ];
@@ -144,6 +182,36 @@ public static class NavigationCatalog
     /// 全部顶级模块，顺序即顶栏顺序。
     /// </summary>
     public static IReadOnlyList<NavSection> Sections => AllSections;
+
+    /// <summary>
+    /// 全部页面的扁平视图，含所属模块与分组标题。启动对账用它写入 domain_pages。
+    /// </summary>
+    public static IReadOnlyList<NavPageDescriptor> Pages => AllPages;
+
+    private static readonly NavPageDescriptor[] AllPages = BuildPages();
+
+    private static NavPageDescriptor[] BuildPages()
+    {
+        List<NavPageDescriptor> pages = [];
+
+        foreach (NavSection section in AllSections)
+        {
+            foreach (NavItem item in section.QuickLinks)
+            {
+                pages.Add(new NavPageDescriptor(item, section, null));
+            }
+
+            foreach (NavGroup group in section.Groups)
+            {
+                foreach (NavItem item in group.Items)
+                {
+                    pages.Add(new NavPageDescriptor(item, section, group.Title));
+                }
+            }
+        }
+
+        return pages.ToArray();
+    }
 
     /// <summary>
     /// 默认模块为「数据指标」：应用根路由（/）即其落地页「能耗仪表板」，

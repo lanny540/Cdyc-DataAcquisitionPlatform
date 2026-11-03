@@ -30,6 +30,7 @@ Web（Blazor）与跨平台桌面（Avalonia）双终端展示方案。
 │   └── Themes/                     # 统一品牌色板（DapPalette.axaml）与 Semi 主题覆盖
 ├── DAP.Tests.UnitTests             # 测试：领域与基础设施单元测试
 ├── docs/DESIGN_SYSTEM.md           # 设计规范（强制）
+├── docs/AUTH_DESIGN.md             # 认证与权限设计基线
 └── AGENTS.md                       # AI 协作约束
 ```
 
@@ -79,6 +80,19 @@ Web（Blazor）与跨平台桌面（Avalonia）双终端展示方案。
    ```bash
    dotnet run --project DAP.Presentation.AvaloniaApp/DAP.Presentation.AvaloniaApp.csproj
    ```
+
+## 登录与初始账号
+
+平台所有页面都需要登录，未登录访问任意地址会被拦到 `/login`，登录后回到原地址。会话是**服务端 Cookie**（`HttpOnly` + `SameSite=Lax`，滑动 8 小时 / 绝对 12 小时），浏览器端不保存令牌。
+
+- 首次启动时，若库中没有任何启用状态的超级管理员，会按 `appsettings.json` 的 `Auth:BootstrapAdmin` 创建一个（默认 `admin / Admin@123456`），并置为**首次登录强制改密**。
+- 库中已有超级管理员时该配置被忽略，改密后的密码不会被配置覆盖。
+- **生产环境禁止**用内置默认密码创建超管：`ASPNETCORE_ENVIRONMENT=Production` 且密码仍是默认值时会拒绝启动，请用环境变量覆盖：
+  ```bash
+  Auth__BootstrapAdmin__Password='换成强口令'
+  ```
+- 连续输错 5 次锁定 15 分钟（`Auth:Lockout`）。超管全局唯一，启动自检发现数量不为 1 会拒绝启动。
+- 设计基线见 [`docs/AUTH_DESIGN.md`](docs/AUTH_DESIGN.md)（三层收窄：职能域 → 页面等级 → 权限点）。当前已落地 P0（认证骨架与登录），域授权、审计与车间 IP 白名单属 P1。
 
 ## 外部服务器配置与数据库迁移
 
