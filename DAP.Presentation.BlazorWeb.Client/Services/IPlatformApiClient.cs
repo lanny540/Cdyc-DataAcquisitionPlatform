@@ -114,6 +114,19 @@ public interface IPlatformApiClient
 
     Task<IReadOnlyList<AdminDomainDto>> GetAdminDomainsAsync(CancellationToken cancellationToken = default);
 
+    Task<bool> CreateAdminDomainAsync(
+        AdminDomainUpsertRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> UpdateAdminDomainAsync(
+        Guid domainId,
+        AdminDomainUpsertRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> DeleteAdminDomainAsync(Guid domainId, CancellationToken cancellationToken = default);
+
+    Task<bool> DeleteAdminDomainPageAsync(Guid pageId, CancellationToken cancellationToken = default);
+
     Task<bool> UpdateAdminDomainPageAsync(
         Guid pageId,
         AdminDomainPageUpdateRequest request,

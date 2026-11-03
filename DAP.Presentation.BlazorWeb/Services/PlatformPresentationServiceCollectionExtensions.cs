@@ -462,6 +462,31 @@ internal sealed class ServerPlatformApiClient(
         return adminDomainService.GetDomainsAsync(cancellationToken);
     }
 
+    public Task<bool> CreateAdminDomainAsync(
+        AdminDomainUpsertRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return SucceedAsync(adminDomainService.CreateDomainAsync(request, cancellationToken));
+    }
+
+    public Task<bool> UpdateAdminDomainAsync(
+        Guid domainId,
+        AdminDomainUpsertRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return SucceedAsync(adminDomainService.UpdateDomainAsync(domainId, request, cancellationToken));
+    }
+
+    public Task<bool> DeleteAdminDomainAsync(Guid domainId, CancellationToken cancellationToken = default)
+    {
+        return SucceedAsync(adminDomainService.DeleteDomainAsync(domainId, cancellationToken));
+    }
+
+    public Task<bool> DeleteAdminDomainPageAsync(Guid pageId, CancellationToken cancellationToken = default)
+    {
+        return SucceedAsync(adminDomainService.DeleteDomainPageAsync(pageId, cancellationToken));
+    }
+
     public Task<bool> UpdateAdminDomainPageAsync(
         Guid pageId,
         AdminDomainPageUpdateRequest request,

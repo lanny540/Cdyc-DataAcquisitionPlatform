@@ -146,7 +146,7 @@
 | 平台概览 `/platform-overview` | 平台管理 | primary |
 | 点位配置 `/collection-points` | 平台管理 → 采集配置 | info |
 | 点位数据管理 `/managed-data-definitions` | 平台管理 → 采集配置 | tertiary |
-| 采集服务器配置 `/acquisition-servers` | 未纳入菜单 | success |
+| 采集服务器配置 `/acquisition-servers` | 平台管理 → 采集配置 | success |
 | 服务器状态查询 `/server-connection-status` | 平台管理 | info |
 | History API 测试 `/history-api-test` | 平台管理 → 接口管理 | warning |
 | MQTT 测试 `/mqtt-test` | 平台管理 → 接口管理 | tertiary |

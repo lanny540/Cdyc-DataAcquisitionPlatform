@@ -1,12 +1,14 @@
 @page "/collection-points"
 
-<PageTitle>采集点管理</PageTitle>
+<PageTitle>点位配置</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
     <MudPaper Class="platform-page-hero platform-accent-info tw-p-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
             <MudStack Spacing="0">
-                <MudText Typo="Typo.h4" GutterBottom="true">采集点配置管理</MudText>
+                @* 页面标题与左侧菜单保持一致：菜单叫「点位配置」，进来却叫「采集点配置管理」，
+                   用户会怀疑点错了入口。 *@
+                <MudText Typo="Typo.h4" GutterBottom="true">点位配置</MudText>
                 <MudText Typo="Typo.body1" Class="collection-points-hero-description">
                     管理采集端点、通信协议与启用状态。
                 </MudText>

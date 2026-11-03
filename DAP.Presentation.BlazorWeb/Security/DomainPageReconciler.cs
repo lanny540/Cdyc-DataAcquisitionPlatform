@@ -92,7 +92,24 @@ public static class DomainPageReconciler
             }
             else if (string.Equals(page.Source, AuthorizationCatalog.PageSourceOverride, StringComparison.Ordinal))
             {
-                // 管理员改过归属：字段不覆盖，但代码里页面回来了就取消下线标记。
+                // 管理员改过归属：名称/分组/排序/等级/启停不覆盖，但**路由必须跟代码走**。
+                //
+                // 路由按设计不允许后台修改（docs/AUTH_DESIGN.md 第 4 节的表里「平台可改」为否），
+                // 一旦管理员动过这一行的任何一个开关，整行就变成 override；若连路由也一并冻结，
+                // 开发者日后改名路由时菜单会永久指向旧地址，表现为点菜单进 404，
+                // 而库里看起来「配置齐全」。这里只刷新代码独占的两个字段。
+                var routeChanged = !string.Equals(page.Route, item.Href, StringComparison.Ordinal);
+
+                if (routeChanged)
+                {
+                    logger.LogInformation(
+                        "页面 {PageKey} 的路由已由 {OldRoute} 更新为 {NewRoute}（页面配置仍保留后台覆盖）。",
+                        item.PageKey, page.Route, item.Href);
+                    page.Route = item.Href;
+                    page.UpdatedAt = now;
+                }
+
+                // 代码里页面回来了就取消下线标记。
                 if (page.IsOrphaned)
                 {
                     page.IsOrphaned = false;

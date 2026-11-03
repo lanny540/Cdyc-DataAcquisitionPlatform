@@ -431,6 +431,67 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         return domains ?? [];
     }
 
+    public async Task<bool> CreateAdminDomainAsync(
+        AdminDomainUpsertRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await httpClient.PostAsJsonAsync(
+            "/api/admin/domains", request, cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+
+        throw new InvalidOperationException(await ReadErrorMessageAsync(response, cancellationToken));
+    }
+
+    public async Task<bool> UpdateAdminDomainAsync(
+        Guid domainId,
+        AdminDomainUpsertRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await httpClient.PutAsJsonAsync(
+            $"/api/admin/domains/{domainId}", request, cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+
+        throw new InvalidOperationException(await ReadErrorMessageAsync(response, cancellationToken));
+    }
+
+    public async Task<bool> DeleteAdminDomainAsync(
+        Guid domainId,
+        CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await httpClient.DeleteAsync(
+            $"/api/admin/domains/{domainId}", cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+
+        throw new InvalidOperationException(await ReadErrorMessageAsync(response, cancellationToken));
+    }
+
+    public async Task<bool> DeleteAdminDomainPageAsync(
+        Guid pageId,
+        CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await httpClient.DeleteAsync(
+            $"/api/admin/domains/pages/{pageId}", cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+
+        throw new InvalidOperationException(await ReadErrorMessageAsync(response, cancellationToken));
+    }
+
     public async Task<bool> UpdateAdminDomainPageAsync(
         Guid pageId,
         AdminDomainPageUpdateRequest request,

@@ -32,6 +32,36 @@ public static class AdminEndpoints
                     Results.Ok(await service.GetDomainsAsync(cancellationToken)))
             .WithName("GetAdminDomains");
 
+        domainGroup.MapPost(
+                "/",
+                async (AdminDomainUpsertRequest request, AdminDomainService service,
+                    CancellationToken cancellationToken) =>
+                {
+                    AuthOperationResultDto result = await service.CreateDomainAsync(request, cancellationToken);
+                    return result.Succeeded ? Results.NoContent() : Results.BadRequest(new {message = result.ErrorMessage});
+                })
+            .WithName("CreateAdminDomain");
+
+        domainGroup.MapPut(
+                "/{domainId:guid}",
+                async (Guid domainId, AdminDomainUpsertRequest request, AdminDomainService service,
+                    CancellationToken cancellationToken) =>
+                {
+                    AuthOperationResultDto result =
+                        await service.UpdateDomainAsync(domainId, request, cancellationToken);
+                    return result.Succeeded ? Results.NoContent() : Results.BadRequest(new {message = result.ErrorMessage});
+                })
+            .WithName("UpdateAdminDomain");
+
+        domainGroup.MapDelete(
+                "/{domainId:guid}",
+                async (Guid domainId, AdminDomainService service, CancellationToken cancellationToken) =>
+                {
+                    AuthOperationResultDto result = await service.DeleteDomainAsync(domainId, cancellationToken);
+                    return result.Succeeded ? Results.NoContent() : Results.BadRequest(new {message = result.ErrorMessage});
+                })
+            .WithName("DeleteAdminDomain");
+
         domainGroup.MapPut(
                 "/pages/{pageId:guid}",
                 async (Guid pageId, AdminDomainPageUpdateRequest request, AdminDomainService service,
@@ -51,6 +81,16 @@ public static class AdminEndpoints
                     return result.Succeeded ? Results.NoContent() : Results.BadRequest(new {message = result.ErrorMessage});
                 })
             .WithName("ResetAdminDomainPage");
+
+        // 只允许删除「代码里已下线」的页面记录；仍存在的页面删了会在下次启动被对账重建。
+        domainGroup.MapDelete(
+                "/pages/{pageId:guid}",
+                async (Guid pageId, AdminDomainService service, CancellationToken cancellationToken) =>
+                {
+                    AuthOperationResultDto result = await service.DeleteDomainPageAsync(pageId, cancellationToken);
+                    return result.Succeeded ? Results.NoContent() : Results.BadRequest(new {message = result.ErrorMessage});
+                })
+            .WithName("DeleteAdminDomainPage");
 
         RouteGroupBuilder departmentGroup = endpoints.MapGroup("/api/admin/departments")
             .WithTags("AdminDepartments")

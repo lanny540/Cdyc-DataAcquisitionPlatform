@@ -174,6 +174,11 @@ public static class NavigationCatalog
             [
                 new NavGroup("采集配置",
                 [
+                    // 采集服务器是「点位配置」的前置：节点要选服务器才有鉴权与接口地址。
+                    // 早先这一页没有菜单入口，只能手输地址才能打开，等于管理功能不可达。
+                    new NavItem("采集服务器配置", "/acquisition-servers", Icons.Material.Filled.Dns,
+                        AccentSuccess, "acquisition-servers", AuthorizationCatalog.PlatformDomain,
+                        AuthorizationCatalog.ConfigureAccessLevel),
                     new NavItem("点位配置", "/collection-points", Icons.Material.Filled.SettingsInputComponent,
                         AccentInfo, "collection-points", AuthorizationCatalog.PlatformDomain,
                         AuthorizationCatalog.ConfigureAccessLevel),

@@ -62,7 +62,235 @@ public sealed class AdminDomainService(
     }
 
     /// <summary>
-    /// 修改页面归属配置（等级 / 归属域 / 启停）。改动后 source = override，启动对账不再覆盖。
+    /// 新建职能域（docs/AUTH_DESIGN.md 4.2：新增域先在这里建，再让页面代码声明它的编码）。
+    ///
+    /// 没有这一步时「新增域」只能改代码发版，而文档写的是后台先建域——
+    /// 两者不一致的结果是实施人员照文档操作却发现没有入口。
+    /// </summary>
+    /// <param name="request">新建请求。</param>
+    /// <param name="cancellationToken">取消令牌。</param>
+    /// <returns>操作结果，失败时带中文原因。</returns>
+    public async Task<AuthOperationResultDto> CreateDomainAsync(
+        AdminDomainUpsertRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var code = AdminDomainRules.NormalizeCode(request.Code);
+
+        if (!AdminDomainRules.IsValidCode(code))
+        {
+            return new AuthOperationResultDto(false, "域编码只能用小写字母、数字与连字符，以字母开头，2–32 位。");
+        }
+
+        var name = (request.Name ?? string.Empty).Trim();
+
+        if (name.Length is < 1 or > 32)
+        {
+            return new AuthOperationResultDto(false, "域名称不能为空，且不超过 32 个字。");
+        }
+
+        if (await db.BusinessDomains.AnyAsync(item => item.Code == code, cancellationToken))
+        {
+            return new AuthOperationResultDto(false, $"域编码 {code} 已存在，请换一个。");
+        }
+
+        CurrentUser? actor = await currentUser.GetUserAsync(cancellationToken);
+        DateTimeOffset now = timeProvider.GetUtcNow();
+
+        BusinessDomain domain = new()
+        {
+            Id = Guid.NewGuid(),
+            Code = code,
+            Name = name,
+            SortOrder = request.SortOrder,
+            IsSystem = request.IsSystem,
+            IsEnabled = request.IsEnabled,
+            VisibleWhenEmpty = request.VisibleWhenEmpty,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        db.BusinessDomains.Add(domain);
+        await db.SaveChangesAsync(cancellationToken);
+
+        await audit.RecordAsync(actor, "domain.create", "domain", domain.Id.ToString(), domain.Name, true,
+            new {domain.Code, domain.Name, domain.SortOrder, domain.IsSystem, domain.IsEnabled, domain.VisibleWhenEmpty},
+            cancellationToken);
+
+        return new AuthOperationResultDto(true, null);
+    }
+
+    /// <summary>
+    /// 修改域的显示名称、排序、启停、空域展示与系统域标记。域编码不允许改。
+    /// </summary>
+    /// <param name="domainId">域标识。</param>
+    /// <param name="request">修改请求。</param>
+    /// <param name="cancellationToken">取消令牌。</param>
+    /// <returns>操作结果，失败时带中文原因。</returns>
+    public async Task<AuthOperationResultDto> UpdateDomainAsync(
+        Guid domainId,
+        AdminDomainUpsertRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        BusinessDomain? domain = await db.BusinessDomains
+            .FirstOrDefaultAsync(item => item.Id == domainId, cancellationToken);
+
+        if (domain is null)
+        {
+            return new AuthOperationResultDto(false, "域不存在，请刷新后重试。");
+        }
+
+        var name = (request.Name ?? string.Empty).Trim();
+
+        if (name.Length is < 1 or > 32)
+        {
+            return new AuthOperationResultDto(false, "域名称不能为空，且不超过 32 个字。");
+        }
+
+        var before = new
+        {
+            domain.Name,
+            domain.SortOrder,
+            domain.IsEnabled,
+            domain.VisibleWhenEmpty,
+            domain.IsSystem
+        };
+
+        var changed = false;
+
+        if (!string.Equals(domain.Name, name, StringComparison.Ordinal))
+        {
+            domain.Name = name;
+            changed = true;
+        }
+
+        if (domain.SortOrder != request.SortOrder)
+        {
+            domain.SortOrder = request.SortOrder;
+            changed = true;
+        }
+
+        if (domain.IsEnabled != request.IsEnabled)
+        {
+            domain.IsEnabled = request.IsEnabled;
+            changed = true;
+        }
+
+        if (domain.VisibleWhenEmpty != request.VisibleWhenEmpty)
+        {
+            domain.VisibleWhenEmpty = request.VisibleWhenEmpty;
+            changed = true;
+        }
+
+        if (domain.IsSystem != request.IsSystem)
+        {
+            domain.IsSystem = request.IsSystem;
+            changed = true;
+        }
+
+        if (!changed)
+        {
+            return new AuthOperationResultDto(true, null);
+        }
+
+        CurrentUser? actor = await currentUser.GetUserAsync(cancellationToken);
+        domain.UpdatedAt = timeProvider.GetUtcNow();
+
+        await db.SaveChangesAsync(cancellationToken);
+        await audit.RecordAsync(actor, "domain.update", "domain", domain.Id.ToString(), domain.Name, true,
+            new
+            {
+                before,
+                after = new
+                {
+                    domain.Name,
+                    domain.SortOrder,
+                    domain.IsEnabled,
+                    domain.VisibleWhenEmpty,
+                    domain.IsSystem
+                }
+            },
+            cancellationToken);
+
+        return new AuthOperationResultDto(true, null);
+    }
+
+    /// <summary>
+    /// 删除域。仅当域下没有页面且不是系统域时允许（判定见 <see cref="AdminDomainRules"/>）。
+    /// </summary>
+    /// <param name="domainId">域标识。</param>
+    /// <param name="cancellationToken">取消令牌。</param>
+    /// <returns>操作结果，失败时带中文原因。</returns>
+    public async Task<AuthOperationResultDto> DeleteDomainAsync(
+        Guid domainId,
+        CancellationToken cancellationToken = default)
+    {
+        BusinessDomain? domain = await db.BusinessDomains
+            .FirstOrDefaultAsync(item => item.Id == domainId, cancellationToken);
+
+        if (domain is null)
+        {
+            return new AuthOperationResultDto(false, "域不存在，请刷新后重试。");
+        }
+
+        var pageCount = await db.DomainPages.CountAsync(
+            item => item.DomainId == domainId, cancellationToken);
+
+        if (AdminDomainRules.DescribeDeleteViolation(pageCount, domain.IsSystem) is { } reason)
+        {
+            return new AuthOperationResultDto(false, reason);
+        }
+
+        CurrentUser? actor = await currentUser.GetUserAsync(cancellationToken);
+
+        db.BusinessDomains.Remove(domain);
+        await db.SaveChangesAsync(cancellationToken);
+
+        await audit.RecordAsync(actor, "domain.delete", "domain", domain.Id.ToString(), domain.Name, true,
+            new {domain.Code, domain.Name}, cancellationToken);
+
+        return new AuthOperationResultDto(true, null);
+    }
+
+    /// <summary>
+    /// 删除已下线的页面记录。
+    ///
+    /// 只允许删除 <c>IsOrphaned</c> 的行：代码里仍存在的页面删了会在下次启动时被对账重新插入，
+    /// 删除就变成一次无效操作，还会让人误以为「页面下线了」。
+    /// </summary>
+    /// <param name="pageId">页面标识。</param>
+    /// <param name="cancellationToken">取消令牌。</param>
+    /// <returns>操作结果，失败时带中文原因。</returns>
+    public async Task<AuthOperationResultDto> DeleteDomainPageAsync(
+        Guid pageId,
+        CancellationToken cancellationToken = default)
+    {
+        DomainPage? page = await db.DomainPages
+            .FirstOrDefaultAsync(item => item.Id == pageId, cancellationToken);
+
+        if (page is null)
+        {
+            return new AuthOperationResultDto(false, "页面不存在，请刷新后重试。");
+        }
+
+        if (!page.IsOrphaned)
+        {
+            return new AuthOperationResultDto(false, "代码中仍存在该页面，不能删除；如需隐藏请改用停用。");
+        }
+
+        CurrentUser? actor = await currentUser.GetUserAsync(cancellationToken);
+
+        db.DomainPages.Remove(page);
+        await db.SaveChangesAsync(cancellationToken);
+
+        await audit.RecordAsync(actor, "domain_page.delete", "domain-page", page.Id.ToString(), page.Title, true,
+            new {page.PageKey, page.Route}, cancellationToken);
+
+        return new AuthOperationResultDto(true, null);
+    }
+
+    /// <summary>
+    /// 修改页面归属配置（等级 / 归属域 / 启停 / 显示名 / 分组 / 排序）。
+    /// 改动后 source = override，启动对账不再覆盖。
     /// </summary>
     /// <param name="pageId">页面标识。</param>
     /// <param name="request">修改请求。</param>
@@ -107,7 +335,15 @@ public sealed class AdminDomainService(
         DateTimeOffset now = timeProvider.GetUtcNow();
 
         // detail 只记发生变化的字段（docs/AUTH_DESIGN.md 8.4）。
-        var before = new {page.AccessLevel, DomainId = page.DomainId, page.IsEnabled};
+        var before = new
+        {
+            page.AccessLevel,
+            DomainId = page.DomainId,
+            page.IsEnabled,
+            page.Title,
+            page.GroupTitle,
+            page.SortOrder
+        };
         var changed = false;
 
         if (request.AccessLevel is { } newLevel && newLevel != page.AccessLevel)
@@ -128,6 +364,48 @@ public sealed class AdminDomainService(
             changed = true;
         }
 
+        if (request.Title is { } rawTitle)
+        {
+            var title = rawTitle.Trim();
+
+            if (title.Length is < 1 or > 64)
+            {
+                return new AuthOperationResultDto(false, "页面名称不能为空，且不超过 64 个字。");
+            }
+
+            if (!string.Equals(page.Title, title, StringComparison.Ordinal))
+            {
+                page.Title = title;
+                changed = true;
+            }
+        }
+
+        // 空字符串是「改为直接挂在域下」的显式指令，null 才表示不改——
+        // 否则清空分组标题这个操作永远发不出去。
+        if (request.GroupTitle is { } rawGroupTitle)
+        {
+            var groupTitle = rawGroupTitle.Trim();
+
+            if (groupTitle.Length > 32)
+            {
+                return new AuthOperationResultDto(false, "分组标题不超过 32 个字。");
+            }
+
+            var normalized = groupTitle.Length == 0 ? null : groupTitle;
+
+            if (!string.Equals(page.GroupTitle, normalized, StringComparison.Ordinal))
+            {
+                page.GroupTitle = normalized;
+                changed = true;
+            }
+        }
+
+        if (request.SortOrder is { } sortOrder && sortOrder != page.SortOrder)
+        {
+            page.SortOrder = sortOrder;
+            changed = true;
+        }
+
         if (!changed)
         {
             return new AuthOperationResultDto(true, null);
@@ -138,7 +416,20 @@ public sealed class AdminDomainService(
 
         await db.SaveChangesAsync(cancellationToken);
         await audit.RecordAsync(actor, "domain_page.update", "domain-page", page.Id.ToString(), page.Title, true,
-            new {before, after = new {page.AccessLevel, DomainId = page.DomainId, page.IsEnabled}}, cancellationToken);
+            new
+            {
+                before,
+                after = new
+                {
+                    page.AccessLevel,
+                    DomainId = page.DomainId,
+                    page.IsEnabled,
+                    page.Title,
+                    page.GroupTitle,
+                    page.SortOrder
+                }
+            },
+            cancellationToken);
 
         return new AuthOperationResultDto(true, null);
     }

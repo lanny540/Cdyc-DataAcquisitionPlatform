@@ -53,6 +53,7 @@ public sealed class AuthDataInitializer(
 
             await EnsureSuperAdminAsync(db, timeProvider, cancellationToken);
             await VerifySuperAdminUniquenessAsync(db, cancellationToken);
+            await WarnOnEmptyAuthorizationAsync(db, cancellationToken);
 
             ValidateBoardOptions();
             ValidateExternalIdentityOptions();
@@ -78,6 +79,54 @@ public sealed class AuthDataInitializer(
     public Task StopAsync(CancellationToken cancellationToken)
     {
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// 空配置兜底告警（docs/AUTH_DESIGN.md 4.3）。
+    ///
+    /// 这两种情形都不会让超管进不去，所以不阻断启动；但现场表现是「除超管外全员登录后没东西可看」，
+    /// 而日志里一句提示都没有时，排查会从「页面的问题」一路猜到「数据库连错了」。
+    /// 启动时把成因写清楚，比事后加日志便宜得多。
+    /// </summary>
+    /// <param name="db">数据库上下文。</param>
+    /// <param name="cancellationToken">取消令牌。</param>
+    private async Task WarnOnEmptyAuthorizationAsync(
+        DataAcquisitionPlatformDbContext db,
+        CancellationToken cancellationToken)
+    {
+        var domainCount = await db.BusinessDomains.CountAsync(cancellationToken);
+
+        if (domainCount == 0)
+        {
+            logger.LogWarning(
+                "职能域表为空：除超级管理员外，所有用户登录后将没有任何页面可看。请用超管登录后进入「域与页面配置」建域，并在「部门与授权」里授权。");
+            return;
+        }
+
+        var departmentCount = await db.Departments.CountAsync(cancellationToken);
+
+        if (departmentCount == 0)
+        {
+            return;
+        }
+
+        var grantedDepartmentCount = await db.DepartmentDomainGrants
+            .Select(item => item.DepartmentId)
+            .Distinct()
+            .CountAsync(cancellationToken);
+
+        if (grantedDepartmentCount == 0)
+        {
+            logger.LogWarning(
+                "已有 {DepartmentCount} 个部门，但没有任何部门获得职能域授权：非超管用户登录后会落在「无访问权限」页。请在「部门与授权」矩阵里勾选。",
+                departmentCount);
+        }
+        else if (grantedDepartmentCount < departmentCount)
+        {
+            logger.LogInformation(
+                "部门授权情况：{Granted}/{Total} 个部门已获得至少一个职能域。未授权的部门成员登录后会落在「无访问权限」页。",
+                grantedDepartmentCount, departmentCount);
+        }
     }
 
     /// <summary>

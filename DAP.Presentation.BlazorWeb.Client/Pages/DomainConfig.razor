@@ -6,12 +6,19 @@
 
 <MudStack Class="platform-page-shell" Spacing="2">
     <MudPaper Class="platform-page-hero platform-accent-secondary tw-p-4" Elevation="0">
-        <MudStack Spacing="1">
-            <MudText Typo="Typo.h4" GutterBottom="true">域与页面配置</MudText>
-            <MudText Typo="Typo.body1">
-                页面归属由代码声明（启动对账写入），管理员可在此调整等级与启停。
-                调整过的页面标记为「后台修改」，启动对账不再覆盖；「恢复默认」可还原为代码声明的配置。
-            </MudText>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
+                  Spacing="3">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.h4" GutterBottom="true">域与页面配置</MudText>
+                <MudText Typo="Typo.body1">
+                    页面归属由代码声明（启动对账写入），管理员可在此调整所属域、等级、显示名与启停。
+                    调整过的页面标记为「后台修改」，启动对账不再覆盖；「恢复默认」可还原为代码声明的配置。
+                </MudText>
+            </MudStack>
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreateDomain">
+                新建域
+            </MudButton>
         </MudStack>
     </MudPaper>
 
@@ -33,17 +40,44 @@
         {
             var current = domain;
             <MudPaper Class="platform-section-card--tinted platform-accent-secondary tw-p-4" Elevation="0">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
-                    <MudText Typo="Typo.h6">@current.Name</MudText>
-                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@current.Code</MudChip>
-                    @if (current.IsSystem)
-                    {
-                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text">系统域 · 不参与授权矩阵</MudChip>
-                    }
-                    @if (current.Pages.Count == 0)
-                    {
-                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text">空域（未上线）</MudChip>
-                    }
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
+                          Wrap="Wrap.Wrap" Spacing="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+                        <MudText Typo="Typo.h6">@current.Name</MudText>
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@current.Code</MudChip>
+                        @if (!current.IsEnabled)
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Warning">
+                                已停用
+                            </MudChip>
+                        }
+                        @if (current.IsSystem)
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text">系统域 · 不参与授权矩阵</MudChip>
+                        }
+                        @if (current.VisibleWhenEmpty)
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text">空域对普通用户可见</MudChip>
+                        }
+                        @if (current.Pages.Count == 0)
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text">空域（未上线）</MudChip>
+                        }
+                    </MudStack>
+                    <MudStack Row="true" Spacing="1">
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Secondary"
+                                   OnClick="@(() => OpenDomainEditor(current))">
+                            编辑域
+                        </MudButton>
+                        @* 有页面的域不允许删除：删了页面会失去归属并从菜单整体消失。 *@
+                        @if (!current.IsSystem && current.Pages.Count == 0)
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error"
+                                       OnClick="@(() => RequestDeleteDomainAsync(current))">
+                                删除域
+                            </MudButton>
+                        }
+                    </MudStack>
                 </MudStack>
 
                 @if (current.Pages.Count == 0)
@@ -111,12 +145,27 @@
                                 }
                             </MudTd>
                             <MudTd Style="text-align: right;">
-                                @if (context.Source == "override" && !context.IsOrphaned)
+                                @if (context.IsOrphaned)
+                                {
+                                    @* 代码里已删除的页面只留清理动作；它本来就不在导航里，停用没有意义。 *@
+                                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error"
+                                               OnClick="@(() => RequestDeletePageAsync(context))">
+                                        删除记录
+                                    </MudButton>
+                                }
+                                else
                                 {
                                     <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Secondary"
-                                               OnClick="@(() => RequestResetAsync(context))">
-                                        恢复默认
+                                               OnClick="@(() => OpenPageEditor(context))">
+                                        编辑
                                     </MudButton>
+                                    @if (context.Source == "override")
+                                    {
+                                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Secondary"
+                                                   OnClick="@(() => RequestResetAsync(context))">
+                                            恢复默认
+                                        </MudButton>
+                                    }
                                 }
                             </MudTd>
                         </RowTemplate>
@@ -147,9 +196,76 @@
     </DialogActions>
 </MudDialog>
 
+@* 域编辑：编码创建后不可改（授权与代码都引用它），其余字段可改。 *@
+<MudDialog @bind-Visible="_isDomainEditorOpen" Options="PlatformDialogs.EditorSheet"
+           AriaLabel="@(_isCreatingDomain ? "新建域" : "编辑域")">
+    <DialogContent>
+        <MudStack Spacing="3" Class="platform-sheet">
+            <section class="platform-sheet-section platform-accent-secondary">
+                <MudText Typo="Typo.h6">@(_isCreatingDomain ? "新建域" : "编辑域")</MudText>
+                <MudTextField T="string" Label="域编码" @bind-Value="_editorDomainCode"
+                              Disabled="@(!_isCreatingDomain)" Immediate="true"
+                              HelperText="小写字母开头，可含数字与连字符；创建后不可改，页面代码按它声明归属"/>
+                <MudTextField T="string" Label="显示名称" @bind-Value="_editorDomainName" Immediate="true"
+                              Counter="32" MaxLength="32"/>
+                <MudNumericField T="int" Label="顶栏排序（小的在前）" @bind-Value="_editorDomainSortOrder"
+                                 Min="0" Max="999"/>
+                <MudSwitch T="bool" Label="启用该域" @bind-Value="_editorDomainEnabled"
+                           Color="Color.Secondary"/>
+                <MudSwitch T="bool" Label="空域也展示给普通用户" @bind-Value="_editorDomainVisibleWhenEmpty"
+                           Color="Color.Secondary"/>
+                <MudSwitch T="bool" Label="标记为系统域" @bind-Value="_editorDomainIsSystem"
+                           Color="Color.Warning"/>
+                <MudText Typo="Typo.body2" Class="platform-config-hint">
+                    系统域不参与部门授权矩阵，固定归超级管理员；把业务域标成系统域后，普通用户将看不到它。
+                </MudText>
+            </section>
+            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                <MudButton Variant="Variant.Text" OnClick="CloseDomainEditor">取消</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="_isSaving"
+                           OnClick="SaveDomainAsync">
+                    保存
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    </DialogContent>
+</MudDialog>
+
+@* 页面编辑：路由与页面标识键不在可改范围（由代码声明），改错了菜单会指向 404。 *@
+<MudDialog @bind-Visible="_isPageEditorOpen" Options="PlatformDialogs.EditorSheet" AriaLabel="编辑页面配置">
+    <DialogContent>
+        <MudStack Spacing="3" Class="platform-sheet">
+            <section class="platform-sheet-section platform-accent-secondary">
+                <MudText Typo="Typo.h6">编辑页面配置</MudText>
+                <MudText Typo="Typo.body2" Class="platform-config-hint">
+                    路由 @_editorPageRoute · 页面标识 @_editorPageKey（均由代码声明，不可改）
+                </MudText>
+                <MudSelect T="Guid" Label="所属域" @bind-Value="_editorPageDomainId">
+                    @foreach (var domain in _domains)
+                    {
+                        <MudSelectItem T="Guid" Value="@domain.Id">@($"{domain.Name}（{domain.Code}）")</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudTextField T="string" Label="显示名称" @bind-Value="_editorPageTitle" Immediate="true"
+                              Counter="64" MaxLength="64"/>
+                <MudTextField T="string" Label="分组标题（留空表示直接挂在域下）"
+                              @bind-Value="_editorPageGroupTitle" Immediate="true" Counter="32" MaxLength="32"/>
+                <MudNumericField T="int" Label="域内排序（小的在前）" @bind-Value="_editorPageSortOrder"
+                                 Min="0" Max="999"/>
+            </section>
+            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                <MudButton Variant="Variant.Text" OnClick="ClosePageEditor">取消</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="_isSaving"
+                           OnClick="SavePageAsync">
+                    保存
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    </DialogContent>
+</MudDialog>
+
 @code {
     [Inject] private IPlatformApiClient Api { get; set; } = null!;
-
     private IReadOnlyList<AdminDomainDto> _domains = [];
     private bool _isLoading = true;
     private string? _message;
@@ -159,4 +275,25 @@
     private string _confirmTitle = string.Empty;
     private string _confirmText = string.Empty;
     private Func<Task>? _pendingAction;
+
+    private bool _isSaving;
+
+    private bool _isDomainEditorOpen;
+    private bool _isCreatingDomain;
+    private Guid _editingDomainId;
+    private string _editorDomainCode = string.Empty;
+    private string _editorDomainName = string.Empty;
+    private int _editorDomainSortOrder;
+    private bool _editorDomainEnabled = true;
+    private bool _editorDomainVisibleWhenEmpty;
+    private bool _editorDomainIsSystem;
+
+    private bool _isPageEditorOpen;
+    private Guid _editingPageId;
+    private string _editorPageKey = string.Empty;
+    private string _editorPageRoute = string.Empty;
+    private Guid _editorPageDomainId;
+    private string _editorPageTitle = string.Empty;
+    private string _editorPageGroupTitle = string.Empty;
+    private int _editorPageSortOrder;
 }
