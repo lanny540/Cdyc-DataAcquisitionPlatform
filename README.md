@@ -92,7 +92,8 @@ Web（Blazor）与跨平台桌面（Avalonia）双终端展示方案。
   Auth__BootstrapAdmin__Password='换成强口令'
   ```
 - 连续输错 5 次锁定 15 分钟（`Auth:Lockout`）。超管全局唯一，启动自检发现数量不为 1 会拒绝启动。
-- 设计基线见 [`docs/AUTH_DESIGN.md`](docs/AUTH_DESIGN.md)（三层收窄：职能域 → 页面等级 → 权限点）。当前已落地 P0（认证骨架与登录），域授权、审计与车间 IP 白名单属 P1。
+- 设计基线见 [`docs/AUTH_DESIGN.md`](docs/AUTH_DESIGN.md)（三层收窄：职能域 → 页面等级 → 权限点）。**P0 与 P1 均已落地**：登录认证、域授权矩阵（`/department-grants`）、页面等级与域配置（`/domain-config`）、配置类写操作审计（`audit_logs`）、领域服务授权装饰器、车间终端 IP 白名单免登录（`Auth:Board`，默认关闭）。
+- 车间公用电脑按 IP 白名单免登录：`Auth:Board:Enabled=true` 且客户端 IP 命中 `IpWhitelist`（单机地址）时自动签发只读会话，只能查看数据指标下的查看类页面；写操作与平台管理一律拒绝。用户管理与审计查询页属 P2。
 
 ## 外部服务器配置与数据库迁移
 

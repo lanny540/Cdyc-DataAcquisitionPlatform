@@ -1,6 +1,7 @@
 using DAP.Core.Shared.Catalog;
 using DAP.Core.Shared.Contracts;
 using DAP.Presentation.BlazorWeb.Services;
+using DAP.Presentation.BlazorWeb.Security;
 
 namespace DAP.Presentation.BlazorWeb.Endpoints;
 
@@ -17,7 +18,8 @@ public static class HistoryApiEndpoints
     /// <returns>当前端点路由构建器。</returns>
     public static IEndpointRouteBuilder MapHistoryApiEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        RouteGroupBuilder historyGroup = endpoints.MapGroup("/api/history-api").WithTags("HistoryApi");
+        RouteGroupBuilder historyGroup = endpoints.MapGroup("/api/history-api").WithTags("HistoryApi")
+            .RequirePlatformAdmin();
 
         historyGroup.MapPost(
                 "/current-value",

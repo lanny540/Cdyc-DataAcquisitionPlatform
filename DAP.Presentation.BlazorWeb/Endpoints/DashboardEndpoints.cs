@@ -1,5 +1,6 @@
 using DAP.Core.Domain.Services;
 using DAP.Core.Shared.Contracts;
+using DAP.Presentation.BlazorWeb.Security;
 
 namespace DAP.Presentation.BlazorWeb.Endpoints;
 
@@ -15,7 +16,8 @@ public static class DashboardEndpoints
     /// <returns>当前端点路由构建器。</returns>
     public static IEndpointRouteBuilder MapDashboardEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        RouteGroupBuilder dashboardGroup = endpoints.MapGroup("/api/dashboard").WithTags("Dashboard");
+        RouteGroupBuilder dashboardGroup = endpoints.MapGroup("/api/dashboard").WithTags("Dashboard")
+            .RequireBanknotePaperDomain();
         dashboardGroup.MapGet(
                 "/overview",
                 async (IDataAcquisitionPlatformService platformService, CancellationToken cancellationToken) =>

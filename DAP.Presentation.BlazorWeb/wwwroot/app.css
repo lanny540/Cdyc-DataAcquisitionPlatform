@@ -334,6 +334,47 @@ code, pre, .platform-inline-code, .platform-timestamp, .platform-monospace {
     color: currentColor;
 }
 
+/* 「未上线」标记：空域对超管显式可见，区分「没有权限」与「没有内容」。
+   用 warning 色系（琥珀）表达尚未就绪，不用灰色表达状态。 */
+.platform-topnav-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: var(--md-warning-soft);
+    color: var(--md-warning-strong);
+    font-size: 0.6875rem;
+    line-height: 1.4;
+}
+
+.platform-topnav-loading {
+    color: var(--platform-text-subtle);
+    font-size: 0.75rem;
+}
+
+/* 车间只读终端的顶栏标识：现场能明白为什么改不了，管理员能分辨当前是免登录会话。 */
+.platform-board-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 4px;
+    background: var(--md-info-tint);
+    color: var(--md-info-strong);
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+.platform-board-chip .mud-icon-root {
+    color: currentColor;
+}
+
+/* 抽屉内的空域状态：与全站空状态同一套结构。 */
+.platform-nav-empty {
+    margin: 16px 12px;
+    text-align: center;
+}
+
 /* ===== 侧边导航 ===== */
 .platform-drawer {
     border-right: 1px solid var(--platform-border);
@@ -1221,6 +1262,17 @@ code, pre, .platform-inline-code, .platform-timestamp, .platform-monospace {
 .platform-dialog-icon-error {
     background: var(--md-error-soft);
     color: var(--md-error-strong);
+}
+
+.platform-dialog-icon-warning {
+    background: var(--md-warning-soft);
+    color: var(--md-warning-strong);
+}
+
+/* 配置页表格内的次要说明文字（分组名、代码默认等）。 */
+.platform-config-hint {
+    color: var(--platform-text-subtle);
+    font-size: 0.75rem;
 }
 
 .status-code-shell {

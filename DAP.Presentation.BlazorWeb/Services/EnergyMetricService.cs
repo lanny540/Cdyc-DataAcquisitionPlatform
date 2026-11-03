@@ -122,12 +122,38 @@ public sealed class DeterministicEnergyMetricService(
             ];
         }
 
-        // 显式指定班组时按指定班组展示；未指定时才推断当前在岗班组。
-        ShiftTeamDto current = string.IsNullOrWhiteSpace(teamCode)
-            ? ResolveCurrentTeam(teams, today, timeProvider.GetLocalNow().TimeOfDay, scheduleRows)
-            : teams.FirstOrDefault(team =>
-                  string.Equals(team.TeamCode, teamCode, StringComparison.OrdinalIgnoreCase))
-              ?? new ShiftTeamDto(teamCode, ResolveTeamName(teamCode));
+        // 显式指定班组时按指定班组展示；未指定时才严格解析当前在岗班组。
+        // 严格解析（docs/AUTH_DESIGN.md 6.6）：不命中就不给默认值——当天轮休、排班未导入
+        // 都不能靠取模"猜"一个班组，车间终端会把默认值当成在岗事实。
+        var requestedTeam = !string.IsNullOrWhiteSpace(teamCode);
+
+        ShiftTeamDto current;
+        string resolution;
+
+        if (requestedTeam)
+        {
+            current = teams.FirstOrDefault(team =>
+                         string.Equals(team.TeamCode, teamCode, StringComparison.OrdinalIgnoreCase))
+                     ?? new ShiftTeamDto(teamCode!, ResolveTeamName(teamCode!));
+            resolution = "manual";
+        }
+        else
+        {
+            ShiftTeamDto? onDuty = TryResolveOnDutyTeam(teams, today, timeProvider.GetLocalNow().TimeOfDay, scheduleRows);
+
+            if (onDuty is not null)
+            {
+                current = onDuty;
+                resolution = "on-duty";
+            }
+            else
+            {
+                // 不隐藏数据、只拒绝猜测默认值：回退到排序第一的班组供浏览，
+                // 由页面按 resolution 显式提示「非在岗事实」。
+                current = teams[0];
+                resolution = scheduleRows.Count == 0 ? "no-schedule" : "rest-day";
+            }
+        }
 
         DateOnly rangeStart = today.AddDays(-(days - 1));
 
@@ -164,7 +190,8 @@ public sealed class DeterministicEnergyMetricService(
             Math.Round(total, 2),
             "kgce",
             totals,
-            trends);
+            trends,
+            resolution);
     }
 
     /// <inheritdoc />
@@ -568,7 +595,12 @@ public sealed class DeterministicEnergyMetricService(
             .ToArray();
     }
 
-    private static ShiftTeamDto ResolveCurrentTeam(
+    /// <summary>
+    /// 严格解析当前在岗班组：命中当天排班且当前时刻在班次内才返回；
+    /// 当天轮休、无匹配班次、排班未导入一律返回 null，绝不取模猜测
+    /// （docs/AUTH_DESIGN.md 6.6：可以给默认值，但不能"猜"）。
+    /// </summary>
+    private static ShiftTeamDto? TryResolveOnDutyTeam(
         IReadOnlyCollection<ShiftTeamDto> teams,
         DateOnly today,
         TimeSpan now,
@@ -581,16 +613,14 @@ public sealed class DeterministicEnergyMetricService(
             now.Ticks < item.StartTime.Ticks +
             (long) Math.Round(item.DurationHours * TimeSpan.TicksPerHour));
 
-        if (currentRow is not null)
+        if (currentRow is null)
         {
-            return teams.FirstOrDefault(team =>
-                       string.Equals(team.TeamCode, currentRow.TeamCode, StringComparison.OrdinalIgnoreCase))
-                   ?? new ShiftTeamDto(currentRow.TeamCode, currentRow.TeamName);
+            return null;
         }
 
-        // 当日轮休或尚未导入排班时，按轮转顺序推断应属班组，保证仪表板始终有归属。
-        var offset = today.DayNumber % Math.Max(1, teams.Count);
-        return teams.ElementAt(offset % teams.Count);
+        return teams.FirstOrDefault(team =>
+                   string.Equals(team.TeamCode, currentRow.TeamCode, StringComparison.OrdinalIgnoreCase))
+               ?? new ShiftTeamDto(currentRow.TeamCode, currentRow.TeamName);
     }
 
     /// <summary>

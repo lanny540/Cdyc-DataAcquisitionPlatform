@@ -1,34 +1,44 @@
-@using DAP.Presentation.BlazorWeb.Client.Layout
+@using DAP.Core.Shared.Catalog
 
-@* 左侧菜单只展示当前顶级模块的内容：分组标题 + 子菜单。
-   菜单树全部来自 NavigationCatalog，顶栏与抽屉共用同一份数据源。 *@
+@* 左侧菜单只展示当前职能域的内容：分组标题 + 子菜单。
+   菜单树来自服务端按当前用户过滤的 /api/navigation（域可见性、页面等级、空域规则都在服务端判定），
+   这里拿到什么就渲染什么，不做第二套过滤。空域（仅超管可见）渲染内联空状态，
+   不跳 /coming-soon——那会让超管失去从顶栏回到配置页的路径。 *@
 <div class="platform-nav-shell">
-    @if (Section.QuickLinks.Count > 0)
+    @if (Domain.IsEmpty)
     {
-        <MudNavMenu>
-            @foreach (var item in Section.QuickLinks)
-            {
-                <NavMenuItem Item="@item"/>
-            }
-        </MudNavMenu>
+        <div class="platform-empty-state platform-nav-empty">
+            <span class="platform-empty-icon">
+                <MudIcon Icon="@Icons.Material.Filled.Construction" Size="Size.Large"/>
+            </span>
+            <MudText Typo="Typo.subtitle2">该板块尚未接入页面</MudText>
+            <MudText Typo="Typo.body2" Class="platform-empty-hint">
+                域已创建，等待开发侧声明页面归属。页面在代码中登记后，重启即自动挂载。
+            </MudText>
+        </div>
     }
-
-    @foreach (var group in Section.Groups)
+    else
     {
-        <div class="platform-nav-section">@group.Title</div>
-        <MudNavMenu>
-            @foreach (var item in group.Items)
+        @foreach (var group in Domain.Groups)
+        {
+            @if (!string.IsNullOrEmpty(group.Title))
             {
-                <NavMenuItem Item="@item"/>
+                <div class="platform-nav-section">@group.Title</div>
             }
-        </MudNavMenu>
+            <MudNavMenu>
+                @foreach (var entry in group.Pages)
+                {
+                    <NavMenuItem Page="@entry"/>
+                }
+            </MudNavMenu>
+        }
     }
 </div>
 
 @code {
     /// <summary>
-    /// 当前顶栏选中的顶级模块。
+    /// 当前顶栏选中的职能域。
     /// </summary>
     [Parameter, EditorRequired]
-    public NavSection Section { get; set; } = null!;
+    public NavigationDomainDto Domain { get; set; } = null!;
 }

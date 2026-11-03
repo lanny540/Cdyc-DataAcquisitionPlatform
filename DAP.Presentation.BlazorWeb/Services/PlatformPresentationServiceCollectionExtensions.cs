@@ -38,6 +38,12 @@ public static class PlatformPresentationServiceCollectionExtensions
 
         services.AddMudServices();
         services.AddMemoryCache();
+
+        // 导航树：服务端按级联认证状态直调构建服务（SSR 与 Server 电路共用），
+        // WASM 端在自身 Program.cs 注册 HTTP 实现，两端接口一致。
+        services.AddHttpContextAccessor();
+        services.AddScoped<NavigationViewService>();
+        services.AddScoped<INavigationViewClient, ServerNavigationViewClient>();
         services.AddOpenApi();
 
         // 认证与授权：Cookie 服务端会话 + 三态授权数据。初始化器必须先跑完，
@@ -87,22 +93,64 @@ public static class PlatformPresentationServiceCollectionExtensions
         services.AddScoped<IManagedDataDefinitionRepository, PostgreSqlManagedDataDefinitionRepository>();
         services.AddScoped<ICollectionDataRecordRepository, PostgreSqlCollectionDataRecordRepository>();
         services.AddScoped<IPlatformReadRepository, PostgreSqlPlatformReadRepository>();
-        services.AddScoped<IDataAcquisitionPlatformService, DataAcquisitionPlatformService>();
+        // 具体类必须单独注册：下方授权装饰器按接口重新映射时会解析具体类型，
+        // 只注册「接口 → 具体」映射的话 GetRequiredService<具体类>() 会抛「未注册」。
+        services.AddScoped<DataAcquisitionPlatformService>();
+        services.AddScoped<AcquisitionServerService>();
         services.AddScoped<IAcquisitionServerConnectionResolver, AcquisitionServerConnectionResolver>();
         services.AddScoped<IHistoryApiProxyService, HistoryApiProxyService>();
         services.AddScoped<IAcquisitionServerProbeService, AcquisitionServerProbeService>();
-        services.AddScoped<IAcquisitionServerService, AcquisitionServerService>();
         services.AddScoped<IManagedDataExecutionService, ManagedDataExecutionService>();
         services.AddScoped<IConnectionDiagnosticsService, ConnectionDiagnosticsService>();
 
+        // 领域服务装饰器（docs/AUTH_DESIGN.md 7.2）：SSR 直调与 HTTP 端点两条路径
+        // 共用同一个校验点——写操作要求权限点，拒绝与执行结果一律写审计。
+        // 装饰器内部按请求开 scope 取操作者与审计管道，自身生命周期与被包装服务一致。
+        services.AddScoped<Security.Auditing.ICurrentUserContext, Security.Auditing.PlatformCurrentUserContext>();
+        services.AddScoped<Security.Auditing.AuditLogWriter>();
+        services.AddScoped<Security.AdminDomainService>();
+        services.AddScoped<IDataAcquisitionPlatformService>(sp => new Security.Auditing.AuditedDataAcquisitionService(
+            sp.GetRequiredService<DataAcquisitionPlatformService>(),
+            sp.GetRequiredService<IServiceScopeFactory>()));
+        services.AddScoped<IAcquisitionServerService>(sp => new Security.Auditing.AuditedAcquisitionServerService(
+            sp.GetRequiredService<AcquisitionServerService>(),
+            sp.GetRequiredService<IServiceScopeFactory>()));
+
         // 排班表是全站共享的配置数据，必须单例：Scoped 会让导入结果随请求结束而丢失。
-        services.AddSingleton<IShiftSchedulingService, InMemoryShiftSchedulingService>();
+        services.AddSingleton<InMemoryShiftSchedulingService>();
+        services.AddSingleton<IShiftSchedulingService>(sp => new Security.Auditing.AuditedShiftSchedulingService(
+            sp.GetRequiredService<InMemoryShiftSchedulingService>(),
+            sp.GetRequiredService<IServiceScopeFactory>()));
         services.AddSingleton<TimeProvider>(TimeProvider.System);
         services.AddScoped<IEnergyMetricService, DeterministicEnergyMetricService>();
         services.AddScoped<IPlatformApiClient, ServerPlatformApiClient>();
         services.AddHostedService<ManagedDataCollectionScheduler>();
 
         return services;
+    }
+}
+
+/// <summary>
+/// 服务端导航加载器：优先用组件传入的级联认证状态（SSR 预渲染与 Server 电路均可用），
+/// 组件未提供时回退到 IHttpContextAccessor（仅静态 SSR 阶段有值）。
+/// </summary>
+internal sealed class ServerNavigationViewClient(
+    Security.NavigationViewService navigationViewService,
+    IHttpContextAccessor httpContextAccessor) : INavigationViewClient
+{
+    /// <inheritdoc />
+    public async Task<NavigationDto?> LoadAsync(
+        System.Security.Claims.ClaimsPrincipal? principal,
+        CancellationToken cancellationToken = default)
+    {
+        var user = principal ?? httpContextAccessor.HttpContext?.User;
+
+        if (user?.Identity?.IsAuthenticated != true)
+        {
+            return null;
+        }
+
+        return await navigationViewService.BuildAsync(user, cancellationToken);
     }
 }
 
@@ -134,7 +182,8 @@ internal sealed class ServerPlatformApiClient(
     IManagedDataExecutionService managedDataExecutionService,
     IConnectionDiagnosticsService connectionDiagnosticsService,
     IShiftSchedulingService shiftSchedulingService,
-    IEnergyMetricService energyMetricService) : IPlatformApiClient
+    IEnergyMetricService energyMetricService,
+    Security.AdminDomainService adminDomainService) : IPlatformApiClient
 {
     public Task<DashboardOverviewDto> GetDashboardOverviewAsync(CancellationToken cancellationToken = default)
     {
@@ -386,5 +435,67 @@ internal sealed class ServerPlatformApiClient(
         CancellationToken cancellationToken = default)
     {
         return energyMetricService.GetComparisonAsync(granularity, date, cancellationToken);
+    }
+
+    public Task<IReadOnlyList<AdminDomainDto>> GetAdminDomainsAsync(CancellationToken cancellationToken = default)
+    {
+        return adminDomainService.GetDomainsAsync(cancellationToken);
+    }
+
+    public Task<bool> UpdateAdminDomainPageAsync(
+        Guid pageId,
+        AdminDomainPageUpdateRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return SucceedAsync(adminDomainService.UpdateDomainPageAsync(pageId, request, cancellationToken));
+    }
+
+    public Task<bool> ResetAdminDomainPageAsync(Guid pageId, CancellationToken cancellationToken = default)
+    {
+        return SucceedAsync(adminDomainService.ResetDomainPageAsync(pageId, cancellationToken));
+    }
+
+    public Task<IReadOnlyList<AdminDepartmentDto>> GetAdminDepartmentsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return adminDomainService.GetDepartmentsAsync(cancellationToken);
+    }
+
+    public Task<bool> CreateAdminDepartmentAsync(
+        AdminDepartmentUpsertRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return SucceedAsync(adminDomainService.CreateDepartmentAsync(request, cancellationToken));
+    }
+
+    public Task<bool> UpdateAdminDepartmentAsync(
+        Guid departmentId,
+        AdminDepartmentUpsertRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return SucceedAsync(adminDomainService.UpdateDepartmentAsync(departmentId, request, cancellationToken));
+    }
+
+    public Task<bool> UpdateAdminDepartmentGrantsAsync(
+        Guid departmentId,
+        AdminDepartmentGrantsRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return SucceedAsync(adminDomainService.UpdateDepartmentGrantsAsync(departmentId, request, cancellationToken));
+    }
+
+    /// <summary>
+    /// 把管理服务的操作结果转换为布尔结果，业务失败时抛出带中文原因的异常供页面提示。
+    /// </summary>
+    private static async Task<bool> SucceedAsync(Task<AuthOperationResultDto> operation)
+    {
+        AuthOperationResultDto result = await operation;
+
+        if (!result.Succeeded)
+        {
+            throw new InvalidOperationException(result.ErrorMessage ?? "操作失败。");
+        }
+
+        return true;
     }
 }

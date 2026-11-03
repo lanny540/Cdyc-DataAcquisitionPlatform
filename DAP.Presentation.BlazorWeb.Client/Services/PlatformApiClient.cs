@@ -421,6 +421,100 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
     /// 页面兜底 catch 会把它拼进用户提示，等于把英文错误码直接暴露给用户。
     /// 端点返回体里的 <c>{ "message": "中文原因" }</c> 才是可展示的内容。
     /// </summary>
+    public async Task<IReadOnlyList<AdminDomainDto>> GetAdminDomainsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var domains =
+            await httpClient.GetFromJsonAsync<IReadOnlyList<AdminDomainDto>>("/api/admin/domains",
+                cancellationToken);
+        return domains ?? [];
+    }
+
+    public async Task<bool> UpdateAdminDomainPageAsync(
+        Guid pageId,
+        AdminDomainPageUpdateRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await httpClient.PutAsJsonAsync(
+            $"/api/admin/domains/pages/{pageId}", request, cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+
+        throw new InvalidOperationException(await ReadErrorMessageAsync(response, cancellationToken));
+    }
+
+    public async Task<bool> ResetAdminDomainPageAsync(Guid pageId, CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await httpClient.PostAsync(
+            $"/api/admin/domains/pages/{pageId}/reset", content: null, cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+
+        throw new InvalidOperationException(await ReadErrorMessageAsync(response, cancellationToken));
+    }
+
+    public async Task<IReadOnlyList<AdminDepartmentDto>> GetAdminDepartmentsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var departments =
+            await httpClient.GetFromJsonAsync<IReadOnlyList<AdminDepartmentDto>>("/api/admin/departments",
+                cancellationToken);
+        return departments ?? [];
+    }
+
+    public async Task<bool> CreateAdminDepartmentAsync(
+        AdminDepartmentUpsertRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await httpClient.PostAsJsonAsync(
+            "/api/admin/departments", request, cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+
+        throw new InvalidOperationException(await ReadErrorMessageAsync(response, cancellationToken));
+    }
+
+    public async Task<bool> UpdateAdminDepartmentAsync(
+        Guid departmentId,
+        AdminDepartmentUpsertRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await httpClient.PutAsJsonAsync(
+            $"/api/admin/departments/{departmentId}", request, cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+
+        throw new InvalidOperationException(await ReadErrorMessageAsync(response, cancellationToken));
+    }
+
+    public async Task<bool> UpdateAdminDepartmentGrantsAsync(
+        Guid departmentId,
+        AdminDepartmentGrantsRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await httpClient.PutAsJsonAsync(
+            $"/api/admin/departments/{departmentId}/grants", request, cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+
+        throw new InvalidOperationException(await ReadErrorMessageAsync(response, cancellationToken));
+    }
+
     private static async Task EnsureSuccessAsync(
         HttpResponseMessage response,
         CancellationToken cancellationToken)

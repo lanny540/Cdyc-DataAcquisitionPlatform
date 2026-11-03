@@ -1,5 +1,6 @@
 using DAP.Core.Shared.Contracts;
 using DAP.Presentation.BlazorWeb.Services;
+using DAP.Presentation.BlazorWeb.Security;
 
 namespace DAP.Presentation.BlazorWeb.Endpoints;
 
@@ -13,7 +14,8 @@ public static class ManagedDataExecutionEndpoints
     /// </summary>
     public static IEndpointRouteBuilder MapManagedDataExecutionEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        RouteGroupBuilder group = endpoints.MapGroup("/api/managed-data-definitions").WithTags("ManagedDataExecution");
+        RouteGroupBuilder group = endpoints.MapGroup("/api/managed-data-definitions").WithTags("ManagedDataExecution")
+            .RequirePlatformAdmin();
 
         group.MapPost(
                 "/{id:guid}/debug-read",

@@ -24,6 +24,34 @@ public sealed class PlatformAuthOptions
     /// 获取或设置会话 Cookie 时长。
     /// </summary>
     public CookieSessionOptions Cookie { get; set; } = new();
+
+    /// <summary>
+    /// 获取或设置车间只读终端的 IP 白名单配置（docs/AUTH_DESIGN.md 6.6）。
+    /// </summary>
+    public BoardOptions Board { get; set; } = new();
+}
+
+/// <summary>
+/// 车间只读终端配置。全场仅一台、所有班组共用、只看数据：
+/// 命中白名单的未认证请求直接签发只读会话（钞纸域 + 等级 1），不弹登录。
+/// </summary>
+public sealed class BoardOptions
+{
+    /// <summary>
+    /// 获取或设置是否启用。默认关闭：白名单未配置就启用会拒绝启动。
+    /// </summary>
+    public bool Enabled { get; set; }
+
+    /// <summary>
+    /// 获取或设置白名单地址（CIDR）。生产环境只应有一条单机 /32；
+    /// 宽于 /24 的条目启动时会输出告警——开成网段等于整个网段的人都能读到全部班组数据。
+    /// </summary>
+    public string[] IpWhitelist { get; set; } = [];
+
+    /// <summary>
+    /// 获取或设置会话固定有效期（小时），覆盖一个班次，不做滑动续期。
+    /// </summary>
+    public int SessionHours { get; set; } = 12;
 }
 
 /// <summary>

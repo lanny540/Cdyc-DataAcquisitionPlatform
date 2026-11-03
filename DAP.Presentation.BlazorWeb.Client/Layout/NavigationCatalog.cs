@@ -174,9 +174,36 @@ public static class NavigationCatalog
                     new NavItem("MQTT 测试", "/mqtt-test", Icons.Material.Filled.Sensors, AccentTertiary,
                         "mqtt-test", AuthorizationCatalog.PlatformDomain,
                         AuthorizationCatalog.ConfigureAccessLevel)
+                ]),
+                new NavGroup("权限管理",
+                [
+                    new NavItem("域与页面配置", "/domain-config", Icons.Material.Filled.AccountTree, AccentPrimary,
+                        "domain-config", AuthorizationCatalog.PlatformDomain,
+                        AuthorizationCatalog.ConfigureAccessLevel),
+                    new NavItem("部门与授权", "/department-grants", Icons.Material.Filled.Group, AccentSuccess,
+                        "department-grants", AuthorizationCatalog.PlatformDomain,
+                        AuthorizationCatalog.ConfigureAccessLevel)
                 ])
             ])
     ];
+
+    /// <summary>
+    /// 域的顶栏图标。域图标不落库（MudBlazor 图标常量是整段 SVG path），
+    /// 新增域时在此登记一枚图标即可，未登记的域用默认图标。
+    /// </summary>
+    /// <param name="domainCode">域编码。</param>
+    /// <returns>图标常量值。</returns>
+    public static string DomainIcon(string domainCode)
+    {
+        return domainCode switch
+        {
+            AuthorizationCatalog.BanknotePaperDomain => Icons.Material.Filled.QueryStats,
+            AuthorizationCatalog.BanknotePrintingDomain => Icons.Material.Filled.Assessment,
+            AuthorizationCatalog.EnergyDomain => Icons.Material.Filled.Insights,
+            AuthorizationCatalog.PlatformDomain => Icons.Material.Filled.AdminPanelSettings,
+            _ => Icons.Material.Filled.Dashboard
+        };
+    }
 
     /// <summary>
     /// 全部顶级模块，顺序即顶栏顺序。

@@ -1,0 +1,129 @@
+@page "/department-grants"
+@using DAP.Core.Shared.Contracts
+@using DAP.Presentation.BlazorWeb.Client.Common
+
+<PageTitle>部门与授权</PageTitle>
+
+<MudStack Class="platform-page-shell" Spacing="2">
+    <MudPaper Class="platform-page-hero platform-accent-tertiary tw-p-4" Elevation="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.h4" GutterBottom="true">部门与授权</MudText>
+                <MudText Typo="Typo.body1">
+                    职能域按部门授权：勾选矩阵决定该部门成员登录后能看到哪些板块。
+                    部门之间平级、无层级，「本部门」按部门精确匹配。系统域（平台管理）不参与授权矩阵。
+                </MudText>
+            </MudStack>
+            <MudButton Variant="Variant.Filled" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreateDialog">
+                新建部门
+            </MudButton>
+        </MudStack>
+    </MudPaper>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
+    }
+
+    @if (_isLoading)
+    {
+        <MudPaper Class="platform-section-card--tinted platform-accent-tertiary tw-p-6" Elevation="0">
+            <MudProgressLinear Indeterminate="true" Color="Color.Tertiary"/>
+            <MudText Typo="Typo.body2" Class="mt-2" Align="Align.Center">正在加载部门与授权数据…</MudText>
+        </MudPaper>
+    }
+    else if (_departments.Count == 0)
+    {
+        <MudPaper Class="platform-section-card--tinted platform-accent-tertiary tw-p-6" Elevation="0">
+            <div class="platform-empty-state">
+                <span class="platform-empty-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Large"/>
+                </span>
+                <MudText Typo="Typo.subtitle2">还没有任何部门</MudText>
+                <MudText Typo="Typo.body2" Class="platform-empty-hint">
+                    先新建部门并授予职能域，该部门成员登录后才能看到对应板块。
+                </MudText>
+            </div>
+        </MudPaper>
+    }
+    else
+    {
+        <MudPaper Class="platform-section-card--tinted platform-accent-tertiary tw-p-4" Elevation="0">
+            <MudText Typo="Typo.h6" GutterBottom="true">授权矩阵</MudText>
+            <MudText Typo="Typo.body2" Class="mb-2">
+                勾选后点击该行「保存授权」生效。授权变更后，受影响用户重新登录即按新授权进入。
+            </MudText>
+            <MudTable Items="@_departments" Hover="true" Dense="true" Class="platform-data-table"
+                      Breakpoint="Breakpoint.Sm">
+                <HeaderContent>
+                    <MudTh>部门</MudTh>
+                    <MudTh>账号数</MudTh>
+                    @foreach (var domain in _businessDomains)
+                    {
+                        <MudTh>@domain.Name</MudTh>
+                    }
+                    <MudTh Style="text-align: right;">操作</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="部门">
+                        <MudStack Spacing="0">
+                            <span>@context.Name</span>
+                            <span class="platform-config-hint">@context.Code
+                                @(context.IsEnabled ? string.Empty : " · 已停用")</span>
+                        </MudStack>
+                    </MudTd>
+                    <MudTd DataLabel="账号数">@context.UserCount</MudTd>
+                    @foreach (var domain in _businessDomains)
+                    {
+                        var current = domain;
+                        var department = context;
+                        <MudTd DataLabel="@current.Name">
+                            <MudCheckBox T="bool"
+                                         Value="@IsGranted(department, current)"
+                                         ValueChanged="@(value => ToggleGrant(department, current, value))"
+                                         Color="Color.Tertiary" Size="Size.Small"
+                                         Disabled="@(!department.IsEnabled)"/>
+                        </MudTd>
+                    }
+                    <MudTd Style="text-align: right;">
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Tertiary"
+                                   Disabled="@(UnsavedGrants(context) is null)"
+                                   OnClick="@(() => SaveGrantsAsync(context))">
+                            保存授权
+                        </MudButton>
+                        <MudButton Size="Size.Small" Variant="Variant.Text"
+                                   OnClick="@(() => OpenEditDialog(context))">
+                            编辑
+                        </MudButton>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    }
+</MudStack>
+
+@* 部门编辑对话框：新建与编辑共用，编码创建后不可改（授权数据引用它）。 *@
+<MudDialog @bind-Visible="_isEditorOpen"
+           Options="PlatformDialogs.EditorSheet"
+           AriaLabel="@(_isCreating ? "新建部门" : "编辑部门")">
+    <DialogContent>
+        <MudStack Spacing="3" Class="platform-sheet">
+            <section class="platform-sheet-section platform-accent-tertiary">
+                <MudText Typo="Typo.h6">@(_isCreating ? "新建部门" : "编辑部门")</MudText>
+                <MudTextField T="string" Label="部门编码" @bind-Value="_editorCode" Disabled="@(!_isCreating)"
+                              Immediate="true" Counter="32" MaxLength="32"/>
+                <MudTextField T="string" Label="部门名称" @bind-Value="_editorName" Immediate="true"
+                              Counter="64" MaxLength="64"/>
+                <MudTextField T="string" Label="外部目录编码（LDAP/OIDC 对应值，可空）" @bind-Value="_editorExternalCode"
+                              Immediate="true" Counter="64" MaxLength="64"/>
+                <MudSwitch T="bool" Label="启用部门" @bind-Value="_editorEnabled" Color="Color.Tertiary"/>
+            </section>
+            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                <MudButton Variant="Variant.Text" OnClick="CloseEditor">取消</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Tertiary" Disabled="_isSaving"
+                           OnClick="SaveDepartmentAsync">保存</MudButton>
+            </MudStack>
+        </MudStack>
+    </DialogContent>
+</MudDialog>

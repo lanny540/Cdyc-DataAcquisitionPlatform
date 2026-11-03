@@ -1,0 +1,162 @@
+@page "/domain-config"
+@using DAP.Core.Shared.Contracts
+@using DAP.Presentation.BlazorWeb.Client.Common
+
+<PageTitle>域与页面配置</PageTitle>
+
+<MudStack Class="platform-page-shell" Spacing="2">
+    <MudPaper Class="platform-page-hero platform-accent-secondary tw-p-4" Elevation="0">
+        <MudStack Spacing="1">
+            <MudText Typo="Typo.h4" GutterBottom="true">域与页面配置</MudText>
+            <MudText Typo="Typo.body1">
+                页面归属由代码声明（启动对账写入），管理员可在此调整等级与启停。
+                调整过的页面标记为「后台修改」，启动对账不再覆盖；「恢复默认」可还原为代码声明的配置。
+            </MudText>
+        </MudStack>
+    </MudPaper>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
+    }
+
+    @if (_isLoading)
+    {
+        <MudPaper Class="platform-section-card--tinted platform-accent-secondary tw-p-6" Elevation="0">
+            <MudProgressLinear Indeterminate="true" Color="Color.Secondary"/>
+            <MudText Typo="Typo.body2" Class="mt-2" Align="Align.Center">正在加载域与页面配置…</MudText>
+        </MudPaper>
+    }
+    else
+    {
+        @foreach (var domain in _domains)
+        {
+            var current = domain;
+            <MudPaper Class="platform-section-card--tinted platform-accent-secondary tw-p-4" Elevation="0">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+                    <MudText Typo="Typo.h6">@current.Name</MudText>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@current.Code</MudChip>
+                    @if (current.IsSystem)
+                    {
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text">系统域 · 不参与授权矩阵</MudChip>
+                    }
+                    @if (current.Pages.Count == 0)
+                    {
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text">空域（未上线）</MudChip>
+                    }
+                </MudStack>
+
+                @if (current.Pages.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Class="mt-2">
+                        该域尚未接入页面。新页面在代码中登记并重启后，会自动挂载到这里。
+                    </MudText>
+                }
+                else
+                {
+                    <MudTable Items="@current.Pages" Hover="true" Dense="true" Class="platform-data-table mt-2"
+                              Breakpoint="Breakpoint.Sm">
+                        <HeaderContent>
+                            <MudTh>页面</MudTh>
+                            <MudTh>路由</MudTh>
+                            <MudTh>等级</MudTh>
+                            <MudTh>状态</MudTh>
+                            <MudTh>来源</MudTh>
+                            <MudTh Style="text-align: right;">操作</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="页面">
+                                @context.Title
+                                @if (!string.IsNullOrEmpty(context.GroupTitle))
+                                {
+                                    <span class="platform-config-hint">（@context.GroupTitle）</span>
+                                }
+                            </MudTd>
+                            <MudTd DataLabel="路由"><code>@context.Route</code></MudTd>
+                            <MudTd DataLabel="等级">
+                                @if (context.IsOrphaned)
+                                {
+                                    <span class="platform-config-hint">—</span>
+                                }
+                                else
+                                {
+                                    <MudSelect T="int" Value="@context.AccessLevel"
+                                               ValueChanged="@(value => RequestAccessLevelChangeAsync(context, value))"
+                                               Dense="true" Variant="Variant.Text" Style="min-width: 96px;">
+                                        <MudSelectItem T="int" Value="1">1 · 查看</MudSelectItem>
+                                        <MudSelectItem T="int" Value="2">2 · 配置</MudSelectItem>
+                                    </MudSelect>
+                                }
+                            </MudTd>
+                            <MudTd DataLabel="状态">
+                                @if (context.IsOrphaned)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text">已下线</MudChip>
+                                }
+                                else
+                                {
+                                    <MudSwitch T="bool" Value="@context.IsEnabled"
+                                               ValueChanged="@(value => RequestToggleAsync(context, value))"
+                                               Color="Color.Secondary" Size="Size.Small"/>
+                                }
+                            </MudTd>
+                            <MudTd DataLabel="来源">
+                                @if (context.Source == "override")
+                                {
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text">后台修改</MudChip>
+                                }
+                                else
+                                {
+                                    <span class="platform-config-hint">代码默认</span>
+                                }
+                            </MudTd>
+                            <MudTd Style="text-align: right;">
+                                @if (context.Source == "override" && !context.IsOrphaned)
+                                {
+                                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Secondary"
+                                               OnClick="@(() => RequestResetAsync(context))">
+                                        恢复默认
+                                    </MudButton>
+                                }
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+            </MudPaper>
+        }
+    }
+</MudStack>
+
+<MudDialog @bind-Visible="_isConfirmOpen"
+           Options="PlatformDialogs.Confirm"
+           AriaLabel="@_confirmTitle">
+    <DialogContent>
+        <MudStack Spacing="2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudAvatar Size="Size.Medium" Class="platform-dialog-icon-warning">
+                    <MudIcon Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small"/>
+                </MudAvatar>
+                <MudText Typo="Typo.h6">@_confirmTitle</MudText>
+            </MudStack>
+            <MudText Typo="Typo.body2">@_confirmText</MudText>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CancelConfirm" Variant="Variant.Text">取消</MudButton>
+        <MudButton OnClick="AcceptConfirmAsync" Variant="Variant.Filled" Color="Color.Secondary">确认</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Inject] private IPlatformApiClient Api { get; set; } = null!;
+
+    private IReadOnlyList<AdminDomainDto> _domains = [];
+    private bool _isLoading = true;
+    private string? _message;
+    private Severity _messageSeverity = Severity.Info;
+
+    private bool _isConfirmOpen;
+    private string _confirmTitle = string.Empty;
+    private string _confirmText = string.Empty;
+    private Func<Task>? _pendingAction;
+}

@@ -150,6 +150,8 @@
 | 服务器状态查询 `/server-connection-status` | 平台管理 | info |
 | History API 测试 `/history-api-test` | 平台管理 → 接口管理 | warning |
 | MQTT 测试 `/mqtt-test` | 平台管理 → 接口管理 | tertiary |
+| 域与页面配置 `/domain-config` | 平台管理 → 权限管理 | secondary |
+| 部门与授权 `/department-grants` | 平台管理 → 权限管理 | tertiary |
 | 采集节点详情 `/managed-data-definitions/{id}` | 平台管理 → 采集配置 | primary |
 | 排班时间管理 `/shift-schedules` | 业务配置 → 班组管理 | primary |
 | 排班日历 `/shift-calendar` | 业务配置 → 班组管理 | info |
@@ -336,6 +338,7 @@ teams.Select(t => new ChartSeries<double> { Name = t.TeamName, Data = [t.ValueA]
 | 平台管理 | （直接条目） | 平台概览、服务器状态查询 |
 | 平台管理 | 采集配置 | 点位配置、点位数据管理 |
 | 平台管理 | 接口管理 | History API 测试、MQTT 测试 |
+| 平台管理 | 权限管理 | 域与页面配置、部门与授权 |
 
 约束：
 

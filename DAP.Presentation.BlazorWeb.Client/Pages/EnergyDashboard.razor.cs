@@ -45,6 +45,22 @@ public partial class EnergyDashboard
     private string? _message;
     private Severity _messageSeverity = Severity.Info;
 
+    /// <summary>
+    /// 是否严格解析出在岗班组。轮休 / 排班未导入 / 手动切换都算非在岗，
+    /// 页面据此切换提示文案，绝不把猜测的班组当成在岗事实（docs/AUTH_DESIGN.md 6.6）。
+    /// </summary>
+    private bool IsOnDuty => _dashboard?.TeamResolution is "on-duty";
+
+    /// <summary>
+    /// 非在岗时的提示文案：轮休与排班未导入是两种不同的诉求，不能都写成"无权限"式的含糊话。
+    /// </summary>
+    private string? TeamResolutionHint => _dashboard?.TeamResolution switch
+    {
+        "rest-day" => "当前无在岗班组（当日轮休），已展示首个班组的数据，可在右上角手动切换。",
+        "no-schedule" => "排班数据尚未导入，请联系排班管理员；当前展示的是参考数据。",
+        _ => null
+    };
+
     protected override async Task OnInitializedAsync()
     {
         await LoadAsync();
@@ -62,8 +78,12 @@ public partial class EnergyDashboard
 
             _dashboard = await PlatformApiClient.GetEnergyDashboardAsync(_trendDays, _teamCode);
 
-            // 首次加载后回填服务端推断出的当前班组，便于用户直接切换。
-            _teamCode ??= _dashboard.TeamCode;
+            // 首次加载后回填服务端解析出的班组，便于用户直接切换。
+            // 非在岗解析（轮休/未导入）不回填默认值：让选择器保持空，提示文案引导手动选择。
+            if (_teamCode is null && IsOnDuty)
+            {
+                _teamCode = _dashboard.TeamCode;
+            }
         }
         catch (Exception ex)
         {

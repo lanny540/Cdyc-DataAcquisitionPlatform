@@ -1,6 +1,6 @@
-@* 左侧导航中的单个条目。样式类由 NavigationCatalog 中的 Accent 决定，不在此处硬编码。 *@
-<MudNavLink Href="@Item.Href" Match="@Item.Match" Icon="@Item.Icon" Class="@CssClass">
-    @Item.Title
+@* 左侧导航中的单个条目。样式类由服务端返回的 Accent 决定，不在此处硬编码。 *@
+<MudNavLink Href="@Page.Route" Match="Match" Icon="@Page.Icon" Class="@CssClass">
+    @Page.Title
 </MudNavLink>
 
 @code {
@@ -8,10 +8,16 @@
     /// 要渲染的菜单条目。
     /// </summary>
     [Parameter, EditorRequired]
-    public NavItem Item { get; set; } = null!;
+    public NavigationPageDto Page { get; set; } = null!;
+
+    /// <summary>
+    /// 根路由必须精确匹配：前缀匹配下 "/" 会命中所有页面，导致首屏页永远高亮。
+    /// </summary>
+    private NavLinkMatch Match =>
+        Page.Route is "" or "/" ? NavLinkMatch.All : NavLinkMatch.Prefix;
 
     /// <summary>
     /// 在代码后置中拼接样式类：Razor 属性内写复合插值会触发 RZ9986。
     /// </summary>
-    private string CssClass => $"platform-nav-link {Item.Accent}";
+    private string CssClass => $"platform-nav-link {Page.Accent}";
 }

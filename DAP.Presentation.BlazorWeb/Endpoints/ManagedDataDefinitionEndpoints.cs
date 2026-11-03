@@ -1,5 +1,6 @@
 using DAP.Core.Domain.Services;
 using DAP.Core.Shared.Contracts;
+using DAP.Presentation.BlazorWeb.Security;
 
 namespace DAP.Presentation.BlazorWeb.Endpoints;
 
@@ -14,7 +15,8 @@ public static class ManagedDataDefinitionEndpoints
     public static IEndpointRouteBuilder MapManagedDataDefinitionEndpoints(this IEndpointRouteBuilder endpoints)
     {
         RouteGroupBuilder group = endpoints.MapGroup("/api/managed-data-definitions")
-            .WithTags("ManagedDataDefinitions");
+            .WithTags("ManagedDataDefinitions")
+            .RequirePlatformAdmin();
 
         group.MapGet(
                 "/",

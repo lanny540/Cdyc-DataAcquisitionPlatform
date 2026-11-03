@@ -61,6 +61,32 @@ public static class AuthorizationCatalog
     public const string PageSourceOverride = "override";
 
     /// <summary>
+    /// 授权策略名。端点与页面通过 <c>RequireAuthorization(策略名)</c> 引用，
+    /// 实际判定由 PlatformAuthorizationPolicyProvider 按 claims 动态生成。
+    /// </summary>
+    public static class PolicyNames
+    {
+        /// <summary>域策略前缀，完整形式为 Domain:{code}，判定用户是否可见该域。</summary>
+        public const string DomainPrefix = "Domain:";
+
+        /// <summary>配置类策略：要求页面等级 ≥ 2。排班等配置类端点组的读策略。</summary>
+        public const string Configure = "Access:Configure";
+
+        /// <summary>平台管理策略：仅超级管理员通过。等价于系统域可见。</summary>
+        public const string PlatformAdmin = "PlatformAdmin";
+
+        /// <summary>权限点策略前缀，完整形式即权限点编码（如 action.shift.manage）。</summary>
+        public const string PermissionPrefix = "action.";
+
+        /// <summary>
+        /// 构造指定职能域的策略名。
+        /// </summary>
+        /// <param name="domainCode">域编码。</param>
+        /// <returns>策略名。</returns>
+        public static string Domain(string domainCode) => $"{DomainPrefix}{domainCode}";
+    }
+
+    /// <summary>
     /// 全部内置职能域，按顶栏顺序排列。平台管理是系统域，不进授权矩阵。
     /// </summary>
     public static IReadOnlyList<BuiltInDomain> Domains { get; } =
@@ -135,6 +161,9 @@ public static class AuthorizationCatalog
 
         /// <summary>车间只读终端标记，P1 的 IP 白名单会话使用。</summary>
         public const string BoardTerminal = "dap:board_terminal";
+
+        /// <summary>车间只读会话的签发 IP。会话绑定签发时的地址，不一致立即作废（docs/AUTH_DESIGN.md 6.6 硬约束 5）。</summary>
+        public const string BoardIssuedIp = "dap:board_issued_ip";
     }
 }
 

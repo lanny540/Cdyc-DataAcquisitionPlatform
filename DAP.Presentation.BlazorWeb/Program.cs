@@ -29,6 +29,8 @@ app.UseWhen(
 app.UseAntiforgery();
 
 // 认证闸门必须在端点映射之前：未登录时不渲染任何业务页面外壳。
+// 越权异常处理要包住端点与电路（装饰器抛 ForbiddenAccessException），放在最前。
+app.UseForbiddenAccessHandling();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UsePlatformAuthenticationGate();

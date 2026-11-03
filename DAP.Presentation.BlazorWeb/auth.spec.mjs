@@ -83,11 +83,13 @@ test("超管登录、强制改密、进入平台并登出", async ({ page }) => 
   // 顶栏账号区读会话 claims，不额外请求接口。
   await expect(page.locator(".platform-user-name")).toHaveText("超级管理员");
 
-  // 三个顶级模块都在：超管对全部域短路放行。
+  // 顶栏按职能域渲染（P1 域驱动导航）：超管对全部域短路放行，
+  // 钞纸/印钞/能源/平台管理四个域都可见，空域带「未上线」标记。
   const topNav = page.locator(".platform-topnav");
-  await expect(topNav.locator(".platform-topnav-item")).toHaveCount(3);
-  await expect(topNav).toContainText("数据指标");
-  await expect(topNav).toContainText("业务配置");
+  await expect(topNav.locator(".platform-topnav-item")).toHaveCount(4);
+  await expect(topNav).toContainText("钞纸");
+  await expect(topNav).toContainText("印钞");
+  await expect(topNav).toContainText("能源");
   await expect(topNav).toContainText("平台管理");
 
   // 刷新后仍处于登录态：Cookie 是 HttpOnly 的服务端会话。
@@ -95,10 +97,10 @@ test("超管登录、强制改密、进入平台并登出", async ({ page }) => 
   expect(new URL(page.url()).pathname).toBe("/platform-overview");
   await expect(page.locator(".platform-user-name")).toHaveText("超级管理员");
 
-  // 换到数据指标模块，确认落地页可访问且顶栏高亮跟随。
-  await page.locator(".platform-topnav-item", { hasText: "数据指标" }).click();
+  // 切到钞纸域，确认落地页可访问且顶栏高亮跟随。
+  await page.locator(".platform-topnav-item", { hasText: "钞纸" }).click();
   await page.waitForURL(url => url.pathname === "/", { timeout: 30000 });
-  await expect(page.locator(".platform-topnav-item--active")).toContainText("数据指标");
+  await expect(page.locator(".platform-topnav-item--active")).toContainText("钞纸");
 
   // 登出走原生表单 POST，完成后回到登录页。
   await Promise.all([
@@ -109,4 +111,33 @@ test("超管登录、强制改密、进入平台并登出", async ({ page }) => 
   // 登出后再访问业务页面会被闸门拦回登录页。
   await page.goto("/");
   expect(new URL(page.url()).pathname).toBe("/login");
+});
+
+test("超管可打开域与页面配置页并看到四个域", async ({ page }) => {
+  await signIn(page);
+  await page.goto("/domain-config");
+
+  // 页头与域卡片：四个域齐全，空域呈现「未上线」标记。
+  await expect(page.getByRole("heading", { name: "域与页面配置" })).toBeVisible();
+  await expect(page.locator(".platform-section-card--tinted", { hasText: "钞纸" })).toBeVisible();
+  await expect(page.locator(".platform-section-card--tinted", { hasText: "印钞" })).toContainText("空域（未上线）");
+  await expect(page.locator(".platform-section-card--tinted", { hasText: "平台管理" })).toContainText("系统域");
+});
+
+test("超管可打开部门与授权页并新建部门", async ({ page }) => {
+  await signIn(page);
+  await page.goto("/department-grants");
+
+  await expect(page.getByRole("heading", { name: "部门与授权" })).toBeVisible();
+
+  // 新建部门走抽屉表单：编码 + 名称，保存后列表出现新行。
+  // 编码带时间戳保证用例可重复执行（已存在的编码会被服务端拒绝）。
+  const departmentCode = `PW-${Date.now().toString(36).toUpperCase()}`;
+  await page.getByRole("button", { name: "新建部门" }).click();
+  await page.getByLabel("部门编码").fill(departmentCode);
+  await page.getByLabel("部门名称").fill("浏览器实测部门");
+  await page.getByRole("button", { name: "保存", exact: true }).click();
+
+  await expect(page.locator(".platform-data-table", { hasText: "浏览器实测部门" }))
+    .toBeVisible({ timeout: 30000 });
 });

@@ -1,5 +1,6 @@
 using DAP.Core.Shared.Contracts;
 using DAP.Presentation.BlazorWeb.Services;
+using DAP.Presentation.BlazorWeb.Security;
 
 namespace DAP.Presentation.BlazorWeb.Endpoints;
 
@@ -15,7 +16,8 @@ public static class EnergyMetricEndpoints
     /// <returns>当前端点路由构建器。</returns>
     public static IEndpointRouteBuilder MapEnergyMetricEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        RouteGroupBuilder group = endpoints.MapGroup("/api/energy-metrics").WithTags("EnergyMetrics");
+        RouteGroupBuilder group = endpoints.MapGroup("/api/energy-metrics").WithTags("EnergyMetrics")
+            .RequireBanknotePaperDomain();
 
         group.MapGet(
                 "/",

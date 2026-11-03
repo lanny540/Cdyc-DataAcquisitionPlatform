@@ -14,8 +14,9 @@
                 @if (_dashboard is not null)
                 {
                     <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mt-2">
-                        <MudChip T="string" Variant="Variant.Outlined" Color="Color.Success">
-                            @($"当前班组：{_dashboard.TeamName}")
+                        <MudChip T="string" Variant="Variant.Outlined"
+                                 Color="@(IsOnDuty ? Color.Success : Color.Warning)">
+                            @(IsOnDuty ? $"当前班组：{_dashboard.TeamName}" : $"查看班组：{_dashboard.TeamName}（非在岗）")
                         </MudChip>
                         <MudChip T="string" Variant="Variant.Outlined" Color="Color.Primary">
                             @($"{_dashboard.WorkDate:yyyy-MM-dd} {_dashboard.ShiftName}")
@@ -55,6 +56,14 @@
     @if (!string.IsNullOrWhiteSpace(_message))
     {
         <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
+    }
+
+    @* 班组归属提示：轮休 / 排班未导入时不给在岗默认值，显式说明而不是让现场猜（docs/AUTH_DESIGN.md 6.6）。 *@
+    @if (!string.IsNullOrWhiteSpace(TeamResolutionHint))
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Info">
+            @TeamResolutionHint
+        </MudAlert>
     }
 
     @if (_isLoading)

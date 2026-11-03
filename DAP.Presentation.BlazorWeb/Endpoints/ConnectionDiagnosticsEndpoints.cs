@@ -1,5 +1,6 @@
 using DAP.Core.Shared.Contracts;
 using DAP.Presentation.BlazorWeb.Services;
+using DAP.Presentation.BlazorWeb.Security;
 
 namespace DAP.Presentation.BlazorWeb.Endpoints;
 
@@ -22,7 +23,8 @@ public static class ConnectionDiagnosticsEndpoints
                     return Results.Ok(statuses);
                 })
             .WithName("GetServerConnections")
-            .WithTags("ConnectionDiagnostics");
+            .WithTags("ConnectionDiagnostics")
+            .RequirePlatformAdmin();
 
         endpoints.MapGet(
                 "/api/server-connections/{key}/status",
@@ -34,7 +36,8 @@ public static class ConnectionDiagnosticsEndpoints
                     return status is null ? Results.NotFound() : Results.Ok(status);
                 })
             .WithName("CheckServerConnectionStatus")
-            .WithTags("ConnectionDiagnostics");
+            .WithTags("ConnectionDiagnostics")
+            .RequirePlatformAdmin();
 
         endpoints.MapGet(
                 "/api/server-connections/status",
@@ -45,7 +48,8 @@ public static class ConnectionDiagnosticsEndpoints
                     return Results.Ok(statuses);
                 })
             .WithName("GetServerConnectionStatuses")
-            .WithTags("ConnectionDiagnostics");
+            .WithTags("ConnectionDiagnostics")
+            .RequirePlatformAdmin();
 
         endpoints.MapPost(
                 "/api/managed-data-definitions/test-connection",
@@ -57,7 +61,8 @@ public static class ConnectionDiagnosticsEndpoints
                     return Results.Ok(result);
                 })
             .WithName("TestManagedDataConnection")
-            .WithTags("ConnectionDiagnostics");
+            .WithTags("ConnectionDiagnostics")
+            .RequirePlatformAdmin();
 
         return endpoints;
     }

@@ -111,4 +111,30 @@ public interface IPlatformApiClient
         string granularity,
         DateOnly date,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<AdminDomainDto>> GetAdminDomainsAsync(CancellationToken cancellationToken = default);
+
+    Task<bool> UpdateAdminDomainPageAsync(
+        Guid pageId,
+        AdminDomainPageUpdateRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> ResetAdminDomainPageAsync(Guid pageId, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<AdminDepartmentDto>> GetAdminDepartmentsAsync(
+        CancellationToken cancellationToken = default);
+
+    Task<bool> CreateAdminDepartmentAsync(
+        AdminDepartmentUpsertRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> UpdateAdminDepartmentAsync(
+        Guid departmentId,
+        AdminDepartmentUpsertRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> UpdateAdminDepartmentGrantsAsync(
+        Guid departmentId,
+        AdminDepartmentGrantsRequest request,
+        CancellationToken cancellationToken = default);
 }

@@ -1,9 +1,12 @@
 @using System.Security.Claims
 @using DAP.Core.Shared.Catalog
+@using DAP.Core.Shared.Contracts
+@using DAP.Presentation.BlazorWeb.Client.Services
 @using Microsoft.AspNetCore.Components.Authorization
 @inherits LayoutComponentBase
 @implements IDisposable
 @inject NavigationManager Nav
+@inject INavigationViewClient NavigationView
 
 <MudThemeProvider Theme="_theme"/>
 <MudPopoverProvider/>
@@ -23,38 +26,62 @@
                 <MudText Typo="Typo.caption" Class="platform-brand-subtitle">统一采集配置、连接诊断与运行观测</MudText>
             </MudStack>
         </MudStack>
-        <nav class="platform-topnav" aria-label="顶级导航">
-            @foreach (NavSection section in NavigationCatalog.Sections)
+        @* 顶栏渲染「用户可见域列表」，不是固定模块：域可见性、空域规则全部由服务端判定。
+           域数量可变，新增域不需要改这里（docs/AUTH_DESIGN.md 13.1）。 *@
+        <nav class="platform-topnav" aria-label="职能域导航">
+            @if (_navigation is null)
             {
-                var target = section;
-                <button type="button"
-                        class="@TopNavClass(target)"
-                        aria-current="@(IsActiveSection(target) ? "page" : null)"
-                        @onclick="@(() => SelectSection(target))">
-                    <MudIcon Icon="@target.Icon" Size="Size.Small"/>
-                    <span>@target.Title</span>
-                </button>
+                <span class="platform-topnav-loading">导航加载中…</span>
+            }
+            else
+            {
+                @foreach (NavigationDomainDto domain in _navigation.Domains)
+                {
+                    var target = domain;
+                    <button type="button"
+                            class="@TopNavClass(target)"
+                            aria-current="@(IsActiveDomain(target) ? "page" : null)"
+                            @onclick="@(() => SelectDomain(target))">
+                        <MudIcon Icon="@NavigationCatalog.DomainIcon(target.Code)" Size="Size.Small"/>
+                        <span>@target.Name</span>
+                        @if (target.IsEmpty)
+                        {
+                            <span class="platform-topnav-badge">未上线</span>
+                        }
+                    </button>
+                }
             }
         </nav>
         <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined" Class="platform-version-chip">
             Web 管理端 @AppVersion
         </MudChip>
         @* 账号区只读当前会话里的 claims，不额外请求 /api/auth/me：
-           会话失效时由路由守卫与服务端闸门拦到登录页，这里不做第二套判定。 *@
+           会话失效时由路由守卫与服务端闸门拦到登录页，这里不做第二套判定。
+           车间只读终端没有账号概念：显示「只读」标识，不提供登出。 *@
         <AuthorizeView>
             <Authorized>
                 <div class="platform-user-area">
-                    <span class="platform-user-avatar">
-                        <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small"/>
-                    </span>
-                    <span class="platform-user-name">@ResolveDisplayName(context.User)</span>
-                    @* 原生表单提交而非 @onsubmit：InteractiveAuto 下页面可能落在 Server 电路里，
-                       电路内拿不到 HttpContext，签不掉 Cookie。浏览器直接 POST 由端点完成登出。 *@
-                    <form method="post" action="/api/auth/logout" class="platform-logout-form">
-                        <button type="submit" class="platform-logout-button" aria-label="退出登录" title="退出登录">
-                            <MudIcon Icon="@Icons.Material.Filled.Logout" Size="Size.Small"/>
-                        </button>
-                    </form>
+                    @if (IsBoardTerminal(context.User))
+                    {
+                        <span class="platform-board-chip">
+                            <MudIcon Icon="@Icons.Material.Filled.Monitor" Size="Size.Small"/>
+                            车间终端 · 只读
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="platform-user-avatar">
+                            <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small"/>
+                        </span>
+                        <span class="platform-user-name">@ResolveDisplayName(context.User)</span>
+                        @* 原生表单提交而非 @onsubmit：InteractiveAuto 下页面可能落在 Server 电路里，
+                           电路内拿不到 HttpContext，签不掉 Cookie。浏览器直接 POST 由端点完成登出。 *@
+                        <form method="post" action="/api/auth/logout" class="platform-logout-form">
+                            <button type="submit" class="platform-logout-button" aria-label="退出登录" title="退出登录">
+                                <MudIcon Icon="@Icons.Material.Filled.Logout" Size="Size.Small"/>
+                            </button>
+                        </form>
+                    }
                 </div>
             </Authorized>
         </AuthorizeView>
@@ -68,11 +95,14 @@
                Class="platform-drawer">
         <MudDrawerHeader Class="platform-drawer-header">
             <MudStack Spacing="0" Class="platform-drawer-heading">
-                <MudText Typo="Typo.subtitle2" Class="platform-drawer-title">@ActiveSection.Title</MudText>
-                <MudText Typo="Typo.caption" Class="platform-drawer-subtitle">@ActiveSection.Description</MudText>
+                <MudText Typo="Typo.subtitle2" Class="platform-drawer-title">@ActiveDomain?.Name</MudText>
+                <MudText Typo="Typo.caption" Class="platform-drawer-subtitle">@DrawerSubtitle</MudText>
             </MudStack>
         </MudDrawerHeader>
-        <NavMenu Section="@ActiveSection"/>
+        @if (ActiveDomain is not null)
+        {
+            <NavMenu Domain="@ActiveDomain"/>
+        }
     </MudDrawer>
     <MudMainContent Class="platform-main-content">
         <MudContainer MaxWidth="MaxWidth.False" Class="platform-page-container">
@@ -91,34 +121,74 @@
     private bool _drawerOpen = true;
 
     /// <summary>
-    /// 当前顶栏选中的顶级模块标识。左侧菜单只渲染该模块的分组与子菜单。
+    /// 当前用户的导航树。null 表示加载中或未认证——未认证会被路由守卫拦走，不会停留在本布局。
     /// </summary>
-    private string _activeSectionId = NavigationCatalog.DefaultSection.Id;
+    private NavigationDto? _navigation;
 
-    private NavSection ActiveSection => NavigationCatalog.Find(_activeSectionId);
+    /// <summary>
+    /// 当前顶栏选中的职能域编码。左侧菜单只渲染该域的分组与子菜单。
+    /// </summary>
+    private string _activeDomainCode = string.Empty;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    private NavigationDomainDto? ActiveDomain => _navigation?.Domains
+        .FirstOrDefault(domain => string.Equals(domain.Code, _activeDomainCode, StringComparison.Ordinal));
+
+    /// <summary>
+    /// 抽屉副标题：空域显式说明「未上线」，正常域给出页面计数。
+    /// </summary>
+    private string DrawerSubtitle => ActiveDomain is null
+        ? string.Empty
+        : ActiveDomain.IsEmpty
+            ? "该板块尚未上线"
+            : $"共 {ActiveDomain.Groups.Sum(group => group.Pages.Count)} 个功能页面";
 
     private string CurrentPath => Nav.ToBaseRelativePath(Nav.Uri);
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        // 刷新页面或直接输入地址时，按路由反推所属模块，避免顶栏高亮与内容错位。
-        _activeSectionId = NavigationCatalog.ResolveSection(CurrentPath).Id;
+        // 导航按当前会话过滤。服务端直调构建服务；WASM 调 /api/navigation（Cookie 判定）。
+        ClaimsPrincipal? principal = null;
+
+        if (AuthenticationStateTask is not null)
+        {
+            AuthenticationState state = await AuthenticationStateTask;
+            principal = state.User;
+        }
+
+        try
+        {
+            _navigation = await NavigationView.LoadAsync(principal);
+        }
+        catch (Exception)
+        {
+            // 加载失败渲染空导航：认证闸门与路由守卫会兜底，不让用户停在无壳页面。
+            _navigation = null;
+        }
+
+        // 刷新页面或直接输入地址时，按路由反推所属域，避免顶栏高亮与内容错位。
+        _activeDomainCode = ResolveDomain(CurrentPath)?.Code
+                            ?? _navigation?.Domains.FirstOrDefault()?.Code
+                            ?? string.Empty;
+
         Nav.LocationChanged += OnLocationChanged;
     }
 
     /// <summary>
     /// 顶栏一级导航的样式类。激活态由 platform-topnav-item--active 表达，不在此处写色值。
     /// </summary>
-    private string TopNavClass(NavSection section)
+    private string TopNavClass(NavigationDomainDto domain)
     {
-        return IsActiveSection(section)
+        return IsActiveDomain(domain)
             ? "platform-topnav-item platform-topnav-item--active"
             : "platform-topnav-item";
     }
 
-    private bool IsActiveSection(NavSection section)
+    private bool IsActiveDomain(NavigationDomainDto domain)
     {
-        return string.Equals(section.Id, _activeSectionId, StringComparison.Ordinal);
+        return string.Equals(domain.Code, _activeDomainCode, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -126,37 +196,107 @@
     /// </summary>
     private void OnLocationChanged(object? sender, LocationChangedEventArgs args)
     {
-        NavSection section = NavigationCatalog.ResolveSection(Nav.ToBaseRelativePath(args.Location));
+        var domain = ResolveDomain(Nav.ToBaseRelativePath(args.Location));
 
-        if (string.Equals(section.Id, _activeSectionId, StringComparison.Ordinal))
+        if (domain is null || string.Equals(domain.Code, _activeDomainCode, StringComparison.Ordinal))
         {
             return;
         }
 
-        _activeSectionId = section.Id;
+        _activeDomainCode = domain.Code;
         _ = InvokeAsync(StateHasChanged);
     }
 
     /// <summary>
-    /// 点击顶栏模块：切换左侧菜单；若当前页面不属于该模块，则落到该模块的首个页面。
-    ///
-    /// 只换菜单不换内容会让用户看到「平台管理」的菜单配「数据指标」的页面，
-    /// 因此跨模块切换时一并跳转。
+    /// 点击顶栏域，三种情形（docs/AUTH_DESIGN.md 12.3）：
+    /// 当前页面属于该域 → 只切换左侧菜单；不属于 → 跳该域首个页面；
+    /// 空域（仅超管可见）→ 不跳转，左侧渲染空状态，保住从顶栏回到配置页的路径。
     /// </summary>
-    private void SelectSection(NavSection section)
+    private void SelectDomain(NavigationDomainDto domain)
     {
-        var sectionChanged = !string.Equals(section.Id, _activeSectionId, StringComparison.Ordinal);
-        _activeSectionId = section.Id;
+        var domainChanged = !string.Equals(domain.Code, _activeDomainCode, StringComparison.Ordinal);
+        _activeDomainCode = domain.Code;
 
         if (!_drawerOpen)
         {
             _drawerOpen = true;
         }
 
-        if (sectionChanged && !NavigationCatalog.Contains(section, CurrentPath))
+        if (domain.IsEmpty || domain.FirstPage is null)
         {
-            Nav.NavigateTo(section.LandingHref);
+            return;
         }
+
+        if (domainChanged && !DomainContains(domain, CurrentPath))
+        {
+            Nav.NavigateTo(domain.FirstPage.Route);
+        }
+    }
+
+    /// <summary>
+    /// 按当前路由反查所属域，用于刷新页面或直接输入地址时同步顶栏高亮。
+    /// 采用最长前缀匹配：/managed-data-definitions/{id} 归「点位数据管理」而不是更短的条目。
+    /// </summary>
+    private NavigationDomainDto? ResolveDomain(string? relativePath)
+    {
+        if (_navigation is null)
+        {
+            return null;
+        }
+
+        var path = Normalize(relativePath);
+
+        NavigationDomainDto? matched = null;
+        var matchedLength = -1;
+
+        foreach (NavigationDomainDto domain in _navigation.Domains)
+        {
+            foreach (NavigationPageDto page in domain.Groups.SelectMany(group => group.Pages))
+            {
+                var href = Normalize(page.Route);
+
+                var isMatch = href.Length == 0
+                    ? path.Length == 0
+                    : path.Equals(href, StringComparison.OrdinalIgnoreCase)
+                      || path.StartsWith(href + "/", StringComparison.OrdinalIgnoreCase);
+
+                if (!isMatch || href.Length <= matchedLength)
+                {
+                    continue;
+                }
+
+                matched = domain;
+                matchedLength = href.Length;
+            }
+        }
+
+        return matched;
+    }
+
+    private bool DomainContains(NavigationDomainDto domain, string? relativePath)
+    {
+        return string.Equals(ResolveDomain(relativePath)?.Code, domain.Code, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// 归一化地址：去掉首尾斜杠与查询串，便于统一比较。
+    /// </summary>
+    private static string Normalize(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return string.Empty;
+        }
+
+        var trimmed = path.Trim();
+
+        var queryIndex = trimmed.IndexOfAny(['?', '#']);
+        if (queryIndex >= 0)
+        {
+            trimmed = trimmed[..queryIndex];
+        }
+
+        return trimmed.Trim('/');
     }
 
     public void Dispose()
@@ -182,6 +322,14 @@
         return string.IsNullOrWhiteSpace(displayName)
             ? user.Identity?.Name ?? "未命名账号"
             : displayName;
+    }
+
+    /// <summary>
+    /// 是否车间只读终端会话（IP 白名单签发）。
+    /// </summary>
+    private static bool IsBoardTerminal(ClaimsPrincipal user)
+    {
+        return user.HasClaim(AuthorizationCatalog.PlatformClaimTypes.BoardTerminal, "true");
     }
 
     private void DrawerToggle()

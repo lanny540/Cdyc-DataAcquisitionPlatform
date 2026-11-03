@@ -1,5 +1,6 @@
 using DAP.Core.Domain.Services;
 using DAP.Core.Shared.Contracts;
+using DAP.Presentation.BlazorWeb.Security;
 
 namespace DAP.Presentation.BlazorWeb.Endpoints;
 
@@ -15,7 +16,8 @@ public static class CollectionPointEndpoints
     /// <returns>当前端点路由构建器。</returns>
     public static IEndpointRouteBuilder MapCollectionPointEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        RouteGroupBuilder pointGroup = endpoints.MapGroup("/api/collection-points").WithTags("CollectionPoints");
+        RouteGroupBuilder pointGroup = endpoints.MapGroup("/api/collection-points").WithTags("CollectionPoints")
+            .RequirePlatformAdmin();
         pointGroup.MapGet(
                 "/",
                 async (IDataAcquisitionPlatformService platformService, CancellationToken cancellationToken) =>

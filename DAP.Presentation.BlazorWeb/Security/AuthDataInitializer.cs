@@ -53,6 +53,8 @@ public sealed class AuthDataInitializer(
             await EnsureSuperAdminAsync(db, timeProvider, cancellationToken);
             await VerifySuperAdminUniquenessAsync(db, cancellationToken);
 
+            ValidateBoardOptions();
+
             logger.LogInformation(
                 "认证数据初始化完成：页面新增 {Created}、刷新 {Updated}、保留管理员改动 {Kept}、标记下线 {Orphaned}、跳过 {Skipped}。",
                 reconcile.Created, reconcile.Updated, reconcile.Kept, reconcile.Orphaned, reconcile.Skipped);
@@ -74,6 +76,35 @@ public sealed class AuthDataInitializer(
     public Task StopAsync(CancellationToken cancellationToken)
     {
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// 校验车间只读终端配置（docs/AUTH_DESIGN.md 6.6）：
+    /// 启用但白名单为空说明配置没跟上，拒绝启动——静默跳过会让现场误以为免登录已生效；
+    /// 宽于 /24 的条目输出告警——开成网段等于整个网段的人都能读到全部班组数据，且不会报错。
+    /// </summary>
+    private void ValidateBoardOptions()
+    {
+        if (!_options.Board.Enabled)
+        {
+            return;
+        }
+
+        if (_options.Board.IpWhitelist.Length == 0)
+        {
+            throw new InvalidOperationException(
+                "Auth:Board:Enabled 已启用但 Auth:Board:IpWhitelist 为空。请登记车间那台机器的固定 IP（单机 /32），或暂时关闭开关。");
+        }
+
+        foreach (var entry in _options.Board.IpWhitelist)
+        {
+            if (BoardIpWhitelist.IsWideScope(entry))
+            {
+                logger.LogWarning(
+                    "车间白名单条目 {Entry} 是宽网段（宽于 /24）。本方案不做行级过滤，等级 1 能看到全部班组的历史数据，开成网段等于整个网段都拿得到。生产环境只应有一条单机 /32。",
+                    entry);
+            }
+        }
     }
 
     private async Task EnsureRolesAsync(

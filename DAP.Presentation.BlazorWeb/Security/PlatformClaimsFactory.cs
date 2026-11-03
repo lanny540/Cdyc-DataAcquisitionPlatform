@@ -123,4 +123,41 @@ public static class PlatformClaimsFactory
     {
         return principal?.HasClaim(AuthorizationCatalog.PlatformClaimTypes.SuperAdmin, "true") == true;
     }
+
+    /// <summary>
+    /// 读取会话的页面等级。超管恒为 99；claim 缺失或非法时按 0 处理（不可见任何页面）。
+    /// </summary>
+    /// <param name="principal">会话主体。</param>
+    /// <returns>页面等级。</returns>
+    public static int ReadPageLevel(ClaimsPrincipal? principal)
+    {
+        if (IsSuperAdmin(principal))
+        {
+            return AuthorizationCatalog.SuperAdminPageLevel;
+        }
+
+        var raw = principal?.FindFirst(AuthorizationCatalog.PlatformClaimTypes.PageLevel)?.Value;
+
+        return int.TryParse(raw, out var level) ? level : 0;
+    }
+
+    /// <summary>
+    /// 判断会话是否具备配置类页面的访问等级（≥ 2）。
+    /// </summary>
+    /// <param name="principal">会话主体。</param>
+    /// <returns>具备时返回 true。</returns>
+    public static bool CanConfigure(ClaimsPrincipal? principal)
+    {
+        return ReadPageLevel(principal) >= AuthorizationCatalog.ConfigureAccessLevel;
+    }
+
+    /// <summary>
+    /// 判断会话是否为车间只读终端（IP 白名单签发，等级固定为 1）。
+    /// </summary>
+    /// <param name="principal">会话主体。</param>
+    /// <returns>是只读终端会话时返回 true。</returns>
+    public static bool IsBoardTerminal(ClaimsPrincipal? principal)
+    {
+        return principal?.HasClaim(AuthorizationCatalog.PlatformClaimTypes.BoardTerminal, "true") == true;
+    }
 }

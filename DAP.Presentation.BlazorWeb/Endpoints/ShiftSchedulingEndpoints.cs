@@ -1,5 +1,7 @@
 using DAP.Core.Domain.Services;
+using DAP.Core.Shared.Catalog;
 using DAP.Core.Shared.Contracts;
+using DAP.Presentation.BlazorWeb.Security;
 using DAP.Presentation.BlazorWeb.Services;
 
 namespace DAP.Presentation.BlazorWeb.Endpoints;
@@ -21,12 +23,18 @@ public static class ShiftSchedulingEndpoints
 
     /// <summary>
     /// 映射班组排班相关 API 端点。
+    ///
+    /// 读策略为「钞纸域 + 配置等级」：排班数据只服务于配置类页面，
+    /// 普通用户（等级 1）与车间只读终端均不可见；写操作另需排班配置权限点。
     /// </summary>
     /// <param name="endpoints">端点路由构建器。</param>
     /// <returns>当前端点路由构建器。</returns>
     public static IEndpointRouteBuilder MapShiftSchedulingEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        RouteGroupBuilder group = endpoints.MapGroup("/api/shift-schedules").WithTags("ShiftSchedules");
+        RouteGroupBuilder group = endpoints.MapGroup("/api/shift-schedules")
+            .WithTags("ShiftSchedules")
+            .RequireBanknotePaperDomain()
+            .RequireConfigureAccess();
 
         group.MapGet(
                 "/status",
@@ -89,6 +97,7 @@ public static class ShiftSchedulingEndpoints
                     return result.Succeeded ? Results.Ok(result) : Results.BadRequest(result);
                 })
             .WithName("ImportShiftSchedule")
+            .RequirePermission(AuthorizationCatalog.ShiftManagePermission)
             .DisableAntiforgery();
 
         group.MapDelete(
@@ -98,7 +107,8 @@ public static class ShiftSchedulingEndpoints
                     await service.ClearAsync();
                     return Results.NoContent();
                 })
-            .WithName("ClearShiftSchedules");
+            .WithName("ClearShiftSchedules")
+            .RequirePermission(AuthorizationCatalog.ShiftManagePermission);
 
         group.MapGet(
                 "/calendar",

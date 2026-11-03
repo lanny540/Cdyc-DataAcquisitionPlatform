@@ -1,6 +1,7 @@
 using DAP.Core.Shared.Catalog;
 using DAP.Core.Shared.Contracts;
 using DAP.Presentation.BlazorWeb.Services;
+using DAP.Presentation.BlazorWeb.Security;
 
 namespace DAP.Presentation.BlazorWeb.Endpoints;
 
@@ -15,7 +16,8 @@ public static class AcquisitionServerEndpoints
     public static IEndpointRouteBuilder MapAcquisitionServerEndpoints(this IEndpointRouteBuilder endpoints)
     {
         RouteGroupBuilder group = endpoints.MapGroup("/api/acquisition-servers")
-            .WithTags("AcquisitionServers");
+            .WithTags("AcquisitionServers")
+            .RequirePlatformAdmin();
 
         group.MapGet("/", async (IAcquisitionServerService service, CancellationToken cancellationToken) =>
                 Results.Ok(await service.GetServersAsync(cancellationToken)))
