@@ -177,7 +177,7 @@ code, pre, .platform-inline-code, .platform-timestamp, .platform-monospace {
 }
 
 .platform-brand {
-    flex: 1;
+    flex: 0 1 auto;
     min-width: 0;
 }
 
@@ -210,6 +210,68 @@ code, pre, .platform-inline-code, .platform-timestamp, .platform-monospace {
     font-size: 0.75rem;
 }
 
+/* ===== 顶栏一级导航 =====
+   三个顶级模块（数据指标 / 业务配置 / 平台管理）切换左侧菜单。
+   激活态用 primary 的 soft 底 + 2px 下划线表达，颜色全部取自变量。 */
+.platform-topnav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-inline: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.platform-topnav::-webkit-scrollbar {
+    display: none;
+}
+
+.platform-topnav-item {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+    height: 40px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--platform-text-muted);
+    font-family: inherit;
+    font-size: 0.875rem;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color .15s ease, color .15s ease;
+}
+
+.platform-topnav-item:hover {
+    background: var(--md-primary-tint);
+    color: var(--md-primary-strong);
+}
+
+.platform-topnav-item--active {
+    background: var(--md-primary-soft);
+    color: var(--md-primary-strong);
+    font-weight: 600;
+}
+
+.platform-topnav-item--active::after {
+    content: "";
+    position: absolute;
+    inset: auto 10px 0;
+    height: 2px;
+    border-radius: 2px 2px 0 0;
+    background: var(--md-primary);
+}
+
+.platform-topnav-item .mud-icon-root {
+    color: currentColor;
+}
+
 /* ===== 侧边导航 ===== */
 .platform-drawer {
     border-right: 1px solid var(--platform-border);
@@ -217,13 +279,23 @@ code, pre, .platform-inline-code, .platform-timestamp, .platform-monospace {
 }
 
 .platform-drawer-header {
-    min-height: 48px;
-    padding: 16px 20px 8px;
+    min-height: 44px;
+    padding: 12px 20px 8px;
     color: var(--platform-text-subtle);
 }
 
-.platform-drawer-header .mud-typography {
-    letter-spacing: .08em;
+.platform-drawer-heading {
+    width: 100%;
+}
+
+.platform-drawer-title {
+    color: var(--platform-text);
+    font-weight: 600;
+}
+
+.platform-drawer-subtitle {
+    color: var(--platform-text-subtle);
+    font-size: 0.6875rem;
 }
 
 .platform-nav-shell {
@@ -1137,6 +1209,14 @@ code, pre, .platform-inline-code, .platform-timestamp, .platform-monospace {
     .platform-brand-subtitle {
         display: none;
     }
+
+    .platform-topnav {
+        margin-inline: 4px;
+    }
+
+    .platform-topnav-item {
+        padding-inline: 10px;
+    }
 }
 
 @media (max-width: 599px) {
@@ -1145,17 +1225,23 @@ code, pre, .platform-inline-code, .platform-timestamp, .platform-monospace {
         gap: 4px;
     }
 
-    .platform-brand-avatar {
-        display: none;
-    }
-
-    .platform-brand-title {
-        font-size: 0.875rem;
+    /* 窄屏优先保证三个顶级菜单可点：品牌区与版本号让位，避免第三个模块被挤出视口。
+       品牌区带 MudBlazor 的 d-flex 工具类（display: flex !important），必须用 !important 覆盖。 */
+    .platform-brand {
+        display: none !important;
     }
 
     .platform-version-chip {
-        font-size: 0.625rem;
-        padding-inline: 6px;
+        display: none;
+    }
+
+    .platform-topnav {
+        margin-inline: 0;
+    }
+
+    .platform-topnav-item {
+        padding-inline: 8px;
+        font-size: 0.8125rem;
     }
 
     .platform-page-container {

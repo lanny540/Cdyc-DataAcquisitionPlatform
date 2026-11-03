@@ -79,7 +79,7 @@
 | 对话框 | `Common/PlatformDialogs.cs`（禁止内联声明 `DialogOptions`） |
 | 代码面板 | `platform-code-panel` / `platform-code-heading` / `platform-code-content` |
 | 图表 | `platform-chart-panel` + `platform-chart-frame`（系列色随卡片 accent，见下）|
-| 月历 | `platform-calendar` + `platform-calendar-cell`（MudBlazor 9.11 无独立日历组件） |
+| 月历 | `platform-calendar` + `platform-calendar-cell`（MudBlazor 9.12 无独立日历组件） |
 
 > 类名必须写完整：`platform-stat-card--tinted`、`platform-section-card--tinted`、
 > `platform-panel--tinted`。历史上曾把双连字符前缀截断成 `--tinted`——那不是任何已定义的

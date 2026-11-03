@@ -1,0 +1,173 @@
+@page "/mqtt-test"
+
+<PageTitle>MQTT 测试</PageTitle>
+
+<MudStack Class="platform-page-shell" Spacing="2">
+    <MudPaper Class="platform-page-hero platform-accent-tertiary pa-4" Elevation="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
+                  Spacing="3">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h4" GutterBottom="true">MQTT 测试</MudText>
+                <MudText Typo="Typo.body1">
+                    对 Broker 发起一次连通性探测，记录实际访问目标、返回状态与耗时。
+                </MudText>
+            </MudStack>
+            <MudChip T="string" Variant="Variant.Outlined" Color="Color.Tertiary">网络层探测</MudChip>
+        </MudStack>
+    </MudPaper>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
+    }
+
+    <MudGrid Spacing="3">
+        <MudItem xs="12" lg="5">
+            <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-tertiary pa-4"
+                      Elevation="0">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <span class="platform-section-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.Sensors" Size="Size.Small"/>
+                    </span>
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.h6" Class="platform-card-title">连接参数</MudText>
+                        <MudText Typo="Typo.body2" Class="platform-card-description">
+                            地址需带协议前缀，例如 mqtt://broker.local:1883；省略端口时按 1883 处理。
+                        </MudText>
+                    </MudStack>
+                </MudStack>
+
+                <MudDivider/>
+
+                <MudStack Spacing="3" Class="mt-2">
+                    <MudTextField @bind-Value="_address" Label="Broker 地址" Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" Required="true"
+                                  HelperText="支持 mqtt:// 与 mqtts://，也可直接填写 host:port。"/>
+                    <MudTextField @bind-Value="_clientId" Label="ClientId" Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" HelperText="仅作标识，不影响网络层探测结果。"/>
+                    <MudTextField @bind-Value="_username" Label="用户名" Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" HelperText="可选，凭据不在网络层校验。"/>
+                    <MudTextField @bind-Value="_password" Label="密码" Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" InputType="InputType.Password" HelperText="可选。"
+                                  Immediate="true"/>
+
+                    <MudStack Row="true" Spacing="2">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.PlayArrow"
+                                   OnClick="@(() => TestAsync())" Disabled="_isTesting">
+                            @(_isTesting ? "正在测试..." : "开始测试")
+                        </MudButton>
+                        <MudButton Variant="Variant.Text" Color="Color.Default"
+                                   StartIcon="@Icons.Material.Filled.RestartAlt"
+                                   OnClick="@Reset" Disabled="_isTesting">
+                            重置
+                        </MudButton>
+                    </MudStack>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" lg="7">
+            <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-info pa-4"
+                      Elevation="0">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
+                          Spacing="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <span class="platform-section-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.WifiTethering" Size="Size.Small"/>
+                        </span>
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h6" Class="platform-card-title">测试结果</MudText>
+                            <MudText Typo="Typo.body2" Class="platform-card-description">
+                                每次点击「开始测试」都会覆盖上一次结果。
+                            </MudText>
+                        </MudStack>
+                    </MudStack>
+                    @if (_result is not null)
+                    {
+                        <MudChip T="string" Variant="Variant.Outlined" Color="@ResultColor">
+                            @ResultLabel
+                        </MudChip>
+                    }
+                </MudStack>
+
+                <MudDivider/>
+
+                @if (_result is null)
+                {
+                    <div class="platform-empty-state platform-accent-info">
+                        <span class="platform-empty-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.Sensors" Size="Size.Large"/>
+                        </span>
+                        <MudText Typo="Typo.h6">尚未执行测试</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            填写左侧参数后点击「开始测试」，结果会显示在这里。
+                        </MudText>
+                    </div>
+                }
+                else
+                {
+                    <MudGrid Spacing="2" Class="mt-2">
+                        <MudItem xs="12" sm="6">
+                            <MudPaper Class="platform-stat-card platform-stat-card--tinted platform-accent-info pa-4"
+                                      Elevation="0">
+                                <div class="platform-stat-header">
+                                    <span class="platform-section-icon">
+                                        <MudIcon Icon="@Icons.Material.Filled.Lan" Size="Size.Small"/>
+                                    </span>
+                                    <MudText Typo="Typo.caption">探测方式</MudText>
+                                </div>
+                                <MudText Typo="Typo.h6">@_result.ProbeKind</MudText>
+                                <MudText Typo="Typo.body2" Class="home-stat-supporting">@_result.RequestTarget</MudText>
+                            </MudPaper>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudPaper Class="platform-stat-card platform-stat-card--tinted platform-accent-success pa-4"
+                                      Elevation="0">
+                                <div class="platform-stat-header">
+                                    <span class="platform-section-icon">
+                                        <MudIcon Icon="@Icons.Material.Filled.Speed" Size="Size.Small"/>
+                                    </span>
+                                    <MudText Typo="Typo.caption">耗时</MudText>
+                                </div>
+                                <MudText Typo="Typo.h6">@ElapsedLabel</MudText>
+                                <MudText Typo="Typo.body2" Class="home-stat-supporting">@CheckedAtLabel</MudText>
+                            </MudPaper>
+                        </MudItem>
+                    </MudGrid>
+
+                    <MudAlert Severity="@ResultSeverity" Dense="true" Variant="Variant.Outlined" Class="mt-2">
+                        @_result.StatusMessage
+                    </MudAlert>
+
+                    @if (!string.IsNullOrWhiteSpace(_result.ErrorMessage))
+                    {
+                        <MudText Typo="Typo.body2" Class="mt-2">
+                            @($"失败原因：{_result.ErrorMessage}")
+                        </MudText>
+                    }
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-secondary pa-4"
+              Elevation="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <span class="platform-section-icon">
+                <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small"/>
+            </span>
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h6" Class="platform-card-title">能力边界</MudText>
+                <MudText Typo="Typo.body2" Class="platform-card-description">
+                    当前版本只验证 TCP 层的可达性，用于排除防火墙与端口不通的问题。
+                </MudText>
+            </MudStack>
+        </MudStack>
+
+        <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mt-2">
+            探测成功仅表示端口可以建立连接，不代表 Broker 接受当前用户名与密码；
+            订阅与发布测试需要采集端代理参与，尚未接入本页面。
+        </MudAlert>
+    </MudPaper>
+</MudStack>

@@ -565,8 +565,112 @@ public partial class DesignSystemGuardTests
                text.Contains("platform-accent-", StringComparison.Ordinal);
     }
 
-    // ---------- 辅助方法 ----------
+    /// <summary>
+    /// 三级导航目录中的每个条目都必须指向真实存在的页面。
+    ///
+    /// **为什么强制**：顶栏与左侧菜单共用 NavigationCatalog，新增菜单项时若把路由写错
+    /// （拼写、少写、或被删页面的残留），编译完全通过，只有点到菜单才会 404。
+    /// 这里把「菜单 → @page 路由」的对应关系固化为断言。
+    /// </summary>
+    [Fact]
+    public void Navigation_Links_Should_Point_To_Existing_Pages()
+    {
+        var catalog = ReadRepoFile("DAP.Presentation.BlazorWeb.Client/Layout/NavigationCatalog.cs");
 
+        // 页面路由：去掉 {Id:guid} 之类的模板参数后取前缀，用于与菜单 href 比较。
+        HashSet<string> routes = RazorFiles()
+            .Select(ReadRepoFile)
+            .SelectMany(text => Regex.Matches(text, "@page\\s+\"(?<route>[^\"]+)\"").Select(m => m.Groups["route"].Value))
+            .Select(NormalizeRoute)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        MatchCollection items = Regex.Matches(catalog,
+            "new NavItem\\(\\s*\"(?<title>[^\"]*)\"\\s*,\\s*\"(?<href>[^\"]*)\"");
+        Assert.True(items.Count >= 8, $"导航条目仅解析出 {items.Count} 条，NavigationCatalog 的结构可能已变更");
+
+        var offenders = new List<string>();
+        var seenHrefs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (Match item in items)
+        {
+            var title = item.Groups["title"].Value;
+            var href = item.Groups["href"].Value;
+            var normalized = NormalizeRoute(href);
+
+            if (!routes.Contains(normalized))
+            {
+                offenders.Add($"{title} → {href}：找不到对应的 @page 路由");
+            }
+
+            if (!seenHrefs.Add(normalized))
+            {
+                offenders.Add($"{title} → {href}：同一路由在导航中重复出现");
+            }
+        }
+
+        Assert.True(offenders.Count == 0,
+            "导航条目必须指向存在且唯一的页面：" + Environment.NewLine + string.Join(Environment.NewLine, offenders));
+    }
+
+    /// <summary>
+    /// 顶级模块必须唯一且非空：顶栏按 Id 高亮，Id 重复会让两个模块同时选中。
+    /// </summary>
+    [Fact]
+    public void Navigation_Sections_Should_Have_Unique_Ids_And_Items()
+    {
+        var catalog = ReadRepoFile("DAP.Presentation.BlazorWeb.Client/Layout/NavigationCatalog.cs");
+
+        MatchCollection sections = Regex.Matches(catalog,
+            "new\\(\\s*\\n\\s*(?<ref>\\w+),\\s*\\n\\s*\"(?<title>[^\"]*)\"");
+
+        var ids = new List<string>();
+        var offenders = new List<string>();
+
+        foreach (Match section in sections)
+        {
+            var reference = section.Groups["ref"].Value;
+            var title = section.Groups["title"].Value;
+
+            Match declaration = Regex.Match(catalog,
+                $"public const string {Regex.Escape(reference)}\\s*=\\s*\"(?<id>[^\"]+)\"");
+
+            if (!declaration.Success)
+            {
+                offenders.Add($"{title}：Id 常量 {reference} 未找到");
+                continue;
+            }
+
+            ids.Add(declaration.Groups["id"].Value);
+        }
+
+        Assert.True(ids.Count >= 3, $"仅解析出 {ids.Count} 个顶级模块，导航结构可能已变更");
+        Assert.Equal(ids.Count, ids.Distinct(StringComparer.Ordinal).Count());
+        Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
+    }
+
+    /// <summary>
+    /// 归一化路由：去掉查询串、模板参数与首尾斜杠，根路由归一为空串。
+    /// </summary>
+    private static string NormalizeRoute(string route)
+    {
+        var value = route.Trim();
+
+        var templateIndex = value.IndexOf('{');
+        if (templateIndex >= 0)
+        {
+            value = value[..templateIndex];
+        }
+
+        var queryIndex = value.IndexOfAny(['?', '#']);
+        if (queryIndex >= 0)
+        {
+            value = value[..queryIndex];
+        }
+
+        return value.Trim('/');
+    }
+
+    // ---------- 辅助方法 ----------
     /// <summary>
     /// MudChart 的系列与 X 轴标签必须来自同一个数据源方法。
     ///

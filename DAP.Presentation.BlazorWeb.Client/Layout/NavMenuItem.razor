@@ -1,0 +1,17 @@
+@* 左侧导航中的单个条目。样式类由 NavigationCatalog 中的 Accent 决定，不在此处硬编码。 *@
+<MudNavLink Href="@Item.Href" Match="@Item.Match" Icon="@Item.Icon" Class="@CssClass">
+    @Item.Title
+</MudNavLink>
+
+@code {
+    /// <summary>
+    /// 要渲染的菜单条目。
+    /// </summary>
+    [Parameter, EditorRequired]
+    public NavItem Item { get; set; } = null!;
+
+    /// <summary>
+    /// 在代码后置中拼接样式类：Razor 属性内写复合插值会触发 RZ9986。
+    /// </summary>
+    private string CssClass => $"platform-nav-link {Item.Accent}";
+}

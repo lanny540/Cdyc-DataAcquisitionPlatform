@@ -141,20 +141,22 @@
 
 **一个页面一个主色**，用于页面头部与抽屉；区块/卡片在主色体系内再取细分色。
 
-| 页面 | 主色 |
-|---|---|
-| 平台概览 `/` | primary |
-| 采集点管理 `/collection-points` | info |
-| 后台数据管理 `/managed-data-definitions` | tertiary |
-| 采集服务器配置 `/acquisition-servers` | success |
-| 服务器连接状态 `/server-connection-status` | info |
-| History API 测试 `/history-api-test` | warning |
-| 采集节点详情 `/managed-data-definitions/{id}` | primary |
-| 班组排班管理 `/shift-schedules` | primary |
-| 排班日历 `/shift-calendar` | info |
-| 能耗仪表板 `/energy-dashboard` | success |
-| 班组历史指标 `/energy-history` | tertiary |
-| 班组横向对比 `/energy-comparison` | warning |
+| 页面 | 菜单归属 | 主色 |
+|---|---|---|
+| 平台概览 `/platform-overview` | 平台管理 | primary |
+| 点位配置 `/collection-points` | 平台管理 → 采集配置 | info |
+| 点位数据管理 `/managed-data-definitions` | 平台管理 → 采集配置 | tertiary |
+| 采集服务器配置 `/acquisition-servers` | 未纳入菜单 | success |
+| 服务器状态查询 `/server-connection-status` | 平台管理 | info |
+| History API 测试 `/history-api-test` | 平台管理 → 接口管理 | warning |
+| MQTT 测试 `/mqtt-test` | 平台管理 → 接口管理 | tertiary |
+| 采集节点详情 `/managed-data-definitions/{id}` | 平台管理 → 采集配置 | primary |
+| 排班时间管理 `/shift-schedules` | 业务配置 → 班组管理 | primary |
+| 排班日历 `/shift-calendar` | 业务配置 → 班组管理 | info |
+| 能耗仪表板 `/`（别名 `/energy-dashboard`） | 数据指标 → 能耗指标 | success |
+| 历史指标 `/energy-history` | 数据指标 → 能耗指标 | tertiary |
+| 班组横向对比 `/energy-comparison` | 数据指标 → 能耗指标 | warning |
+| 班组能耗报表 `/energy-report` | 数据指标 → 数据报表 | primary |
 
 新增页面时必须在本表中登记主色。
 
@@ -312,17 +314,45 @@ teams.Select(t => new ChartSeries<double> { Name = t.TeamName, Data = [t.ValueA]
 此外 MudChart 会**等距绘制全部 X 轴标签**，数据点超过 12 个就会挤成黑带，
 必须在 `BuildLabels` 中抽稀（保留标签位、其余置空）。
 
-### 3.7 导航分组
+### 3.7 三级导航（顶栏模块 → 分组 → 页面）
 
-导航已按业务域分为「采集运维 / 班组排班 / 能耗指标」三组，
-组间用 `.platform-nav-section` 标题分隔。
+导航分三层，唯一数据源是 `DAP.Presentation.BlazorWeb.Client/Layout/NavigationCatalog.cs`：
 
-图标取色用显式修饰类（`platform-nav-link--primary` 等），**不要用 `nth-child`**——
-分组后同一父级下有多个 `MudNavMenu`，`nth-child` 不再可靠。
+| 层级 | 交互 | 实现位置 |
+|---|---|---|
+| 顶级模块 | 顶栏三个按钮，点击切换左侧菜单 | `MainLayout.razor` + `.platform-topnav` |
+| 分组 | 左侧菜单的分组标题 | `.platform-nav-section` |
+| 页面 | 左侧菜单条目，跳转路由 | `NavMenu.razor` + `NavMenuItem.razor` |
+
+当前分配：
+
+| 顶级模块 | 分组 | 页面 |
+|---|---|---|
+| 数据指标 | 能耗指标 | 能耗仪表板、历史指标、班组横向对比 |
+| 数据指标 | 数据报表 | 班组能耗报表 |
+| 业务配置 | 班组管理 | 排班时间管理、排班日历 |
+| 平台管理 | （直接条目） | 平台概览、服务器状态查询 |
+| 平台管理 | 采集配置 | 点位配置、点位数据管理 |
+| 平台管理 | 接口管理 | History API 测试、MQTT 测试 |
+
+约束：
+
+- 顶栏与左侧菜单**共用同一份目录**，不得另写一份菜单数组，否则层级会漂移。
+- 顶级模块的 Id 必须唯一；顶栏按 Id 判定激活态，重复会让两个模块同时高亮。
+- 路由变化时按「最长前缀」反查所属模块（`/managed-data-definitions/{id}` 归到该列表页），
+  保证刷新页面或直接输入地址后顶栏高亮与内容一致。
+- 切换模块时若当前页面不属于该模块，跳转到该模块的首个页面，避免菜单与内容错位。
+- **根路由 `/` 属于「数据指标」的能耗仪表板**（`@page "/"`，另保留 `/energy-dashboard` 别名），
+  平台概览在 `/platform-overview`；`NavigationCatalog.DefaultSection` 为「数据指标」，
+  启动与未知路由都默认选中它。调整首页指向时这三处要一起改。
+- 图标取色用显式修饰类（`platform-nav-link--primary` 等），**不要用 `nth-child`**——
+  分组后同一父级下有多个 `MudNavMenu`，`nth-child` 不再可靠。
+- 新增菜单项只需在目录中登记，守卫测试 `Navigation_Links_Should_Point_To_Existing_Pages`
+  会校验每个 href 都有对应的 `@page` 路由，写错路由会直接失败。
 
 ### 3.8 月历网格
 
-MudBlazor 9.11 **未提供** `MudCalendar` 组件（只有 `MudDatePicker` 内嵌的日历），
+MudBlazor 9.12 **未提供** `MudCalendar` 组件（只有 `MudDatePicker` 内嵌的日历），
 月历需用 `platform-calendar` + `platform-calendar-cell` 自建 7 列网格。
 
 - 周一为每周首日，`.NET` 的 `DayOfWeek` 以周日为 0，需做偏移换算

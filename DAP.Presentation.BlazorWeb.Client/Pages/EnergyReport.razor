@@ -1,0 +1,215 @@
+@page "/energy-report"
+
+<PageTitle>班组能耗报表</PageTitle>
+
+<MudStack Class="platform-page-shell" Spacing="2">
+    <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
+                  Spacing="3">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h4" GutterBottom="true">班组能耗报表</MudText>
+                <MudText Typo="Typo.body1">
+                    按日期区间汇总各班组的四项指标消耗，上方为班组汇总，下方为逐条明细。
+                </MudText>
+                @if (_rangeLabel is not null)
+                {
+                    <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mt-2">
+                        <MudChip T="string" Variant="Variant.Outlined" Color="Color.Primary">
+                            @_rangeLabel
+                        </MudChip>
+                        <MudChip T="string" Variant="Variant.Outlined" Color="Color.Info">
+                            @GranularityLabel(_granularity)
+                        </MudChip>
+                        <MudChip T="string" Variant="Variant.Outlined" Color="Color.Tertiary">
+                            @($"{_teamRows.Length} 个班组")
+                        </MudChip>
+                    </MudStack>
+                }
+            </MudStack>
+            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
+                <MudDatePicker Label="起始日期" Date="@_fromDate"
+                               DateChanged="@(value => OnFromDateChanged(value))"
+                               DateFormat="yyyy-MM-dd"
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               Style="min-width: 160px;"/>
+                <MudDatePicker Label="结束日期" Date="@_toDate"
+                               DateChanged="@(value => OnToDateChanged(value))"
+                               DateFormat="yyyy-MM-dd"
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               Style="min-width: 160px;"/>
+                <MudSelect T="string" Label="统计口径" Value="_granularity"
+                           ValueChanged="@(value => OnGranularityChangedAsync(value))"
+                           Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense"
+                           Style="min-width: 130px;">
+                    <MudSelectItem T="string" Value="@GranularityDay">按日</MudSelectItem>
+                    <MudSelectItem T="string" Value="@GranularityWeek">按周</MudSelectItem>
+                    <MudSelectItem T="string" Value="@GranularityMonth">按月</MudSelectItem>
+                </MudSelect>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Refresh"
+                           OnClick="@(() => LoadAsync())" Disabled="_isLoading">
+                    生成报表
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
+    }
+
+    @if (_isLoading)
+    {
+        <MudPaper Class="platform-panel pa-10" Elevation="0">
+            <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+                <MudText Typo="Typo.body1">正在汇总能耗数据...</MudText>
+            </MudStack>
+        </MudPaper>
+    }
+    else if (_teamRows.Length == 0)
+    {
+        <MudPaper Class="platform-panel" Elevation="0">
+            <div class="platform-empty-state platform-accent-primary">
+                <span class="platform-empty-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.Assessment" Size="Size.Large"/>
+                </span>
+                <MudText Typo="Typo.h6">暂无报表明细</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    当前区间内没有可汇总的班组能耗数据，请调整日期范围后重试。
+                </MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-2"
+                           OnClick="@(() => LoadAsync())">
+                    重新生成
+                </MudButton>
+            </div>
+        </MudPaper>
+    }
+    else
+    {
+        <MudGrid Spacing="3">
+            @for (var i = 0; i < SummaryCards.Length; i++)
+            {
+                var card = SummaryCards[i];
+                var cardIndex = i;
+
+                <MudItem xs="12" sm="6" lg="3">
+                    <MudPaper
+                        Class="@($"platform-stat-card platform-stat-card--tinted {MetricAccents[cardIndex]} pa-4")"
+                        Elevation="0">
+                        <div class="platform-stat-header">
+                            <span class="platform-section-icon">
+                                <MudIcon Icon="@SummaryIcons[cardIndex]" Size="Size.Small"/>
+                            </span>
+                            <MudText Typo="Typo.caption">@card.Title</MudText>
+                        </div>
+                        <MudText Typo="Typo.h5">@card.Value</MudText>
+                        <MudText Typo="Typo.body2" Class="home-stat-supporting">@card.Supporting</MudText>
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-primary pa-4"
+                  Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <span class="platform-section-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.Assessment" Size="Size.Small"/>
+                </span>
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.h6" Class="platform-card-title">班组汇总</MudText>
+                    <MudText Typo="Typo.body2" Class="platform-card-description">
+                        @BuildSummarySubtitle()
+                    </MudText>
+                </MudStack>
+            </MudStack>
+
+            <MudDivider/>
+
+            <MudTable Items="_teamRows" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm"
+                      Class="platform-data-table">
+                <HeaderContent>
+                    <MudTh>班组</MudTh>
+                    @foreach (var metric in _metrics)
+                    {
+                        <MudTh>@($"{metric.MetricName}（{metric.Unit}）")</MudTh>
+                    }
+                    <MudTh>统计周期</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="班组">
+                        <MudText Typo="Typo.body2" Class="platform-table-primary">@context.TeamName</MudText>
+                    </MudTd>
+                    @for (var i = 0; i < context.Values.Length; i++)
+                    {
+                        <MudTd DataLabel="指标">
+                            <MudText Typo="Typo.body2">@FormatNullable(context.Values[i])</MudText>
+                        </MudTd>
+                    }
+                    <MudTd DataLabel="统计周期">
+                        <MudText Typo="Typo.body2">@($"{context.Periods} 个周期")</MudText>
+                    </MudTd>
+                </RowTemplate>
+                <FooterContent>
+                    <MudTd>合计</MudTd>
+                    @foreach (var total in _metricTotals)
+                    {
+                        <MudTd DataLabel="合计">
+                            <MudText Typo="Typo.body2" Class="platform-table-primary">@FormatValue(total)</MudText>
+                        </MudTd>
+                    }
+                    <MudTd>--</MudTd>
+                </FooterContent>
+            </MudTable>
+        </MudPaper>
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-info pa-4" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
+                      Spacing="2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <span class="platform-section-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.TableRows" Size="Size.Small"/>
+                    </span>
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.h6" Class="platform-card-title">明细记录</MudText>
+                        <MudText Typo="Typo.body2" Class="platform-card-description">
+                            @($"{_detailRows.Length} 条记录，与上方汇总同源。")
+                        </MudText>
+                    </MudStack>
+                </MudStack>
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Href="/energy-history"
+                           StartIcon="@Icons.Material.Filled.Timeline">
+                    查看单班组趋势
+                </MudButton>
+            </MudStack>
+
+            <MudDivider/>
+
+            <MudTable Items="_detailRows" Dense="true" Hover="true" RowsPerPage="15" Breakpoint="Breakpoint.Sm"
+                      Class="platform-data-table">
+                <HeaderContent>
+                    <MudTh>班组</MudTh>
+                    <MudTh>统计周期</MudTh>
+                    <MudTh>指标</MudTh>
+                    <MudTh>数值</MudTh>
+                    <MudTh>单位</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="班组">@context.TeamName</MudTd>
+                    <MudTd DataLabel="统计周期">
+                        <MudText Typo="Typo.body2" Class="platform-timestamp">@context.PeriodLabel</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="指标">@context.MetricName</MudTd>
+                    <MudTd DataLabel="数值">
+                        <MudText Typo="Typo.body2" Class="platform-table-primary">@FormatValue(context.Value)</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="单位">@context.Unit</MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="@(new[] {15, 30, 50})" RowsPerPageString="每页条数"/>
+                </PagerContent>
+            </MudTable>
+        </MudPaper>
+    }
+</MudStack>
