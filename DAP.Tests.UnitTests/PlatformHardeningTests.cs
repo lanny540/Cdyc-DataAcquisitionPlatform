@@ -1,5 +1,8 @@
+using DAP.Core.Shared.Catalog;
+using DAP.Core.Shared.Contracts;
 using DAP.Presentation.BlazorWeb.Security;
 using DAP.Presentation.BlazorWeb.Services;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 
 namespace DAP.Tests.UnitTests;
@@ -18,6 +21,8 @@ public class PlatformHardeningTests
     [InlineData("/api/auth/change-password", "POST")]
     [InlineData("/api/admin/users", "PUT")]
     [InlineData("/api/shift-schedules/import", "POST")]
+    [InlineData("/api/collection-points", "POST")]
+    [InlineData("/api/collection-data/ingest", "POST")]
     public void Same_Origin_Guard_Should_Cover_Unsafe_Auth_Requests(string path, string method)
     {
         DefaultHttpContext context = new();
@@ -30,7 +35,7 @@ public class PlatformHardeningTests
     [Theory]
     [InlineData("/api/auth/oidc/corp/callback", "POST")] // IdP 用 form_post 跨站回跳
     [InlineData("/api/auth/me", "GET")]
-    [InlineData("/api/dashboard", "POST")]
+    [InlineData("/_blazor/negotiate", "POST")] // SignalR 不在 /api 下，也不该被拦
     public void Same_Origin_Guard_Should_Exempt_These_Requests(string path, string method)
     {
         DefaultHttpContext context = new();
@@ -68,6 +73,66 @@ public class PlatformHardeningTests
 
         context.Request.Headers.Referer = "http://evil.example.com/x";
         Assert.False(PlatformSameOriginGuard.IsSameOrigin(context.Request));
+    }
+
+    [Fact]
+    public void Board_Terminal_Principal_Should_Carry_Board_Claim_Without_Privileges()
+    {
+        // 车间只读会话在 WASM 端也必须是「已认证」：否则免登录看板在
+        // WASM 缓存命中后会被路由守卫踢回登录页（Id 为 Guid.Empty，不对应任何员工）。
+        AuthUserDto board = new(
+            Guid.Empty,
+            "车间只读终端",
+            "车间只读终端",
+            null,
+            [],
+            [AuthorizationCatalog.BanknotePaperDomain],
+            AuthorizationCatalog.ViewAccessLevel,
+            [],
+            false,
+            false,
+            true);
+
+        var principal = PlatformClaimsFactory.CreatePrincipal(board, DateTimeOffset.UtcNow);
+
+        Assert.True(PlatformClaimsFactory.IsBoardTerminal(principal));
+        Assert.False(PlatformClaimsFactory.IsSuperAdmin(principal));
+        Assert.Equal(AuthorizationCatalog.ViewAccessLevel, PlatformClaimsFactory.ReadPageLevel(principal));
+        Assert.True(PlatformClaimsFactory.CanAccessDomain(principal, AuthorizationCatalog.BanknotePaperDomain));
+        Assert.False(PlatformClaimsFactory.HasPermission(principal, AuthorizationCatalog.UserManagePermission));
+    }
+
+    [Fact]
+    public void Secret_Protector_Should_Round_Trip_And_Tolerate_Legacy_Plaintext()
+    {
+        var protector = new PlatformSecretProtector(new EphemeralDataProtectionProvider());
+
+        var cipher = protector.Protect("Pa55word");
+
+        Assert.True(PlatformSecretProtector.IsProtected(cipher));
+        Assert.NotEqual("Pa55word", cipher);
+        Assert.Equal("Pa55word", protector.Unprotect(cipher));
+
+        // 幂等：掩码分支会把库里的密文原样带回，再加密一次不能套两层。
+        Assert.Equal(cipher, protector.Protect(cipher));
+
+        // 历史数据是明文：没有前缀就按原值使用，不需要迁移。
+        Assert.Equal("legacy-plain", protector.Unprotect("legacy-plain"));
+
+        Assert.Equal(string.Empty, protector.Protect(null));
+        Assert.Equal(string.Empty, protector.Unprotect(null));
+    }
+
+    [Fact]
+    public void Secret_Protector_Should_Degrade_Instead_Of_Throwing_On_Foreign_Key()
+    {
+        var writer = new PlatformSecretProtector(new EphemeralDataProtectionProvider());
+        var reader = new PlatformSecretProtector(new EphemeralDataProtectionProvider());
+
+        var cipher = writer.Protect("Pa55word");
+
+        // 换了密钥环：解不开就当作「未配置密码」，而不是把密文当密码发给上游。
+        Assert.Equal(string.Empty, reader.Unprotect(cipher));
     }
 
     [Fact]

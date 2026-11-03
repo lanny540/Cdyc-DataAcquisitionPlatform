@@ -675,7 +675,7 @@ directory_sync_issues  （独立待办表，只按 external_code 与部门表比
 | `/api/auth/*` | 匿名 | — |
 | `/api/dashboard` | `Domain:banknote-paper` | — |
 | `/api/energy-metrics` | `Domain:banknote-paper` | — |
-| `/api/collection-data` | `Domain:banknote-paper` | — |
+| `/api/collection-data` | `Domain:banknote-paper` | `action.system.manage`（仅 `/ingest`） |
 | `/api/shift-schedules` | `Domain:banknote-paper` + `Access:Configure` | `Domain:banknote-paper` + `action.shift.manage` |
 | `/api/acquisition-servers` | `PlatformAdmin` | `PlatformAdmin` |
 | `/api/collection-points` | `PlatformAdmin` | `PlatformAdmin` |
@@ -683,7 +683,7 @@ directory_sync_issues  （独立待办表，只按 external_code 与部门表比
 | `/api/history-api` | `PlatformAdmin` | `PlatformAdmin` |
 | `/api/connection-diagnostics` | `PlatformAdmin` | `PlatformAdmin` |
 | `/api/audit-logs` | `PlatformAdmin` | 不提供写端点 |
-| `/api/admin/directory` | `action.user.manage` | 同左（手工触发同步、标记待处理已处理） |
+| `/api/admin/directory` | `action.system.manage` | 同左（手工触发同步、标记待处理已处理） |
 | `/api/admin/*` | `action.domain.manage` 或 `action.department.manage` 或 `action.user.manage` | 同左 |
 
 三点说明：
@@ -892,6 +892,50 @@ P0–P4 做完之后做了一轮针对性审计，下面每条都是**核实过�
 | 同站 POST / 无 Origin 客户端 | 正常通过 |
 | 连续 25 次登录 | 前 18 次（含窗口内已用 2 次）正常，其后 429 |
 | 重启 3 次后密钥目录 | 只有 1 个 key 文件，未重新生成 |
+
+### 13.6 第二轮全量审读（2026-11-03 夜）
+
+这一轮不是查认证，而是通读全部后端代码后找**逻辑层面**的缺口。最重要的一条只有跑起来才会暴露：
+定时采集看起来「在工作」（日志有周期、上游有请求），实际上**一条数据都没入库**。
+
+| 编号 | 缺口 | 后果 | 处理 |
+|---|---|---|---|
+| **D1** | 采集执行通过 `UpsertCollectionPointAsync` 写采集点状态，而这条路径带 `action.system.manage` 权限守卫 | 后台调度器没有操作者 → 每次采集在写库前抛 `ForbiddenAccessException`，**数据永不入库**；同时每 5 秒给审计表写一批失败记录（12 个节点 ≈ 每分钟 144 条）。实测确认：修复前采集记录停在两周前，修复后 12 秒内入库 11 条 | 抽出 `CollectionPointStateSynchronizer`：采集点状态属于**数据面**，用仓储直写、不做权限判定；配置修改仍只走带守卫的入口。调度器与执行服务共用同一实现 |
+| D2 | `/api/auth/me` 对没有 `UserId` 的车间只读会话返回 401 | WASM 端据此判为匿名并跳登录页 → 免登录看板在「第二次访问（WASM 缓存命中）」时整页失效，第一次却是好的，极难复现 | `AuthUserDto` 增加 `IsBoardTerminal`；`/me` 对只读会话返回合成身份（`Id = Guid.Empty`，钞纸域 + 等级 1）；WASM 主体补 `board` claim，顶栏仍显示「车间终端 · 只读」且不出现登出 |
+| D3 | `/api/collection-data/ingest` 只要求钞纸域 | 任何普通查看者、包括车间只读终端，都能写入任意测量值；这些值直接进报表与能耗计算 | 加 `action.system.manage`。机器采集端接入需要独立凭据（API Key），不能复用人员权限——这是下一步而不是当前 |
+| D4 | `/api/admin/directory` 用 `action.user.manage` | 部门管理员持有该权限点，可触发**全平台**目录同步（跨部门建号、停用、改归属），远超「只管本部门」 | 改 `action.system.manage`（仅超管）。界面本来也只在超管时显示该区块，属「界面挡住、接口没挡」 |
+| D5 | 登录在**校验密码之前**就返回「账号已停用」/「是域账号但目录未启用」 | 未认证者可拿任意密码当探针，枚举账号与状态 | 改为先验凭据再判状态；无本地密码且未启用目录时统一返回通用文案并补跑占位哈希 |
+| D6 | OIDC 并发首登（双标签页 / 双击）撞唯一索引 | `DbUpdateException` 冒到顶层 → 用户看到「统一登录失败」，重试又正常 | 捕获后摘掉 Added 实体、按 `sub` 重查并返回既有账号（与 LDAP 侧一致） |
+| D7 | IdP 元数据不可达时 `Results.Challenge` 在管道末端抛异常 | 现场看到 500 错误页，与「IdP 没开」这个真实原因完全对不上 | 改为显式 `ChallengeAsync` + try/catch，中文提示回登录页；OIDC 的 correlation/nonce Cookie 也跟随会话 Cookie 的 Secure 策略 |
+| D8 | 采集服务器凭据明文存 `configuration_json` | 能读库的人（备份、只读账号、DBA）可直接拿到 Historian/Modbus 密码；界面上的 `********` 只挡住了界面 | 新增 `PlatformSecretProtector`：复用数据保护密钥环加密凭据字段，带 `dp:v1:` 前缀；无前缀的历史明文原样可用（无需迁移），解不开时退化为「未配置」而不是把密文当密码发出去 |
+| D9 | 采集调度的 `IsDue` 基于「最新记录」，多实例同时成立 | 两台实例同一时刻各采一份，重复入库 | 每轮用咨询锁包住，抢不到锁的实例跳过本轮 |
+| D10 | 同源校验只登记了三个路径前缀 | 新加写端点只要忘了补名单，这道防线静默失效且不报错 | 改为「所有非只读的 `/api` 请求」，只显式豁免 OIDC 回调 |
+| D11 | 限流对表单提交也回 JSON | 登录页被限流时用户看到一坨 `{"message":...}` | 表单提交改 303 跳回 `/login?error=` 或 `/change-password?error=`，JSON 客户端仍收 429 |
+| D12 | `GET /api/collection-data?limit=` 无上限 | `limit=99999999` 等于一次拉全表 | 夹到 1–500；客户端上报批量上限 2000 |
+| D13 | 请求 DTO 的非必填字符串直接 `.Trim()` | JSON 缺字段时是 `null` → `NullReferenceException` → 500 而不是中文校验提示 | 后台数据、采集点、采集服务器三处统一空值归一 |
+| D14 | 采集点停用后 `communication_status` 仍写「离线」 | 仪表板把「人工关闭」算成「故障」 | 停用时固定写「停用」 |
+| D15 | History 的 OAuth 失败把上游响应体拼进异常消息 | 消息直接展示在「History API 测试」页，可能带上游内部信息 | 响应体只进日志，界面只给状态码 |
+
+**实测记录**：
+
+| 场景 | 结果 |
+|---|---|
+| 定时采集（Mock 上游） | 修复前：11 个节点全部失败、记录停在两周前、审计 7 条失败；修复后：12 秒内入库 11 条、采集点转「在线」、审计零失败 |
+| 车间只读终端 | `/` 200 并签发 Cookie；`/api/auth/me` 返回 `isBoardTerminal: true`；`ingest` 与管理接口 403；浏览器二次加载（WASM 已加载）仍停在本页，顶栏显示「车间终端 · 只读」 |
+| 部门管理员 | 本部门用户列表 200；`/api/admin/directory` 与 `/api/audit-logs` 均 403 |
+| 账号枚举 | 停用账号 + 错误密码 → 通用文案；停用账号 + 正确密码 → 「该账号已停用」；不存在账号 → 通用文案 |
+| IdP 不可达 | 挑战端点 302 回 `/login?error=统一登录服务暂时不可用…`，不再是 500 |
+| 同源校验（新端点） | 跨站 POST `/api/collection-points`、`/api/collection-data/ingest` 均 403；同源 200 |
+| 限流 | 第 19 次起表单提交 303 回登录页，JSON 客户端 429 |
+| 凭据加密 | 保存后库里为 `dp:v1:…`；再次保存（掩码）仍只有一层前缀；History 调用能正常解密（报错从「未配置 ClientSecret」变为上游 502） |
+
+**这一节没有改的**（明确记录，避免下次重复讨论）：
+
+- 登录失败不落 `audit_logs`。原因是审计保留 180 天，而限流上限是 20 次/分钟/IP，
+  一个针对真实账号的爆破即可在保留期内写入数百万行——用审计表抗拒绝服务是反向的。
+  登录失败已进应用日志；若合规要求必须入库，应先做「同一账号失败聚合」而不是逐条写。
+- 采集服务器的凭据加密依赖数据保护密钥环。密钥环丢失等于凭据不可用（与 Cookie 全员失效同一前提），
+  部署时必须与数据库一起备份 `Auth:DataProtection:KeyPath` 指向的目录。
 
 ### 13.1 与印钞 / 能源排期的关系
 

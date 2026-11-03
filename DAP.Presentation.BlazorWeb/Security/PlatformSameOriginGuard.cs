@@ -15,11 +15,6 @@ namespace DAP.Presentation.BlazorWeb.Security;
 public static class PlatformSameOriginGuard
 {
     /// <summary>
-    /// 需要同源校验的路径前缀。
-    /// </summary>
-    private static readonly string[] ProtectedPrefixes = ["/api/auth", "/api/admin", "/api/shift-schedules"];
-
-    /// <summary>
     /// 豁免的路径：OIDC 回调是 IdP 用 form_post 跨站 POST 回来的，来源天然是外站。
     /// </summary>
     private static readonly string[] ExemptPrefixes = ["/api/auth/oidc/"];
@@ -46,15 +41,17 @@ public static class PlatformSameOriginGuard
             }
 
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
-
-            // 受保护的路径目前都在 /api 下，直接回 JSON；将来若能放宽到页面表单，
-            // 这里再加「非 /api 路径跳回登录页」的分支。
             await context.Response.WriteAsJsonAsync(new {message = "请求来源与本站不一致，已拒绝执行。"});
         });
     }
 
     /// <summary>
     /// 判断某个请求是否需要做同源校验。
+    ///
+    /// 覆盖范围是「**所有**非只读的 /api 请求」，而不是逐个登记前缀：
+    /// 用白名单时，新加一个写端点只要忘了往名单里补一行，这道防线就静默失效，
+    /// 而且没有任何报错。只读方法（GET/HEAD/OPTIONS）不校验——它们本就不改状态，
+    /// 也不该被跨站图片/预取之类误伤。
     /// </summary>
     /// <param name="request">HTTP 请求。</param>
     /// <returns>需要校验时 true。</returns>
@@ -74,7 +71,7 @@ public static class PlatformSameOriginGuard
             return false;
         }
 
-        return ProtectedPrefixes.Any(prefix => path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
+        return path.StartsWith("/api", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

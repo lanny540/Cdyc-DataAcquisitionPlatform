@@ -31,6 +31,7 @@ public sealed class ManagedDataExecutionService(
     IManagedDataDefinitionRepository managedDataDefinitionRepository,
     IHistoryApiProxyService historyApiProxyService,
     IDataAcquisitionPlatformService platformService,
+    CollectionPointStateSynchronizer collectionPoints,
     IAcquisitionServerConnectionResolver serverConnectionResolver,
     ILogger<ManagedDataExecutionService> logger) : IManagedDataExecutionService
 {
@@ -170,15 +171,17 @@ public sealed class ManagedDataExecutionService(
 
         if (persistRecord)
         {
-            await platformService.UpsertCollectionPointAsync(
-                new CollectionPointUpsertRequest(
-                    null,
-                    definition.Code,
-                    definition.Name,
-                    definition.AcquisitionType,
-                    definition.ConnectionAddress,
-                    definition.IsEnabled,
-                    "Server"),
+            // 采集点状态属于数据面：后台调度器没有操作者，不能走需要配置权限点的
+            // UpsertCollectionPointAsync（那条路径会被 ServiceAuditGuard 拒绝）。
+            await collectionPoints.SyncAsync(
+                definition.Code,
+                definition.Name,
+                definition.AcquisitionType,
+                definition.ConnectionAddress,
+                definition.IsEnabled,
+                "在线",
+                null,
+                DateTimeOffset.UtcNow,
                 cancellationToken);
 
             savedRecord = await platformService.IngestCollectionDataAsync(

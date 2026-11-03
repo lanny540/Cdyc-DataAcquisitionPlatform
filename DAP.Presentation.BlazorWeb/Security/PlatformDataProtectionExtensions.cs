@@ -69,6 +69,9 @@ public static class PlatformDataProtectionExtensions
 
         services.AddSingleton(new DataProtectionKeyLocation(directoryPath));
 
+        // 采集服务器凭据（ClientSecret 等）复用同一把密钥加密后落库。
+        services.AddSingleton<PlatformSecretProtector>();
+
         return services;
     }
 }

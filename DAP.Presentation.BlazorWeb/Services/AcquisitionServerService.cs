@@ -71,6 +71,7 @@ public interface IAcquisitionServerService
 public sealed class AcquisitionServerService(
     DataAcquisitionPlatformDbContext dbContext,
     IAcquisitionServerProbeService probeService,
+    Security.PlatformSecretProtector secretProtector,
     ILogger<AcquisitionServerService> logger) : IAcquisitionServerService
 {
     /// <summary>密钥字段回显时使用的掩码。</summary>
@@ -114,7 +115,9 @@ public sealed class AcquisitionServerService(
         AcquisitionServerUpsertRequest request,
         CancellationToken cancellationToken = default)
     {
-        var serverType = request.ServerType.Trim();
+        // JSON 请求里缺失的字符串字段是 null，直接 Trim 会在校验前抛 NullReferenceException。
+        var serverType = (request.ServerType ?? string.Empty).Trim();
+        var description = (request.Description ?? string.Empty).Trim();
         AcquisitionServerTypeDescriptor descriptor =
             AcquisitionServerCatalog.Find(serverType) ??
             throw new InvalidOperationException($"不支持的采集服务器类型：{serverType}。");
@@ -156,6 +159,13 @@ public sealed class AcquisitionServerService(
             throw new InvalidOperationException(string.Join(" ", errors));
         }
 
+        // 校验用明文（上游要求真实密码），落库前统一加密。
+        // 掩码分支取回的已是密文，Protect 对已加密值幂等，不会套两层。
+        foreach (var secretKey in configuration.Keys.Where(key => IsSecretKey(serverType, key)).ToArray())
+        {
+            configuration[secretKey] = secretProtector.Protect(configuration[secretKey]);
+        }
+
         DateTimeOffset now = DateTimeOffset.UtcNow;
         var displayName = string.IsNullOrWhiteSpace(request.DisplayName)
             ? $"{descriptor.DisplayName} {address}"
@@ -171,7 +181,7 @@ public sealed class AcquisitionServerService(
                 DisplayName = displayName,
                 AcquisitionType = serverType,
                 Address = address,
-                Description = request.Description.Trim(),
+                Description = description,
                 ConfigurationJson = configurationJson,
                 IsEnabled = request.IsEnabled,
                 LastProbeStatus = "未测试",
@@ -186,7 +196,7 @@ public sealed class AcquisitionServerService(
             existing.DisplayName = displayName;
             existing.AcquisitionType = serverType;
             existing.Address = address;
-            existing.Description = request.Description.Trim();
+            existing.Description = description;
             existing.ConfigurationJson = configurationJson;
             existing.IsEnabled = request.IsEnabled;
             existing.UpdatedAt = now;
@@ -237,7 +247,7 @@ public sealed class AcquisitionServerService(
         IReadOnlyDictionary<string, string>? nodeConfiguration = null,
         CancellationToken cancellationToken = default)
     {
-        var serverType = request.ServerType.Trim();
+        var serverType = (request.ServerType ?? string.Empty).Trim();
         var address = AcquisitionServerCatalog.NormalizeAddress(request.Address);
         Dictionary<string, string> configuration =
             AcquisitionServerCatalog.MergeWithDefaults(serverType, request.Configuration);
@@ -262,21 +272,14 @@ public sealed class AcquisitionServerService(
                 Dictionary<string, string> storedConfiguration = ParseConfiguration(stored.ConfigurationJson);
                 configuration = AcquisitionServerCatalog.MergeWithDefaults(serverType, storedConfiguration);
 
+                // 顺序很重要：先铺库里的值（含密文），再用本次输入覆盖。
+                // 反过来写会让「改了密码再点测试」仍然测旧密码——用户看到测试失败，
+                // 以为新密码错了，实际上根本没被用上。
                 foreach (KeyValuePair<string, string> item in request.Configuration ??
                                                               new Dictionary<string, string>(StringComparer
                                                                   .OrdinalIgnoreCase))
                 {
-                    // 掩码占位不覆盖库中真实密钥；其余提交值以本次输入为准。
-                    if (string.Equals(item.Value, SecretMask, StringComparison.Ordinal))
-                    {
-                        continue;
-                    }
-
-                    configuration[item.Key] = item.Value;
-                }
-
-                foreach (KeyValuePair<string, string> item in storedConfiguration)
-                {
+                    // 掩码占位表示「保持原值」，不能覆盖库中真实密钥。
                     if (string.Equals(item.Value, SecretMask, StringComparison.Ordinal))
                     {
                         continue;
@@ -285,6 +288,12 @@ public sealed class AcquisitionServerService(
                     configuration[item.Key] = item.Value;
                 }
             }
+        }
+
+        // 探针要拿真实密码去连上游，密文必须先还原；请求里新填的值本就是明文，Unprotect 原样返回。
+        foreach (var secretKey in configuration.Keys.Where(key => IsSecretKey(serverType, key)).ToArray())
+        {
+            configuration[secretKey] = secretProtector.Unprotect(configuration[secretKey]);
         }
 
         AcquisitionServerProbeResultDto result = await probeService.ProbeAsync(

@@ -1,9 +1,6 @@
 using System.Collections.Concurrent;
-using DAP.Core.Domain.Entities;
 using DAP.Core.Domain.Services;
 using DAP.Core.Shared.Contracts;
-using DAP.Infrastructure.DataAccess.Persistence;
-using DAP.Infrastructure.DataAccess.Repositories;
 using Microsoft.Extensions.Options;
 
 namespace DAP.Presentation.BlazorWeb.Services;
@@ -13,6 +10,7 @@ namespace DAP.Presentation.BlazorWeb.Services;
 /// </summary>
 public sealed class ManagedDataCollectionScheduler(
     IServiceScopeFactory serviceScopeFactory,
+    PlatformAdvisoryLock advisoryLock,
     IOptions<ManagedDataSchedulerOptions> options,
     ILogger<ManagedDataCollectionScheduler> logger) : BackgroundService
 {
@@ -61,15 +59,25 @@ public sealed class ManagedDataCollectionScheduler(
 
     private async Task RunDispatchCycleAsync(CancellationToken cancellationToken)
     {
+        // 两台实例同分钟各跑一轮时，IsDue 会基于同一条「最新记录」同时成立，
+        // 结果是同一时刻采两份数据入库。用会话级咨询锁保证每轮只有一个执行者；
+        // 抢不到锁的实例直接跳过本轮，下一个周期再来。
+        await using IAsyncDisposable? lockHandle =
+            await advisoryLock.TryAcquireAsync("managed-data-collection", cancellationToken);
+
+        if (lockHandle is null)
+        {
+            logger.LogDebug("后台数据自动采集：另一实例正在执行本轮，跳过。");
+            return;
+        }
+
         await using AsyncServiceScope scope = serviceScopeFactory.CreateAsyncScope();
         var platformService =
             scope.ServiceProvider.GetRequiredService<IDataAcquisitionPlatformService>();
         var executionService =
             scope.ServiceProvider.GetRequiredService<IManagedDataExecutionService>();
-        var collectionPointRepository =
-            scope.ServiceProvider.GetRequiredService<ICollectionPointRepository>();
-        var dbContext =
-            scope.ServiceProvider.GetRequiredService<DataAcquisitionPlatformDbContext>();
+        var collectionPoints =
+            scope.ServiceProvider.GetRequiredService<CollectionPointStateSynchronizer>();
 
         IReadOnlyCollection<ManagedDataDefinitionDto> definitions =
             await platformService.GetManagedDataDefinitionsAsync(cancellationToken);
@@ -84,8 +92,7 @@ public sealed class ManagedDataCollectionScheduler(
             await CollectDefinitionAsync(
                 definition,
                 executionService,
-                collectionPointRepository,
-                dbContext,
+                collectionPoints,
                 cancellationToken);
         }
     }
@@ -113,8 +120,7 @@ public sealed class ManagedDataCollectionScheduler(
     private async Task CollectDefinitionAsync(
         ManagedDataDefinitionDto definition,
         IManagedDataExecutionService executionService,
-        ICollectionPointRepository collectionPointRepository,
-        DataAcquisitionPlatformDbContext dbContext,
+        CollectionPointStateSynchronizer collectionPoints,
         CancellationToken cancellationToken)
     {
         _lastAttemptTimes[definition.Id] = DateTimeOffset.UtcNow;
@@ -127,11 +133,15 @@ public sealed class ManagedDataCollectionScheduler(
         ManagedDataExecutionResultDto result =
             await executionService.CollectAsync(definition.Id, cancellationToken);
 
-        await SyncCollectionPointStateAsync(
-            definition,
-            result,
-            collectionPointRepository,
-            dbContext,
+        await collectionPoints.SyncAsync(
+            definition.Code,
+            definition.Name,
+            definition.AcquisitionType,
+            definition.ConnectionAddress,
+            definition.IsEnabled,
+            result.Success ? "在线" : "离线",
+            result.Success ? null : result.ErrorMessage ?? result.StatusMessage,
+            result.ExecutedAt,
             cancellationToken);
 
         LogCollectionResult(definition, result);
@@ -167,45 +177,6 @@ public sealed class ManagedDataCollectionScheduler(
 
         return DateTimeOffset.UtcNow - referenceTime >=
                TimeSpan.FromSeconds(Math.Max(1, definition.CollectionIntervalSeconds));
-    }
-
-    private static async Task SyncCollectionPointStateAsync(
-        ManagedDataDefinitionDto definition,
-        ManagedDataExecutionResultDto result,
-        ICollectionPointRepository collectionPointRepository,
-        DataAcquisitionPlatformDbContext dbContext,
-        CancellationToken cancellationToken)
-    {
-        CollectionPoint? collectionPoint =
-            await collectionPointRepository.GetByCodeAsync(definition.Code, cancellationToken);
-
-        if (collectionPoint is null)
-        {
-            collectionPoint = new CollectionPoint
-            {
-                Id = Guid.NewGuid(),
-                Code = definition.Code,
-                Name = definition.Name,
-                Protocol = definition.AcquisitionType,
-                Endpoint = definition.ConnectionAddress,
-                IsEnabled = definition.IsEnabled,
-                Source = "Server",
-                UpdatedAt = DateTimeOffset.UtcNow
-            };
-
-            await collectionPointRepository.AddAsync(collectionPoint, cancellationToken);
-        }
-
-        collectionPoint.Name = definition.Name;
-        collectionPoint.Protocol = definition.AcquisitionType;
-        collectionPoint.Endpoint = definition.ConnectionAddress;
-        collectionPoint.IsEnabled = definition.IsEnabled;
-        collectionPoint.Source = "Server";
-        collectionPoint.CommunicationStatus = result.Success ? "在线" : "离线";
-        collectionPoint.LastError = result.Success ? null : result.ErrorMessage ?? result.StatusMessage;
-        collectionPoint.UpdatedAt = result.ExecutedAt;
-
-        await dbContext.SaveChangesAsync(cancellationToken);
     }
 }
 

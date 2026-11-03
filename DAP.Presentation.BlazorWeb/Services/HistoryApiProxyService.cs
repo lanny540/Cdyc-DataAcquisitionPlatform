@@ -320,8 +320,15 @@ public sealed class HistoryApiProxyService(
 
         if (!response.IsSuccessStatusCode)
         {
+            // 上游响应体只进日志：它可能包含 IdP 的错误细节、内部主机名或调试信息，
+            // 而这条消息会被直接展示到「History API 测试」页面上。
+            logger.LogWarning(
+                "获取 OAuth Token 失败：上游返回 {StatusCode}，响应体 {Payload}。",
+                (int) response.StatusCode,
+                payload);
+
             throw new InvalidOperationException(
-                $"获取 OAuth Token 失败，上游返回 {(int) response.StatusCode} {response.ReasonPhrase}。{payload}");
+                $"获取 OAuth Token 失败，上游返回 {(int) response.StatusCode} {response.ReasonPhrase}。");
         }
 
         var tokenResponse =

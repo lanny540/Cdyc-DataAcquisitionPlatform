@@ -87,7 +87,8 @@ public sealed record ServerConnectionSettings(
 /// 提供基于数据库的采集服务器连接参数读取实现。
 /// </summary>
 public sealed class AcquisitionServerConnectionResolver(
-    DataAcquisitionPlatformDbContext dbContext) : IAcquisitionServerConnectionResolver
+    DataAcquisitionPlatformDbContext dbContext,
+    Security.PlatformSecretProtector secretProtector) : IAcquisitionServerConnectionResolver
 {
     public async Task<ServerConnectionSettings?> ResolveAsync(
         Guid? serverConnectionId,
@@ -127,10 +128,20 @@ public sealed class AcquisitionServerConnectionResolver(
         return connection is null ? null : Map(connection);
     }
 
-    private static ServerConnectionSettings Map(ServerConnection connection)
+    private ServerConnectionSettings Map(ServerConnection connection)
     {
         Dictionary<string, string> configuration =
             ParseConfiguration(connection.ConfigurationJson);
+
+        // 凭据在库里是密文：发给上游之前必须还原，否则拿一段 dp:v1:... 去换 token，
+        // 现象是「配置看起来都对、上游一直 401」。
+        foreach (var key in configuration.Keys.ToArray())
+        {
+            if (AcquisitionServerCatalog.IsServerSecret(connection.AcquisitionType, key))
+            {
+                configuration[key] = secretProtector.Unprotect(configuration[key]);
+            }
+        }
 
         // 接口路径等可选字段缺失时，套用类型目录登记的默认值，避免运行期拼接出错误地址。
         Dictionary<string, string> merged =

@@ -55,9 +55,25 @@ public static class PlatformRateLimiting
 
             options.OnRejected = async (context, cancellationToken) =>
             {
-                context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                HttpContext httpContext = context.HttpContext;
 
-                await context.HttpContext.Response.WriteAsJsonAsync(
+                // 登录与改密是浏览器原生表单提交：直接回 JSON 会让用户看到一坨
+                // {"message":...}。表单请求改成 303 跳回对应页面并带上中文原因。
+                if (httpContext.Request.HasFormContentType && !httpContext.Response.HasStarted)
+                {
+                    var target = httpContext.Request.Path.StartsWithSegments("/api/auth/change-password")
+                        ? "/change-password"
+                        : "/login";
+
+                    httpContext.Response.StatusCode = StatusCodes.Status303SeeOther;
+                    httpContext.Response.Headers.Location =
+                        $"{target}?error={Uri.EscapeDataString("操作过于频繁，请稍后再试。")}";
+                    return;
+                }
+
+                httpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+
+                await httpContext.Response.WriteAsJsonAsync(
                     new {message = "登录尝试过于频繁，请稍后再试。"},
                     cancellationToken);
             };

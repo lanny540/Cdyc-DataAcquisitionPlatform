@@ -126,7 +126,40 @@ public sealed class OidcSignInService(
                 provider.DefaultRoleCode);
         }
 
-        await db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception)
+        {
+            // 并发首登：两个标签页、或用户双击登录按钮，两段流程会同时为同一个 sub 建号，
+            // 后到的一次撞唯一索引。这不是错误——对方已经建好了，取回既有账号即可，
+            // 否则用户看到的是「统一登录失败」，重试一次又正常。
+            foreach (var entry in db.ChangeTracker.Entries()
+                         .Where(item => item.State == EntityState.Added)
+                         .ToList())
+            {
+                entry.State = EntityState.Detached;
+            }
+
+            Guid? concurrentUserId = await db.ExternalIdentities
+                .AsNoTracking()
+                .Where(identity => identity.Provider == providerKey && identity.ExternalId == profile.ExternalId)
+                .Select(identity => (Guid?)identity.UserId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (concurrentUserId is { } id)
+            {
+                logger.LogInformation(
+                    "OIDC 账号 {UserName} 在并发建号中被另一路径抢先创建，已改为复用既有账号。",
+                    userName);
+
+                return new OidcProvisionResult(true, id, null);
+            }
+
+            logger.LogError(exception, "OIDC 账号 {UserName} 建号失败（数据库拒绝写入）。", userName);
+            throw;
+        }
 
         logger.LogInformation(
             "OIDC 账号 {UserName} 首次登录（提供方 {Provider}），已建号，部门映射 {Department}。",

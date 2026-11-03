@@ -186,7 +186,7 @@ public static class PlatformAuthenticationExtensions
             configuration.GetSection($"{PlatformAuthOptions.SectionName}:Oidc").Get<OidcOptions>()
             ?? new OidcOptions();
 
-        authenticationBuilder.AddPlatformOidcProviders(oidcOptions);
+        authenticationBuilder.AddPlatformOidcProviders(oidcOptions, requireSecureCookie);
 
         return services;
     }

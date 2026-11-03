@@ -20,20 +20,32 @@ public static class OidcAuthenticationExtensions
     /// </summary>
     /// <param name="builder">认证构建器。</param>
     /// <param name="options">OIDC 配置。</param>
+    /// <param name="requireSecureCookie">
+    /// 是否强制协议 Cookie 走 Secure。与平台会话 Cookie 用同一判定：
+    /// 生产下若只在登录链路里把 Cookie 降级为 SameAsRequest，
+    /// 明文 HTTP 时相关 Cookie（correlation/nonce）会裸奔，而会话 Cookie 却是 Secure——
+    /// 现象是「登录后回跳失败」，排查方向容易跑偏。
+    /// </param>
     /// <returns>当前认证构建器。</returns>
     public static AuthenticationBuilder AddPlatformOidcProviders(
         this AuthenticationBuilder builder,
-        OidcOptions options)
+        OidcOptions options,
+        bool requireSecureCookie = false)
     {
         foreach (OidcProviderOptions provider in options.EnabledProviders())
         {
-            builder.AddOpenIdConnect(provider.SchemeName, openIdOptions => Configure(openIdOptions, provider));
+            builder.AddOpenIdConnect(
+                provider.SchemeName,
+                openIdOptions => Configure(openIdOptions, provider, requireSecureCookie));
         }
 
         return builder;
     }
 
-    private static void Configure(OpenIdConnectOptions options, OidcProviderOptions provider)
+    private static void Configure(
+        OpenIdConnectOptions options,
+        OidcProviderOptions provider,
+        bool requireSecureCookie)
     {
         options.Authority = provider.Authority;
         options.ClientId = provider.ClientId;
@@ -63,7 +75,11 @@ public static class OidcAuthenticationExtensions
 
         options.TokenValidationParameters.NameClaimType = provider.NameClaim;
         options.CorrelationCookie.SameSite = SameSiteMode.Lax;
-        options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.CorrelationCookie.SecurePolicy = requireSecureCookie
+            ? CookieSecurePolicy.Always
+            : CookieSecurePolicy.SameAsRequest;
+        options.NonceCookie.SameSite = SameSiteMode.Lax;
+        options.NonceCookie.SecurePolicy = options.CorrelationCookie.SecurePolicy;
 
         options.Events = new OpenIdConnectEvents
         {

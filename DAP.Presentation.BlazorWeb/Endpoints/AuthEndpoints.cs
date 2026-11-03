@@ -52,7 +52,7 @@ public static class AuthEndpoints
         group.MapGet("/providers", GetExternalProviders)
             .WithName("AuthExternalProviders");
 
-        group.MapGet("/oidc/{code}/challenge", ChallengeOidc)
+        group.MapGet("/oidc/{code}/challenge", ChallengeOidcAsync)
             .WithName("AuthOidcChallenge");
 
         return endpoints;
@@ -74,10 +74,12 @@ public static class AuthEndpoints
     /// 发起 OIDC 授权码挑战。回跳地址随 properties 一起穿过 IdP 的往返，
     /// 回调时再从 properties 取出来——不用 Cookie 存，避免多标签页互相覆盖。
     /// </summary>
-    private static IResult ChallengeOidc(
+    private static async Task<IResult> ChallengeOidcAsync(
+        HttpContext httpContext,
         string code,
         string? returnUrl,
-        IOptions<PlatformAuthOptions> options)
+        IOptions<PlatformAuthOptions> options,
+        ILoggerFactory loggerFactory)
     {
         OidcProviderOptions? provider = options.Value.Oidc.EnabledProviders()
             .FirstOrDefault(item => string.Equals(item.Code, code, StringComparison.OrdinalIgnoreCase));
@@ -96,7 +98,27 @@ public static class AuthEndpoints
             properties.Items["returnUrl"] = safeReturnUrl;
         }
 
-        return Results.Challenge(properties, [provider.SchemeName]);
+        try
+        {
+            // 直接执行挑战而不是返回 Results.Challenge：后者由框架在管道末端执行，
+            // IdP 元数据拉不到时异常会一路冒到顶层变成 500 错误页，
+            // 现场只看到「服务器错误」，与「IdP 没开」这个真实原因完全对不上。
+            await httpContext.ChallengeAsync(provider.SchemeName, properties);
+            return Results.Empty;
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            loggerFactory.CreateLogger("OidcChallenge").LogWarning(
+                exception, "发起统一登录失败：提供方 {Provider} 的元数据不可用。", provider.Code);
+
+            if (httpContext.Response.HasStarted)
+            {
+                throw;
+            }
+
+            return Results.Redirect(
+                $"/login?error={Uri.EscapeDataString("统一登录服务暂时不可用，请稍后重试或改用账号密码登录。")}");
+        }
     }
 
     private static async Task<IResult> LoginAsync(
@@ -208,6 +230,26 @@ public static class AuthEndpoints
         CancellationToken cancellationToken)
     {
         Guid? userId = ReadUserId(principal);
+
+        // 车间只读终端没有用户标识，但它是一个有效会话：必须返回可识别的身份，
+        // 否则 WASM 端拿到 401 会判为匿名并跳登录页，免登录看板在
+        // 「第二次访问（WASM 缓存命中）」时就会整页失效。
+        // Id 用 Guid.Empty 表示「不对应任何员工」：写操作的守卫据此拒绝归责到人。
+        if (userId is null && PlatformClaimsFactory.IsBoardTerminal(principal))
+        {
+            return Results.Ok(new AuthUserDto(
+                Guid.Empty,
+                "车间只读终端",
+                "车间只读终端",
+                null,
+                [],
+                [AuthorizationCatalog.BanknotePaperDomain],
+                AuthorizationCatalog.ViewAccessLevel,
+                [],
+                false,
+                false,
+                true));
+        }
 
         if (userId is null)
         {

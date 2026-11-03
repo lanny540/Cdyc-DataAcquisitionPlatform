@@ -221,11 +221,12 @@ public static class AdminEndpoints
                 })
             .WithName("ExportAuditLogs");
 
-        // 目录同步：状态查询与手工触发。策略沿用 action.user.manage——
-        // 「谁能管账号」与「谁能同步账号」应当是同一批人，拆成两个权限点没有实际收益。
+        // 目录同步：状态查询与手工触发。策略用 action.system.manage 而不是 action.user.manage——
+        // 部门管理员也持有 action.user.manage，但一次同步会**跨部门**建号、停用与改归属，
+        // 远超「只管本部门账号」的范围。界面本来也只在超管时显示这一块。
         RouteGroupBuilder directoryGroup = endpoints.MapGroup("/api/admin/directory")
             .WithTags("AdminDirectory")
-            .RequirePermission(Authorization_UserManage);
+            .RequirePermission(Authorization_SystemManage);
 
         directoryGroup.MapGet(
                 "/",

@@ -13,6 +13,10 @@ namespace DAP.Core.Shared.Contracts;
 /// <param name="Permissions">权限点编码集合。</param>
 /// <param name="MustChangePassword">是否必须先修改密码。</param>
 /// <param name="IsSuperAdmin">是否超级管理员。为 true 时域与页面等级均短路。</param>
+/// <param name="IsBoardTerminal">
+/// 是否车间只读终端会话（IP 白名单签发）。这类会话没有 <see cref="Id"/>，
+/// 但 WASM 端必须能把它与「未登录」区分开，否则免登录看板在 WASM 缓存命中后会被踢回登录页。
+/// </param>
 public sealed record AuthUserDto(
     Guid Id,
     string UserName,
@@ -23,7 +27,8 @@ public sealed record AuthUserDto(
     int PageLevel,
     IReadOnlyList<string> Permissions,
     bool MustChangePassword,
-    bool IsSuperAdmin);
+    bool IsSuperAdmin,
+    bool IsBoardTerminal = false);
 
 /// <summary>
 /// 表示修改密码请求。

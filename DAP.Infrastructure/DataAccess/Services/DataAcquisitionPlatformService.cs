@@ -15,6 +15,11 @@ namespace DAP.Infrastructure.DataAccess.Services;
 /// </summary>
 public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformService
 {
+    /// <summary>
+    /// 客户端一次性同步采集点的数量上限。
+    /// </summary>
+    private const int MaxLocalSyncPoints = 2000;
+
     private readonly DataAcquisitionPlatformDbContext _dbContext;
     private readonly ICollectionPointRepository _collectionPointRepository;
     private readonly IManagedDataDefinitionRepository _managedDataDefinitionRepository;
@@ -145,6 +150,16 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
         existingDefinition ??= await _managedDataDefinitionRepository.GetByCodeAsync(normalizedCode, cancellationToken);
         var originalCode = existingDefinition?.Code;
 
+        // 请求来自 JSON：非必填字符串缺失时是 null 而不是空串，
+        // 直接 .Trim() 会在校验之前抛 NullReferenceException（表现为 500 而不是中文校验提示）。
+        var name = request.Name?.Trim() ?? string.Empty;
+        var identifier = request.Identifier?.Trim() ?? string.Empty;
+        var department = request.Department?.Trim() ?? string.Empty;
+        var processCode = request.ProcessCode?.Trim() ?? string.Empty;
+        var dataCategory = request.DataCategory?.Trim() ?? string.Empty;
+        var unit = request.Unit?.Trim() ?? string.Empty;
+        var description = request.Description?.Trim() ?? string.Empty;
+
         // 选择采集服务器后，采集方式与连接地址由服务器决定，节点只需补充自身采集信息。
         ServerConnection? boundServer = await ResolveBoundServerAsync(
             request.ServerConnectionId ?? existingDefinition?.ServerConnectionId, cancellationToken);
@@ -154,7 +169,7 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
 
         Dictionary<string, string> nodeConfiguration = ParseJsonDictionary(request.ConfigurationJson);
         IReadOnlyCollection<string> nodeErrors = AcquisitionServerCatalog.ValidateNode(
-            acquisitionType, request.Identifier, nodeConfiguration);
+            acquisitionType, identifier, nodeConfiguration);
         if (nodeErrors.Count > 0)
         {
             throw new InvalidOperationException(string.Join(" ", nodeErrors));
@@ -169,16 +184,16 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
             {
                 Id = request.Id ?? Guid.NewGuid(),
                 Code = normalizedCode,
-                Name = request.Name.Trim(),
+                Name = name,
                 AcquisitionType = acquisitionType,
                 ConnectionAddress = connectionAddress,
                 ServerConnectionId = serverConnectionId,
-                Identifier = request.Identifier.Trim(),
-                Department = request.Department.Trim(),
-                ProcessCode = request.ProcessCode.Trim(),
-                DataCategory = request.DataCategory.Trim(),
-                Unit = request.Unit.Trim(),
-                Description = request.Description.Trim(),
+                Identifier = identifier,
+                Department = department,
+                ProcessCode = processCode,
+                DataCategory = dataCategory,
+                Unit = unit,
+                Description = description,
                 ConfigurationJson = NormalizeJsonOrEmptyObject(request.ConfigurationJson),
                 BusinessTagsJson = NormalizeJsonOrEmptyObject(request.BusinessTagsJson),
                 CollectionIntervalSeconds = request.CollectionIntervalSeconds,
@@ -191,16 +206,16 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
         else
         {
             existingDefinition.Code = normalizedCode;
-            existingDefinition.Name = request.Name.Trim();
+            existingDefinition.Name = name;
             existingDefinition.AcquisitionType = acquisitionType;
             existingDefinition.ConnectionAddress = connectionAddress;
             existingDefinition.ServerConnectionId = serverConnectionId;
-            existingDefinition.Identifier = request.Identifier.Trim();
-            existingDefinition.Department = request.Department.Trim();
-            existingDefinition.ProcessCode = request.ProcessCode.Trim();
-            existingDefinition.DataCategory = request.DataCategory.Trim();
-            existingDefinition.Unit = request.Unit.Trim();
-            existingDefinition.Description = request.Description.Trim();
+            existingDefinition.Identifier = identifier;
+            existingDefinition.Department = department;
+            existingDefinition.ProcessCode = processCode;
+            existingDefinition.DataCategory = dataCategory;
+            existingDefinition.Unit = unit;
+            existingDefinition.Description = description;
             existingDefinition.ConfigurationJson = NormalizeJsonOrEmptyObject(request.ConfigurationJson);
             existingDefinition.BusinessTagsJson = NormalizeJsonOrEmptyObject(request.BusinessTagsJson);
             existingDefinition.CollectionIntervalSeconds = request.CollectionIntervalSeconds;
@@ -254,6 +269,15 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
             throw new InvalidOperationException("采集点编码和指标名称不能为空。");
         }
 
+        // 单位在库上有「不得为空」的 check 约束：这里先给出可读的中文提示，
+        // 而不是让一次登录式上报变成 500。
+        var unit = request.Unit?.Trim() ?? string.Empty;
+
+        if (unit.Length == 0)
+        {
+            throw new InvalidOperationException("指标单位不能为空。");
+        }
+
         var normalizedCode = NormalizeCode(request.CollectionPointCode);
         CollectionPoint? collectionPoint =
             await _collectionPointRepository.GetByCodeAsync(normalizedCode, cancellationToken);
@@ -288,7 +312,7 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
             CollectionPointId = collectionPoint.Id,
             MetricName = request.MetricName.Trim(),
             Value = request.Value,
-            Unit = request.Unit.Trim(),
+            Unit = unit,
             CollectedAt = request.CollectedAt
         };
 
@@ -315,9 +339,31 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
         var updatedCount = 0;
         var syncedIds = new List<Guid>();
 
+        // 上限防止一次请求塞进几十万条：这是客户端配置同步，正常规模是几十到几百。
+        if (request.Points.Count > MaxLocalSyncPoints)
+        {
+            throw new InvalidOperationException(
+                $"单次最多同步 {MaxLocalSyncPoints} 个采集点，本次提交 {request.Points.Count} 个。");
+        }
+
         foreach (LocalCollectionPointDto localPoint in request.Points)
         {
             var normalizedCode = NormalizeCode(localPoint.Code);
+
+            if (normalizedCode.Length == 0)
+            {
+                throw new InvalidOperationException("采集点编码不能为空。");
+            }
+
+            var name = localPoint.Name?.Trim() ?? string.Empty;
+            var protocol = localPoint.Protocol?.Trim() ?? string.Empty;
+            var endpoint = localPoint.Endpoint?.Trim() ?? string.Empty;
+
+            if (name.Length == 0 || protocol.Length == 0 || endpoint.Length == 0)
+            {
+                throw new InvalidOperationException($"采集点 {normalizedCode} 的名称、协议和端点不能为空。");
+            }
+
             CollectionPoint? collectionPoint =
                 await _collectionPointRepository.GetByCodeAsync(normalizedCode, cancellationToken);
 
@@ -327,9 +373,9 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
                 {
                     Id = Guid.NewGuid(),
                     Code = normalizedCode,
-                    Name = localPoint.Name.Trim(),
-                    Protocol = localPoint.Protocol.Trim(),
-                    Endpoint = localPoint.Endpoint.Trim(),
+                    Name = name,
+                    Protocol = protocol,
+                    Endpoint = endpoint,
                     IsEnabled = localPoint.IsEnabled,
                     CommunicationStatus = ResolveCommunicationStatus(null, localPoint.IsEnabled),
                     Source = "Local",
@@ -341,9 +387,9 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
             }
             else
             {
-                collectionPoint.Name = localPoint.Name.Trim();
-                collectionPoint.Protocol = localPoint.Protocol.Trim();
-                collectionPoint.Endpoint = localPoint.Endpoint.Trim();
+                collectionPoint.Name = name;
+                collectionPoint.Protocol = protocol;
+                collectionPoint.Endpoint = endpoint;
                 collectionPoint.IsEnabled = localPoint.IsEnabled;
                 collectionPoint.CommunicationStatus =
                     ResolveCommunicationStatus(collectionPoint.CommunicationStatus, localPoint.IsEnabled);
@@ -456,12 +502,12 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
             return (boundServer.AcquisitionType.Trim(), boundServer.Address.Trim());
         }
 
-        return (request.AcquisitionType.Trim(), request.ConnectionAddress.Trim());
+        return (request.AcquisitionType?.Trim() ?? string.Empty, request.ConnectionAddress?.Trim() ?? string.Empty);
     }
 
-    private static string NormalizeCode(string code)
+    private static string NormalizeCode(string? code)
     {
-        return code.Trim().ToUpperInvariant();
+        return string.IsNullOrWhiteSpace(code) ? string.Empty : code.Trim().ToUpperInvariant();
     }
 
     private static string NormalizeSource(string source)

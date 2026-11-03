@@ -84,14 +84,11 @@ public sealed class PlatformAuthService(
         AppUser? user = await UsersWithDetails()
             .FirstOrDefaultAsync(item => item.UserName == normalizedUserName, cancellationToken);
 
-        if (user is not null && !user.IsEnabled)
-        {
-            logger.LogWarning("登录失败：账号 {UserName} 已停用。", normalizedUserName);
-            return AuthSignInResult.Failed("该账号已停用，请联系管理员。");
-        }
-
-        // 本地账号与域账号走两条不同的凭据通道：有本地密码哈希的只认本地密码，
-        // 没有的只能去目录校验——否则一个域账号只要目录里存在同名的人，就能被本地密码冒用。
+        // 注意顺序：**先验凭据，再判状态**。
+        // 反过来（先判停用/域账号）等于给了未认证的人一个账号探针：
+        // 输任意密码就能区分「账号不存在」「账号已停用」「是域账号但目录没开」，
+        // 文案再统一也没用。状态提示本身是有用的（否则离职员工会以为忘了密码），
+        // 但只能在证明自己知道密码之后给。
         if (user?.PasswordHash is {Length: > 0})
         {
             return await SignInLocalAsync(user, password, cancellationToken);
@@ -102,18 +99,20 @@ public sealed class PlatformAuthService(
             return await SignInWithDirectoryAsync(user, normalizedUserName, password, cancellationToken);
         }
 
+        // 账号不存在，或是没有本地密码的域账号但目录认证没启用：对外完全同一句话。
+        PasswordHasher.Verify(password, DummyPasswordHash);
+
         if (user is null)
         {
-            // 账号不存在与密码错误返回同一句，但文案一致挡不住计时旁路：
-            // 存在且密码错时要跑一次 PBKDF2（21 万次迭代，几十毫秒），不存在时立刻返回，
-            // 两者的响应时间差足以用来枚举账号。这里补跑一次同代价的校验把时间抹平。
-            PasswordHasher.Verify(password, DummyPasswordHash);
-
             logger.LogWarning("登录失败：账号 {UserName} 不存在。", normalizedUserName);
             return AuthSignInResult.Failed("账号或密码不正确。");
         }
 
-        return AuthSignInResult.Failed("该账号为域账号，当前未启用目录认证，请联系管理员。");
+        logger.LogWarning(
+            "登录失败：账号 {UserName} 是域账号，但 Auth:Ldap:Enabled 为 false，无法校验目录密码。",
+            normalizedUserName);
+
+        return AuthSignInResult.Failed("账号或密码不正确。");
     }
 
     private async Task<AuthSignInResult> SignInLocalAsync(
@@ -138,6 +137,13 @@ public sealed class PlatformAuthService(
             return AuthSignInResult.Failed(locked
                 ? $"密码连续错误 {_options.Lockout.MaxFailedAttempts} 次，账号已锁定 {_options.Lockout.LockoutMinutes} 分钟。"
                 : "账号或密码不正确。");
+        }
+
+        // 停用判定放在凭据校验之后：见 SignInAsync 里关于账号枚举的说明。
+        if (!user.IsEnabled)
+        {
+            logger.LogWarning("登录失败：账号 {UserName} 已停用。", user.UserName);
+            return AuthSignInResult.Failed("该账号已停用，请联系管理员。");
         }
 
         user.AccessFailedCount = 0;
@@ -450,7 +456,8 @@ public sealed class PlatformAuthService(
             isSuperAdmin ? AuthorizationCatalog.SuperAdminPageLevel : pageLevel,
             permissions,
             user.MustChangePassword,
-            isSuperAdmin);
+            isSuperAdmin,
+            false);
     }
 
     private async Task<IReadOnlyList<string>> LoadGrantedDomainsAsync(

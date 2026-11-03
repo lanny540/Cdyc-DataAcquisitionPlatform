@@ -52,6 +52,11 @@ public static class PlatformClaimsFactory
             claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.SuperAdmin, "true"));
         }
 
+        if (user.IsBoardTerminal)
+        {
+            claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.BoardTerminal, "true"));
+        }
+
         if (user.MustChangePassword)
         {
             claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.MustChangePassword, "true"));

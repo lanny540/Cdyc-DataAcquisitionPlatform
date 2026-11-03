@@ -111,6 +111,8 @@ public static class PlatformPresentationServiceCollectionExtensions
         services.AddScoped<IAcquisitionServerConnectionResolver, AcquisitionServerConnectionResolver>();
         services.AddScoped<IHistoryApiProxyService, HistoryApiProxyService>();
         services.AddScoped<IAcquisitionServerProbeService, AcquisitionServerProbeService>();
+        // 采集点的运行状态写入（数据面，不做权限判定）：调度器与手动采集共用。
+        services.AddScoped<CollectionPointStateSynchronizer>();
         services.AddScoped<IManagedDataExecutionService, ManagedDataExecutionService>();
         services.AddScoped<IConnectionDiagnosticsService, ConnectionDiagnosticsService>();
 

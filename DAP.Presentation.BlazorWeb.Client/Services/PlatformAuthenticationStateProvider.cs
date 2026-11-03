@@ -95,6 +95,13 @@ public sealed class PlatformAuthenticationStateProvider(HttpClient httpClient) :
             claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.SuperAdmin, "true"));
         }
 
+        // 车间只读终端：顶栏据此显示「只读」并隐藏登出按钮，
+        // 与 SSR 阶段由 Cookie claims 渲染的结果保持一致。
+        if (user.IsBoardTerminal)
+        {
+            claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.BoardTerminal, "true"));
+        }
+
         claims.AddRange(user.Domains.Select(domain =>
             new Claim(AuthorizationCatalog.PlatformClaimTypes.Domain, domain)));
 
