@@ -20,6 +20,18 @@
 
 ### 新增
 
+- **外部身份源接入完整落地（P3 LDAP / P4 OIDC）**：平台账号不再只能由超管逐个手工创建。`docs/AUTH_DESIGN.md` 第 11 节与第 13 节 P3/P4 范围全部实现，两条通道都只刷新「姓名、邮箱、部门、启停」，**从不写角色表**。
+  - **LDAP / AD 登录**（`Auth:Ldap`）：服务账号 bind → 按登录账号搜到用户 DN → 用该 DN + 用户密码二次 bind。平台不保存域账号密码（外部账号 `password_hash` 恒为 null，改密页对其提示「密码由目录统一管理」）。用户名的过滤器转义按 RFC 4515 做（`*` 不转义会命中目录第一人）；空密码在本地拦掉（LDAP 里空密码等于匿名 bind，服务器会返回成功）；口令错误统一提示「账号或密码不正确。」且**不累计本地失败次数**——AD 有自己的锁定策略，两边各锁一次会让「密码错两次」在现场表现成账号被锁。
+  - **目录同步**（`DirectorySyncService` + 后台任务 `DirectorySyncScheduler`）：幂等 upsert，只更新可同步字段；**手工分配的角色永不被覆盖**（实测：改成 `technician` 后再同步、再登录，角色不变）；目录中消失的账号只置 `is_enabled=false`，不物理删除；**目录返回 0 条时整轮作废**（跳过停用阶段并写 `failed` 审计），避免一次误配的过滤器停用全平台账号；同名冲突不并号，记 `user-name-conflict` 待处理；目录里重新出现且已有绑定则原记录重新启用。
+  - **待处理队列**（新表 `directory_sync_issues`）：部门匹配不上（`department-unmatched`）与同名冲突（`user-name-conflict`）两类，按 `(provider, issue_type, external_code)` 去重累加 `occurrences`，部分唯一索引限定「仅未处理」。**不自动建部门**——自动建会让组织树随目录脏数据膨胀。已处理只打 `resolved_at` 不删行，同一问题再次出现另起一行，反复发生因而可见。
+  - **传输安全**：`TransportSecurity` ∈ {`None`, `Ssl`, `StartTls`}。选 `None` 时只允许 loopback 主机，生产误配直接拒绝启动；判定用 IP 而非「是否开发环境」。
+  - **OIDC 登录**（`Auth:Oidc`）：Authorization Code + PKCE，复用 `Microsoft.AspNetCore.Authentication.OpenIdConnect`（state / nonce / 签名校验由框架实现），code 换 token 在服务端完成，外部令牌一个都不落到前端。**每家 IdP 一个独立 scheme `oidc-{code}`**，绑定键存 `oidc:{code}`——两家 IdP 的 `sub` 各自独立编号，只存 `oidc` 会让两家的第一个人撞成同一个账号。唯一键只用 `sub`，不用 email 或 `preferred_username`（会变、会被回收）。
+  - **JIT 建号与部门映射**：首次登录建号，默认角色 `viewer`，部门由 claim 映射到 `departments.external_code`（与 LDAP 共用 `DepartmentCodeResolver`）；claim 名、取值前缀、多值 claim 的策略全部配置化，**新增第二家 IdP 只加一段配置、代码零改动**。多值 `groups` 配了前缀就按前缀挑（只取第一个值会把 `staff` 当成部门），挑不到再退回第一个值，让匹配失败进待处理表而不是静默变成「无部门」。
+  - **登录页统一登录入口**：`/api/auth/providers` 只返回已启用的提供方，未配置时整段不渲染（不留空按钮）；入口按钮为次级描边样式，与主「登录」按钮形成明确层级。
+  - **管理侧**：`/api/admin/directory`（状态查询、手工同步、标记待处理已处理，策略沿用 `action.user.manage`）；用户管理页底部新增「目录同步」区块（仅超管可见）——最近同步时间与摘要、立即同步、待处理表（中文说明 + 「怎么修」提示）。
+  - **启动校验**：`Auth:Ldap` / `Auth:Oidc` 配置不完整直接拒绝启动，并一次列出全部错误而非只报第一条。
+  - 新增单元测试 78 项（270 → 348）：LDAP 过滤器转义、属性映射与 OU 回退、UAC 掩码、二进制 GUID、同步差异计划（创建/不变/更新/停用/超管保护/重新启用/多字段变更）、OIDC claim 映射（缺 `sub` 拒绝、邮箱回退、`sub` 尾部回退、自定义 claim 名、部门前缀、多值 claim、截断、回调路径）、配置校验（含明文仅回环放行）、回跳地址校验。
+  - **实测记录**（真实协议栈，不 mock 认证本身）：OpenLDAP 容器跑通全量同步与域账号登录、手工角色保持、目录删人→停用、目录恢复→重新启用、唯一键变化→同名冲突不接管、空目录→整轮作废、连续 6 次错误密码后仍可正常登录；自建模拟 IdP（RS256 / discovery / jwks / `form_post`）跑通两家 IdP 的授权码登录、拒绝授权、缺 `sub`、停用账号、`returnUrl` 回跳，并用浏览器验证登录页按钮与登录后落地。踩到的两处坑记入文档：JWKS 的 `kty: oct`（HS256）不被框架接受（症状 `IDX10500`），以及换签名密钥后必须重启应用刷新元数据缓存。
 - **权限与授权完整落地（P2）**：`docs/AUTH_DESIGN.md` 第 13 节 P2 范围全部实现——用户管理页、角色分配、部门管理员（默认关闭）、批量操作、审计查询页与权限类操作留痕。
   - **用户与角色页 `/user-management`**：账号列表（账号/姓名/部门/角色/状态/最近登录）、新建、编辑、重置密码、批量启用停用、移交超管。状态用 Chip 表达（启用/停用/待改密/已锁定）；超管行标「不可停用」，停用开关对超管隐藏。新建账号一律置「首次登录强制改密」，重置密码同理。角色或启停变更**在用户下次登录时生效**（授权只认 Cookie 里的 claims，会话内不热切换）。
   - **系统审计页 `/system-audit`**：按时间区间、操作人、对象类型、结果筛选，分页浏览，详情抽屉把 `detail` 的压缩 JSON 展开成可读格式，导出 CSV 带 UTF-8 BOM（Excel 打开中文不乱码，含 `,`/`"`/换行的字段按 RFC 4180 转义）。审计表只读，页面不提供任何修改或删除入口。
@@ -50,6 +62,8 @@
 
 ### 修复
 
+- **多值部门 claim 只取第一个值导致部门错配**（端到端实测发现）：AD / Okta 的 `groups` 一次给出全部组，原实现取第一个值，于是 `["staff", "dept:PRINT2"]` 被解析成部门 `staff`——用户登录后部门为空、看不到任何业务域，而配置看起来完全正确。修复：配置了 `DepartmentPrefix` 时先按前缀在全部取值里挑，挑不到再退回第一个值（让匹配失败进待处理表，而不是静默变成「无部门」）。补 3 项单测钉死。
+- **目录登录失败的日志出现双句号**：失败原因本身已带句号，日志模板又补一个，输出成「原因 账号或密码不正确。。」。修复：模板不再补句号。
 - **导航查询与页面查询共用 DbContext 导致审计页偶发加载失败**：`NavigationViewService` 直接注入 scoped `DataAcquisitionPlatformDbContext`，而导航由 `MainLayout` 在渲染时加载、与页面自己的 `OnInitializedAsync` 并行发起——Blazor 渲染器不把父子组件的异步初始化串行化，两条查询撞在同一个上下文上就会抛 `A second operation was started on this context instance`。表现为先逛过用户管理页、再打开系统审计页时列表空白 + 「审计记录加载失败」。修复：导航改为自己开 scope 取上下文（只有两条只读查询、不参与跨服务事务），页面查询不再有并行竞争者。实测同一路径恢复 20 行记录。
 - **审计筛选带时区时整个查询抛异常**：`occurred_at` 是 `timestamptz`，Npgsql 拒绝写入偏移量非零的 `DateTimeOffset`（只接受 offset 0），而页面默认带出带 `+08:00` 的日期区间，导致「一进审计页就加载失败」。修复：`ApplyFilter` 先把起止时间 `ToUniversalTime()` 再拼进 `Where`。
 - **框架英文异常文案泄漏到界面**：`UserFacingErrors.Describe` 把 `InvalidOperationException` 一律当业务异常原样展示，但 EF 的并发错误（`A second operation was started on this context instance…`）也是这个类型——审计页的错误条上直接出现了整段英文技术细节。修复：只有消息里**含汉字**才原样展示，纯英文一律换成兜底文案；Web 与桌面两份助手同步，补 6 项单测钉死规则。
@@ -246,5 +260,6 @@
 
 ### 文档
 
+- `docs/AUTH_DESIGN.md`：11.1 / 11.2 标记为已落地并补「三条铁律」（新增「目录返回 0 条整轮作废」）；6.3 补三条登录通道的判定顺序；8.5 新增 `directory_sync_issues` 表与设计理由、8.6 关系图补该表；10 端点表补 `/api/admin/directory`；13 期表加「状态」列；新增 13.3「P3 / P4 实现要点」与 13.4「外部认证的实测记录」；14 风险表补 8 条（明文 LDAP、空目录、过滤器注入、空密码、同名合并、`sub` 撞号、多值部门 claim）。
 - 新增 `CHANGELOG.md`，明确后续提交说明与变更记录统一使用中文。
 - README 补充外部服务器数据库配置与 EF Core 迁移执行说明。

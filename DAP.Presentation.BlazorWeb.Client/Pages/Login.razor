@@ -1,5 +1,8 @@
 @page "/login"
 @layout AuthLayout
+@using DAP.Core.Shared.Contracts
+@using DAP.Presentation.BlazorWeb.Client.Services
+@inject IPlatformApiClient Api
 
 <PageTitle>登录 · CDYC 数据采集平台</PageTitle>
 
@@ -29,11 +32,28 @@
     <button type="submit" class="platform-auth-submit">登录</button>
 </form>
 
+@* 外部身份源入口：只渲染已配置的提供方，未配置时整段不出现（不留空按钮）。 *@
+@if (Providers.Count > 0)
+{
+    <div class="platform-auth-divider"><span>或使用统一登录</span></div>
+    <div class="platform-auth-external">
+        @foreach (OidcProviderDto provider in Providers)
+        {
+            <a class="platform-auth-external-link" href="@BuildProviderHref(provider)">@provider.DisplayName</a>
+        }
+    </div>
+}
+
 <div class="platform-auth-meta">
     账号由管理员分配。连续输错 5 次将锁定 15 分钟；首次登录需要修改初始密码。
 </div>
 
 @code {
+    /// <summary>
+    /// 可用的外部登录方式。
+    /// </summary>
+    private IReadOnlyList<OidcProviderDto> Providers { get; set; } = [];
+
     /// <summary>
     /// 登录失败原因。由端点通过查询串回传，直接展示，不再拼接框架异常信息。
     /// </summary>
@@ -51,4 +71,25 @@
     /// </summary>
     [SupplyParameterFromQuery(Name = "returnUrl")]
     public string? ReturnUrl { get; set; }
+
+    /// <inheritdoc />
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Providers = await Api.GetOidcProvidersAsync();
+        }
+        catch (Exception)
+        {
+            // 外部登录是附加能力：取不到就只留账号密码，不能因此让登录页报错。
+            Providers = [];
+        }
+    }
+
+    private string BuildProviderHref(OidcProviderDto provider)
+    {
+        return string.IsNullOrWhiteSpace(ReturnUrl)
+            ? provider.Href
+            : $"{provider.Href}?returnUrl={Uri.EscapeDataString(ReturnUrl)}";
+    }
 }

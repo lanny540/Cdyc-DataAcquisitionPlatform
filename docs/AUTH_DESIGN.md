@@ -304,6 +304,8 @@
 | P3 | LDAP / AD | 见 11.1 |
 | P4 | OIDC | 见 11.2 |
 
+三条通道在 `PlatformAuthService.SignInAsync` 里按顺序判定：**本地有 `password_hash` → 走本地校验；否则 LDAP 启用 → 走域账号校验；都没有 → 中文提示**。域账号的 `password_hash` 恒为 null（平台绝不保存域账号密码），因此「改密」页对它们返回「域账号的密码由目录统一管理」而不是报错。外部账号未走本地失败计数，本地锁定与 AD 锁定不会互相叠加。
+
 ### 6.4 超管种子与唯一性（必须前置）
 
 平台当前无登录，一旦启用会立刻锁死所有人。P0 必须包含：
@@ -527,7 +529,17 @@ HTTP 端点 ──┐
 
 `detail` 存 `{ before, after }` 两段 JSON，只保留发生变化的字段，避免整行快照撑大表。索引：`(occurred_at desc)`、`(user_id, occurred_at desc)`、`(target_type, target_id)`。
 
-### 8.5 关系图
+### 8.5 目录同步待处理队列
+
+| 表 | 关键字段 | 说明 |
+|---|---|---|
+| `directory_sync_issues` | `id`, `provider`, `issue_type`, `external_code`, `sample_user_name`, `occurrences`, `first_seen_at`, `last_seen_at`, `resolved_at`, `resolved_by` | `issue_type` ∈ {`department-unmatched`, `user-name-conflict`}；部分唯一索引 `(provider, issue_type, external_code) WHERE resolved_at IS NULL` |
+
+为什么单独建表而不是只写审计：审计是「发生过什么」的流水，这里是「现在还剩什么没处理」的待办。管理员需要反复打开一张短列表，且要能标记已处理——用审计表兼做待办，要么查不动，要么只能靠时间窗口猜。
+
+已处理的行**不删除**，只打 `resolved_at`。同一问题再次出现会另起一行（`occurrences` 从 1 起），这样「上个月处理过、这个月又冒出来」在列表里是可见的；如果就地复用旧行，反复出现的问题会被悄悄累加成一个陈旧时间戳。
+
+### 8.6 关系图
 
 ```
 departments 1 ──< app_users 1 ──< external_identities
@@ -536,6 +548,9 @@ departments 1 ──< app_users 1 ──< external_identities
      │                 └──< audit_logs
      │
      └──< department_domain_grants >── business_domains 1 ──< domain_pages
+
+directory_sync_issues  （独立待办表，只按 external_code 与部门表比对，不设外键——
+                        部门本就不存在时这条记录才存在，加外键会写不进去）
 ```
 
 ---
@@ -636,6 +651,7 @@ departments 1 ──< app_users 1 ──< external_identities
 | `/api/history-api` | `PlatformAdmin` | `PlatformAdmin` |
 | `/api/connection-diagnostics` | `PlatformAdmin` | `PlatformAdmin` |
 | `/api/audit-logs` | `PlatformAdmin` | 不提供写端点 |
+| `/api/admin/directory` | `action.user.manage` | 同左（手工触发同步、标记待处理已处理） |
 | `/api/admin/*` | `action.domain.manage` 或 `action.department.manage` 或 `action.user.manage` | 同左 |
 
 三点说明：
@@ -647,6 +663,8 @@ departments 1 ──< app_users 1 ──< external_identities
 ---
 
 ## 11. 外部对接
+
+**P3（LDAP）与 P4（OIDC）均已落地并完成端到端实测**（2026-11-03）。下面两张表是设计基线，实现细节与实测结论见 13.3。
 
 ### 11.1 LDAP / AD（P3）
 
@@ -673,10 +691,11 @@ departments 1 ──< app_users 1 ──< external_identities
 | 首次登录 | JIT 建号，默认角色 `viewer`，部门由 claim 映射；映射不到则建号但不可见任何业务域，记入待处理 |
 | 多 IdP | `Authority` / `ClientId` / `Scope` / claim 映射全部配置化，新增一家只加一段配置 |
 
-### 11.3 两条铁律
+### 11.3 三条铁律
 
 1. **幂等 upsert，只更新可同步字段**：姓名、邮箱、部门、启停。**绝不覆盖本地已分配的角色**——否则每次目录同步都会把手工配的权限冲掉。
 2. **账号保留优先于删除**：目录中消失的账号标记 `is_enabled = false` 并记录 `last_synced_at`，不物理删除，避免历史引用断链。
+3. **目录返回 0 条时整轮作废**：读到空列表一律当作「目录不可用或过滤条件写错」，跳过停用阶段并写 `result=failed` 的审计。少了这一条，一次误配的 `SyncFilter` 会在几秒内停用全平台账号。
 
 ---
 
@@ -730,17 +749,17 @@ departments 1 ──< app_users 1 ──< external_identities
 
 ## 13. 分期
 
-| 期 | 内容 | 交付标志 |
-|---|---|---|
-| **P0** | 建表与迁移、超管种子、Cookie 登录、`/login`、`/forbidden`、`/no-access`、`/coming-soon`、`AuthorizeRouteView`、`/api/auth/me`、认证状态提供者 | 未登录访问任何页面被拦到 `/login`；超管可登录；无域与空域两种情形落点不同 |
-| **P1** | 域与页面配置页、部门与授权矩阵页、导航改造为域驱动（含空域呈现）、动态域策略、页面等级校验、领域服务授权装饰器、**审计表与写入管道（先覆盖排班与采集配置）**、**车间终端 IP 白名单（6.6：白名单判定、只读会话签发与 IP 绑定、严格排班默认值、只读标识）** | 非超管只看到被授权的域与等级允许的页面；直连地址返回 403；服务端渲染路径同样被拦；配置类写操作可在审计页查到；车间那台机器打开即进入只读视图、不弹登录、改不了任何数据 |
-| **P2** | 用户管理页、角色分配、部门管理员（默认关闭）、批量操作、**审计查询页与权限类操作留痕** | 超管可建用户、分配角色；启用部门管理员后其只能管本部门；改角色与改授权均有留痕 |
-| **P3** | LDAP 对接与目录同步 | 域账号可登录；部门与人员按同步策略更新；手工角色不被覆盖 |
-| **P4** | OIDC 对接 | 第二家 IdP 仅靠配置接入 |
+| 期 | 内容 | 交付标志 | 状态 |
+|---|---|---|---|
+| **P0** | 建表与迁移、超管种子、Cookie 登录、`/login`、`/forbidden`、`/no-access`、`/coming-soon`、`AuthorizeRouteView`、`/api/auth/me`、认证状态提供者 | 未登录访问任何页面被拦到 `/login`；超管可登录；无域与空域两种情形落点不同 | 已落地 |
+| **P1** | 域与页面配置页、部门与授权矩阵页、导航改造为域驱动（含空域呈现）、动态域策略、页面等级校验、领域服务授权装饰器、**审计表与写入管道（先覆盖排班与采集配置）**、**车间终端 IP 白名单（6.6：白名单判定、只读会话签发与 IP 绑定、严格排班默认值、只读标识）** | 非超管只看到被授权的域与等级允许的页面；直连地址返回 403；服务端渲染路径同样被拦；配置类写操作可在审计页查到；车间那台机器打开即进入只读视图、不弹登录、改不了任何数据 | 已落地 |
+| **P2** | 用户管理页、角色分配、部门管理员（默认关闭）、批量操作、**审计查询页与权限类操作留痕** | 超管可建用户、分配角色；启用部门管理员后其只能管本部门；改角色与改授权均有留痕 | 已落地 |
+| **P3** | LDAP 对接与目录同步 | 域账号可登录；部门与人员按同步策略更新；手工角色不被覆盖 | 已落地（13.3） |
+| **P4** | OIDC 对接 | 第二家 IdP 仅靠配置接入 | 已落地（13.3） |
 
 P0 与 P1 必须一起上线：只做 P0 时所有部门都无域授权，除超管外全员进不了系统。若需要分批，可在 P0 阶段临时把 `钞纸` 域授予所有部门，P1 完成后再收紧。
 
-**P0 / P1 / P2 均已落地**（2026-11-03）。P2 的实现要点见 13.2。
+**P0 / P1 / P2 / P3 / P4 均已落地**（2026-11-03）。P2 的实现要点见 13.2，P3 / P4 见 13.3。
 
 ### 13.2 P2 实现要点
 
@@ -757,6 +776,53 @@ P0 与 P1 必须一起上线：只做 P0 时所有部门都无域授权，除超
 | 导航查询的上下文隔离 | 导航由 `MainLayout` 在渲染时加载，与页面自己的 `OnInitializedAsync` 并行发起。两者共用同一个 scoped `DbContext` 会撞「A second operation was started on this context instance」，因此 `NavigationViewService` 自己开 scope 取上下文。**页面里任何与布局并行的查询服务都应遵循这条**。 |
 
 **车间终端必须与 P1 同批上线，不能往后排。** 理由很直接：启用登录之后，那台公用电脑上没有任何人应该"代表全组"登录，如果届时没有白名单，上线当天班组就看不到能耗数据——这不是权限问题，是生产现场直接失去数据来源。它依赖的只是既有排班数据与只读端点，工作量不大，但漏掉的后果很明显。**该机器的地址已确认固定（2026-11-03），此前唯一的阻塞项已解除**：验收时不会出现"一会儿免登录、一会儿要登录"的现象；实施时需把实际地址写入 `Auth:Board:IpWhitelist` 并与现场机位核对一次。
+
+### 13.3 P3 / P4 实现要点
+
+配置全部落在 `Auth:Ldap` 与 `Auth:Oidc` 两节（`Security/Directory/LdapOptions.cs`、`Security/External/OidcOptions.cs`）。启动时 `AuthDataInitializer.ValidateExternalIdentityOptions()` 校验，**配置不完整直接拒绝启动**——外部认证配错的表现是「谁都登不上」，等到运行时才发现就太晚了。
+
+| 议题 | 结论 |
+|---|---|
+| LDAP 用什么包 | `System.DirectoryServices.Protocols`，不用 `System.DirectoryServices`（后者仅 Windows）。连接一律 `new LdapConnection($"{host}:{port}")` 字符串构造：`LdapDirectoryIdentifier(host, port)` 在本机回环地址上会连不上，排查成本极高。 |
+| 明文 LDAP 怎么管 | `TransportSecurity` ∈ {`None`, `Ssl`, `StartTls`}。选 `None` 时**只允许 loopback 主机**（判定用 IP 而非「是否开发环境」——`ASPNETCORE_ENVIRONMENT` 可以被误设）。StartTLS 必须在 bind 之前升级。 |
+| 过滤器注入 | 用户名拼进过滤器前做 RFC 4515 转义（`\5c \2a \28 \29 \00`）。不转义时 `(sAMAccountName=*)` 会命中目录里的第一个人，等于任意登录。 |
+| 空密码 | 必须在本地挡掉。LDAP 协议里「DN + 空密码」是一次**匿名 bind**，服务器会返回成功。 |
+| 目录密码错误怎么报 | 统一「账号或密码不正确。」，不区分「用户不存在」；**本地不累计失败次数**——AD 有自己的锁定策略，两边各锁一次会让「密码错两次」在现场表现成「账号被锁」。 |
+| 唯一键缺失 | `UniqueIdAttribute` 取不到时回退登录账号（OpenLDAP 的 `entryUUID`、AD 的 `objectGUID` 都属可能缺失项）。`DisabledFlagAttribute` 缺失或非数字**一律视为启用**，否则首轮同步会把全员停用。 |
+| 同名冲突 | 目录里的新人拿到了一个已被本地账号占用的用户名时，**不并号**：记 `user-name-conflict` 待处理项，跳过该人。合并等于把别人的历史数据交给另一个人。 |
+| 重新启用 | 目录中重新出现且本地已有绑定 → 走 update 把 `is_enabled` 翻回 true，不新建账号。前提是唯一键稳定，所以 `UniqueIdAttribute` 要选不会变的属性（`objectGUID` / `entryUUID` / `uid`，不要用 `whenChanged` 之类的动态属性）。 |
+| 同步周期 | `SyncIntervalMinutes`，默认 60；配 0 表示只在手工触发时同步（联调与演示用）。后台任务启动延迟 30 秒，单轮失败不退出循环。 |
+| OIDC 用什么实现 | 复用 `Microsoft.AspNetCore.Authentication.OpenIdConnect`：state / nonce / PKCE / 元数据缓存 / 签名校验由框架实现。每家 IdP 一个 scheme `oidc-{code}`，回调 `/api/auth/oidc/{code}/callback` **必须落在 `/api/auth` 免登录白名单内**，否则 IdP 带 code 回跳时会被当成未登录请求 302 回登录页。 |
+| `response_mode` | 框架默认 `form_post`，即 IdP 用自动提交表单把 code POST 回来。**自测时不能假设是 query 回跳**，模拟 IdP 必须实现 form_post，否则永远走不到回调。 |
+| 多 IdP 的绑定键 | `provider` 存 `oidc:{code}` 而不是 `oidc`。两家 IdP 的 `sub` 各自独立编号，只用 `oidc` 会让两家的第一个人撞成同一个账号。 |
+| 多值部门 claim | `groups` 这类 claim 一次给出全部组，**只取第一个值会把 `staff` 当成部门**。配了 `DepartmentPrefix` 就按前缀挑，挑不到再退回第一个值（让匹配失败进待处理表，而不是静默变成「无部门」）。 |
+| 部门映射的统一入口 | LDAP 与 OIDC 共用 `DepartmentCodeResolver`，按 `departments.external_code` 精确匹配；匹配不到一律进 `directory_sync_issues`，**不自动建部门**。 |
+| OIDC 建号冲突 | 同名时加 `-{providerCode}` 后缀再试，不并号。 |
+| 手工角色 | 两条通道都只刷新姓名/邮箱/部门，**从不写 `user_roles`**。已实测：把域账号改成 `technician` 后再同步 / 再登录，角色保持不变。 |
+| 界面 | 用户管理页底部新增「目录同步」区块（仅超管可见）：立即同步、最近同步时间与摘要、待处理表（中文说明 + 「怎么修」提示 + 标记已处理）。 |
+
+### 13.4 外部认证的实测记录（2026-11-03）
+
+用真实协议栈验证，不用 mock 掉认证本身：
+
+| 场景 | 环境 | 结论 |
+|---|---|---|
+| LDAP 全量同步 | OpenLDAP 容器（明文 389 → 宿主 3389）+ 三个账号（`PAPER1` / `PRINT2` / 不存在的部门） | 三个账号建号成功；两个部门按 `external_code` 正确匹配，第三个进待处理表 |
+| 域账号登录 | `zhang3` | 建号后可直接登录，落地页按部门域名计算（钞纸域 → `/`） |
+| 手工角色不被覆盖 | 把 `zhang3` 改成 `technician` 后再次同步 | 角色保持 `technician`；本轮 `unchanged=3`，证明幂等 |
+| 目录删人 | 从目录删除 `li4` 后同步 | `disabled=1`，本地记录保留、部门与角色保留；登录被拒（「该账号已停用」） |
+| 目录恢复 | 以相同的 `uid` 重新加回 | 同一记录（id 不变）重新启用，计为 update，不新建账号 |
+| 唯一键变化 | 以随机 `entryUUID` 重新加回 | 记 `user-name-conflict` 并跳过，不接管已有账号 |
+| 空目录保护 | 删光全部人员后同步 | 返回「目录未返回任何账号，已跳过停用阶段，账号保持原状」，三人全部保持启用，审计记 `result=failed` / `stage=fetch` |
+| 口令失败 | 连续 6 次错误密码后正确密码 | 全部提示「账号或密码不正确。」，第 7 次正常登录，本地未累计锁定 |
+| 空密码 | 提交空密码 | 本地拦截「请输入账号与密码。」，不会退化成匿名 bind |
+| OIDC 授权码登录 | 自建模拟 IdP（RS256 / discovery / jwks / form_post） | 两家 IdP 各自建号，落地页按部门计算，重复登录不重复建号 |
+| 第二家 IdP 仅靠配置 | 第二家用完全不同的 claim 名（`display_name` / `mail` / `upn`）与 `dept:` 前缀 | 只加配置即接入，代码零改动 |
+| OIDC 拒绝授权 / 缺 sub | `error=access_denied`、id_token 无 `sub` | 分别给出「统一登录未完成」「身份信息不完整（缺少 sub）」，不泄露英文错误码 |
+| OIDC 停用账号 | 本地停用后再次统一登录 | 被拒（「该账号已停用」） |
+| OIDC 回跳地址 | `?returnUrl=/energy-dashboard` | 登录后回到原地址，未被降级 |
+
+模拟 IdP 的两处坑记在这里，省得下次重踩：**JWKS 的 `kty: oct`（HS256）不会被接受**（症状是 `IDX10500: No security keys were provided`），必须用 RS256 发布 `n`/`e`；换签名密钥后应用缓存的元数据不会立刻更新，**要重启应用**才生效。
 
 ### 13.1 与印钞 / 能源排期的关系
 
@@ -787,6 +853,13 @@ P0 与 P1 必须一起上线：只做 P0 时所有部门都无域授权，除超
 | 车间机器 IP 漂移（DHCP 重分） | 轻则终端退回登录页，重则别人的笔记本开机即得只读会话 | **地址已确认固定（2026-11-03）**，风险已消除；仍保留会话绑定签发 IP + 固定 12 小时不滑动，作为地址万一变化的兜底（6.6） |
 | 部署到反向代理后 `X-Forwarded-For` 被伪造 | 任何人带上伪造头即可获得只读会话 | 只信任已知代理；当前直连 Kestrel 无此风险；加代理必须同批配置 `ForwardedHeaders`（6.6） |
 | 排班未导入/过期时"猜"班组 | 现场看到错误班组的数据，且无人察觉 | 默认值必须走严格解析 `TryResolveOnDutyTeam`；不命中就不给默认值，改由用户手选（6.6） |
+| LDAP 明文传输被误配到生产 | 域账号密码以明文过网 | 选 `TransportSecurity=None` 时只放行 loopback 主机，非回环地址直接拒绝启动（13.3） |
+| 同步过滤器写错导致目录返回 0 条 | 一次同步停用全平台账号，现场全员登录失败 | 读到 0 条整轮作废，跳过停用阶段并写 `failed` 审计（11.3） |
+| 用户名未转义拼进 LDAP 过滤器 | 输入 `*` 即命中目录第一人，等于任意登录 | 一律 RFC 4515 转义后再拼接（13.3） |
+| LDAP 口径的空密码被当成匿名 bind 成功 | 空密码也能登录 | 空密码在本地拦截，不下发到目录（13.3） |
+| 目录同名账号被合并 | 新人的数据挂到老账号名下，历史记录串号 | 记 `user-name-conflict` 并跳过，不自动并号（13.3） |
+| OIDC 两家 IdP 的 `sub` 撞号 | 两家的「第一个人」变成同一个平台账号 | `provider` 存 `oidc:{code}`，绑定键带提供方编码（13.3） |
+| 多值 `groups` 取第一个值 | `staff` 被当成部门，用户看不到本该有的数据 | 配了 `DepartmentPrefix` 就按前缀挑；挑不到进待处理表（13.3） |
 
 ### 14.1 已确认决策
 

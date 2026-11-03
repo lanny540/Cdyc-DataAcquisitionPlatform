@@ -678,6 +678,47 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
             : $"/api/audit-logs/export?{string.Join('&', query)}";
     }
 
+    public async Task<DirectorySyncStatusDto> GetDirectorySyncStatusAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var status = await httpClient.GetFromJsonAsync<DirectorySyncStatusDto>(
+            "/api/admin/directory", cancellationToken);
+
+        return status ?? throw new InvalidOperationException("服务端未返回目录同步状态。");
+    }
+
+    public async Task<DirectorySyncRunDto> RunDirectorySyncAsync(CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response =
+            await httpClient.PostAsync("/api/admin/directory/sync", null, cancellationToken);
+
+        await EnsureSuccessAsync(response, cancellationToken);
+
+        var result = await response.Content.ReadFromJsonAsync<DirectorySyncRunDto>(cancellationToken);
+
+        return result ?? throw new InvalidOperationException("服务端未返回同步结果。");
+    }
+
+    public async Task<bool> ResolveDirectorySyncIssueAsync(
+        Guid issueId,
+        CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await httpClient.PostAsync(
+            $"/api/admin/directory/issues/{issueId}/resolve", null, cancellationToken);
+
+        await EnsureSuccessAsync(response, cancellationToken);
+        return true;
+    }
+
+    public async Task<IReadOnlyList<OidcProviderDto>> GetOidcProvidersAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var providers = await httpClient.GetFromJsonAsync<IReadOnlyList<OidcProviderDto>>(
+            "/api/auth/providers", cancellationToken);
+
+        return providers ?? [];
+    }
+
     private static List<string> BuildAuditQuery(
         DateTimeOffset? from,
         DateTimeOffset? to,

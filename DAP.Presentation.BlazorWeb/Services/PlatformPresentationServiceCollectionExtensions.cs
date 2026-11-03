@@ -188,7 +188,9 @@ internal sealed class ServerPlatformApiClient(
     IEnergyMetricService energyMetricService,
     Security.AdminDomainService adminDomainService,
     Security.AdminUserService adminUserService,
-    Security.AdminAuditService adminAuditService) : IPlatformApiClient
+    Security.AdminAuditService adminAuditService,
+    Security.Directory.DirectorySyncService directorySyncService,
+    Microsoft.Extensions.Options.IOptions<Security.PlatformAuthOptions> authOptions) : IPlatformApiClient
 {
     public Task<DashboardOverviewDto> GetDashboardOverviewAsync(CancellationToken cancellationToken = default)
     {
@@ -606,6 +608,47 @@ internal sealed class ServerPlatformApiClient(
         return query.Count == 0
             ? "/api/audit-logs/export"
             : $"/api/audit-logs/export?{string.Join('&', query)}";
+    }
+
+    public async Task<DirectorySyncStatusDto> GetDirectorySyncStatusAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return await directorySyncService.GetStatusAsync(cancellationToken);
+    }
+
+    public Task<DirectorySyncRunDto> RunDirectorySyncAsync(CancellationToken cancellationToken = default)
+    {
+        return directorySyncService.RunAsync(null, "manual", cancellationToken);
+    }
+
+    public async Task<bool> ResolveDirectorySyncIssueAsync(
+        Guid issueId,
+        CancellationToken cancellationToken = default)
+    {
+        // 预渲染阶段拿不到 HttpContext，操作者按「系统触发」记录；
+        // 浏览器端调用走 HTTP 端点，那里能取到真实操作者。
+        AuthOperationResultDto result =
+            await directorySyncService.ResolveIssueAsync(issueId, null, cancellationToken);
+
+        if (!result.Succeeded)
+        {
+            throw new InvalidOperationException(result.ErrorMessage ?? "操作失败。");
+        }
+
+        return true;
+    }
+
+    public Task<IReadOnlyList<OidcProviderDto>> GetOidcProvidersAsync(
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<OidcProviderDto> providers = authOptions.Value.Oidc.EnabledProviders()
+            .Select(provider => new OidcProviderDto(
+                provider.Code,
+                string.IsNullOrWhiteSpace(provider.DisplayName) ? provider.Code : provider.DisplayName,
+                $"/api/auth/oidc/{provider.Code}/challenge"))
+            .ToList();
+
+        return Task.FromResult(providers);
     }
 
     /// <summary>

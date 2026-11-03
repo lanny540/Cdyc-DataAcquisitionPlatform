@@ -55,6 +55,7 @@ public sealed class AuthDataInitializer(
             await VerifySuperAdminUniquenessAsync(db, cancellationToken);
 
             ValidateBoardOptions();
+            ValidateExternalIdentityOptions();
 
             logger.LogInformation(
                 "认证数据初始化完成：页面新增 {Created}、刷新 {Updated}、保留管理员改动 {Kept}、标记下线 {Orphaned}、跳过 {Skipped}。",
@@ -77,6 +78,49 @@ public sealed class AuthDataInitializer(
     public Task StopAsync(CancellationToken cancellationToken)
     {
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// 校验外部身份源配置（docs/AUTH_DESIGN.md 11）。启用但配置不完整时**拒绝启动**：
+    /// 半配置的目录认证会让域账号登录失败，而失败现场看起来和「密码错了」一模一样，
+    /// 没人会想到是配置少了一项。
+    /// </summary>
+    private void ValidateExternalIdentityOptions()
+    {
+        IReadOnlyList<string> ldapErrors = _options.Ldap.Validate();
+
+        if (ldapErrors.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"LDAP 配置不完整，应用已停止启动：{string.Join(" ", ldapErrors)}");
+        }
+
+        IReadOnlyList<string> oidcErrors = _options.Oidc.Validate();
+
+        if (oidcErrors.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"OIDC 配置不完整，应用已停止启动：{string.Join(" ", oidcErrors)}");
+        }
+
+        if (_options.Ldap.Enabled)
+        {
+            logger.LogInformation(
+                "LDAP 已启用：{Host}:{Port}，BaseDn={BaseDn}，同步间隔 {Interval} 分钟。",
+                _options.Ldap.Host,
+                _options.Ldap.Port,
+                _options.Ldap.BaseDn,
+                _options.Ldap.SyncIntervalMinutes);
+        }
+
+        foreach (var provider in _options.Oidc.EnabledProviders())
+        {
+            logger.LogInformation(
+                "OIDC 已启用：{Code}（{Authority}），回调 {CallbackPath}。",
+                provider.Code,
+                provider.Authority,
+                provider.CallbackPath);
+        }
     }
 
     /// <summary>

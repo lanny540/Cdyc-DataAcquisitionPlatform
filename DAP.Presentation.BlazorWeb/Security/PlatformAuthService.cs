@@ -3,6 +3,7 @@ using DAP.Core.Domain.Services;
 using DAP.Core.Shared.Catalog;
 using DAP.Core.Shared.Contracts;
 using DAP.Infrastructure.DataAccess.Persistence;
+using DAP.Presentation.BlazorWeb.Security.Directory;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -41,6 +42,8 @@ public sealed class PlatformAuthService(
     DataAcquisitionPlatformDbContext db,
     IOptions<PlatformAuthOptions> options,
     TimeProvider timeProvider,
+    ILdapDirectory ldapDirectory,
+    DirectoryAccountService directoryAccounts,
     ILogger<PlatformAuthService> logger)
 {
     private readonly PlatformAuthOptions _options = options.Value;
@@ -67,19 +70,39 @@ public sealed class PlatformAuthService(
         AppUser? user = await UsersWithDetails()
             .FirstOrDefaultAsync(item => item.UserName == normalizedUserName, cancellationToken);
 
-        // 账号不存在与密码错误返回同一句：避免通过提示差异枚举账号。
-        if (user is null)
-        {
-            logger.LogWarning("登录失败：账号 {UserName} 不存在。", normalizedUserName);
-            return AuthSignInResult.Failed("账号或密码不正确。");
-        }
-
-        if (!user.IsEnabled)
+        if (user is not null && !user.IsEnabled)
         {
             logger.LogWarning("登录失败：账号 {UserName} 已停用。", normalizedUserName);
             return AuthSignInResult.Failed("该账号已停用，请联系管理员。");
         }
 
+        // 本地账号与域账号走两条不同的凭据通道：有本地密码哈希的只认本地密码，
+        // 没有的只能去目录校验——否则一个域账号只要目录里存在同名的人，就能被本地密码冒用。
+        if (user?.PasswordHash is {Length: > 0})
+        {
+            return await SignInLocalAsync(user, password, cancellationToken);
+        }
+
+        if (_options.Ldap.Enabled)
+        {
+            return await SignInWithDirectoryAsync(user, normalizedUserName, password, cancellationToken);
+        }
+
+        if (user is null)
+        {
+            // 账号不存在与密码错误返回同一句：避免通过提示差异枚举账号。
+            logger.LogWarning("登录失败：账号 {UserName} 不存在。", normalizedUserName);
+            return AuthSignInResult.Failed("账号或密码不正确。");
+        }
+
+        return AuthSignInResult.Failed("该账号为域账号，当前未启用目录认证，请联系管理员。");
+    }
+
+    private async Task<AuthSignInResult> SignInLocalAsync(
+        AppUser user,
+        string? password,
+        CancellationToken cancellationToken)
+    {
         DateTimeOffset now = timeProvider.GetUtcNow();
 
         if (user.LockoutEndAt is { } lockoutEnd && lockoutEnd > now)
@@ -92,7 +115,7 @@ public sealed class PlatformAuthService(
         {
             var locked = await RegisterFailedAttemptAsync(user, now, cancellationToken);
             logger.LogWarning("登录失败：账号 {UserName} 密码不正确，累计失败 {Count} 次。",
-                normalizedUserName, user.AccessFailedCount);
+                user.UserName, user.AccessFailedCount);
 
             return AuthSignInResult.Failed(locked
                 ? $"密码连续错误 {_options.Lockout.MaxFailedAttempts} 次，账号已锁定 {_options.Lockout.LockoutMinutes} 分钟。"
@@ -109,6 +132,56 @@ public sealed class PlatformAuthService(
         logger.LogInformation("登录成功：账号 {UserName}。", user.UserName);
 
         return AuthSignInResult.Success(dto);
+    }
+
+    /// <summary>
+    /// 域账号登录：每次登录都回目录校验一次，目录里停用的账号到不了这里
+    /// （<see cref="ILdapDirectory.AuthenticateAsync"/> 会先拒绝）。
+    ///
+    /// 失败次数不在本地累计：AD 有自己的锁定策略，两边各锁一次会让「密码错两次」
+    /// 在现场表现成「账号被锁」。
+    /// </summary>
+    private async Task<AuthSignInResult> SignInWithDirectoryAsync(
+        AppUser? user,
+        string userName,
+        string? password,
+        CancellationToken cancellationToken)
+    {
+        LdapAuthenticationResult result = await ldapDirectory.AuthenticateAsync(userName, password, cancellationToken);
+
+        if (!result.Succeeded || result.User is null)
+        {
+            // 失败原因本身已带句号，模板里不再补，否则日志会出现「。。」
+            logger.LogWarning("目录登录失败：账号 {UserName}，原因 {Reason}", userName, result.ErrorMessage);
+            return AuthSignInResult.Failed(result.ErrorMessage ?? "账号或密码不正确。");
+        }
+
+        DirectoryProvisionResult provision =
+            await directoryAccounts.EnsureUserAsync(result.User, cancellationToken);
+
+        if (!provision.Succeeded || provision.User is null)
+        {
+            logger.LogWarning("目录登录失败：账号 {UserName}，{Reason}", userName, provision.ErrorMessage);
+            return AuthSignInResult.Failed(provision.ErrorMessage ?? "域账号无法登录，请联系管理员。");
+        }
+
+        AppUser? reloaded = await UsersWithDetails()
+            .FirstOrDefaultAsync(item => item.Id == provision.User.Id, cancellationToken);
+
+        if (reloaded is null || !reloaded.IsEnabled)
+        {
+            return AuthSignInResult.Failed("该账号已停用，请联系管理员。");
+        }
+
+        DateTimeOffset now = timeProvider.GetUtcNow();
+        reloaded.LastLoginAt = now;
+        reloaded.AccessFailedCount = 0;
+        reloaded.LockoutEndAt = null;
+        reloaded.UpdatedAt = now;
+        await db.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("目录登录成功：账号 {UserName}。", reloaded.UserName);
+        return AuthSignInResult.Success(await BuildUserDtoAsync(reloaded, cancellationToken));
     }
 
     /// <summary>
@@ -192,6 +265,12 @@ public sealed class PlatformAuthService(
         if (user is null || !user.IsEnabled)
         {
             return new AuthOperationResultDto(false, "账号不存在或已停用。");
+        }
+
+        // 域账号的密码在目录里，平台这一侧没有可校验的哈希，也不该在这里改。
+        if (string.IsNullOrEmpty(user.PasswordHash))
+        {
+            return new AuthOperationResultDto(false, "域账号的密码由目录统一管理，请通过域账号修改。");
         }
 
         if (!PasswordHasher.Verify(currentPassword, user.PasswordHash))

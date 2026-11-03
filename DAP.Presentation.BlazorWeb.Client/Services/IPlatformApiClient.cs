@@ -225,4 +225,33 @@ public interface IPlatformApiClient
         string? userName,
         string? targetType,
         string? result);
+
+    /// <summary>
+    /// 查询目录同步状态与未处理的待处理项。
+    /// </summary>
+    /// <param name="cancellationToken">取消令牌。</param>
+    /// <returns>同步状态。</returns>
+    Task<DirectorySyncStatusDto> GetDirectorySyncStatusAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 手工触发一次目录全量同步。
+    /// </summary>
+    /// <param name="cancellationToken">取消令牌。</param>
+    /// <returns>同步结果。</returns>
+    Task<DirectorySyncRunDto> RunDirectorySyncAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 把一条目录同步待处理项标记为已处理。
+    /// </summary>
+    /// <param name="issueId">待处理项标识。</param>
+    /// <param name="cancellationToken">取消令牌。</param>
+    /// <returns>成功时返回 true。</returns>
+    Task<bool> ResolveDirectorySyncIssueAsync(Guid issueId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 查询可用的外部登录方式（OIDC 提供方）。
+    /// </summary>
+    /// <param name="cancellationToken">取消令牌。</param>
+    /// <returns>提供方列表；未配置时为空。</returns>
+    Task<IReadOnlyList<OidcProviderDto>> GetOidcProvidersAsync(CancellationToken cancellationToken = default);
 }

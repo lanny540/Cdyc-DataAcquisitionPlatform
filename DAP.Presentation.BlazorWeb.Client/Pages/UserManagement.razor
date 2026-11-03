@@ -134,6 +134,86 @@
             </MudTable>
         }
     </MudPaper>
+
+    @* 目录同步：只有超级管理员看得到。部门里的普通管理员不需要知道目录里还有哪些人。 *@
+    @if (_isSuperAdmin && _directoryStatus is { } directory)
+    {
+        <MudPaper Class="platform-section-card--tinted platform-accent-secondary tw-p-4" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
+                      Wrap="Wrap.Wrap" Spacing="2">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.h6">目录同步</MudText>
+                    <MudText Typo="Typo.body2">
+                        @(directory.Enabled
+                            ? "账号与部门来自目录。同步只更新姓名、邮箱、部门与启停，不会覆盖手工分配的角色。"
+                            : "目录认证未启用（Auth:Ldap:Enabled），当前只有本地账号可登录。")
+                    </MudText>
+                </MudStack>
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.Sync"
+                           Disabled="@(!directory.Enabled || _isSyncing)"
+                           OnClick="RunDirectorySyncAsync">
+                    @(_isSyncing ? "同步中…" : "立即同步")
+                </MudButton>
+            </MudStack>
+
+            @if (directory.Enabled)
+            {
+                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" Class="mt-2">
+                    <MudText Typo="Typo.body2">
+                        最近同步：@(directory.LastSyncedAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "从未同步")
+                    </MudText>
+                    @if (!string.IsNullOrWhiteSpace(directory.LastSummary))
+                    {
+                        <MudText Typo="Typo.body2" Class="platform-config-hint">@directory.LastSummary</MudText>
+                    }
+                </MudStack>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(_directoryMessage))
+            {
+                <MudAlert Severity="@_directorySeverity" Dense="true" Variant="Variant.Outlined" Class="mt-2">
+                    @_directoryMessage
+                </MudAlert>
+            }
+
+            @if (directory.Issues.Count > 0)
+            {
+                <MudText Typo="Typo.subtitle2" Class="mt-3">待处理（@directory.Issues.Count）</MudText>
+                <MudTable Items="@directory.Issues" Dense="true" Hover="true" Class="platform-data-table mt-2"
+                          Breakpoint="Breakpoint.Sm">
+                    <HeaderContent>
+                        <MudTh>问题</MudTh>
+                        <MudTh>目录中的值</MudTh>
+                        <MudTh>样例账号</MudTh>
+                        <MudTh>出现次数</MudTh>
+                        <MudTh>最近出现</MudTh>
+                        <MudTh Style="text-align: right;">操作</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="问题">
+                            <MudStack Spacing="0">
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Warning">
+                                    @DescribeIssue(context.IssueType, context.ExternalCode)
+                                </MudChip>
+                                <span class="platform-config-hint">@DescribeIssueHint(context.IssueType)</span>
+                            </MudStack>
+                        </MudTd>
+                        <MudTd DataLabel="目录中的值">@context.ExternalCode</MudTd>
+                        <MudTd DataLabel="样例账号">@(context.SampleUserName ?? "—")</MudTd>
+                        <MudTd DataLabel="出现次数">@context.Occurrences</MudTd>
+                        <MudTd DataLabel="最近出现">@context.LastSeenAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</MudTd>
+                        <MudTd Style="text-align: right;">
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Secondary"
+                                       OnClick="@(() => ResolveDirectoryIssueAsync(context.Id))">
+                                已处理
+                            </MudButton>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        </MudPaper>
+    }
 </MudStack>
 
 @* 移交超管后自动提交的登出表单：与顶栏登出走同一原生 POST 路径（电路里没有 HttpContext）。 *@

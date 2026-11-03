@@ -92,11 +92,73 @@ Web（Blazor）与跨平台桌面（Avalonia）双终端展示方案。
   Auth__BootstrapAdmin__Password='换成强口令'
   ```
 - 连续输错 5 次锁定 15 分钟（`Auth:Lockout`）。超管全局唯一，启动自检发现数量不为 1 会拒绝启动。
-- 设计基线见 [`docs/AUTH_DESIGN.md`](docs/AUTH_DESIGN.md)（三层收窄：职能域 → 页面等级 → 权限点）。**P0 / P1 / P2 均已落地**：登录认证、域授权矩阵（`/department-grants`）、页面等级与域配置（`/domain-config`）、配置类写操作审计（`audit_logs`）、领域服务授权装饰器、车间终端 IP 白名单免登录（`Auth:Board`，默认关闭）、用户与角色（`/user-management`）、系统审计（`/system-audit`）、部门管理员（`Auth:DepartmentAdmin`，默认关闭）。
+- 设计基线见 [`docs/AUTH_DESIGN.md`](docs/AUTH_DESIGN.md)（三层收窄：职能域 → 页面等级 → 权限点）。**P0 / P1 / P2 / P3 / P4 均已落地**：登录认证、域授权矩阵（`/department-grants`）、页面等级与域配置（`/domain-config`）、配置类写操作审计（`audit_logs`）、领域服务授权装饰器、车间终端 IP 白名单免登录（`Auth:Board`，默认关闭）、用户与角色（`/user-management`）、系统审计（`/system-audit`）、部门管理员（`Auth:DepartmentAdmin`，默认关闭）、LDAP / AD 对接与目录同步（`Auth:Ldap`）、OIDC 统一登录（`Auth:Oidc`）。
 - 账号与角色：账号必须对应员工个人，不得为班组设共享账号。角色变更与启停在**该用户下次登录时生效**（授权只认 Cookie 里的 claims，会话内不热切换）。超管全局唯一，更换只能走「移交超管」，移交后当前会话自动登出。
 - 部门管理员（`Auth:DepartmentAdmin:Enabled=true`，默认关闭）只能管本部门账号、只能授予「普通用户 / 技术人员」，跨部门调动与移交超管只对超管开放；越权尝试同样写入审计（`result=failed`）。
 - 审计只记录配置类写操作（排班、采集配置、域与页面、部门授权、账号与角色），不记查询与登录；默认保留 180 天，由后台任务分批清理（`Auth:Audit`）。
 - 车间公用电脑按 IP 白名单免登录：`Auth:Board:Enabled=true` 且客户端 IP 命中 `IpWhitelist`（单机地址）时自动签发只读会话，只能查看数据指标下的查看类页面；写操作与平台管理一律拒绝。
+
+## 域账号与统一登录（可选）
+
+两条外部身份通道都默认关闭，配置不完整会**拒绝启动**（一次列出全部错误），不会带病上线。
+
+**LDAP / AD**（`Auth:Ldap`）：
+
+```jsonc
+{
+  "Auth": {
+    "Ldap": {
+      "Enabled": true,
+      "Host": "dc01.cdyc.local",
+      "Port": 636,
+      "TransportSecurity": "Ssl",        // None 只允许回环地址，生产必须 Ssl 或 StartTls
+      "BindDn": "cn=svc-dap,ou=service,dc=cdyc,dc=local",
+      "BindPassword": "换成实际口令",
+      "BaseDn": "dc=cdyc,dc=local",
+      "UserFilter": "(sAMAccountName={0})",
+      "LoginAttribute": "sAMAccountName",
+      "UniqueIdAttribute": "objectGUID",  // 必须是不会变的属性
+      "DisplayNameAttribute": "displayName",
+      "DepartmentAttribute": "department", // 值为 departments.external_code
+      "SyncFilter": "(objectClass=user)",
+      "SyncIntervalMinutes": 60           // 0 = 只在手工触发时同步
+    }
+  }
+}
+```
+
+- 平台**不保存域账号密码**：登录时用用户输入的密码回目录校验一次，改密页对该类账号提示「密码由目录统一管理」。
+- 同步只更新姓名、邮箱、部门、启停，**不覆盖手工分配的角色**；目录中消失的账号只停用不删除；目录返回 0 条时整轮作废。
+- 部门按 `departments.external_code` 匹配，匹配不到**不自动建部门**，进入「用户与角色」页底部的待处理表，由超管补登记后下次同步自动归属。
+
+**OIDC**（`Auth:Oidc`，授权码 + PKCE）：
+
+```jsonc
+{
+  "Auth": {
+    "Oidc": {
+      "Enabled": true,
+      "Providers": [
+        {
+          "Code": "corp",                          // 回调路径的一部分：/api/auth/oidc/corp/callback
+          "DisplayName": "集团统一登录",
+          "Authority": "https://login.cdyc.com",
+          "ClientId": "dap-web",
+          "ClientSecret": "换成实际口令",
+          "NameClaim": "name",
+          "EmailClaim": "email",
+          "UserNameClaim": "preferred_username",
+          "DepartmentClaims": ["department"]
+        }
+      ]
+    }
+  }
+}
+```
+
+- 唯一键只用 `sub`，不用邮箱或 `preferred_username`（会变、会被回收）。
+- **新增第二家 IdP 只需加一段 `Providers`**，claim 名、部门前缀、默认角色全部可配，代码零改动。
+- 多值部门 claim（如 `groups`）配 `DepartmentPrefix` 后按前缀挑，避免把 `staff` 当成部门。
 
 ## 外部服务器配置与数据库迁移
 

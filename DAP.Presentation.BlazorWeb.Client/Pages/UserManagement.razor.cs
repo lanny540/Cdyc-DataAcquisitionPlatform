@@ -57,6 +57,11 @@ public partial class UserManagement
     private bool _isHandoverOpen;
     private Guid _handoverUserId;
 
+    private DirectorySyncStatusDto? _directoryStatus;
+    private bool _isSyncing;
+    private string? _directoryMessage;
+    private Severity _directorySeverity = Severity.Info;
+
     /// <summary>
     /// 可接任超管的账号：启用、非超管、非当前账号。
     /// </summary>
@@ -69,6 +74,92 @@ public partial class UserManagement
     {
         await ReadIdentityAsync();
         await LoadAsync();
+        await LoadDirectoryStatusAsync();
+    }
+
+    /// <summary>
+    /// 读取目录同步状态。仅超管看到这一块——部门管理员不需要知道目录里有哪些人。
+    /// 目录未启用时也不报错，只是不展示同步入口。
+    /// </summary>
+    private async Task LoadDirectoryStatusAsync()
+    {
+        if (!_isSuperAdmin)
+        {
+            return;
+        }
+
+        try
+        {
+            _directoryStatus = await Api.GetDirectorySyncStatusAsync();
+        }
+        catch (Exception ex)
+        {
+            _directoryStatus = null;
+            _directoryMessage = $"目录同步状态读取失败：{UserFacingErrors.Describe(ex)}";
+            _directorySeverity = Severity.Error;
+        }
+    }
+
+    private async Task RunDirectorySyncAsync()
+    {
+        _isSyncing = true;
+        _directoryMessage = null;
+
+        try
+        {
+            DirectorySyncRunDto result = await Api.RunDirectorySyncAsync();
+            _directoryMessage = result.Message;
+            _directorySeverity = result.Succeeded ? Severity.Success : Severity.Warning;
+
+            await LoadDirectoryStatusAsync();
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            _directoryMessage = $"目录同步失败：{UserFacingErrors.Describe(ex)}";
+            _directorySeverity = Severity.Error;
+        }
+        finally
+        {
+            _isSyncing = false;
+        }
+    }
+
+    private async Task ResolveDirectoryIssueAsync(Guid issueId)
+    {
+        try
+        {
+            await Api.ResolveDirectorySyncIssueAsync(issueId);
+            await LoadDirectoryStatusAsync();
+        }
+        catch (Exception ex)
+        {
+            _directoryMessage = $"标记已处理失败：{UserFacingErrors.Describe(ex)}";
+            _directorySeverity = Severity.Error;
+        }
+    }
+
+    /// <summary>
+    /// 待处理类型的中文说明。文案里带上「怎么修」，否则管理员只知道有问题、不知道下一步做什么。
+    /// </summary>
+    private static string DescribeIssue(string issueType, string externalCode)
+    {
+        return issueType switch
+        {
+            "department-unmatched" => $"目录部门「{externalCode}」未在平台登记",
+            "user-name-conflict" => $"目录账号「{externalCode}」与本地账号同名",
+            _ => externalCode
+        };
+    }
+
+    private static string DescribeIssueHint(string issueType)
+    {
+        return issueType switch
+        {
+            "department-unmatched" => "到「部门与授权」把该值填进部门的外部编码，下次同步即可自动归属。",
+            "user-name-conflict" => "改名本地账号或解除其与目录的绑定，系统不会自动并号。",
+            _ => string.Empty
+        };
     }
 
     private async Task ReadIdentityAsync()

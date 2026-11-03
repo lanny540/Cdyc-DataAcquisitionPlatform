@@ -587,3 +587,73 @@ public sealed class AuditLog
     /// </summary>
     public string? UserAgent { get; set; }
 }
+
+/// <summary>
+/// 表示一条目录同步待处理项。
+///
+/// 存在的理由：目录里的部门名与平台部门不是同一套编码，账号名也可能与本地账号撞车。
+/// 这两种情况都**不能自动处理**——自动建部门会让组织树随目录脏数据膨胀，
+/// 自动并号则可能把域账号挂到本地管理员身上。因此记下来由超管确认。
+/// </summary>
+public sealed class DirectorySyncIssue
+{
+    /// <summary>
+    /// 待处理类型：目录中的部门未在平台登记。
+    /// </summary>
+    public const string DepartmentUnmatched = "department-unmatched";
+
+    /// <summary>
+    /// 待处理类型：目录账号与一个未绑定目录的本地账号同名。
+    /// </summary>
+    public const string UserNameConflict = "user-name-conflict";
+
+    /// <summary>
+    /// 获取或设置标识。
+    /// </summary>
+    public Guid Id { get; set; }
+
+    /// <summary>
+    /// 获取或设置来源提供方，例如 ldap、oidc。
+    /// </summary>
+    public string Provider { get; set; } = "ldap";
+
+    /// <summary>
+    /// 获取或设置待处理类型，取值见 <see cref="DepartmentUnmatched"/> 与 <see cref="UserNameConflict"/>。
+    /// </summary>
+    public string IssueType { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 获取或设置外部标识：部门外部编码，或冲突时的账号名。
+    /// </summary>
+    public string ExternalCode { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 获取或设置样例账号名，方便管理员定位。
+    /// </summary>
+    public string? SampleUserName { get; set; }
+
+    /// <summary>
+    /// 获取或设置累计出现次数。每次同步命中同一项时递增，不重复建行。
+    /// </summary>
+    public int Occurrences { get; set; } = 1;
+
+    /// <summary>
+    /// 获取或设置首次出现时间。
+    /// </summary>
+    public DateTimeOffset FirstSeenAt { get; set; }
+
+    /// <summary>
+    /// 获取或设置最近一次出现时间。
+    /// </summary>
+    public DateTimeOffset LastSeenAt { get; set; }
+
+    /// <summary>
+    /// 获取或设置处理完成时间。为空表示仍未处理。
+    /// </summary>
+    public DateTimeOffset? ResolvedAt { get; set; }
+
+    /// <summary>
+    /// 获取或设置处理人标识。
+    /// </summary>
+    public Guid? ResolvedBy { get; set; }
+}

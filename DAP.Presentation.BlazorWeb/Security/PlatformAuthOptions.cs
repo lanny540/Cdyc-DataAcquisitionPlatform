@@ -39,6 +39,16 @@ public sealed class PlatformAuthOptions
     /// 获取或设置审计日志保留策略（docs/AUTH_DESIGN.md 9.4）。
     /// </summary>
     public AuditOptions Audit { get; set; } = new();
+
+    /// <summary>
+    /// 获取或设置 LDAP / AD 对接配置（docs/AUTH_DESIGN.md 11.1）。默认关闭。
+    /// </summary>
+    public Directory.LdapOptions Ldap { get; set; } = new();
+
+    /// <summary>
+    /// 获取或设置 OIDC 对接配置（docs/AUTH_DESIGN.md 11.2）。默认关闭。
+    /// </summary>
+    public External.OidcOptions Oidc { get; set; } = new();
 }
 
 /// <summary>

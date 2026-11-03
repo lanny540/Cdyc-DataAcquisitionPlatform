@@ -1,6 +1,8 @@
 using DAP.Core.Shared.Catalog;
 using DAP.Core.Shared.Contracts;
 using DAP.Presentation.BlazorWeb.Security;
+using DAP.Presentation.BlazorWeb.Security.Auditing;
+using DAP.Presentation.BlazorWeb.Security.Directory;
 
 namespace DAP.Presentation.BlazorWeb.Endpoints;
 
@@ -218,6 +220,47 @@ public static class AdminEndpoints
                         fileName);
                 })
             .WithName("ExportAuditLogs");
+
+        // 目录同步：状态查询与手工触发。策略沿用 action.user.manage——
+        // 「谁能管账号」与「谁能同步账号」应当是同一批人，拆成两个权限点没有实际收益。
+        RouteGroupBuilder directoryGroup = endpoints.MapGroup("/api/admin/directory")
+            .WithTags("AdminDirectory")
+            .RequirePermission(Authorization_UserManage);
+
+        directoryGroup.MapGet(
+                "/",
+                async (DirectorySyncService service, CancellationToken cancellationToken) =>
+                    Results.Ok(await service.GetStatusAsync(cancellationToken)))
+            .WithName("GetDirectorySyncStatus");
+
+        directoryGroup.MapPost(
+                "/sync",
+                async (DirectorySyncService service, ICurrentUserContext currentUser,
+                    CancellationToken cancellationToken) =>
+                {
+                    CurrentUser? actor = await currentUser.GetUserAsync(cancellationToken);
+                    DirectorySyncRunDto result = await service.RunAsync(actor, "manual", cancellationToken);
+
+                    return result.Succeeded
+                        ? Results.Ok(result)
+                        : Results.BadRequest(new {message = result.Message});
+                })
+            .WithName("RunDirectorySync");
+
+        directoryGroup.MapPost(
+                "/issues/{issueId:guid}/resolve",
+                async (Guid issueId, DirectorySyncService service, ICurrentUserContext currentUser,
+                    CancellationToken cancellationToken) =>
+                {
+                    CurrentUser? actor = await currentUser.GetUserAsync(cancellationToken);
+                    AuthOperationResultDto result =
+                        await service.ResolveIssueAsync(issueId, actor, cancellationToken);
+
+                    return result.Succeeded
+                        ? Results.NoContent()
+                        : Results.BadRequest(new {message = result.ErrorMessage});
+                })
+            .WithName("ResolveDirectorySyncIssue");
 
         return endpoints;
     }

@@ -92,6 +92,11 @@ public sealed class DataAcquisitionPlatformDbContext : DbContext
     /// </summary>
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
+    /// <summary>
+    /// 获取目录同步待处理项集合。
+    /// </summary>
+    public DbSet<DirectorySyncIssue> DirectorySyncIssues => Set<DirectorySyncIssue>();
+
 
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)

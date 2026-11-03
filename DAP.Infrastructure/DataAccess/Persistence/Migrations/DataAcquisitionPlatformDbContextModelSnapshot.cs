@@ -476,6 +476,74 @@ namespace DAP.Infrastructure.DataAccess.Persistence.Migrations
                     b.ToTable("department_domain_grants", (string)null);
                 });
 
+            modelBuilder.Entity("DAP.Core.Domain.Entities.DirectorySyncIssue", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ExternalCode")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("external_code");
+
+                    b.Property<DateTimeOffset>("FirstSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("first_seen_at");
+
+                    b.Property<string>("IssueType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("issue_type");
+
+                    b.Property<DateTimeOffset>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_seen_at");
+
+                    b.Property<int>("Occurrences")
+                        .HasColumnType("integer")
+                        .HasColumnName("occurrences");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("provider");
+
+                    b.Property<DateTimeOffset?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at");
+
+                    b.Property<Guid?>("ResolvedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resolved_by");
+
+                    b.Property<string>("SampleUserName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("sample_user_name");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LastSeenAt")
+                        .HasDatabaseName("ix_directory_sync_issues_last_seen_at");
+
+                    b.HasIndex("Provider", "IssueType", "ExternalCode")
+                        .IsUnique()
+                        .HasDatabaseName("ux_directory_sync_issues_pending")
+                        .HasFilter("resolved_at IS NULL");
+
+                    b.ToTable("directory_sync_issues", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_directory_sync_issues_external_code_not_blank", "btrim(external_code) <> ''");
+
+                            t.HasCheckConstraint("ck_directory_sync_issues_occurrences", "occurrences >= 1");
+                        });
+                });
+
             modelBuilder.Entity("DAP.Core.Domain.Entities.DomainPage", b =>
                 {
                     b.Property<Guid>("Id")

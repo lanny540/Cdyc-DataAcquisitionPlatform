@@ -1446,6 +1446,48 @@ code, pre, .platform-inline-code, .platform-timestamp, .platform-monospace {
     color: var(--platform-text-subtle);
 }
 
+/* 外部身份源（OIDC）入口：与账号密码之间加一条分隔线，避免两种登录方式看起来是同一组按钮。 */
+.platform-auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 18px 0 14px;
+    font-size: 0.75rem;
+    color: var(--platform-text-subtle);
+}
+
+.platform-auth-divider::before,
+.platform-auth-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--platform-border);
+}
+
+.platform-auth-external {
+    display: grid;
+    gap: 10px;
+}
+
+.platform-auth-external-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    border: 1px solid var(--platform-border-strong);
+    border-radius: 4px;
+    background: var(--platform-surface);
+    color: var(--md-secondary-strong);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.platform-auth-external-link:hover {
+    border-color: var(--md-secondary);
+    background: var(--md-secondary-soft);
+}
+
 .platform-auth-footer {
     font-size: 0.75rem;
     color: var(--platform-text-subtle);

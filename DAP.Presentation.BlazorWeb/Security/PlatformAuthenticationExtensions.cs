@@ -3,6 +3,8 @@ using System.Net;
 using System.Security.Claims;
 using DAP.Core.Shared.Catalog;
 using DAP.Presentation.BlazorWeb.Client.Layout;
+using DAP.Presentation.BlazorWeb.Security.Directory;
+using DAP.Presentation.BlazorWeb.Security.External;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -49,7 +51,16 @@ public static class PlatformAuthenticationExtensions
         services.AddScoped<PlatformAuthService>();
         services.AddScoped<PageAccessResolver>();
 
-        services
+        // 外部身份源（docs/AUTH_DESIGN.md 11）：LDAP 与 OIDC 都默认关闭，
+        // 关闭时这些服务仍可解析，只是不产生任何外部调用。
+        services.AddScoped<ILdapDirectory, LdapDirectoryClient>();
+        services.AddScoped<DirectoryAccountService>();
+        services.AddScoped<DirectorySyncService>();
+        services.AddScoped<DepartmentCodeResolver>();
+        services.AddScoped<OidcSignInService>();
+        services.AddHostedService<DirectorySyncScheduler>();
+
+        AuthenticationBuilder authenticationBuilder = services
             .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
             .AddCookie(options =>
             {
@@ -130,6 +141,13 @@ public static class PlatformAuthenticationExtensions
                     }
                 };
             });
+
+        // 每家 OIDC 提供方一个 scheme，全部来自配置；新增一家只加一段配置。
+        OidcOptions oidcOptions =
+            configuration.GetSection($"{PlatformAuthOptions.SectionName}:Oidc").Get<OidcOptions>()
+            ?? new OidcOptions();
+
+        authenticationBuilder.AddPlatformOidcProviders(oidcOptions);
 
         return services;
     }

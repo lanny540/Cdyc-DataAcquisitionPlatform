@@ -2,8 +2,10 @@ using System.Security.Claims;
 using DAP.Core.Shared.Catalog;
 using DAP.Core.Shared.Contracts;
 using DAP.Presentation.BlazorWeb.Security;
+using DAP.Presentation.BlazorWeb.Security.External;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.Extensions.Options;
 
 namespace DAP.Presentation.BlazorWeb.Endpoints;
 
@@ -42,7 +44,56 @@ public static class AuthEndpoints
         group.MapGet("/me", GetCurrentUserAsync)
             .WithName("AuthMe");
 
+        // 登录页需要知道有哪些外部登录方式可用。放在 /api/auth 下即处于免登录白名单内，
+        // 且只暴露显示名与编码，不含任何密钥信息。
+        group.MapGet("/providers", GetExternalProviders)
+            .WithName("AuthExternalProviders");
+
+        group.MapGet("/oidc/{code}/challenge", ChallengeOidc)
+            .WithName("AuthOidcChallenge");
+
         return endpoints;
+    }
+
+    private static IResult GetExternalProviders(IOptions<PlatformAuthOptions> options)
+    {
+        List<OidcProviderDto> providers = options.Value.Oidc.EnabledProviders()
+            .Select(provider => new OidcProviderDto(
+                provider.Code,
+                string.IsNullOrWhiteSpace(provider.DisplayName) ? provider.Code : provider.DisplayName,
+                $"/api/auth/oidc/{provider.Code}/challenge"))
+            .ToList();
+
+        return Results.Ok(providers);
+    }
+
+    /// <summary>
+    /// 发起 OIDC 授权码挑战。回跳地址随 properties 一起穿过 IdP 的往返，
+    /// 回调时再从 properties 取出来——不用 Cookie 存，避免多标签页互相覆盖。
+    /// </summary>
+    private static IResult ChallengeOidc(
+        string code,
+        string? returnUrl,
+        IOptions<PlatformAuthOptions> options)
+    {
+        OidcProviderOptions? provider = options.Value.Oidc.EnabledProviders()
+            .FirstOrDefault(item => string.Equals(item.Code, code, StringComparison.OrdinalIgnoreCase));
+
+        if (provider is null)
+        {
+            return Results.Redirect(
+                $"/login?error={Uri.EscapeDataString("该统一登录方式未启用，请使用账号密码登录。")}");
+        }
+
+        AuthenticationProperties properties = new();
+        var safeReturnUrl = PlatformReturnUrl.Resolve(returnUrl, "/");
+
+        if (!string.Equals(safeReturnUrl, "/", StringComparison.Ordinal))
+        {
+            properties.Items["returnUrl"] = safeReturnUrl;
+        }
+
+        return Results.Challenge(properties, [provider.SchemeName]);
     }
 
     private static async Task<IResult> LoginAsync(
@@ -81,7 +132,9 @@ public static class AuthEndpoints
             return Results.Redirect("/change-password");
         }
 
-        return Results.Redirect(ResolveTarget(returnUrl, await authService.ResolveLandingPageAsync(user, cancellationToken)));
+        return Results.Redirect(PlatformReturnUrl.Resolve(
+            returnUrl,
+            await authService.ResolveLandingPageAsync(user, cancellationToken)));
     }
 
     private static async Task<IResult> LogoutAsync(HttpContext httpContext)
@@ -170,32 +223,5 @@ public static class AuthEndpoints
 
         var raw = principal.FindFirst(AuthorizationCatalog.PlatformClaimTypes.UserId)?.Value;
         return Guid.TryParse(raw, out Guid userId) ? userId : null;
-    }
-
-    /// <summary>
-    /// 计算登录后的跳转目标：优先回跳原始地址，但只接受站内相对地址，避免被用作跳板。
-    /// </summary>
-    private static string ResolveTarget(string? returnUrl, string landingPage)
-    {
-        if (string.IsNullOrWhiteSpace(returnUrl))
-        {
-            return landingPage;
-        }
-
-        var candidate = returnUrl.Trim();
-
-        if (!candidate.StartsWith('/') || candidate.StartsWith("//", StringComparison.Ordinal)
-            || candidate.StartsWith("/\\", StringComparison.Ordinal))
-        {
-            return landingPage;
-        }
-
-        // 登录页与认证接口自身不能作为回跳目标，否则会形成重定向环。
-        if (candidate.StartsWith("/login", StringComparison.OrdinalIgnoreCase))
-        {
-            return landingPage;
-        }
-
-        return candidate;
     }
 }
