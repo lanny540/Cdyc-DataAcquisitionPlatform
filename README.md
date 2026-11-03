@@ -36,7 +36,7 @@ Web（Blazor）与跨平台桌面（Avalonia）双终端展示方案。
 ## 技术栈
 
 - **基础框架**: .NET 10.0
-- **Web UI**: Blazor WebAssembly / Server，全部页面统一采用 [MudBlazor](https://mudblazor.com/) 9.11 组件库（Material Design 设计体系），抽屉与对话框均使用官方 `MudDialog`（含内置遮罩、ESC 关闭与焦点管理），间距与断点直接使用 MudBlazor 内置的 `pa-*` / `mt-*` 工具类；Tailwind仅保留少量布局辅助（`tw-p-4`、`tw-break-all`），不启用 preflight 以避免覆盖 MudBlazor 基础样式。
+- **Web UI**: Blazor WebAssembly / Server，全部页面统一采用 [MudBlazor](https://mudblazor.com/) 9.12 组件库（Material Design 设计体系），抽屉与对话框均使用官方 `MudDialog`（含内置遮罩、ESC 关闭与焦点管理），间距与断点直接使用 MudBlazor 内置的 `pa-*` / `mt-*` 工具类；Tailwind仅保留少量布局辅助（`tw-p-4`、`tw-break-all`），不启用 preflight 以避免覆盖 MudBlazor 基础样式。
 - **桌面 UI**: Avalonia
   12.1，采用 [CommunityToolkit.Mvvm](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/)
   ，结合 [Semi.Avalonia](https://semi.design/) 与 [Irihi.Ursa](https://irihi.tech/) 主题，提供精致的微观交互体验。
