@@ -35,4 +35,9 @@ playwright-report/
 # 数据保护密钥环：绝对不能入库（等同 Cookie 签名私钥）
 **/data-protection-keys/
 
-/docs/
+# 截图默认不入库（体积大且随界面频繁变化），仅保留 README 引用的三张；
+# 新增需要入库的截图时，在下面追加一条对应的否定规则。
+/docs/screenshots/*
+!/docs/screenshots/digital-twin-papermachine.png
+!/docs/screenshots/park-energy-live.png
+!/docs/screenshots/park-energy-meters.png
