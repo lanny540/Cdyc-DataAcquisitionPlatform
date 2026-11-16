@@ -657,6 +657,395 @@ namespace DAP.Infrastructure.DataAccess.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("DAP.Core.Domain.Entities.EnergyMedium", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal?>("CoalFactor")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)")
+                        .HasColumnName("coal_factor");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_enabled");
+
+                    b.Property<bool>("IsPrimaryEnergy")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_primary_energy");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("unit");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("ux_energy_media_code");
+
+                    b.ToTable("energy_media", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_energy_media_coal_factor", "coal_factor is null or coal_factor >= 0");
+
+                            t.HasCheckConstraint("ck_energy_media_code_not_blank", "btrim(code) <> ''");
+
+                            t.HasCheckConstraint("ck_energy_media_name_not_blank", "btrim(name) <> ''");
+
+                            t.HasCheckConstraint("ck_energy_media_unit_not_blank", "btrim(unit) <> ''");
+                        });
+                });
+
+            modelBuilder.Entity("DAP.Core.Domain.Entities.EnergyMeter", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsCumulative")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_cumulative");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_enabled");
+
+                    b.Property<bool>("IsSummary")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_summary");
+
+                    b.Property<Guid>("MediumId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("medium_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("OrgUnitId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("org_unit_id");
+
+                    b.Property<Guid?>("ParentMeterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("parent_meter_id");
+
+                    b.Property<decimal>("Ratio")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)")
+                        .HasColumnName("ratio");
+
+                    b.Property<string>("Remark")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("remark");
+
+                    b.Property<Guid>("SystemTypeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("system_type_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UsageTypeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usage_type_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("ux_energy_meters_code");
+
+                    b.HasIndex("MediumId")
+                        .HasDatabaseName("ix_energy_meters_medium_id");
+
+                    b.HasIndex("OrgUnitId")
+                        .HasDatabaseName("ix_energy_meters_org_unit_id");
+
+                    b.HasIndex("ParentMeterId")
+                        .HasDatabaseName("ix_energy_meters_parent_meter_id");
+
+                    b.HasIndex("SystemTypeId")
+                        .HasDatabaseName("ix_energy_meters_system_type_id");
+
+                    b.HasIndex("UsageTypeId")
+                        .HasDatabaseName("ix_energy_meters_usage_type_id");
+
+                    b.ToTable("energy_meters", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_energy_meters_code_not_blank", "btrim(code) <> ''");
+
+                            t.HasCheckConstraint("ck_energy_meters_name_not_blank", "btrim(name) <> ''");
+
+                            t.HasCheckConstraint("ck_energy_meters_ratio_positive", "ratio > 0");
+                        });
+                });
+
+            modelBuilder.Entity("DAP.Core.Domain.Entities.EnergyOrgUnit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("DepartmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("department_id");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_enabled");
+
+                    b.Property<string>("Level")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("level");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("parent_id");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("ux_energy_org_units_code");
+
+                    b.HasIndex("DepartmentId")
+                        .HasDatabaseName("ix_energy_org_units_department_id");
+
+                    b.HasIndex("ParentId")
+                        .HasDatabaseName("ix_energy_org_units_parent_id");
+
+                    b.ToTable("energy_org_units", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_energy_org_units_code_not_blank", "btrim(code) <> ''");
+
+                            t.HasCheckConstraint("ck_energy_org_units_level", "level in ('park', 'department', 'process')");
+
+                            t.HasCheckConstraint("ck_energy_org_units_name_not_blank", "btrim(name) <> ''");
+
+                            t.HasCheckConstraint("ck_energy_org_units_parent_by_level", "(level = 'park' and parent_id is null) or (level <> 'park' and parent_id is not null)");
+                        });
+                });
+
+            modelBuilder.Entity("DAP.Core.Domain.Entities.EnergyReading", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("MeterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("meter_id");
+
+                    b.Property<DateTimeOffset>("ReadAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("read_at");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("source");
+
+                    b.Property<decimal>("Value")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)")
+                        .HasColumnName("value");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MeterId", "ReadAt")
+                        .IsUnique()
+                        .HasDatabaseName("ux_energy_readings_meter_read_at");
+
+                    b.ToTable("energy_readings", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_energy_readings_source", "source in ('manual', 'collection', 'import')");
+                        });
+                });
+
+            modelBuilder.Entity("DAP.Core.Domain.Entities.EnergySystemType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_enabled");
+
+                    b.Property<bool>("IsSystem")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_system");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("ux_energy_systems_code");
+
+                    b.ToTable("energy_systems", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_energy_systems_code_not_blank", "btrim(code) <> ''");
+
+                            t.HasCheckConstraint("ck_energy_systems_name_not_blank", "btrim(name) <> ''");
+                        });
+                });
+
+            modelBuilder.Entity("DAP.Core.Domain.Entities.EnergyUsageType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_enabled");
+
+                    b.Property<bool>("IsSystem")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_system");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("ux_energy_usage_types_code");
+
+                    b.ToTable("energy_usage_types", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_energy_usage_types_code_not_blank", "btrim(code) <> ''");
+
+                            t.HasCheckConstraint("ck_energy_usage_types_name_not_blank", "btrim(name) <> ''");
+                        });
+                });
+
             modelBuilder.Entity("DAP.Core.Domain.Entities.ExternalIdentity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1157,6 +1546,82 @@ namespace DAP.Infrastructure.DataAccess.Persistence.Migrations
                     b.Navigation("Domain");
                 });
 
+            modelBuilder.Entity("DAP.Core.Domain.Entities.EnergyMeter", b =>
+                {
+                    b.HasOne("DAP.Core.Domain.Entities.EnergyMedium", "Medium")
+                        .WithMany("Meters")
+                        .HasForeignKey("MediumId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_energy_meters_energy_media");
+
+                    b.HasOne("DAP.Core.Domain.Entities.EnergyOrgUnit", "OrgUnit")
+                        .WithMany("Meters")
+                        .HasForeignKey("OrgUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_energy_meters_energy_org_units");
+
+                    b.HasOne("DAP.Core.Domain.Entities.EnergyMeter", "ParentMeter")
+                        .WithMany("ChildMeters")
+                        .HasForeignKey("ParentMeterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_energy_meters_parent");
+
+                    b.HasOne("DAP.Core.Domain.Entities.EnergySystemType", "SystemType")
+                        .WithMany("Meters")
+                        .HasForeignKey("SystemTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_energy_meters_energy_systems");
+
+                    b.HasOne("DAP.Core.Domain.Entities.EnergyUsageType", "UsageType")
+                        .WithMany("Meters")
+                        .HasForeignKey("UsageTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_energy_meters_energy_usage_types");
+
+                    b.Navigation("Medium");
+
+                    b.Navigation("OrgUnit");
+
+                    b.Navigation("ParentMeter");
+
+                    b.Navigation("SystemType");
+
+                    b.Navigation("UsageType");
+                });
+
+            modelBuilder.Entity("DAP.Core.Domain.Entities.EnergyOrgUnit", b =>
+                {
+                    b.HasOne("DAP.Core.Domain.Entities.Department", null)
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_energy_org_units_departments");
+
+                    b.HasOne("DAP.Core.Domain.Entities.EnergyOrgUnit", "Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_energy_org_units_parent");
+
+                    b.Navigation("Parent");
+                });
+
+            modelBuilder.Entity("DAP.Core.Domain.Entities.EnergyReading", b =>
+                {
+                    b.HasOne("DAP.Core.Domain.Entities.EnergyMeter", "Meter")
+                        .WithMany("Readings")
+                        .HasForeignKey("MeterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_energy_readings_energy_meters");
+
+                    b.Navigation("Meter");
+                });
+
             modelBuilder.Entity("DAP.Core.Domain.Entities.ExternalIdentity", b =>
                 {
                     b.HasOne("DAP.Core.Domain.Entities.AppUser", null)
@@ -1242,6 +1707,35 @@ namespace DAP.Infrastructure.DataAccess.Persistence.Migrations
                     b.Navigation("DomainGrants");
 
                     b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("DAP.Core.Domain.Entities.EnergyMedium", b =>
+                {
+                    b.Navigation("Meters");
+                });
+
+            modelBuilder.Entity("DAP.Core.Domain.Entities.EnergyMeter", b =>
+                {
+                    b.Navigation("ChildMeters");
+
+                    b.Navigation("Readings");
+                });
+
+            modelBuilder.Entity("DAP.Core.Domain.Entities.EnergyOrgUnit", b =>
+                {
+                    b.Navigation("Children");
+
+                    b.Navigation("Meters");
+                });
+
+            modelBuilder.Entity("DAP.Core.Domain.Entities.EnergySystemType", b =>
+                {
+                    b.Navigation("Meters");
+                });
+
+            modelBuilder.Entity("DAP.Core.Domain.Entities.EnergyUsageType", b =>
+                {
+                    b.Navigation("Meters");
                 });
 
             modelBuilder.Entity("DAP.Core.Domain.Entities.Role", b =>

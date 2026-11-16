@@ -8,7 +8,9 @@
 @inject NavigationManager Nav
 @inject INavigationViewClient NavigationView
 
-<MudThemeProvider Theme="_theme"/>
+@* 全站固定深色主题：IsDarkMode 决定 MudBlazor 组件读 PaletteDark，
+   与 app.css 的深色变量、PlatformTheme.Dark 三处同源同步。 *@
+<MudThemeProvider Theme="_theme" IsDarkMode="true"/>
 <MudPopoverProvider/>
 <MudDialogProvider/>
 <MudSnackbarProvider/>

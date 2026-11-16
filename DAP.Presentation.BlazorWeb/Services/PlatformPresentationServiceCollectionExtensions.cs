@@ -1,3 +1,4 @@
+using DAP.Clients;
 using DAP.Core.Domain.Services;
 using DAP.Core.Shared.Catalog;
 using DAP.Core.Shared.Contracts;
@@ -58,6 +59,13 @@ public static class PlatformPresentationServiceCollectionExtensions
         // 否则启用登录后角色或超管缺失会让所有人进不去。
         services.AddPlatformAuthentication(configuration, environment);
         services.AddHostedService<AuthDataInitializer>();
+
+        // 能源字典（介质 / 用途 / 设备系统）只补不覆盖；失败不阻断启动。
+        services.AddHostedService<EnergyDictionaryInitializer>();
+
+        // 开发库的能源种子数据：空库时灌一次，之后不再介入。
+        // 必须排在字典初始化器之后——它依赖介质、用途、系统与园区根节点已经就绪。
+        services.AddHostedService<ParkEnergyDevDataInitializer>();
 
         // 采集服务器的地址、凭据与接口路径保存在数据库中，这里只绑定进程级运行时开关。
         services.Configure<AcquisitionServerRuntimeOptions>(
@@ -139,6 +147,9 @@ public static class PlatformPresentationServiceCollectionExtensions
             sp.GetRequiredService<IServiceScopeFactory>()));
         services.AddSingleton<TimeProvider>(TimeProvider.System);
         services.AddScoped<IEnergyMetricService, DeterministicEnergyMetricService>();
+        // 园区能源：读表聚合与外部读数接入。口径集中在 ParkEnergyAggregator，
+        // 页面、接口、报表三条路径共用同一份实现。
+        services.AddScoped<IParkEnergyQueryService, ParkEnergyQueryService>();
         services.AddScoped<IPlatformApiClient, ServerPlatformApiClient>();
         services.AddHostedService<ManagedDataCollectionScheduler>();
 
@@ -199,6 +210,7 @@ internal sealed class ServerPlatformApiClient(
     IConnectionDiagnosticsService connectionDiagnosticsService,
     IShiftSchedulingService shiftSchedulingService,
     IEnergyMetricService energyMetricService,
+    IParkEnergyQueryService parkEnergyQueryService,
     Security.AdminDomainService adminDomainService,
     Security.AdminUserService adminUserService,
     Security.AdminAuditService adminAuditService,
@@ -214,6 +226,14 @@ internal sealed class ServerPlatformApiClient(
         CancellationToken cancellationToken = default)
     {
         return (await platformService.GetCollectionPointsAsync(cancellationToken)).ToList();
+    }
+
+    public async Task<IReadOnlyList<CollectionDataRecordDto>> GetCollectionDataAsync(
+        int limit = 100,
+        CancellationToken cancellationToken = default)
+    {
+        var records = await platformService.GetCollectionDataAsync(Math.Clamp(limit, 1, 500), cancellationToken);
+        return records.ToList();
     }
 
     public Task<CollectionPointDto> UpsertCollectionPointAsync(CollectionPointUpsertRequest request,
@@ -455,6 +475,52 @@ internal sealed class ServerPlatformApiClient(
         CancellationToken cancellationToken = default)
     {
         return energyMetricService.GetComparisonAsync(granularity, date, cancellationToken);
+    }
+
+    public Task<ParkEnergyOverviewDto> GetParkEnergyOverviewAsync(
+        string period,
+        bool demo = false,
+        CancellationToken cancellationToken = default)
+    {
+        return parkEnergyQueryService.GetOverviewAsync(period, demo, cancellationToken);
+    }
+
+    public Task<EnergyDictionaryDto> GetEnergyDictionaryAsync(CancellationToken cancellationToken = default)
+    {
+        return parkEnergyQueryService.GetDictionaryAsync(cancellationToken);
+    }
+
+    public Task<IReadOnlyList<EnergyMeterDto>> GetEnergyMetersAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return parkEnergyQueryService.GetMetersAsync(cancellationToken);
+    }
+
+    public Task<EnergyMeterDto> UpsertEnergyMeterAsync(
+        EnergyMeterUpsertRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return parkEnergyQueryService.UpsertMeterAsync(request, cancellationToken);
+    }
+
+    public Task<bool> DeleteEnergyMeterAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return parkEnergyQueryService.DeleteMeterAsync(id, cancellationToken);
+    }
+
+    public Task<EnergyOrgUnitDto> UpsertEnergyOrgUnitAsync(
+        EnergyOrgUnitUpsertRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return parkEnergyQueryService.UpsertOrgUnitAsync(request, cancellationToken);
+    }
+
+    public Task<EnergyMediumDto> UpdateEnergyMediumFactorAsync(
+        Guid mediumId,
+        decimal? coalFactor,
+        CancellationToken cancellationToken = default)
+    {
+        return parkEnergyQueryService.UpdateMediumFactorAsync(mediumId, coalFactor, cancellationToken);
     }
 
     public Task<IReadOnlyList<AdminDomainDto>> GetAdminDomainsAsync(CancellationToken cancellationToken = default)

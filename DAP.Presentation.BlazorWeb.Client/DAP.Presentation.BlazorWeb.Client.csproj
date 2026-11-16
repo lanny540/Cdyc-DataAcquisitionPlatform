@@ -16,6 +16,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DAP.Core.Shared\DAP.Core.Shared.csproj"/>
+    <ProjectReference Include="..\DAP.Clients\DAP.Clients.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 平台接口契约与实现已抽到 DAP.Clients，页面与代码后置不再逐个 using。 -->
+    <Using Include="DAP.Clients"/>
   </ItemGroup>
 
   <ItemGroup>

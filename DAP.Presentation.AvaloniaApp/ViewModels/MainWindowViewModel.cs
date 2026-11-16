@@ -1,184 +1,255 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Reflection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using DAP.Presentation.AvaloniaApp.ViewModels.Pages;
+using DAP.Presentation.AvaloniaApp.Navigation;
+using DAP.Presentation.AvaloniaApp.Services;
+using DAP.Presentation.AvaloniaApp.ViewModels.Shell;
 
 namespace DAP.Presentation.AvaloniaApp.ViewModels;
 
-public partial class MainWindowViewModel : ViewModelBase
+/// <summary>
+/// 主窗口视图模型：顶栏模块切换、左侧抽屉分组导航、页面装载与账号区。
+///
+/// 导航目录只有一份（<see cref="DesktopNavigationCatalog"/>），
+/// 顶栏与抽屉都从它取数，避免两处各写一份菜单导致层级漂移。
+/// </summary>
+public sealed partial class MainWindowViewModel : ViewModelBase
 {
-    [ObservableProperty] private ViewModelBase _currentPage;
+    private readonly DesktopSession _session;
+    private readonly PageFactory _pageFactory;
+    private bool _wasAuthenticated;
 
-    [ObservableProperty] private MenuItemViewModel? _selectedTopLevelItem;
-
-    [ObservableProperty] private MenuItemViewModel? _selectedSubmenuItem;
-
-    [ObservableProperty] private string _submenuTitle = string.Empty;
-
-    [ObservableProperty] private bool _isSubmenuVisible;
-
-    [ObservableProperty] private string _topbarTitle = "设计总览";
-
-    [ObservableProperty] private string _topbarSubtitle = "Boardease Workspace";
-
-    public ObservableCollection<MenuItemViewModel> MenuItems { get; }
-
-    public ObservableCollection<MenuItemViewModel> CurrentSubmenuItems { get; } = [];
-
-    public MenuItemViewModel SettingsEntry { get; }
-
-    public IRelayCommand<MenuItemViewModel?> SelectTopLevelCommand { get; }
-
-    public IRelayCommand<MenuItemViewModel?> NavigateCommand { get; }
-
-    public MainWindowViewModel(
-        HomePageViewModel homePageViewModel,
-        MonitorPageViewModel monitorPageViewModel,
-        SettingsPageViewModel settingsPageViewModel,
-        SystemSettingsPageViewModel systemSettingsPageViewModel)
+    /// <summary>
+    /// 初始化主窗口视图模型。
+    /// </summary>
+    /// <param name="session">桌面会话。</param>
+    /// <param name="pageFactory">页面工厂。</param>
+    /// <param name="login">登录视图模型。</param>
+    public MainWindowViewModel(DesktopSession session, PageFactory pageFactory, LoginViewModel login)
     {
-        _currentPage = homePageViewModel;
-        SelectTopLevelCommand = new RelayCommand<MenuItemViewModel?>(SelectTopLevelItem);
-        NavigateCommand = new RelayCommand<MenuItemViewModel?>(NavigateTo);
+        _session = session;
+        _pageFactory = pageFactory;
+        Login = login;
 
-        MenuItems = new ObservableCollection<MenuItemViewModel>
-        {
-            new()
-            {
-                Header = "工作台",
-                Caption = "Board",
-                Icon = "M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7zm9 0h7v7h-7v-7z",
-                Command = SelectTopLevelCommand,
-                Children =
-                {
-                    new MenuItemViewModel
-                    {
-                        Header = "设计总览",
-                        Caption = "看板与关键指标",
-                        Icon = "M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7zm9 0h7v7h-7v-7z",
-                        TargetPage = homePageViewModel,
-                        Command = NavigateCommand
-                    }
-                }
-            },
-            new()
-            {
-                Header = "监控",
-                Caption = "Monitor",
-                Icon = "M5 5h14v10H5V5zm2 2v6h10V7H7zm3 10h4v2h-4v-2z",
-                Command = SelectTopLevelCommand,
-                Children =
-                {
-                    new MenuItemViewModel
-                    {
-                        Header = "实时数据监控",
-                        Caption = "查看最新采集数据",
-                        Icon = "M5 5h14v10H5V5zm2 2v6h10V7H7zm3 10h4v2h-4v-2z",
-                        TargetPage = monitorPageViewModel,
-                        Command = NavigateCommand
-                    }
-                }
-            },
-            new()
-            {
-                Header = "协作",
-                Caption = "Team",
-                Icon =
-                    "M12 12c2.21 0 4-1.79 4-4S14.21 4 12 4 8 5.79 8 8s1.79 4 4 4zm0 2c-3.31 0-6 2.24-6 5v1h12v-1c0-2.76-2.69-5-6-5z",
-                Command = SelectTopLevelCommand
-            }
-        };
+        LogoutCommand = new AsyncRelayCommand(LogoutAsync);
 
-        SettingsEntry = new MenuItemViewModel
-        {
-            Header = "设置",
-            Caption = "Settings",
-            Icon =
-                "M12 8.75A3.25 3.25 0 1 0 12 15.25A3.25 3.25 0 1 0 12 8.75M19.43 12.98C19.47 12.66 19.5 12.33 19.5 12C19.5 11.67 19.47 11.34 19.43 11.02L21.54 9.37C21.73 9.22 21.78 8.95 21.66 8.73L19.66 5.27C19.54 5.05 19.27 4.97 19.05 5.05L16.56 6.05C16.04 5.65 15.5 5.32 14.87 5.07L14.5 2.42C14.46 2.18 14.25 2 14 2H10C9.75 2 9.54 2.18 9.5 2.42L9.13 5.07C8.5 5.32 7.96 5.66 7.44 6.05L4.95 5.05C4.73 4.97 4.46 5.05 4.34 5.27L2.34 8.73C2.22 8.95 2.27 9.22 2.46 9.37L4.57 11.02C4.53 11.34 4.5 11.67 4.5 12C4.5 12.33 4.53 12.66 4.57 12.98L2.46 14.63C2.27 14.78 2.22 15.05 2.34 15.27L4.34 18.73C4.46 18.95 4.73 19.03 4.95 18.95L7.44 17.95C7.96 18.35 8.5 18.68 9.13 18.93L9.5 21.58C9.54 21.82 9.75 22 10 22H14C14.25 22 14.46 21.82 14.5 21.58L14.87 18.93C15.5 18.68 16.04 18.34 16.56 17.95L19.05 18.95C19.27 19.03 19.54 18.95 19.66 18.73L21.66 15.27C21.78 15.05 21.73 14.78 21.54 14.63L19.43 12.98Z",
-            Command = SelectTopLevelCommand
-        };
-        SettingsEntry.Children.Add(new MenuItemViewModel
-        {
-            Header = "采集设置",
-            Caption = "本地配置与同步",
-            Icon = "M4 6h16v10H4V6zm0 12h10v2H4v-2zm12 0h4v2h-4v-2z",
-            TargetPage = settingsPageViewModel,
-            Command = NavigateCommand
-        });
-        SettingsEntry.Children.Add(new MenuItemViewModel
-        {
-            Header = "系统设置",
-            Caption = "主题、版本与版权信息",
-            Icon =
-                "M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 7h10v2H7zm0 4h10v2H7zm0 4h7v2H7z",
-            TargetPage = systemSettingsPageViewModel,
-            Command = NavigateCommand
-        });
+        Modules = new ObservableCollection<NavModuleViewModel>(
+            DesktopNavigationCatalog.Modules.Select(module =>
+                new NavModuleViewModel(module, SelectModuleAsync, NavigateAsync)));
 
-        SelectTopLevelItem(MenuItems[0]);
+        _session.PropertyChanged += OnSessionPropertyChanged;
+
+        SelectModule(Modules[0]);
+
+        // 启动时先尝试用已有 Cookie 恢复会话；失败就停在登录页。
+        _ = TryRestoreSessionAsync();
     }
 
-    private void SelectTopLevelItem(MenuItemViewModel? item)
+    /// <summary>
+    /// 顶栏模块。
+    /// </summary>
+    public ObservableCollection<NavModuleViewModel> Modules { get; }
+
+    /// <summary>
+    /// 当前模块的分组。
+    /// </summary>
+    public ObservableCollection<NavGroupViewModel> CurrentGroups { get; } = [];
+
+    /// <summary>
+    /// 当前选中的模块。
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DrawerDescription))]
+    private NavModuleViewModel? _selectedModule;
+
+    /// <summary>
+    /// 当前页面。
+    /// </summary>
+    [ObservableProperty]
+    private PageViewModelBase? _currentPage;
+
+    /// <summary>
+    /// 抽屉头部说明。
+    /// </summary>
+    public string DrawerDescription => SelectedModule?.Description ?? string.Empty;
+
+    /// <summary>
+    /// 登录视图模型。
+    /// </summary>
+    public LoginViewModel Login { get; }
+
+    /// <summary>
+    /// 桌面会话（视图直接绑定其登录态与账号信息）。
+    /// </summary>
+    public DesktopSession Session => _session;
+
+    /// <summary>
+    /// 服务端地址。
+    /// </summary>
+    public string ServerAddress => _session.ServerAddress;
+
+    /// <summary>
+    /// 客户端版本。
+    /// </summary>
+    public string VersionText
     {
-        if (item is null)
+        get
+        {
+            Version? version = Assembly.GetExecutingAssembly().GetName().Version;
+
+            return version is null
+                ? "v1.0.0"
+                : $"v{version.Major}.{version.Minor}.{version.Build}";
+        }
+    }
+
+    /// <summary>
+    /// 登出命令。
+    /// </summary>
+    public IAsyncRelayCommand LogoutCommand { get; }
+
+    /// <summary>
+    /// 切换模块：重建抽屉分组，并跳到该模块的落地页。
+    /// </summary>
+    /// <param name="module">目标模块。</param>
+    private async Task SelectModuleAsync(NavModuleViewModel module)
+    {
+        if (SelectModule(module) && _session.IsAuthenticated)
+        {
+            await NavigateAsync(module.Items[0]);
+        }
+    }
+
+    /// <summary>
+    /// 切换模块的同步部分：只重建导航，不触发数据加载。
+    /// </summary>
+    /// <param name="module">目标模块。</param>
+    /// <returns>模块是否发生变化。</returns>
+    private bool SelectModule(NavModuleViewModel module)
+    {
+        var changed = !ReferenceEquals(SelectedModule, module);
+
+        foreach (NavModuleViewModel item in Modules)
+        {
+            item.IsSelected = ReferenceEquals(item, module);
+        }
+
+        SelectedModule = module;
+
+        CurrentGroups.Clear();
+
+        foreach (DesktopNavGroup group in module.Source.Groups)
+        {
+            List<NavItemViewModel> items = module.Items
+                .Where(item => group.Items.Any(source => source.PageKey == item.PageKey))
+                .ToList();
+
+            CurrentGroups.Add(new NavGroupViewModel(group.Title, items));
+        }
+
+        return changed;
+    }
+
+    /// <summary>
+    /// 导航到指定页面。
+    /// </summary>
+    /// <param name="item">目标条目。</param>
+    private async Task NavigateAsync(NavItemViewModel item)
+    {
+        DesktopNavModule module = DesktopNavigationCatalog.ResolveModule(item.PageKey);
+        NavModuleViewModel? moduleViewModel = Modules.FirstOrDefault(candidate => candidate.Id == module.Id);
+
+        if (moduleViewModel is not null && !ReferenceEquals(SelectedModule, moduleViewModel))
+        {
+            SelectModule(moduleViewModel);
+        }
+
+        foreach (NavItemViewModel candidate in Modules.SelectMany(entry => entry.Items))
+        {
+            candidate.IsSelected = string.Equals(candidate.PageKey, item.PageKey, StringComparison.Ordinal);
+        }
+
+        PageViewModelBase? previous = CurrentPage;
+        PageViewModelBase next = _pageFactory.Resolve(item.Source);
+
+        if (!ReferenceEquals(previous, next))
+        {
+            previous?.OnDeactivated();
+        }
+
+        CurrentPage = next;
+
+        await next.OnActivatedAsync();
+    }
+
+    /// <summary>
+    /// 登录态变化：登录后落到默认模块的落地页，登出后清空内容区。
+    /// </summary>
+    private void OnSessionPropertyChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName != nameof(DesktopSession.IsAuthenticated))
         {
             return;
         }
 
-        foreach (MenuItemViewModel menuItem in GetTopLevelItems())
-        {
-            menuItem.IsSelected = ReferenceEquals(menuItem, item);
-            menuItem.IsExpanded = ReferenceEquals(menuItem, item);
-        }
+        // NotifyPropertyChangedFor 只在用户对象变化时触发通知，改密刷新用户也会走到这里，
+        // 但登录态没变，不能因此重新导航一次（会把用户正在看的页面拉回落地页）。
+        var isAuthenticated = _session.IsAuthenticated;
 
-        SelectedTopLevelItem = item;
-        SubmenuTitle = item.Header;
-
-        CurrentSubmenuItems.Clear();
-        foreach (MenuItemViewModel child in item.Children)
-        {
-            child.IsSelected = false;
-            CurrentSubmenuItems.Add(child);
-        }
-
-        IsSubmenuVisible = CurrentSubmenuItems.Count > 0;
-
-        if (IsSubmenuVisible)
-        {
-            NavigateTo(CurrentSubmenuItems[0]);
-        }
-    }
-
-    private void NavigateTo(MenuItemViewModel? item)
-    {
-        if (item is null)
+        if (isAuthenticated == _wasAuthenticated)
         {
             return;
         }
 
-        SelectedSubmenuItem = item;
+        _wasAuthenticated = isAuthenticated;
 
-        foreach (MenuItemViewModel submenuItem in CurrentSubmenuItems)
+        if (isAuthenticated)
         {
-            submenuItem.IsSelected = ReferenceEquals(submenuItem, item);
+            _ = NavigateToLandingAsync();
+            return;
         }
 
-        if (item.TargetPage is not null)
-        {
-            CurrentPage = item.TargetPage;
-        }
+        CurrentPage?.OnDeactivated();
+        CurrentPage = null;
 
-        TopbarTitle = item.Header;
-        TopbarSubtitle = item.Caption;
+        foreach (NavItemViewModel item in Modules.SelectMany(module => module.Items))
+        {
+            item.IsSelected = false;
+        }
     }
 
-    private IEnumerable<MenuItemViewModel> GetTopLevelItems()
+    /// <summary>
+    /// 跳到当前模块的落地页。
+    /// </summary>
+    private async Task NavigateToLandingAsync()
     {
-        foreach (MenuItemViewModel item in MenuItems)
-        {
-            yield return item;
-        }
+        NavModuleViewModel module = SelectedModule ?? Modules[0];
 
-        yield return SettingsEntry;
+        // 登录前只做了模块选择，条目尚未标记为选中，这里统一按落地页重走一次导航。
+        await NavigateAsync(module.Items[0]);
+    }
+
+    /// <summary>
+    /// 启动时的会话恢复。
+    /// </summary>
+    private async Task TryRestoreSessionAsync()
+    {
+        await _session.TryRestoreAsync();
+    }
+
+    /// <summary>
+    /// 登出：清空 Cookie 与页面缓存状态。
+    /// </summary>
+    private async Task LogoutAsync()
+    {
+        await _session.SignOutAsync();
+
+        // 登出时先停掉页面定时器，否则会话已失效还会继续按 30 秒轮询。
+        CurrentPage?.OnDeactivated();
+        CurrentPage = null;
+        Login.NeedsPasswordChange = false;
+        Login.Message = null;
     }
 }

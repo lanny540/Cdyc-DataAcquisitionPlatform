@@ -1,0 +1,75 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:DAP.Presentation.AvaloniaApp.ViewModels.Pages"
+             x:Class="DAP.Presentation.AvaloniaApp.Views.Pages.CollectionDataPageView"
+             x:DataType="vm:CollectionDataPageViewModel">
+    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="12">
+        <Border Classes="page-hero" Background="{DynamicResource DapInfoTintBrush}">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                <StackPanel Spacing="6">
+                    <TextBlock Classes="page-title" Text="实时采集数据" />
+                    <TextBlock Classes="page-subtitle" Text="{Binding Description}" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Classes="stat-supporting" Text="{Binding SummaryText}" />
+                        <TextBlock Classes="stat-supporting" Text="·" />
+                        <TextBlock Classes="stat-supporting" Text="{Binding AutoRefreshHint}" />
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <StackPanel Spacing="3">
+                        <TextBlock Classes="field-label" Text="返回条数" />
+                        <ComboBox Classes="field" Width="110"
+                                  ItemsSource="{Binding LimitOptions}"
+                                  SelectedItem="{Binding Limit}" />
+                    </StackPanel>
+                    <StackPanel Spacing="3">
+                        <TextBlock Classes="field-label" Text="刷新频率" />
+                        <ComboBox Classes="field" Width="110"
+                                  ItemsSource="{Binding RefreshIntervalOptions}"
+                                  SelectedItem="{Binding SelectedRefreshInterval}"
+                                  IsEnabled="{Binding AutoRefreshEnabled}" />
+                    </StackPanel>
+                    <CheckBox Content="自动刷新" IsChecked="{Binding AutoRefreshEnabled}"
+                              VerticalAlignment="Bottom" />
+                    <Button Classes="Primary" Content="刷新" VerticalAlignment="Bottom"
+                            Command="{Binding RefreshCommand}"
+                            IsEnabled="{Binding IsNotLoading}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <StackPanel Grid.Row="1" Spacing="8">
+            <ProgressBar IsIndeterminate="True" Height="3" IsVisible="{Binding IsLoading}" />
+            <Border Classes="panel" Padding="12,10" IsVisible="{Binding HasMessage}"
+                    Background="{DynamicResource DapErrorSoftBrush}"
+                    BorderBrush="{DynamicResource DapErrorStrongBrush}">
+                <TextBlock Classes="table-cell" Text="{Binding Message}" TextWrapping="Wrap"
+                           Foreground="{DynamicResource DapErrorStrongBrush}" />
+            </Border>
+        </StackPanel>
+
+        <Border Grid.Row="2" Classes="panel" Padding="0" IsVisible="{Binding HasData}">
+            <DataGrid ItemsSource="{Binding Rows}" Classes="data-table" x:CompileBindings="False">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="采集点编码" Binding="{Binding PointCode}" Width="170" />
+                    <DataGridTextColumn Header="采集点名称" Binding="{Binding PointName}" Width="1.6*" />
+                    <DataGridTextColumn Header="指标名称" Binding="{Binding MetricName}" Width="1.2*" />
+                    <DataGridTextColumn Header="数值" Binding="{Binding Value}" Width="110" />
+                    <DataGridTextColumn Header="单位" Binding="{Binding Unit}" Width="90" />
+                    <DataGridTextColumn Header="采集时间" Binding="{Binding CollectedAt}" Width="170" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <Border Grid.Row="2" Classes="empty-state" Background="{DynamicResource DapSurfaceBrush}"
+                IsVisible="{Binding !HasData}">
+            <StackPanel Spacing="8" HorizontalAlignment="Center">
+                <PathIcon Data="{Binding HeaderIcon}" Width="34" Height="34"
+                          Foreground="{DynamicResource DapInfoStrongBrush}" />
+                <TextBlock Classes="empty-title" Text="暂无采集记录" HorizontalAlignment="Center" />
+                <TextBlock Classes="empty-text"
+                           Text="服务端尚未收到任何采集上报。请确认采集服务器与点位配置已启用。" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

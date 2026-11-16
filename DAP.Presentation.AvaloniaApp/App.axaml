@@ -3,8 +3,9 @@
              x:Class="DAP.Presentation.AvaloniaApp.App"
              xmlns:local="using:DAP.Presentation.AvaloniaApp"
              xmlns:semi="https://irihi.tech/semi"
-             RequestedThemeVariant="Default">
-    <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+             RequestedThemeVariant="Dark">
+    <!-- 全站固定深色主题（与 Web 端一致）：Semi 控件按 Dark variant 取色，
+         页面自绘部分通过 DapPalette 的深色画刷对齐，不再跟随系统浅色。 -->
 
     <Application.DataTemplates>
         <local:ViewLocator />
@@ -27,5 +28,7 @@
         <semi:SemiTheme Locale="zh-CN" />
         <semi:UrsaSemiTheme Locale="zh-CN" />
         <StyleInclude Source="avares://Semi.Avalonia.DataGrid/Index.axaml" />
+        <!-- 平台自有样式必须排在主题之后：同一属性后加载的样式优先，否则会被 Semi 默认值覆盖。 -->
+        <StyleInclude Source="avares://DAP.Presentation.AvaloniaApp/Themes/DapStyles.axaml" />
     </Application.Styles>
 </Application>

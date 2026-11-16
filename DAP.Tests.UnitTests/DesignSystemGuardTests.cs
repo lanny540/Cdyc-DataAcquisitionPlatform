@@ -97,15 +97,20 @@ public partial class DesignSystemGuardTests
     /// 色板可读性守卫。
     ///
     /// 之前出现过「整站看上去很素」的问题，根因不在颜色不够艳，
-    /// 而是底色层与白色表面的对比度只有 1.05~1.09 倍，肉眼几乎分辨不出，
-    /// 于是所有卡片实际都呈现为白色。这里把底线固化为断言：
+    /// 而是底色层与表面色的对比度只有 1.05~1.09 倍，肉眼几乎分辨不出，
+    /// 于是所有卡片实际都呈现为同一个颜色。这里把底线固化为断言：
     ///
     /// 1. **白字在 base 上 ≥ 4.5:1**（WCAG AA 正文级）——主按钮、徽章才读得清；
-    /// 2. **tint 与白色表面 ≥ 1.20:1**——区块底纹必须真的能被看见，否则等于没上色；
-    /// 3. **soft 与白色表面 ≥ 1.25:1**——统计卡底色用 soft 档，比区块更跳脱，
-    ///    若退回接近白色，页面上最醒目的数字区域又会变成一片白。
+    /// 2. **tint 与卡片表面 ≥ 1.20:1**——区块底纹必须真的能被看见，否则等于没上色；
+    /// 3. **soft 与卡片表面 ≥ 1.25:1**——统计卡底色用 soft 档，比区块更跳脱，
+    ///    若退回接近表面色，页面上最醒目的数字区域又会失去色彩。
     ///
-    /// 同时校验 strong 色在各自底色上 ≥ 4.5:1，保证卡片里的数字不因加深底色而看不清。
+    /// 参照表面从 app.css 的 <c>--platform-surface</c> 读取而不是硬编码白色：
+    /// 全站已切换为深色主题（深色卡片表面 #17212c），tint/soft 是「比表面亮一档」的
+    /// 深色容器，对比方向与浅色主题相反，但「底纹必须可辨」的底线不变。
+    ///
+    /// 同时校验 strong 色在各自底色上 ≥ 4.5:1，保证卡片里的数值不因底色调整而看不清。
+    /// 深色主题下 strong 是亮色强调文字，浅色主题下是加深档——职责相同、方向相反。
     /// </summary>
     [Theory]
     [InlineData("primary")]
@@ -123,26 +128,28 @@ public partial class DesignSystemGuardTests
         var strongColor = ReadCssVariable(appCss, $"--md-{role}-strong");
         var softColor = ReadCssVariable(appCss, $"--md-{role}-soft");
         var tintColor = ReadCssVariable(appCss, $"--md-{role}-tint");
+        var surfaceColor = ReadCssVariable(appCss, "--platform-surface");
 
         Assert.NotNull(baseColor);
         Assert.NotNull(strongColor);
         Assert.NotNull(softColor);
         Assert.NotNull(tintColor);
+        Assert.NotNull(surfaceColor);
 
         var whiteOnBase = ContrastRatio(baseColor!, "#ffffff");
         Assert.True(whiteOnBase >= 4.5,
             $"{role} 的 base 色 {baseColor} 上放白字对比度仅 {whiteOnBase:F2}:1，" +
             "低于 WCAG AA 的 4.5:1，主按钮与徽章文字会看不清。");
 
-        var tintOnSurface = ContrastRatio(tintColor!, "#ffffff");
+        var tintOnSurface = ContrastRatio(tintColor!, surfaceColor!);
         Assert.True(tintOnSurface >= 1.20,
-            $"{role} 的 tint 色 {tintColor} 与白色表面的对比度仅 {tintOnSurface:F2}:1，" +
+            $"{role} 的 tint 色 {tintColor} 与卡片表面 {surfaceColor} 的对比度仅 {tintOnSurface:F2}:1，" +
             "底纹肉眼无法分辨，整站会显得没有颜色。");
 
-        var softOnSurface = ContrastRatio(softColor!, "#ffffff");
+        var softOnSurface = ContrastRatio(softColor!, surfaceColor!);
         Assert.True(softOnSurface >= 1.25,
-            $"{role} 的 soft 色 {softColor} 与白色表面的对比度仅 {softOnSurface:F2}:1，" +
-            "统计卡底色会退化成白色，页面最醒目的数字区域将失去色彩。");
+            $"{role} 的 soft 色 {softColor} 与卡片表面 {surfaceColor} 的对比度仅 {softOnSurface:F2}:1，" +
+            "统计卡底色会退化成表面色，页面最醒目的数字区域将失去色彩。");
 
         var strongOnTint = ContrastRatio(strongColor!, tintColor!);
         Assert.True(strongOnTint >= 4.5,
@@ -907,9 +914,172 @@ public partial class DesignSystemGuardTests
             "新增色相前必须先更新 docs/DESIGN_SYSTEM.md 与 AGENTS.md 中的色表。");
     }
 
+    /// <summary>
+    /// 共享 API 客户端必须落在 DAP.Clients，两端共同引用。
+    ///
+    /// 曾经的形态是 Web.Client 自己持有 IPlatformApiClient，桌面端要用就得反向引用
+    /// 展示层项目（还会把 WASM 依赖带进来）。契约与 HTTP 实现属于「基础设施」，
+    /// 与任何一端 UI 无关，因此单独成项目：谁都不许再回到旧位置。
+    /// </summary>
+    [Fact]
+    public void Shared_Api_Client_Should_Live_In_Dap_Clients_Project()
+    {
+        var contracts = ReadRepoFile("DAP.Clients/IPlatformApiClient.cs");
+        Assert.Contains("namespace DAP.Clients;", contracts, StringComparison.Ordinal);
+
+        // 三块内容都在共享项目内：业务契约、HTTP 实现、认证契约
+        Assert.True(File.Exists(Path.Combine(RepoRoot(), "DAP.Clients/PlatformApiClient.cs")),
+            "缺少 DAP.Clients/PlatformApiClient.cs");
+        Assert.True(File.Exists(Path.Combine(RepoRoot(), "DAP.Clients/IPlatformAuthClient.cs")),
+            "缺少 DAP.Clients/IPlatformAuthClient.cs");
+
+        // 旧位置不得复活
+        Assert.False(File.Exists(Path.Combine(RepoRoot(),
+                "DAP.Presentation.BlazorWeb.Client/Services/IPlatformApiClient.cs")),
+            "IPlatformApiClient 已迁到 DAP.Clients，不得在 Web.Client 中重新定义");
+        Assert.False(File.Exists(Path.Combine(RepoRoot(),
+                "DAP.Presentation.AvaloniaApp/Services/PlatformApiClient.cs")),
+            "桌面端不得再维护一份 PlatformApiClient 副本");
+
+        // 两端都必须引用共享项目
+        foreach (var project in new[]
+                 {
+                     "DAP.Presentation.BlazorWeb.Client/DAP.Presentation.BlazorWeb.Client.csproj",
+                     "DAP.Presentation.AvaloniaApp/DAP.Presentation.AvaloniaApp.csproj"
+                 })
+        {
+            var csproj = ReadRepoFile(project);
+            Assert.Contains("DAP.Clients.csproj", csproj, StringComparison.Ordinal);
+        }
+
+        // 共享项目不得反向依赖展示层，也不得引用服务端实现
+        var clientCsproj = ReadRepoFile("DAP.Clients/DAP.Clients.csproj");
+        Assert.DoesNotContain("DAP.Presentation", clientCsproj, StringComparison.Ordinal);
+        Assert.DoesNotContain("DAP.Core.Infrastructure", clientCsproj, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// 桌面端 XAML 中禁止硬编码十六进制色值，颜色只能来自 DapPalette.axaml。
+    ///
+    /// 两个豁免文件是色板本身与 Semi 品牌色覆盖层：它们就是「色值的唯一落点」，
+    /// 且已被 Avalonia_Palette_Should_Match_Web_Color 校验与 Web 一致。
+    /// </summary>
+    [Fact]
+    public void Avalonia_Styles_Should_Not_Hardcode_Hex_Colors()
+    {
+        var allowList = new[]
+        {
+            Path.Combine("DAP.Presentation.AvaloniaApp", "Themes", "DapPalette.axaml"),
+            Path.Combine("DAP.Presentation.AvaloniaApp", "Themes", "SemiBrandOverride.axaml")
+        };
+
+        var offenders = new List<string>();
+
+        foreach (var file in AvaloniaXamlFiles())
+        {
+            var relative = Relative(file);
+            if (allowList.Contains(relative))
+            {
+                continue;
+            }
+
+            var lines = ReadLines(file);
+            for (var i = 0; i < lines.Length; i++)
+            {
+                var line = lines[i];
+                if (!HexColorRegex().IsMatch(line))
+                {
+                    continue;
+                }
+
+                var trimmed = line.TrimStart();
+                if (trimmed.StartsWith("<!--", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                offenders.Add($"{relative}:{i + 1}: {line.Trim()}");
+            }
+        }
+
+        Assert.True(offenders.Count == 0,
+            "桌面端样式禁止硬编码十六进制色值，请引用 DapPalette 资源里的 DynamicResource：" +
+            Environment.NewLine + string.Join(Environment.NewLine, offenders));
+    }
+
+    /// <summary>
+    /// 桌面端每个页面视图模型都必须登记在导航目录里。
+    ///
+    /// 与 Web 端 Navigation_Links_Should_Point_To_Existing_Pages 对称：
+    /// Web 端是「链接必须指向真实页面」，桌面端是「页面必须能被导航到」，
+    /// 否则写完页面却忘了挂菜单，功能等于没上线。
+    /// </summary>
+    [Fact]
+    public void Avalonia_Page_ViewModels_Should_Be_Registered_In_Navigation_Catalog()
+    {
+        var catalog = ReadRepoFile("DAP.Presentation.AvaloniaApp/Navigation/DesktopNavigationCatalog.cs");
+        var offenders = new List<string>();
+
+        foreach (var file in Directory.EnumerateFiles(
+                     Path.Combine(AvaloniaAppDir(), "ViewModels", "Pages"), "*.cs"))
+        {
+            foreach (Match match in PageViewModelRegex().Matches(ReadRepoFile(file)))
+            {
+                var name = match.Groups[1].Value;
+                if (!catalog.Contains($"typeof({name})", StringComparison.Ordinal))
+                {
+                    offenders.Add($"{Relative(file)}: {name}");
+                }
+            }
+        }
+
+        Assert.True(offenders.Count == 0,
+            "页面视图模型未登记到 DesktopNavigationCatalog，界面上将无法进入该页面：" +
+            Environment.NewLine + string.Join(Environment.NewLine, offenders));
+    }
+
+    /// <summary>
+    /// 桌面端页面视图必须与其视图模型同名配对，且 x:DataType 指向正确的类型。
+    /// 命名对不上时 Avalonia 不会报错，只是运行期绑定全部失效（整页空白）。
+    /// </summary>
+    [Fact]
+    public void Avalonia_Page_Views_Should_Pair_With_ViewModels()
+    {
+        var viewDir = Path.Combine(AvaloniaAppDir(), "Views", "Pages");
+        var vmDir = Path.Combine(AvaloniaAppDir(), "ViewModels", "Pages");
+        var offenders = new List<string>();
+
+        foreach (var file in Directory.EnumerateFiles(viewDir, "*PageView.axaml"))
+        {
+            var viewName = Path.GetFileNameWithoutExtension(file);
+            // ServerStatusPageView.axaml -> ServerStatusPageViewModel
+            var expectedVm = viewName[..^"View".Length] + "ViewModel";
+            var axaml = ReadRepoFile(Relative(file));
+
+            if (!axaml.Contains($"x:DataType=\"vm:{expectedVm}\"", StringComparison.Ordinal))
+            {
+                offenders.Add($"{Relative(file)}: 缺少 x:DataType=\"vm:{expectedVm}\"");
+            }
+
+            if (!File.Exists(Path.Combine(vmDir, $"{expectedVm}.cs")))
+            {
+                offenders.Add($"{Relative(file)}: 找不到视图模型 {expectedVm}.cs");
+            }
+        }
+
+        Assert.True(offenders.Count == 0,
+            "页面视图与视图模型必须同名配对：" +
+            Environment.NewLine + string.Join(Environment.NewLine, offenders));
+    }
+
     private static IEnumerable<string> RazorFiles()
     {
         return Directory.EnumerateFiles(RazorClientDir(), "*.razor", SearchOption.AllDirectories);
+    }
+
+    private static string AvaloniaAppDir()
+    {
+        return Path.Combine(RepoRoot(), "DAP.Presentation.AvaloniaApp");
     }
 
     private static IEnumerable<string> AvaloniaXamlFiles()
@@ -960,6 +1130,12 @@ public partial class DesignSystemGuardTests
 
     [GeneratedRegex(@"<!--.*?-->", RegexOptions.Singleline)]
     private static partial Regex XmlCommentRegex();
+
+    /// <summary>
+    /// 匹配页面视图模型类名。结尾的 \b 让抽象基类 EnergyPageViewModelBase 不会被算作页面。
+    /// </summary>
+    [GeneratedRegex(@"class\s+(\w+PageViewModel)\b")]
+    private static partial Regex PageViewModelRegex();
 
     /// <summary>
     /// 保留给后续扩展：accent 白名单校验。

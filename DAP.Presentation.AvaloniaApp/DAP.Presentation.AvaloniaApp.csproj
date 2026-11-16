@@ -18,16 +18,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="12.1.5" />
+    <PackageReference Include="Avalonia" Version="12.1.6" />
     <PackageReference Include="Avalonia.Controls.DataGrid" Version="12.1.2"/>
-    <PackageReference Include="Avalonia.Desktop" Version="12.1.5" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.5" />
-    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.5" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.6" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.6" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.6" />
     <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
     <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3"/>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2"/>
-    <PackageReference Include="Irihi.Ursa" Version="2.3.0" />
-    <PackageReference Include="Irihi.Ursa.Themes.Semi" Version="2.3.0" />
+    <PackageReference Include="Irihi.Ursa" Version="2.3.1" />
+    <PackageReference Include="Irihi.Ursa.Themes.Semi" Version="2.3.1" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.14" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.14" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.14" />
@@ -39,5 +39,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DAP.Core.Shared\DAP.Core.Shared.csproj"/>
+    <!-- 与 Web 端共用的平台接口客户端：登录、业务查询、错误消息归一化。 -->
+    <ProjectReference Include="..\DAP.Clients\DAP.Clients.csproj"/>
   </ItemGroup>
 </Project>

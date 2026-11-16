@@ -4,7 +4,7 @@
 <PageTitle>系统审计</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
-    <MudPaper Class="platform-page-hero platform-accent-warning tw-p-4" Elevation="0">
+    <MudPaper Class="platform-page-hero platform-accent-warning pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
                   Spacing="3">
             <MudStack Spacing="1">
@@ -26,7 +26,7 @@
         <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
     }
 
-    <MudPaper Class="platform-section-card--tinted platform-accent-warning tw-p-4" Elevation="0">
+    <MudPaper Class="platform-section-card--tinted platform-accent-warning pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Wrap="Wrap.Wrap" Class="mb-2">
             <MudDatePicker Label="起始日期" @bind-Date="_from" DateFormat="yyyy-MM-dd" Clearable="true"/>
             <MudDatePicker Label="截止日期" @bind-Date="_to" DateFormat="yyyy-MM-dd" Clearable="true"/>

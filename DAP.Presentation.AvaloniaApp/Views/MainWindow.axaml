@@ -1,258 +1,165 @@
 <u:UrsaWindow xmlns="https://github.com/avaloniaui"
               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
               xmlns:vm="using:DAP.Presentation.AvaloniaApp.ViewModels"
-              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+              xmlns:shell="using:DAP.Presentation.AvaloniaApp.ViewModels.Shell"
+              xmlns:views="using:DAP.Presentation.AvaloniaApp.Views"
               xmlns:u="https://irihi.tech/ursa"
-              mc:Ignorable="d"
-              d:DesignWidth="1920"
-              d:DesignHeight="1080"
               x:Class="DAP.Presentation.AvaloniaApp.Views.MainWindow"
               x:DataType="vm:MainWindowViewModel"
-              Width="1920"
-              Height="1080"
-              MinWidth="1920"
-              MinHeight="1080"
-              MaxWidth="1920"
-              MaxHeight="1080"
+              Width="1360"
+              Height="860"
+              MinWidth="1100"
+              MinHeight="700"
               Icon="/Assets/avalonia-logo.ico"
-              Background="{DynamicResource SemiColorBackground0}"
-              Title="CDYC 数据采集平台客户端">
+              Background="{DynamicResource DapPageBackgroundBrush}"
+              Title="CDYC 数据采集平台 · 数据查看客户端">
 
-    <Design.DataContext>
-        <vm:MainWindowViewModel />
-    </Design.DataContext>
+    <Grid>
+        <!-- 主壳：登录后才显示 -->
+        <Grid RowDefinitions="Auto,*" IsVisible="{Binding Session.IsAuthenticated}">
+            <!-- 顶栏：品牌 / 模块 / 账号 -->
+            <Border Grid.Row="0"
+                    Background="{DynamicResource DapSurfaceBrush}"
+                    BorderBrush="{DynamicResource DapBorderBrush}"
+                    BorderThickness="0,0,0,1">
+                <!-- macOS 系统交通灯绘制在窗口内容区左上角，品牌区必须让位，
+                     否则 logo 与关闭按钮重叠（UrsaWindow 默认延伸内容区）。
+                     Windows / Linux 的按钮在标题栏右侧，无需留白。 -->
+                <Border.Padding>
+                    <OnPlatform x:TypeArguments="Thickness" Default="20,10">
+                        <On Options="macOS">86,10,20,10</On>
+                    </OnPlatform>
+                </Border.Padding>
+                <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="18">
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <Border Width="30" Height="30" CornerRadius="8"
+                                Background="{DynamicResource DapPrimaryBrush}">
+                            <TextBlock Text="C" FontSize="16" FontWeight="Bold"
+                                       Foreground="{DynamicResource DapSurfaceBrush}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel Spacing="0" VerticalAlignment="Center">
+                            <TextBlock Text="CDYC 数据平台" FontSize="15" FontWeight="Bold"
+                                       Foreground="{DynamicResource DapTextPrimaryBrush}" />
+                            <TextBlock Text="数据查看 · 报表查询" FontSize="11"
+                                       Foreground="{DynamicResource DapTextSubtleBrush}" />
+                        </StackPanel>
+                    </StackPanel>
 
-    <u:UrsaWindow.Styles>
-        <Style Selector="Button.rail-button">
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Background" Value="Transparent" />
-        </Style>
+                    <ItemsControl Grid.Column="1" ItemsSource="{Binding Modules}" VerticalAlignment="Center">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="4" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="shell:NavModuleViewModel">
+                                <Button Classes="module-button"
+                                        Classes.active="{Binding IsSelected}"
+                                        Content="{Binding Title}"
+                                        Command="{Binding SelectCommand}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
 
-        <Style Selector="Button.submenu-button">
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Background" Value="Transparent" />
-        </Style>
-
-        <Style Selector="Border.rail-item-surface">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderBrush" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="1" />
-        </Style>
-
-        <Style Selector="Border.rail-item-surface:pointerover">
-            <Setter Property="Background" Value="{DynamicResource SemiColorBackground3}" />
-        </Style>
-
-        <Style Selector="Border.rail-item-surface.active">
-            <Setter Property="Background" Value="{DynamicResource SemiColorPrimaryLight}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource SemiColorPrimary}" />
-        </Style>
-
-        <Style Selector="Border.submenu-item-surface">
-            <Setter Property="BorderBrush" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="5,0,0,0" />
-            <Setter Property="Background" Value="Transparent" />
-        </Style>
-
-        <Style Selector="Border.submenu-item-surface:pointerover">
-            <Setter Property="Background" Value="{DynamicResource SemiColorBackground3}" />
-        </Style>
-
-        <Style Selector="Border.submenu-item-surface.active">
-            <Setter Property="BorderBrush" Value="{DynamicResource SemiColorPrimary}" />
-            <Setter Property="Background" Value="{DynamicResource SemiColorPrimaryLight}" />
-        </Style>
-
-        <Style Selector="PathIcon.submenu-icon">
-            <Setter Property="Foreground" Value="{DynamicResource SemiColorText2}" />
-        </Style>
-
-        <Style Selector="PathIcon.submenu-icon.active">
-            <Setter Property="Foreground" Value="{DynamicResource SemiColorPrimary}" />
-        </Style>
-
-        <Style Selector="TextBlock.submenu-text">
-            <Setter Property="Foreground" Value="{DynamicResource SemiColorText0}" />
-        </Style>
-
-        <Style Selector="TextBlock.submenu-text.active">
-            <Setter Property="Foreground" Value="{DynamicResource SemiColorPrimary}" />
-        </Style>
-    </u:UrsaWindow.Styles>
-
-    <Border Background="{DynamicResource SemiColorBackground0}" Padding="0">
-        <Grid RowDefinitions="Auto,*" RowSpacing="0">
-            <Border x:Name="TopDragBar"
-                    Background="{DynamicResource SemiColorBackground1}"
-                    BorderThickness="0,0,0,3"
-                    Padding="22,10"
-                    BorderBrush="#F59E0B"
-                    PointerPressed="TopDragBar_OnPointerPressed">
-                <Grid ColumnDefinitions="130,*,130">
-                    <Border />
-
-                    <TextBlock Grid.Column="1"
-                               Text="CDYC Data Studio"
-                               FontSize="16"
-                               FontWeight="Bold"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"
-                               Foreground="{DynamicResource SemiColorText0}" />
-
-                    <Border Grid.Column="2" />
+                    <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="12"
+                                VerticalAlignment="Center">
+                        <StackPanel Spacing="0" HorizontalAlignment="Right">
+                            <TextBlock Text="{Binding Session.UserDisplayName}" FontSize="13"
+                                       FontWeight="SemiBold" HorizontalAlignment="Right"
+                                       Foreground="{DynamicResource DapTextPrimaryBrush}" />
+                            <TextBlock Text="{Binding Session.UserRoleText}" FontSize="11"
+                                       HorizontalAlignment="Right"
+                                       Foreground="{DynamicResource DapTextSubtleBrush}" />
+                        </StackPanel>
+                        <Button Classes="ghost" Content="登出" Command="{Binding LogoutCommand}" />
+                    </StackPanel>
                 </Grid>
             </Border>
 
-            <Grid Grid.Row="1" ColumnDefinitions="92,Auto,*" ColumnSpacing="0">
-                <Border Grid.Column="0"
-                        Background="{DynamicResource SemiColorBackground0}"
-                        BorderBrush="{DynamicResource SemiColorBorder}"
-                        BorderThickness="1"
-                        CornerRadius="0"
-                        Padding="8,14">
-                    <Grid RowDefinitions="*,Auto">
-                        <ItemsControl Grid.Row="0"
-                                      Margin="0"
-                                      ItemsSource="{Binding MenuItems}">
+            <!-- 抽屉 + 内容 -->
+            <Grid Grid.Row="1" ColumnDefinitions="238,*">
+                <Border Background="{DynamicResource DapSurfaceBrush}"
+                        BorderBrush="{DynamicResource DapBorderBrush}"
+                        BorderThickness="0,0,1,0"
+                        Padding="14,16">
+                    <Grid RowDefinitions="Auto,*,Auto" RowSpacing="14">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="{Binding SelectedModule.Title}" FontSize="13"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource DapTextPrimaryBrush}" />
+                            <TextBlock Text="{Binding DrawerDescription}" FontSize="12"
+                                       TextWrapping="Wrap"
+                                       Foreground="{DynamicResource DapTextSubtleBrush}" />
+                        </StackPanel>
+
+                        <ItemsControl Grid.Row="1" ItemsSource="{Binding CurrentGroups}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
-                                    <StackPanel Spacing="12" />
+                                    <StackPanel Spacing="14" />
                                 </ItemsPanelTemplate>
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
-                                <DataTemplate DataType="vm:MenuItemViewModel">
-                                    <Button Classes="rail-button"
-                                            HorizontalContentAlignment="Stretch"
-                                            Command="{Binding Command}"
-                                            CommandParameter="{Binding}">
-                                        <Border Classes="rail-item-surface"
-                                                Classes.active="{Binding IsSelected}"
-                                                CornerRadius="0"
-                                                Padding="0,12">
-                                            <Grid Width="76"
-                                                  RowDefinitions="32,Auto"
-                                                  RowSpacing="8"
-                                                  HorizontalAlignment="Center">
-                                                <PathIcon Width="26"
-                                                          Height="26"
-                                                          HorizontalAlignment="Center"
-                                                          VerticalAlignment="Center"
-                                                          Foreground="{DynamicResource SemiColorText2}"
-                                                          Data="{Binding Icon}" />
-                                                <TextBlock Grid.Row="1"
-                                                           Width="76"
-                                                           Text="{Binding Header}"
-                                                           TextAlignment="Center"
-                                                           FontSize="12"
-                                                           FontWeight="SemiBold"
-                                                           Foreground="{DynamicResource SemiColorText0}" />
-                                            </Grid>
-                                        </Border>
-                                    </Button>
+                                <DataTemplate x:DataType="shell:NavGroupViewModel">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="{Binding Title}" FontSize="11"
+                                                   Margin="8,0,0,0"
+                                                   Foreground="{DynamicResource DapTextSubtleBrush}" />
+                                        <ItemsControl ItemsSource="{Binding Items}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="shell:NavItemViewModel">
+                                                    <Button Classes="nav-button"
+                                                            Command="{Binding SelectCommand}">
+                                                        <Border Classes="nav-item"
+                                                                Classes.active="{Binding IsSelected}">
+                                                            <Grid ColumnDefinitions="4,18,*" ColumnSpacing="10">
+                                                                <Border Classes="accent-bar"
+                                                                        Background="{DynamicResource DapPrimaryBrush}"
+                                                                        IsVisible="{Binding IsSelected}" />
+                                                                <PathIcon Grid.Column="1"
+                                                                          Classes="nav-icon"
+                                                                          Classes.active="{Binding IsSelected}"
+                                                                          Foreground="{Binding IconBrush}"
+                                                                          Data="{Binding Icon}" />
+                                                                <TextBlock Grid.Column="2"
+                                                                           Classes="nav-text"
+                                                                           Classes.active="{Binding IsSelected}"
+                                                                           Text="{Binding Title}"
+                                                                           VerticalAlignment="Center" />
+                                                            </Grid>
+                                                        </Border>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
 
-                        <Button Grid.Row="1"
-                                Classes="rail-button"
-                                HorizontalAlignment="Stretch"
-                                HorizontalContentAlignment="Stretch"
-                                Command="{Binding SettingsEntry.Command}"
-                                CommandParameter="{Binding SettingsEntry}">
-                            <Border Classes="rail-item-surface"
-                                    Classes.active="{Binding SettingsEntry.IsSelected}"
-                                    CornerRadius="0"
-                                    Padding="0,12">
-                                <Grid Width="76"
-                                      RowDefinitions="32,Auto"
-                                      RowSpacing="8"
-                                      HorizontalAlignment="Center">
-                                    <PathIcon Width="26"
-                                              Height="26"
-                                              HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"
-                                              Foreground="{DynamicResource SemiColorText2}"
-                                              Data="{Binding SettingsEntry.Icon}" />
-                                    <TextBlock Grid.Row="1"
-                                               Width="76"
-                                               Text="{Binding SettingsEntry.Header}"
-                                               TextAlignment="Center"
-                                               FontSize="12"
-                                               FontWeight="SemiBold"
-                                               Foreground="{DynamicResource SemiColorText0}" />
-                                </Grid>
-                            </Border>
-                        </Button>
+                        <StackPanel Grid.Row="2" Spacing="3">
+                            <Border Classes="divider" Margin="0,0,0,6" />
+                            <TextBlock Text="{Binding ServerAddress}" FontSize="11"
+                                       Foreground="{DynamicResource DapTextSubtleBrush}" />
+                            <TextBlock Text="{Binding VersionText}" FontSize="11"
+                                       Foreground="{DynamicResource DapTextSubtleBrush}" />
+                            <TextBlock Text="只读客户端：配置与写入请在 Web 端操作" FontSize="11"
+                                       TextWrapping="Wrap"
+                                       Foreground="{DynamicResource DapTextSubtleBrush}" />
+                        </StackPanel>
                     </Grid>
                 </Border>
 
-                <Border Grid.Column="1"
-                        Width="180"
-                        IsVisible="{Binding IsSubmenuVisible}"
-                        Background="{DynamicResource SemiColorBackground1}"
-                        BorderBrush="{DynamicResource SemiColorBorder}"
-                        BorderThickness="1"
-                        CornerRadius="0"
-                        Padding="10,18">
-                    <ItemsControl ItemsSource="{Binding CurrentSubmenuItems}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <StackPanel Spacing="4" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="vm:MenuItemViewModel">
-                                <Button Classes="submenu-button"
-                                        HorizontalAlignment="Stretch"
-                                        HorizontalContentAlignment="Stretch"
-                                        Command="{Binding Command}"
-                                        CommandParameter="{Binding}">
-                                    <Border Classes="submenu-item-surface"
-                                            Classes.active="{Binding IsSelected}"
-                                            HorizontalAlignment="Stretch"
-                                            Padding="14,12">
-                                        <Grid HorizontalAlignment="Stretch"
-                                              ColumnDefinitions="20,*"
-                                              ColumnSpacing="12">
-                                            <PathIcon Classes="submenu-icon"
-                                                      Classes.active="{Binding IsSelected}"
-                                                      Width="16"
-                                                      Height="16"
-                                                      HorizontalAlignment="Left"
-                                                      VerticalAlignment="Center"
-                                                      Data="{Binding Icon}" />
-                                            <TextBlock Grid.Column="1"
-                                                       Classes="submenu-text"
-                                                       Classes.active="{Binding IsSelected}"
-                                                       Text="{Binding Header}"
-                                                       FontSize="14"
-                                                       FontWeight="SemiBold"
-                                                       HorizontalAlignment="Left"
-                                                       TextAlignment="Left"
-                                                       VerticalAlignment="Center"
-                                                       TextTrimming="CharacterEllipsis"
-                                                       ToolTip.Tip="{Binding Header}" />
-                                        </Grid>
-                                    </Border>
-                                </Button>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </Border>
-
-                <Border Grid.Column="2"
-                        Background="{DynamicResource SemiColorBackground0}"
-                        BorderBrush="{DynamicResource SemiColorBorder}"
-                        BorderThickness="1"
-                        CornerRadius="0"
-                        Padding="18"
-                        BoxShadow="0 20 60 0 #160F172A">
-                    <TransitioningContentControl Content="{Binding CurrentPage}" />
+                <Border Grid.Column="1" Padding="20,18">
+                    <ContentControl Content="{Binding CurrentPage}" />
                 </Border>
             </Grid>
         </Grid>
-    </Border>
+
+        <!-- 登录浮层 -->
+        <Grid IsVisible="{Binding !Session.IsAuthenticated}"
+              Background="{DynamicResource DapPageBackgroundBrush}">
+            <views:LoginView DataContext="{Binding Login}" />
+        </Grid>
+    </Grid>
 </u:UrsaWindow>

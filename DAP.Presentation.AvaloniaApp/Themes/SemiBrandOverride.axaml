@@ -4,7 +4,7 @@
   统一品牌色板 · Semi.Avalonia 覆盖层
 
   将 Semi 主题的默认色（默认亮蓝 #0064fa / 绿 / 橙 / 红）替换为
-  与 Web 端 app.css 完全一致的品牌色板，保证双终端视觉统一。
+  与 Web 端 app.css 完全一致的品牌色板，保证双终端视觉统一。全站采用深色主题。
 
   覆盖的 10 个键均已核实存在于 Semi.Avalonia 12.1.0.1 的调色板中
   （avares://Semi.Avalonia/Tokens/Palette/Light.axaml）。
@@ -35,11 +35,11 @@
     <!-- Link / Info：#0F6FBD -->
     <SolidColorBrush x:Key="SemiColorLink" Color="#0F6FBD" />
 
-    <!-- 中性色阶：与 Web 端 platform 中性色变量对齐 -->
-    <SolidColorBrush x:Key="SemiColorFill0" Color="#16202B" />
-    <SolidColorBrush x:Key="SemiColorText0" Color="#16202B" />
-    <SolidColorBrush x:Key="SemiColorText1" Color="#4E5A70" />
-    <SolidColorBrush x:Key="SemiColorBorder" Color="#C7D0DA" />
-    <SolidColorBrush x:Key="SemiColorBackground0" Color="#F4F7FA" />
+    <!-- 中性色阶：与 Web 端深色 platform 中性变量对齐（深色主题下越浮越亮） -->
+    <SolidColorBrush x:Key="SemiColorFill0" Color="#17212C" />
+    <SolidColorBrush x:Key="SemiColorText0" Color="#E6EDF5" />
+    <SolidColorBrush x:Key="SemiColorText1" Color="#A7B6C8" />
+    <SolidColorBrush x:Key="SemiColorBorder" Color="#42576E" />
+    <SolidColorBrush x:Key="SemiColorBackground0" Color="#0E151D" />
 
 </ResourceDictionary>

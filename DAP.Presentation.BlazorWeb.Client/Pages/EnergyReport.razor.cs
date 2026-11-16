@@ -48,6 +48,27 @@ public partial class EnergyReport
     private decimal[] _metricTotals = [];
 
     /// <summary>
+    /// 自动刷新开关。默认关闭：报表一次要按班组并发查询多份历史，常驻刷新成本最高，
+    /// 更应由用户显式打开。
+    /// </summary>
+    private bool _autoRefreshEnabled;
+
+    /// <summary>
+    /// 自动刷新间隔（秒）。
+    /// </summary>
+    private int _refreshIntervalSeconds = 60;
+
+    /// <summary>
+    /// 最近一次成功加载时间，用于「数据截至 HH:mm:ss」。
+    /// </summary>
+    private DateTimeOffset? _lastUpdatedAt;
+
+    /// <summary>
+    /// 是否正在静默刷新：与首载遮罩分开，静默刷新不清空已生成的报表。
+    /// </summary>
+    private bool _isRefreshing;
+
+    /// <summary>
     /// 报表概览卡。数值在代码后置里格式化成字符串：Razor 里的嵌套插值不会求值。
     /// </summary>
     private SummaryCard[] SummaryCards =>
@@ -65,10 +86,39 @@ public partial class EnergyReport
         await LoadAsync();
     }
 
-    private async Task LoadAsync()
+    /// <summary>
+    /// 首载与手动生成：显示整页遮罩，失败时清空结果。
+    /// </summary>
+    private Task LoadAsync()
     {
-        _isLoading = true;
-        _message = null;
+        return LoadInternalAsync(silent: false);
+    }
+
+    /// <summary>
+    /// 定时刷新：不换遮罩、保留上一份报表，失败只出一条警告提示。
+    /// </summary>
+    private Task RefreshSilentlyAsync()
+    {
+        return LoadInternalAsync(silent: true);
+    }
+
+    /// <param name="silent">true 表示定时触发的静默刷新。</param>
+    private async Task LoadInternalAsync(bool silent)
+    {
+        if (silent && (_isLoading || _isRefreshing))
+        {
+            return;
+        }
+
+        if (silent)
+        {
+            _isRefreshing = true;
+        }
+        else
+        {
+            _isLoading = true;
+            _message = null;
+        }
 
         try
         {
@@ -79,9 +129,16 @@ public partial class EnergyReport
 
             if (teams.Length == 0)
             {
-                ResetResult();
+                // 静默刷新时保留上一份报表：排班被清空是可解释的业务状态，
+                // 但定时器不该替用户把已经看过的数据抹掉。
+                if (!silent)
+                {
+                    ResetResult();
+                }
+
                 _message = "尚未导入班组排班数据，无法生成报表。请先在「业务配置 → 排班时间管理」中导入排班表。";
                 _messageSeverity = Severity.Info;
+                _lastUpdatedAt = DateTimeOffset.Now;
                 return;
             }
 
@@ -90,16 +147,31 @@ public partial class EnergyReport
 
             BuildRows(histories);
             _rangeLabel = $"{from:yyyy-MM-dd} ~ {to:yyyy-MM-dd}";
+            _lastUpdatedAt = DateTimeOffset.Now;
+            _message = null;
         }
         catch (Exception ex)
         {
-            ResetResult();
-            _message = $"报表生成失败：{UserFacingErrors.Describe(ex)}";
-            _messageSeverity = Severity.Error;
+            if (!silent)
+            {
+                ResetResult();
+            }
+
+            _message = silent
+                ? $"自动刷新未成功，页面仍显示上次生成的报表：{UserFacingErrors.Describe(ex)}"
+                : $"报表生成失败：{UserFacingErrors.Describe(ex)}";
+            _messageSeverity = silent ? Severity.Warning : Severity.Error;
         }
         finally
         {
-            _isLoading = false;
+            if (silent)
+            {
+                _isRefreshing = false;
+            }
+            else
+            {
+                _isLoading = false;
+            }
         }
     }
 

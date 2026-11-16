@@ -34,3 +34,5 @@ playwright-report/
 
 # 数据保护密钥环：绝对不能入库（等同 Cookie 签名私钥）
 **/data-protection-keys/
+
+/docs/

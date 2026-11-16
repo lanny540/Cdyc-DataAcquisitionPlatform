@@ -7,6 +7,62 @@ Web（Blazor）与跨平台桌面（Avalonia）双终端展示方案。
 
 系统离线部署能力，并且在架构上充分考虑了分布式环境下的高可用性与负载均衡场景。
 
+### 界面预览：钞纸机数字孪生
+
+能耗仪表板页提供「数据看板 / 数字孪生」两个视图。孪生视图是一张等轴测的车间三维示意图：
+地坪上按物料流向排开备浆（浆包、水力碎浆机、双盘磨、成浆池）、湿部（流浆箱、成形网案、压榨辊组）、
+干部（烘缸组与烘罩、四辊压光、卷取与纸卷），纸幅从流浆箱唇口一路连到卷取，管线串联各段，
+每个工位上方用虚线引线挂一块实时读数。
+
+视角固定，不提供旋转与缩放——现场需要的是一眼看清产线走到哪一段、哪个点位异常，而不是一台可操控的模型。
+设备不是贴图，而是由三维坐标里的长方体与圆柱投影出来的 SVG（`Client/Components/IsoScene.cs`），
+因此离线可用、任意宽度下都不糊。
+
+数值当前为 5 秒节拍的**确定性模拟数据**（`Client/Components/PaperMachineSimulator.cs`），
+用于界面联调；接入真实工况后替换该模拟器即可，界面结构不需要改。
+
+![钞纸机数字孪生视图](docs/screenshots/digital-twin-papermachine.png)
+
+### 界面预览：园区能源
+
+顶栏「能源」是**园区级**板块，与钞纸的班组能耗是两套视角：钞纸看工序（班组 × 四项指标 × 班次），
+能源看经营（介质 × 组织 × 用途 × 系统）。同一份读数按这四个维度打标，就能按用途看构成、
+按组织看排名、按系统看分项，不需要重复采集。
+
+![园区能源总览](docs/screenshots/park-energy-live.png)
+
+数据链路：
+
+| 接口 | 用途 |
+|---|---|
+| `GET /api/park-energy/overview?period=month\|year` | 总览快照：指标卡、当日负荷、一次能源构成、部门占比 |
+| `GET /api/park-energy/dictionary` | 介质 / 用途 / 设备系统 / 组织节点，打标用 |
+| `POST /api/park-energy/readings` | 外部能源平台批量推送读数，按「编码 + 抄见时刻」幂等 |
+| `GET/POST/DELETE /api/park-energy/meters` | 计量点台账维护 |
+
+推送示例（累计表填示数，流量计填**本区间用量**，不是瞬时速率）：
+
+```json
+{
+  "readings": [
+    { "meterCode": "ELEC-PAPER", "readAt": "2026-11-14T20:00:00+08:00", "value": 2711000 },
+    { "meterCode": "WATER-PARK", "readAt": "2026-11-14T20:00:00+08:00", "value": 131200 }
+  ]
+}
+```
+
+口径：综合能耗只汇总一次能源（电、水、蒸汽），按 GB/T 2589 当量值折标；累计表按期间首末示数差
+计算用量，基线取期间起点之前最后一次抄见；压缩空气与空调制冷量作为分项，不重复计入。
+介质缺折标系数（例如蒸汽按焓值取值）时实物量照常展示但不进总量，页面上会明确提示。
+
+开发环境首次启动会自动灌入一套种子数据（11 块计量点、两个年度的读数），走的是与正式环境相同的
+聚合链路，页面按实测口径渲染，台账与读数都能直接改。种子只在空库时执行一次；想重灌，清空
+`energy_readings` 与 `energy_meters` 后重启即可，开关是 `Energy:SeedDevData`。若只想看版式，
+页面仍提供「用示例数据预览版式」入口，示例数据带 `sample` 标记，页头有醒目提示，不会与实测数据混淆。
+台账、组织节点与折标系数在 `/park-energy/meters` 维护。
+
+![能源计量点台账](docs/screenshots/park-energy-meters.png)
+
 ## 架构设计
 
 项目严格遵循领域驱动设计（DDD）和整洁架构规范，以保证高内聚和低耦合。
@@ -15,19 +71,24 @@ Web（Blazor）与跨平台桌面（Avalonia）双终端展示方案。
 - **混合持久化方案 (CQRS 思想)**：
     - **写入与复杂事务**：使用 **Entity Framework Core**（搭配 PostgreSQL）处理强一致性的复杂写入操作。
     - **只读与高性能查询**：使用 **Dapper** 编写原生 SQL，满足报表统计与高并发查询的性能要求。
-- **离线与边缘计算支持**：Web 端静态资源本地化（无需外部 CDN），桌面端内置 SQLite 进行离线数据同步与配置存储。
+- **双终端，一套接口契约**：Web 与桌面端共用 `DAP.Clients` 里的 API 契约与 HTTP 实现，差异只在凭据传递方式（浏览器自动带 Cookie，桌面端持有 `CookieContainer`）。
+- **分工明确**：Web 端是唯一的「管理与配置入口」；桌面端是**只读数据查看 + 报表查询**客户端，不承载配置、写入与权限管理。
+- **离线与边缘计算支持**：Web 端静态资源本地化（无需外部 CDN），现场断网时页面仍可打开，数据请求由宿主给出中文错误提示。
 
 ## 项目结构
 
 ```text
 ├── DAP.Core.Domain                 # 核心层：领域实体、业务接口规范
 ├── DAP.Core.Shared                 # 核心层：共享数据契约 (Contracts / DTOs)
+├── DAP.Clients                     # 共享 API 客户端：业务契约 + HTTP 实现 + 认证（Web 与桌面共用）
 ├── DAP.Infrastructure              # 基础设施：PGSQL 数据库访问（EF Core 写入 + Dapper 只读）与 EF Core 迁移
 ├── DAP.Proxies.OpcDaProxy          # 代理服务：OPC DA 采集代理 Worker
 ├── DAP.Presentation.BlazorWeb      # 展示层：Blazor Web 服务端与 API 宿主 (Endpoints)
 ├── DAP.Presentation.BlazorWeb.Client # 展示层：Blazor WebAssembly 客户端
-├── DAP.Presentation.AvaloniaApp    # 展示层：基于 Avalonia 12 的跨平台桌面应用
-│   └── Themes/                     # 统一品牌色板（DapPalette.axaml）与 Semi 主题覆盖
+├── DAP.Presentation.AvaloniaApp    # 展示层：基于 Avalonia 12 的跨平台桌面应用（只读数据查看与报表）
+│   ├── Themes/                     # 统一品牌色板（DapPalette.axaml）与 Semi 主题覆盖
+│   ├── Navigation/                 # 顶栏模块 → 抽屉分组 → 页面的导航目录与页面工厂
+│   └── Controls/                   # 自绘折线 / 柱状图控件（颜色取自色板）
 ├── DAP.Tests.UnitTests             # 测试：领域与基础设施单元测试
 ├── docs/DESIGN_SYSTEM.md           # 设计规范（强制）
 ├── docs/AUTH_DESIGN.md             # 认证与权限设计基线
@@ -37,11 +98,11 @@ Web（Blazor）与跨平台桌面（Avalonia）双终端展示方案。
 ## 技术栈
 
 - **基础框架**: .NET 10.0
-- **Web UI**: Blazor WebAssembly / Server，全部页面统一采用 [MudBlazor](https://mudblazor.com/) 9.12 组件库（Material Design 设计体系），抽屉与对话框均使用官方 `MudDialog`（含内置遮罩、ESC 关闭与焦点管理），间距与断点直接使用 MudBlazor 内置的 `pa-*` / `mt-*` 工具类；Tailwind仅保留少量布局辅助（`tw-p-4`、`tw-break-all`），不启用 preflight 以避免覆盖 MudBlazor 基础样式。
+- **Web UI**: Blazor WebAssembly / Server，全部页面统一采用 [MudBlazor](https://mudblazor.com/) 9.12 组件库（Material Design 设计体系），抽屉与对话框均使用官方 `MudDialog`（含内置遮罩、ESC 关闭与焦点管理），间距与断点直接使用 MudBlazor 内置的 `pa-*` / `mt-*` 工具类；未引入 Tailwind 等第三方 CSS 框架，全局样式由 `wwwroot/app.css` 的 CSS 变量驱动。
 - **桌面 UI**: Avalonia
   12.1，采用 [CommunityToolkit.Mvvm](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/)
   ，结合 [Semi.Avalonia](https://semi.design/) 与 [Irihi.Ursa](https://irihi.tech/) 主题，提供精致的微观交互体验。
-- **数据库**: PostgreSQL 10.x (Npgsql), SQLite (桌面端本地存储)
+- **数据库**: PostgreSQL 10.x (Npgsql)
 - **ORM**: EF Core 10.0, Dapper 2.1
 - **架构模式**: Clean Architecture, Minimal APIs
 
@@ -65,7 +126,7 @@ Web（Blazor）与跨平台桌面（Avalonia）双终端展示方案。
 
 1. **环境准备**
     - 安装 [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-    - 安装 Node.js 22+ 与 npm（用于 Web 端 Tailwind CSS 构建）。
+    - 安装 Node.js 22+ 与 npm（仅运行 Playwright 浏览器用例时需要；构建不再依赖前端工具链）。
     - 准备 PostgreSQL 与 Redis 服务环境。
 2. **编译解决方案**
    ```bash
@@ -80,6 +141,29 @@ Web（Blazor）与跨平台桌面（Avalonia）双终端展示方案。
    ```bash
    dotnet run --project DAP.Presentation.AvaloniaApp/DAP.Presentation.AvaloniaApp.csproj
    ```
+
+## 桌面客户端（只读）
+
+桌面端定位是**现场看数与出报表**，不是第二套管理后台。它连同一套 API（`appsettings.json` 的 `Api:BaseUrl`，默认 `http://localhost:5067/`），用同一份账号登录，登录成功后由进程内的 `CookieContainer` 持有会话，关闭客户端即失效。
+
+| 模块 | 页面 | 说明 |
+| --- | --- | --- |
+| 数据指标 | 能耗仪表板 | 当前班组四项指标、趋势图、透视明细，可选 3/7/14/30 天与手动指定班组 |
+| 数据指标 | 历史指标 | 按日 / 周 / 月查看单项趋势与明细 |
+| 数据指标 | 班组横向对比 | 同口径下各班组消耗对比，标出最高与最低 |
+| 数据指标 | 班组能耗报表 | 区间汇总 + 明细，可导出 CSV（UTF-8 BOM，Excel 直接打开不乱码） |
+| 数据查看 | 实时采集数据 | 最新入库的采集记录，可选 50 / 100 / 200 / 500 条；刷新频率 30 秒 / 1 / 3 / 5 分钟（默认 1 分钟），可关闭自动刷新 |
+| 数据查看 | 排班日历 | 每日在岗与轮休班组，可翻月与回到本月 |
+
+**有意不做**：采集点清单、后台数据节点、采集服务器、服务器状态这类配置与运维入口，以及排班导入、域与页面、账号与角色的新增 / 修改 / 删除和审计日志查询。写操作需要权限矩阵与审计留痕，收敛到 Web 端一个入口比在两处各实现一遍更可控；客户端只保留现场最常用的「看当前数据」与「看今天谁上班」。
+
+实现约定：
+
+- 页面一律继承 `PageViewModelBase`（统一 loading / 错误文案 / 刷新命令）。默认只在首次进入时拉取，切页不重复请求；需要「切回即刷新」或定时轮询的页面重写 `OnActivatedAsync` / `OnDeactivated`——外壳在切页与登出时调用，定时器必须在这里停掉，否则会在后台持续打接口。
+- 定时刷新有两处实现：**实时采集数据**自己重写钩子（刷新频率 30 秒 / 1 / 3 / 5 分钟，默认 1 分钟并默认开启；切回 5 秒新鲜度窗口内复用现有数据）；**四个能耗页**统一继承 `AutoRefreshPageViewModelBase`（同一组档位、默认关闭，页头「数据截至 HH:mm:ss」随每次成功加载推进，`PageViewModelBase.OnLoaded()` 负责通知派生属性）。排班日历不做自动刷新——排班一天只变一次。
+- Web 端对应能力在 `Client/Common/PlatformAutoRefresh.razor`：开关、频率与倒计时放在页头第二行，到点回调页面自己的静默刷新（不换遮罩、失败保留旧数据），循环在 `DisposeAsync` 里取消。能耗四页与 `/collection-data` 共用它。
+- 导航目录 `Navigation/DesktopNavigationCatalog.cs` 是菜单唯一数据源；新增页面要在目录里登记，否则守卫测试 `Avalonia_Page_ViewModels_Should_Be_Registered_In_Navigation_Catalog` 会失败。
+- 图表是自绘控件（`Controls/LineTrendChart.cs`、`BarCompareChart.cs`），颜色从色板资源解析，不硬编码色值。
 
 ## 登录与初始账号
 

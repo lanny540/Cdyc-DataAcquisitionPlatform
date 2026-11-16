@@ -5,7 +5,7 @@
 <PageTitle>域与页面配置</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
-    <MudPaper Class="platform-page-hero platform-accent-secondary tw-p-4" Elevation="0">
+    <MudPaper Class="platform-page-hero platform-accent-secondary pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
                   Spacing="3">
             <MudStack Spacing="1">
@@ -29,7 +29,7 @@
 
     @if (_isLoading)
     {
-        <MudPaper Class="platform-section-card--tinted platform-accent-secondary tw-p-6" Elevation="0">
+        <MudPaper Class="platform-section-card--tinted platform-accent-secondary pa-6" Elevation="0">
             <MudProgressLinear Indeterminate="true" Color="Color.Secondary"/>
             <MudText Typo="Typo.body2" Class="mt-2" Align="Align.Center">正在加载域与页面配置…</MudText>
         </MudPaper>
@@ -39,7 +39,7 @@
         @foreach (var domain in _domains)
         {
             var current = domain;
-            <MudPaper Class="platform-section-card--tinted platform-accent-secondary tw-p-4" Elevation="0">
+            <MudPaper Class="platform-section-card--tinted platform-accent-secondary pa-4" Elevation="0">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
                           Wrap="Wrap.Wrap" Spacing="2">
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">

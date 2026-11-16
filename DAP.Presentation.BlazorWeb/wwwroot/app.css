@@ -4,66 +4,71 @@
    AI 协作约束见仓库根目录 AGENTS.md
    ============================================================ */
 :root {
-    color-scheme: light;
+    color-scheme: dark;
 
-    /* ===== Material Design 3 角色色板 =====
-       每种角色提供 base（主色）/ soft（浅填充）/ tint（极浅背景）三级，
-       供卡片、标签、状态条等按语义取色，保证全站色彩一致。
+    /* ===== Material Design 3 角色色板（深色主题）=====
+       全站固定深色背景，层级遵循 M3 dark 的「越浮越亮」：
+       页面底 #0e151d → 卡片表面 #17212c → 区块容器（tint/soft）再亮一档。
 
-       配色取向：同色相内提高饱和度，并让 tint 明显区别于白底
-       （对比度 >= 1.20），避免卡片底色与白色表面混成一片。
-       各色值均已核验：白字在 base 上 >= 4.5:1（WCAG AA），
-       strong 色在 tint 上 >= 4.5:1，保证卡片数字可读。 */
+       七色 base 是唯一色相锚点，浅深两套主题共用（base 同时承担主按钮背景，
+       配白字 ≥4.5:1，深色下不提亮）。其余三档按深色语义重定义：
+       - strong：亮色强调文字与图表系列色，在深色容器底上 ≥4.5:1；
+       - soft：统计卡底色（低饱和深色容器，比表面亮 ≥1.25 倍）；
+       - tint：区块卡/表头底色（低饱和深色容器，比表面亮 ≥1.20 倍）。
+
+       soft/tint 刻意压低饱和度（S≈20%）：大面积容器一旦带高饱和色相，
+       数字与次要文字就会和底色「融成一片」；色相辨识交给小面积的
+       base 色条、图标与 strong 标签，数值与标题一律用近白（--platform-text）。 */
     --md-primary: #0b4fc4;
-    --md-primary-strong: #083a99;
-    --md-primary-soft: #c9dcf8;
-    --md-primary-tint: #dce8fa;
+    --md-primary-strong: #9cc0fa;
+    --md-primary-soft: #303a4c;
+    --md-primary-tint: #283140;
 
     --md-secondary: #33475c;
-    --md-secondary-strong: #22323f;
-    --md-secondary-soft: #d3dde8;
-    --md-secondary-tint: #dfe6ee;
+    --md-secondary-strong: #b6c8dc;
+    --md-secondary-soft: #363f4a;
+    --md-secondary-tint: #2e3641;
 
     --md-tertiary: #7b2f9e;
-    --md-tertiary-strong: #5c1f78;
-    --md-tertiary-soft: #ecdcf6;
-    --md-tertiary-tint: #ecdef7;
+    --md-tertiary-strong: #d9b4f0;
+    --md-tertiary-soft: #3c344a;
+    --md-tertiary-tint: #383146;
 
     --md-success: #0d7a3c;
-    --md-success-strong: #085829;
-    --md-success-soft: #c3e8d2;
-    --md-success-tint: #d7f0e1;
+    --md-success-strong: #7fd6a0;
+    --md-success-soft: #25352e;
+    --md-success-tint: #24322b;
 
     --md-warning: #b15600;
-    --md-warning-strong: #824000;
-    --md-warning-soft: #ffddb0;
-    --md-warning-tint: #ffe4bc;
+    --md-warning-strong: #f5b25e;
+    --md-warning-soft: #393122;
+    --md-warning-tint: #362f21;
 
     --md-error: #b32318;
-    --md-error-strong: #861711;
-    --md-error-soft: #f7ccc7;
-    --md-error-tint: #fbe0dc;
+    --md-error-strong: #ef8d80;
+    --md-error-soft: #423033;
+    --md-error-tint: #3c2d2f;
 
     --md-info: #0f6fbd;
-    --md-info-strong: #0a4f8a;
-    --md-info-soft: #c2ddf6;
-    --md-info-tint: #d5e8fa;
+    --md-info-strong: #7fc0f0;
+    --md-info-soft: #2a3545;
+    --md-info-tint: #273140;
 
-    /* 中性色阶 */
-    --platform-bg: #f4f7fa;
-    --platform-surface: #fff;
-    --platform-surface-muted: #f8fafc;
-    --platform-surface-sunken: #eef2f7;
-    --platform-border: #e1e7ee;
-    --platform-border-strong: #c7d0da;
-    --platform-text: #16202b;
-    --platform-text-muted: #4e5a70;
-    --platform-text-subtle: #8593a6;
+    /* 中性色阶：深色蓝灰基调，页面底最深、浮起容器逐级提亮 */
+    --platform-bg: #0e151d;
+    --platform-surface: #17212c;
+    --platform-surface-muted: #1d2836;
+    --platform-surface-sunken: #223042;
+    --platform-border: #2b3a4b;
+    --platform-border-strong: #42576e;
+    --platform-text: #e6edf5;
+    --platform-text-muted: #a7b6c8;
+    --platform-text-subtle: #7a8ba0;
 
     --platform-primary: var(--md-primary);
     --platform-primary-soft: var(--md-primary-soft);
-    --platform-shadow: 0 1px 2px rgba(22, 32, 43, .04), 0 1px 3px rgba(22, 32, 43, .06);
-    --platform-shadow-raised: 0 6px 20px rgba(22, 32, 43, .1);
+    --platform-shadow: 0 1px 2px rgba(0, 0, 0, .32), 0 1px 3px rgba(0, 0, 0, .4);
+    --platform-shadow-raised: 0 6px 20px rgba(0, 0, 0, .45);
 }
 
 html, body {
@@ -91,9 +96,27 @@ code, pre, .platform-inline-code, .platform-timestamp, .platform-monospace {
     overflow-wrap: anywhere;
 }
 
-:focus-visible {
+/* 长编码/地址的强制断行：tailwind 移除后由本类承担 tw-break-all 的职责。 */
+.platform-break-all {
+    word-break: break-all;
+}
+
+/* 焦点框只属于可交互元素。全量 :focus-visible 曾让「被运行时意外聚焦」的
+   非交互元素画出蓝色框：Blazor 增强导航会给内容区标题加 tabindex="-1"
+   并在登录跳转后聚焦它（仪表板页头 h4 上出现过蓝框），
+   因此排除负 tabindex（脚本聚焦不画环），只保留用户可达的焦点。 */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
+textarea:focus-visible, [role="button"]:focus-visible,
+[tabindex]:not([tabindex="-1"]):focus-visible {
     outline: 2px solid var(--platform-primary);
     outline-offset: 3px;
+}
+
+/* 脚本聚焦的元素（tabindex="-1"）连 UA 默认焦点环也要关掉：
+   Chromium 对键盘启发式命中的脚本聚焦会画 outline:auto 的系统环，
+   页头标题（Blazor 增强导航的聚焦目标）在平台概览页复现过。 */
+[tabindex="-1"]:focus {
+    outline: none;
 }
 
 /* ===== 语义强调修饰类 =====
@@ -163,7 +186,7 @@ code, pre, .platform-inline-code, .platform-timestamp, .platform-monospace {
     border-bottom: 1px solid var(--platform-border);
     background: var(--platform-surface) !important;
     color: var(--platform-text) !important;
-    box-shadow: 0 1px 2px rgba(22, 32, 43, .05);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .3);
 }
 
 .platform-appbar .mud-toolbar {
@@ -425,50 +448,69 @@ code, pre, .platform-inline-code, .platform-timestamp, .platform-monospace {
     transition: background-color .15s ease, color .15s ease;
 }
 
-.platform-nav-link .mud-nav-link:hover {
-    background: var(--md-primary-tint);
+/* ===== 导航激活态（2026-11-16 修复）=====
+   MudBlazor 的激活规则是 .mud-navmenu.mud-navmenu-default .mud-nav-link.active:not(...)，
+   特异度 (0,4,0)，会把激活文字强制为调色板 base 深蓝（#0B4FC4）——
+   叠在深色抽屉上对比仅 2.3:1，用户实测反馈「深蓝色与背景色相近」。
+   此前的低特异度规则全部被压制；且 MudNavLink 把 active 加在 <a> 上而非
+   wrapper，依赖 wrapper.active 的图标规则从不命中。
+   这里用同构高特异度选择器覆盖，激活态与桌面端对齐：tint 底 + strong 亮字。 */
+.mud-navmenu .mud-nav-item.platform-nav-link .mud-nav-link:hover:not(.mud-nav-link-disabled):not(.active) {
+    background: var(--platform-surface-muted);
 }
 
-.platform-nav-link .mud-nav-link.active,
-.platform-nav-link.active {
-    background: var(--md-primary-soft);
+.mud-navmenu .mud-nav-item.platform-nav-link .mud-nav-link.active:not(.mud-nav-link-disabled) {
+    background: var(--md-primary-tint);
     color: var(--md-primary-strong);
     font-weight: 600;
 }
 
-.platform-nav-link.active .mud-nav-link-icon {
-    color: var(--md-primary);
+/* 激活项悬停再亮一档（tint → soft），保持「越浮越亮」的层次。 */
+.mud-navmenu .mud-nav-item.platform-nav-link .mud-nav-link.active:not(.mud-nav-link-disabled):hover:not(.mud-nav-link-disabled),
+.mud-navmenu .mud-nav-item.platform-nav-link .mud-nav-link.active:not(.mud-nav-link-disabled):active:not(.mud-nav-link-disabled) {
+    background: var(--md-primary-soft);
+}
+
+/* 激活态图标跟随文字用 strong 亮蓝，不再依赖 wrapper 上的 active 类。 */
+.mud-navmenu .mud-nav-item.platform-nav-link .mud-nav-link.active:not(.mud-nav-link-disabled) .mud-nav-link-icon {
+    color: var(--md-primary-strong);
 }
 
 /* 导航按功能分区着色，非激活态也保留可辨识的色相。
-   导航已按「采集运维 / 班组排班 / 能耗指标」分组，nth-child 不再可靠，改用显式修饰类。 */
-.platform-nav-link--primary .mud-nav-link-icon {
-    color: var(--md-primary);
+   导航已按「采集运维 / 班组排班 / 能耗指标」分组，nth-child 不再可靠，改用显式修饰类。
+
+   特异度警告：MudBlazor 用 (0,4,0) 的
+   `.mud-nav-link:not(.mud-nav-link-disabled) .mud-nav-link-icon.mud-nav-link-icon-default`
+   把图标强制为抽屉默认灰——低特异度的分区着色从未生效过（图标一直是灰色）。
+   这里用 (0,5,0) 的同构选择器覆盖，并按「前景一律 Strong 档」取色。 */
+.mud-navmenu .mud-nav-item.platform-nav-link--primary .mud-nav-link-icon.mud-nav-link-icon-default {
+    color: var(--md-primary-strong);
 }
 
-.platform-nav-link--info .mud-nav-link-icon {
-    color: var(--md-info);
+.mud-navmenu .mud-nav-item.platform-nav-link--info .mud-nav-link-icon.mud-nav-link-icon-default {
+    color: var(--md-info-strong);
 }
 
-.platform-nav-link--tertiary .mud-nav-link-icon {
-    color: var(--md-tertiary);
+/* 能源域的导航取色：与钞纸的 success 绿区分开，
+   否则从顶栏切到「能源」时会以为根本没跳转。 */
+.mud-navmenu .mud-nav-item.platform-nav-link--secondary .mud-nav-link-icon.mud-nav-link-icon-default {
+    color: var(--md-secondary-strong);
 }
 
-.platform-nav-link--success .mud-nav-link-icon {
-    color: var(--md-success);
+.mud-navmenu .mud-nav-item.platform-nav-link--tertiary .mud-nav-link-icon.mud-nav-link-icon-default {
+    color: var(--md-tertiary-strong);
 }
 
-.platform-nav-link--warning .mud-nav-link-icon {
-    color: var(--md-warning);
+.mud-navmenu .mud-nav-item.platform-nav-link--success .mud-nav-link-icon.mud-nav-link-icon-default {
+    color: var(--md-success-strong);
 }
 
-.platform-nav-link--primary-secondary .mud-nav-link-icon {
-    color: var(--md-secondary);
+.mud-navmenu .mud-nav-item.platform-nav-link--warning .mud-nav-link-icon.mud-nav-link-icon-default {
+    color: var(--md-warning-strong);
 }
 
-.platform-nav-link--primary .mud-nav-link.active .mud-nav-link-icon,
-.platform-nav-link--primary-secondary .mud-nav-link.active .mud-nav-link-icon {
-    color: var(--md-primary);
+.mud-navmenu .mud-nav-item.platform-nav-link--primary-secondary .mud-nav-link-icon.mud-nav-link-icon-default {
+    color: var(--md-secondary-strong);
 }
 
 /* ===== 页面容器 ===== */
@@ -529,8 +571,10 @@ code, pre, .platform-inline-code, .platform-timestamp, .platform-monospace {
     z-index: 1;
 }
 
+/* 页头标题用近白而不是 accent 亮色：彩色大标题与同色相容器底会融在一起，
+   页面主色由 tint 底、左侧色条与图标传达，标题保持最高对比度。 */
 .platform-page-hero .mud-typography-h4 {
-    color: var(--card-accent-strong, var(--md-primary-strong));
+    color: var(--platform-text);
 }
 
 .platform-page-hero .mud-typography-body1 {
@@ -542,6 +586,36 @@ code, pre, .platform-inline-code, .platform-timestamp, .platform-monospace {
     height: 26px;
     margin-left: 0;
     font-size: 0.75rem;
+}
+
+/* ===== 徽章与提示条的深色可读性修复 =====
+   MudBlazor 9.12 的 outlined/text 徽章与提示条用调色板 base 色作文字与描边，
+   而 base 是「主按钮底色」档——在深色主题里本身就是深色，
+   叠在深色表面上对比只有 2~3:1（页头的班组/班次徽章、图表卡的
+   合计/均值/趋势徽章都受影响）。统一改用 strong 亮色档：
+   文字用 strong，描边用 55% 半透明 strong；浅色主题下 strong
+   是加深档，同样成立。类名注意：MudBlazor 用的是复合类
+   （mud-chip-color-warning / mud-alert-outlined-warning），不是 mud-warning。 */
+.mud-chip-outlined.mud-chip-color-primary, .mud-chip-text.mud-chip-color-primary { color: var(--md-primary-strong); border-color: color-mix(in srgb, var(--md-primary-strong) 55%, transparent); }
+.mud-chip-outlined.mud-chip-color-secondary, .mud-chip-text.mud-chip-color-secondary { color: var(--md-secondary-strong); border-color: color-mix(in srgb, var(--md-secondary-strong) 55%, transparent); }
+.mud-chip-outlined.mud-chip-color-tertiary, .mud-chip-text.mud-chip-color-tertiary { color: var(--md-tertiary-strong); border-color: color-mix(in srgb, var(--md-tertiary-strong) 55%, transparent); }
+.mud-chip-outlined.mud-chip-color-success, .mud-chip-text.mud-chip-color-success { color: var(--md-success-strong); border-color: color-mix(in srgb, var(--md-success-strong) 55%, transparent); }
+.mud-chip-outlined.mud-chip-color-warning, .mud-chip-text.mud-chip-color-warning { color: var(--md-warning-strong); border-color: color-mix(in srgb, var(--md-warning-strong) 55%, transparent); }
+.mud-chip-outlined.mud-chip-color-error, .mud-chip-text.mud-chip-color-error { color: var(--md-error-strong); border-color: color-mix(in srgb, var(--md-error-strong) 55%, transparent); }
+.mud-chip-outlined.mud-chip-color-info, .mud-chip-text.mud-chip-color-info { color: var(--md-info-strong); border-color: color-mix(in srgb, var(--md-info-strong) 55%, transparent); }
+
+/* outlined 提示条（页头的排班提示、操作结果反馈）：同口径换 strong 档，
+   底色补一层 45% 的 soft，让提示区域可被一眼圈出。 */
+.mud-alert-outlined-primary { color: var(--md-primary-strong); border-color: color-mix(in srgb, var(--md-primary-strong) 50%, transparent); background-color: color-mix(in srgb, var(--md-primary-soft) 45%, transparent); }
+.mud-alert-outlined-secondary { color: var(--md-secondary-strong); border-color: color-mix(in srgb, var(--md-secondary-strong) 50%, transparent); background-color: color-mix(in srgb, var(--md-secondary-soft) 45%, transparent); }
+.mud-alert-outlined-tertiary { color: var(--md-tertiary-strong); border-color: color-mix(in srgb, var(--md-tertiary-strong) 50%, transparent); background-color: color-mix(in srgb, var(--md-tertiary-soft) 45%, transparent); }
+.mud-alert-outlined-success { color: var(--md-success-strong); border-color: color-mix(in srgb, var(--md-success-strong) 50%, transparent); background-color: color-mix(in srgb, var(--md-success-soft) 45%, transparent); }
+.mud-alert-outlined-warning { color: var(--md-warning-strong); border-color: color-mix(in srgb, var(--md-warning-strong) 50%, transparent); background-color: color-mix(in srgb, var(--md-warning-soft) 45%, transparent); }
+.mud-alert-outlined-error { color: var(--md-error-strong); border-color: color-mix(in srgb, var(--md-error-strong) 50%, transparent); background-color: color-mix(in srgb, var(--md-error-soft) 45%, transparent); }
+.mud-alert-outlined-info { color: var(--md-info-strong); border-color: color-mix(in srgb, var(--md-info-strong) 50%, transparent); background-color: color-mix(in srgb, var(--md-info-soft) 45%, transparent); }
+
+.mud-alert[class*="mud-alert-outlined"] .mud-icon-root {
+    color: inherit;
 }
 
 /* 统计卡片：左侧语义色条 + 同色底纹。
@@ -564,12 +638,19 @@ code, pre, .platform-inline-code, .platform-timestamp, .platform-monospace {
     background: var(--card-accent, var(--md-primary));
 }
 
+/* 统计卡片：中性表面 + 左侧语义色条 + 彩色标签行。
+   深色主题的教训：每张卡都铺彩色底会变成「色块马赛克」——四五种深色
+   容器并排时彼此打架，暖色容器（琥珀/紫）还容易发闷显脏。
+   现在色相收敛到小面积（左色条、图标底块、标签行），数值在中性底上
+   保持页面最亮层级；--tinted 的名字保留（内部点缀元素仍取 tint 档）。 */
 .platform-stat-card--tinted {
-    background: var(--card-accent-soft, var(--md-primary-soft));
+    background: var(--platform-surface);
 }
 
-.platform-stat-card--tinted > .platform-data-table {
-    background: var(--platform-surface);
+/* 头条 KPI（全宽汇总卡，如「综合能耗合计」）：唯一保留 soft 全幅填充的
+   统计卡，用面积 + 色底建立页面第一数据层级，与常规指标卡拉开档次。 */
+.platform-stat-card--filled {
+    background: var(--card-accent-soft, var(--md-primary-soft));
 }
 
 .platform-stat-card > .mud-typography-caption {
@@ -578,9 +659,12 @@ code, pre, .platform-inline-code, .platform-timestamp, .platform-monospace {
     margin-bottom: 8px;
 }
 
+/* 数值是卡片里最需要「跳出来」的元素：用近白（对深色容器 ≈13:1），
+   accent 色相留给色条、图标与标签行——大数字一旦也用 accent 亮色，
+   会和同色相容器底融在一起，这正是「文字不突出」的根源。 */
 .platform-stat-card .mud-typography-h3, .platform-stat-card .mud-typography-h5 {
     margin-bottom: 6px;
-    color: var(--card-accent-strong, var(--platform-text));
+    color: var(--platform-text);
 }
 
 .platform-stat-card--tinted > .mud-typography-caption {
@@ -611,14 +695,13 @@ code, pre, .platform-inline-code, .platform-timestamp, .platform-monospace {
     border-top: 3px solid var(--card-accent, var(--md-primary));
 }
 
-/* 区块卡片的同色底纹变体。
-   只有顶部色带的区块卡在大片留白的页面里仍然显得「没上色」。
-   这里用「左侧色块 + 全幅浅底」的组合：
-   - 左侧色块提供明确的色彩锚点，让不同区块一眼可分；
-   - 全幅浅底保证卡片整体带有色调，而不是只有左上角一点颜色。 */
+/* 区块卡片的容器变体：中性表面 + 左侧语义色条。
+   区块卡承载标题、表格与图表，是页面上面积最大的容器——铺满同色底
+   会让整页变成彩色瓷砖；色彩改由左色条、图标底块与表头底色承载，
+   卡内内容（表格、图表）在中性底上可读性最好。 */
 .platform-section-card--tinted,
 .platform-panel--tinted {
-    background: var(--card-accent-tint, var(--md-primary-tint));
+    background: var(--platform-surface);
 }
 
 .platform-section-card--tinted::before,
@@ -842,7 +925,7 @@ code, pre, .platform-inline-code, .platform-timestamp, .platform-monospace {
 }
 
 .platform-sheet-section .mud-typography-h6 {
-    color: var(--card-accent-strong, var(--platform-text));
+    color: var(--platform-text);
 }
 
 .platform-field-label {
@@ -948,27 +1031,29 @@ code, pre, .platform-inline-code, .platform-timestamp, .platform-monospace {
 /* ===== 图表系列配色 =====
    MudChart 把系列颜色硬编码为 Material 默认蓝（#2979FF），写进 SVG 的
    presentation attribute，与七色体系完全脱节。SVG presentation attribute
-   的优先级低于任何 CSS 规则，因此这里按所在卡片的 accent 变量覆盖：
-   折线、数据点、柱形与卡片色条/标题色保持同一色相。 */
+   的优先级低于任何 CSS 规则，因此这里按所在卡片的 accent 变量覆盖。
+
+   系列取 **strong 档**而不是 base：深色主题下 base 太暗（与表面对比不足），
+   浅色主题下 strong 是加深档、对比同样更高，两个主题里折线/柱形都保持清晰。 */
 .platform-chart-frame path.mud-chart-line {
-    stroke: var(--card-accent, var(--md-primary));
+    stroke: var(--card-accent-strong, var(--md-primary-strong));
 }
 
 .platform-chart-frame circle.mud-chart-point {
-    stroke: var(--card-accent, var(--md-primary));
+    stroke: var(--card-accent-strong, var(--md-primary-strong));
     fill: var(--platform-surface);
 }
 
 .platform-chart-frame path.mud-chart-bar {
-    fill: var(--card-accent, var(--md-primary));
-    stroke: var(--card-accent, var(--md-primary));
+    fill: var(--card-accent-strong, var(--md-primary-strong));
+    stroke: var(--card-accent-strong, var(--md-primary-strong));
     transition: fill .15s ease, stroke .15s ease;
 }
 
-/* 柱形悬停时加深一档，与悬停提示配合，强化“这根柱子对应的班组” */
+/* 柱形悬停时提亮一档（深色主题下「加深」无档可用，亮度调节对两套主题都成立），
+   与悬停提示配合，强化“这根柱子对应的班组” */
 .platform-chart-frame path.mud-chart-bar:hover {
-    fill: var(--card-accent-strong, var(--md-primary-strong));
-    stroke: var(--card-accent-strong, var(--md-primary-strong));
+    filter: brightness(1.25);
 }
 
 /* 网格线与坐标轴线统一为中性边框色（MudBlazor 默认是生硬的 #e0e0e0）。
@@ -997,9 +1082,9 @@ code, pre, .platform-inline-code, .platform-timestamp, .platform-monospace {
     height: 10px;
     border-radius: 3px;
     flex-shrink: 0;
-    /* 图例色块与图表系列同源：都取所在卡片的 accent，
+    /* 图例色块与图表系列同源：都取所在卡片的 accent strong 档，
        保证「图例颜色 = 折线/柱形颜色」在所有页面成立。 */
-    background: var(--card-accent, var(--md-primary));
+    background: var(--card-accent-strong, var(--md-primary-strong));
 }
 
 /* 图表在窄屏下的适配：降低高度冗余、缩小轴标签字号，
@@ -1256,7 +1341,7 @@ code, pre, .platform-inline-code, .platform-timestamp, .platform-monospace {
 }
 
 .server-status-card .mud-typography-h6 {
-    color: var(--card-accent-strong, var(--platform-text));
+    color: var(--platform-text);
 }
 
 .platform-dialog-icon-error {

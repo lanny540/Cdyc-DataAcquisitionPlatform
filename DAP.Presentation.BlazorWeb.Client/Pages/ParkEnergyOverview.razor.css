@@ -1,0 +1,262 @@
+/* 园区能源总览 */
+
+/* 同一行两张卡片等高：曲线高度由 SVG 决定，构成卡内容少，
+   不撑满时右侧会短一截，视觉上像没加载完。 */
+.park-panel-fill {
+    height: 100%;
+}
+
+.park-stack {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.park-kpi-value {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.park-kpi-number {
+    font-size: 26px;
+    font-weight: 600;
+    line-height: 1.1;
+    color: var(--platform-text);
+    font-variant-numeric: tabular-nums;
+}
+
+.park-kpi-unit {
+    font-size: 13px;
+    color: var(--platform-text-muted);
+}
+
+.park-kpi-delta {
+    margin-top: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.park-kpi-delta--good {
+    color: var(--md-success);
+}
+
+.park-kpi-delta--bad {
+    color: var(--md-error);
+}
+
+/* 无可比基准：既不是好也不是坏，用中性灰。
+   涂成绿色会让人把「上期没有数据」读成「本月节能」。 */
+.park-kpi-delta--flat {
+    color: var(--platform-text-subtle);
+    font-weight: 400;
+}
+
+.park-kpi-hint {
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--platform-text-subtle);
+}
+
+/* 一次能源构成 */
+
+.park-share-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.park-share-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+    font-size: 12px;
+}
+
+.park-share-value {
+    color: var(--platform-text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.park-share-track {
+    height: 8px;
+    overflow: hidden;
+    border-radius: 4px;
+    background: var(--platform-surface-sunken);
+}
+
+/* 同色相递减透明度：既区分份额，又不引入新的色相。
+   极小占比（如水的 1.8%）若按真实宽度渲染只剩一条线，给个保底宽度让它仍然可见。 */
+.park-share-fill {
+    height: 100%;
+    min-width: 4px;
+    border-radius: 4px;
+    background: var(--md-secondary);
+    transition: width 0.2s ease;
+}
+
+.park-share-fill--2 {
+    opacity: 0.72;
+}
+
+.park-share-fill--3 {
+    opacity: 0.46;
+}
+
+.park-share-note {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--platform-border);
+}
+
+.park-share-note-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--platform-text-muted);
+    margin-bottom: 6px;
+}
+
+.park-share-note-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--platform-text-muted);
+    padding: 2px 0;
+}
+
+.park-share-note-foot {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--platform-text-subtle);
+}
+
+/* 部门占比 */
+
+.park-org-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.park-org-row {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr) 76px 56px 64px;
+    align-items: center;
+    gap: 12px;
+}
+
+.park-org-name {
+    font-size: 13px;
+    color: var(--platform-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.park-org-track {
+    height: 14px;
+    overflow: hidden;
+    border-radius: 4px;
+    background: var(--platform-surface-sunken);
+}
+
+.park-org-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: var(--md-secondary);
+    opacity: 0.82;
+}
+
+.park-org-value {
+    font-size: 12px;
+    text-align: right;
+    color: var(--platform-text);
+    font-variant-numeric: tabular-nums;
+}
+
+.park-org-share {
+    font-size: 12px;
+    text-align: right;
+    color: var(--platform-text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.park-org-delta {
+    font-size: 12px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.park-org-delta--good {
+    color: var(--md-success);
+}
+
+.park-org-delta--bad {
+    color: var(--md-error);
+}
+
+.park-org-delta--flat {
+    color: var(--platform-text-subtle);
+}
+
+/* 折标系数缺失时的占位。不画 0% 的空轨道——那看起来像「用得极少」，
+   而实际是系数没配，两者含义完全不同。 */
+.park-share-missing {
+    padding: 3px 0 2px;
+    font-size: 11px;
+    color: var(--platform-text-subtle);
+    border-bottom: 1px dashed var(--platform-border);
+}
+
+/* 空态 */
+
+.park-empty-state {
+    min-height: 440px;
+}
+
+.park-empty-text {
+    max-width: 620px;
+    text-align: center;
+    color: var(--platform-text-muted);
+}
+
+.park-empty-hint {
+    color: var(--platform-text-subtle);
+}
+
+.park-chart-empty {
+    min-height: 160px;
+    color: var(--platform-text-muted);
+}
+
+/* 示例数据提示条：说明文字占满剩余宽度，按钮靠右，窄屏自动换行 */
+.park-alert-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.park-footnote {
+    display: block;
+    padding: 0 4px;
+    color: var(--platform-text-subtle);
+    line-height: 1.7;
+}
+
+@media (max-width: 719px) {
+    .park-org-row {
+        grid-template-columns: 72px minmax(0, 1fr) 64px 52px;
+    }
+
+    .park-org-share {
+        display: none;
+    }
+}

@@ -1,0 +1,24 @@
+@* 数据新鲜度与自动刷新控制条：数据截至时间 + 倒计时 + 自动刷新开关 + 刷新频率。
+
+   放在页头的第二行，不挤进筛选控件那一行：筛选是「看什么」，刷新是「什么时候看」，
+   两件事混在一行会让页头在窄屏上换行成三层。
+   不新增 CSS 规则，间距交给 MudStack，避免出现设计规范之外的样式类。 *@
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+    <MudText Typo="Typo.caption">数据截至 @LastUpdatedText</MudText>
+    <MudText Typo="Typo.caption">·</MudText>
+    <MudText Typo="Typo.caption">@CountdownText</MudText>
+    @if (IsBusy)
+    {
+        <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Info"/>
+    }
+    <MudSwitch T="bool" Value="Enabled" ValueChanged="OnEnabledChangedAsync" Color="Color.Primary"
+               Label="自动刷新" Size="Size.Small"/>
+    <MudSelect T="int" Value="IntervalSeconds" ValueChanged="OnIntervalChangedAsync" Dense="true"
+               Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(!Enabled)"
+               Label="刷新频率" Style="min-width: 130px;">
+        @foreach (int seconds in IntervalOptions)
+        {
+            <MudSelectItem T="int" Value="@seconds">@FormatInterval(seconds)</MudSelectItem>
+        }
+    </MudSelect>
+</MudStack>

@@ -1,0 +1,457 @@
+/* ============================================================
+   数字孪生 · 钞纸机车间轴测场景（/ 页「数字孪生」视图）
+
+   **scoped CSS 是生效的**：宿主 App.razor 只 link 了
+   DAP.Presentation.BlazorWeb.styles.css，但那个包的**第一行**是
+   `@import 'DAP.Presentation.BlazorWeb.Client.<指纹>.bundle.scp.css';`，
+   客户端项目的组件样式正是通过这条 @import 进来的。只读包体、不跟进 @import，
+   会误判成「.razor.css 不生效」。
+
+   **注意 ::deep**：Scoped CSS 只给「本组件直接渲染的元素」加 b-xxxx 作用域属性。
+   本页的 SVG 文字由子组件 SvgText 渲染，拿不到父组件的属性，
+   因此给文字与 stage-* 变量加的规则必须写成 `::deep`，否则会静默不命中。
+
+   色值一律读全局变量（--platform-* / --md-*），工艺段取色由 stage-* 类注入，
+   不新增色相。三维面靠「顶面浅、正面中、侧面深」三级明度拉开体积。
+   ============================================================ */
+
+/* ---------- 面板与页头 ---------- */
+
+.twin-board {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px 20px 16px;
+    border: 1px solid var(--platform-border);
+    border-radius: 14px;
+    background: var(--platform-surface);
+}
+
+.twin-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.twin-identity {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* 运行指示灯：呼吸一下即可，不要闪得让人分心 */
+.twin-live {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--md-success);
+    animation: twin-pulse 2.4s ease-out infinite;
+}
+
+.twin-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--platform-text);
+}
+
+.twin-subtitle {
+    margin-top: 2px;
+    font-size: 11.5px;
+    color: var(--platform-text-subtle);
+}
+
+.twin-kpis {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin: 0;
+}
+
+.twin-kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.twin-kpi + .twin-kpi {
+    padding-left: 18px;
+    border-left: 1px solid var(--platform-border);
+}
+
+.twin-kpi dt {
+    font-size: 11px;
+    color: var(--platform-text-subtle);
+}
+
+.twin-kpi dd {
+    margin: 0;
+    font-size: 21px;
+    font-weight: 600;
+    line-height: 1.15;
+    color: var(--platform-text);
+    font-variant-numeric: tabular-nums;
+}
+
+.twin-kpi dd span {
+    margin-left: 4px;
+    font-size: 10.5px;
+    font-weight: 400;
+    color: var(--platform-text-muted);
+}
+
+.twin-freshness {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
+    color: var(--platform-text-subtle);
+}
+
+.twin-badge {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--md-info-tint);
+    color: var(--md-info-strong);
+    font-size: 10.5px;
+    font-weight: 600;
+}
+
+/* ---------- 场景画布 ---------- */
+
+.twin-scene {
+    margin: 0;
+    display: block;
+}
+
+.scene-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+}
+
+/* ---------- 工艺段取色 ----------
+   每个段提供四个级别，三维面按「顶 / 正 / 侧」取 tint / soft / base。 */
+
+::deep .stage-stock {
+    --face: var(--md-secondary);
+    --face-strong: var(--md-secondary-strong);
+    --face-soft: var(--md-secondary-soft);
+    --face-tint: var(--md-secondary-tint);
+}
+
+::deep .stage-wet {
+    --face: var(--md-info);
+    --face-strong: var(--md-info-strong);
+    --face-soft: var(--md-info-soft);
+    --face-tint: var(--md-info-tint);
+}
+
+::deep .stage-dry {
+    --face: var(--md-tertiary);
+    --face-strong: var(--md-tertiary-strong);
+    --face-soft: var(--md-tertiary-soft);
+    --face-tint: var(--md-tertiary-tint);
+}
+
+/* 钢制件：辊子、机架、支腿。用中性色阶，不抢工艺段的颜色。
+   三级都往下压了一档：白顶白身在白底上会整块消失，辊子就看不见了。 */
+::deep .stage-metal {
+    --face: var(--platform-text-subtle);
+    --face-strong: var(--platform-text-muted);
+    --face-soft: var(--platform-border-strong);
+    --face-tint: var(--platform-border);
+}
+
+/* 纸卷：本色接近白，只靠描边勾出轮廓 */
+::deep .stage-paper {
+    --face: var(--platform-border-strong);
+    --face-strong: var(--platform-border-strong);
+    --face-soft: var(--platform-surface-sunken);
+    --face-tint: var(--platform-surface-sunken);
+}
+
+/* ---------- 地坪与网格 ---------- */
+
+.scene-floor {
+    fill: var(--platform-surface-muted);
+    stroke: var(--platform-border);
+    stroke-width: 0.8;
+}
+
+.scene-zone {
+    fill: var(--face-tint);
+    opacity: 0.6;
+}
+
+.scene-grid {
+    fill: none;
+    stroke: var(--platform-border);
+    stroke-width: 0.5;
+    opacity: 0.9;
+}
+
+.scene-floor-edge {
+    fill: none;
+    stroke: var(--platform-border-strong);
+    stroke-width: 0.9;
+    stroke-linejoin: round;
+}
+
+/* ---------- 三维面 ----------
+   轮廓线用 strongest 半透明，太实会像贴纸，完全不要又撑不住形体。 */
+
+.iso-top,
+.iso-front,
+.iso-side {
+    stroke: var(--face-strong);
+    stroke-width: 0.7;
+    stroke-linejoin: round;
+    stroke-opacity: 0.55;
+}
+
+/* 三级明暗直接由本色向白调和得到：色板里的 tint 与 soft 亮度几乎相同，
+   拿它们当「顶面 / 正面」两级，盒子会完全没有体积。每级都先写一个不依赖
+   color-mix 的兜底值，浏览器不支持时才退回纯色，不会掉成黑色。 */
+.iso-top {
+    fill: var(--face-tint);
+    fill: color-mix(in srgb, var(--face) 9%, var(--platform-surface));
+}
+
+.iso-front {
+    fill: var(--face-soft);
+    fill: color-mix(in srgb, var(--face) 52%, var(--platform-surface));
+}
+
+.iso-side {
+    fill: var(--face);
+    fill: color-mix(in srgb, var(--face) 88%, var(--platform-surface));
+}
+
+/* 圆筒侧壁：整圈铺满、不描边，相邻面之间不能出现拼缝 */
+.iso-shell {
+    fill: var(--face);
+    fill: color-mix(in srgb, var(--face) 74%, var(--platform-surface));
+    stroke: none;
+}
+
+/* 圆筒：端面比筒身亮，才能看出这是「沿轴线看过去」的圆柱 */
+.iso-cyl-cap {
+    fill: var(--face-soft);
+    fill: color-mix(in srgb, var(--face) 20%, var(--platform-surface));
+    stroke: var(--face-strong);
+    stroke-width: 0.7;
+    stroke-opacity: 0.7;
+}
+
+.iso-cyl-side {
+    fill: var(--face);
+    fill: color-mix(in srgb, var(--face) 52%, var(--platform-surface));
+    stroke: var(--face-strong);
+    stroke-width: 0.45;
+    stroke-opacity: 0.45;
+}
+
+.iso-cyl-back {
+    fill: var(--face);
+    fill: color-mix(in srgb, var(--face) 46%, var(--platform-surface));
+}
+
+/* 纸卷端面的同心圆 */
+.scene-ring {
+    fill: none;
+    stroke: var(--platform-border-strong);
+    stroke-width: 0.8;
+    opacity: 0.9;
+}
+
+/* ---------- 管线与纸幅 ---------- */
+
+.scene-pipe {
+    fill: none;
+    stroke: var(--platform-border-strong);
+    stroke-width: 2.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.scene-web-edge {
+    fill: none;
+    stroke: var(--platform-text-subtle);
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.scene-web {
+    fill: none;
+    stroke: var(--platform-surface);
+    stroke-width: 3.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* 流动点：只在纸幅上跑，设备保持静止，视线才抓得住主线 */
+.scene-web-flow {
+    fill: none;
+    stroke: var(--md-info);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-dasharray: 1 24;
+    animation: scene-web-flow 2.8s linear infinite;
+}
+
+/* ---------- 标注 ---------- */
+
+.scene-leader {
+    fill: none;
+    stroke: var(--face-strong);
+    stroke-width: 0.8;
+    stroke-dasharray: 3 3;
+    stroke-opacity: 0.5;
+}
+
+.scene-anchor {
+    fill: var(--platform-surface);
+    stroke: var(--face-strong);
+    stroke-width: 1.6;
+}
+
+.scene-tag-box {
+    fill: var(--platform-surface);
+    stroke: var(--face-soft);
+    stroke-width: 1.2;
+}
+
+::deep .scene-tag-name {
+    fill: var(--face-strong);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+::deep .scene-tag-code {
+    fill: var(--platform-text-subtle);
+    font-size: 8.5px;
+    letter-spacing: 0.04em;
+}
+
+::deep .scene-tag-label {
+    fill: var(--platform-text-subtle);
+    font-size: 9.2px;
+}
+
+::deep .scene-tag-value {
+    fill: var(--platform-text);
+    font-size: 11.2px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 页脚标尺 ---------- */
+
+.scene-stage-rule {
+    stroke: var(--face);
+    stroke-width: 3;
+    stroke-linecap: round;
+    opacity: 0.55;
+}
+
+::deep .scene-stage-name {
+    fill: var(--face-strong);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+::deep .scene-stage-note {
+    fill: var(--platform-text-subtle);
+    font-size: 9.5px;
+}
+
+::deep .scene-caption {
+    fill: var(--platform-text-subtle);
+    font-size: 9.5px;
+}
+
+/* ---------- 页脚累计 ---------- */
+
+.twin-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding-top: 12px;
+    border-top: 1px dashed var(--platform-border);
+}
+
+.twin-totals {
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+.twin-foot-label {
+    font-size: 11px;
+    color: var(--platform-text-subtle);
+}
+
+.twin-total {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    font-size: 11.5px;
+    color: var(--platform-text-muted);
+}
+
+.twin-total strong {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--platform-text);
+    font-variant-numeric: tabular-nums;
+}
+
+.twin-total em {
+    font-size: 10.5px;
+    font-style: normal;
+    color: var(--platform-text-subtle);
+}
+
+.twin-note {
+    margin: 0;
+    font-size: 11px;
+    color: var(--platform-text-subtle);
+}
+
+@keyframes scene-web-flow {
+    to {
+        stroke-dashoffset: -25;
+    }
+}
+
+@keyframes twin-pulse {
+    0% {
+        box-shadow: 0 0 0 0 var(--md-success-soft);
+    }
+
+    70% {
+        box-shadow: 0 0 0 7px transparent;
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 transparent;
+    }
+}
+
+/* 尊重系统的「减少动效」设置：流动点与呼吸灯都停掉 */
+@media (prefers-reduced-motion: reduce) {
+    .scene-web-flow {
+        animation: none;
+    }
+
+    .twin-live {
+        animation: none;
+    }
+}

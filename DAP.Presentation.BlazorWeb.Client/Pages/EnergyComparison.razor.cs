@@ -56,6 +56,26 @@ public partial class EnergyComparison
     private decimal _spread;
 
     /// <summary>
+    /// 自动刷新开关。默认关闭，需要看板常驻时由用户打开。
+    /// </summary>
+    private bool _autoRefreshEnabled;
+
+    /// <summary>
+    /// 自动刷新间隔（秒）。
+    /// </summary>
+    private int _refreshIntervalSeconds = 60;
+
+    /// <summary>
+    /// 最近一次成功加载时间，用于「数据截至 HH:mm:ss」。
+    /// </summary>
+    private DateTimeOffset? _lastUpdatedAt;
+
+    /// <summary>
+    /// 是否正在静默刷新：与首载遮罩分开，静默刷新不清数据。
+    /// </summary>
+    private bool _isRefreshing;
+
+    /// <summary>
     /// DTO 集合声明为 IReadOnlyCollection，页面按下标或遍历前先转成数组。
     /// </summary>
     private EnergyMetricDescriptorDto[] Metrics => _comparison?.Metrics.ToArray() ?? [];
@@ -75,10 +95,39 @@ public partial class EnergyComparison
         await LoadAsync();
     }
 
-    private async Task LoadAsync()
+    /// <summary>
+    /// 首载与手动刷新：显示整页遮罩，失败时清空数据。
+    /// </summary>
+    private Task LoadAsync()
     {
-        _isLoading = true;
-        _message = null;
+        return LoadInternalAsync(silent: false);
+    }
+
+    /// <summary>
+    /// 定时刷新：不换遮罩、保留旧数据，失败只出一条警告提示。
+    /// </summary>
+    private Task RefreshSilentlyAsync()
+    {
+        return LoadInternalAsync(silent: true);
+    }
+
+    /// <param name="silent">true 表示定时触发的静默刷新。</param>
+    private async Task LoadInternalAsync(bool silent)
+    {
+        if (silent && (_isLoading || _isRefreshing))
+        {
+            return;
+        }
+
+        if (silent)
+        {
+            _isRefreshing = true;
+        }
+        else
+        {
+            _isLoading = true;
+            _message = null;
+        }
 
         try
         {
@@ -94,16 +143,32 @@ public partial class EnergyComparison
                 _lowestTotal = _comparison.Teams.Min(item => item.TotalConsumption);
                 _spread = _highestTotal - _lowestTotal;
             }
+
+            _lastUpdatedAt = DateTimeOffset.Now;
+            _message = null;
         }
         catch (Exception ex)
         {
-            _message = $"班组对比加载失败：{UserFacingErrors.Describe(ex)}";
-            _messageSeverity = Severity.Error;
-            _comparison = null;
+            _message = silent
+                ? $"自动刷新未成功，页面仍显示上次加载的数据：{UserFacingErrors.Describe(ex)}"
+                : $"班组对比加载失败：{UserFacingErrors.Describe(ex)}";
+            _messageSeverity = silent ? Severity.Warning : Severity.Error;
+
+            if (!silent)
+            {
+                _comparison = null;
+            }
         }
         finally
         {
-            _isLoading = false;
+            if (silent)
+            {
+                _isRefreshing = false;
+            }
+            else
+            {
+                _isLoading = false;
+            }
         }
     }
 

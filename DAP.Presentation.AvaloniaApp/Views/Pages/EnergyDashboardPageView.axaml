@@ -1,0 +1,247 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:DAP.Presentation.AvaloniaApp.Controls"
+             xmlns:vm="using:DAP.Presentation.AvaloniaApp.ViewModels.Pages"
+             x:Class="DAP.Presentation.AvaloniaApp.Views.Pages.EnergyDashboardPageView"
+             x:DataType="vm:EnergyDashboardPageViewModel">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Spacing="14" Margin="0,0,6,6">
+
+            <!-- 页头：主色 success，与 Web 端「能耗仪表板」一致 -->
+            <Border Classes="page-hero" Background="{DynamicResource DapSuccessTintBrush}">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                    <StackPanel Spacing="6">
+                        <TextBlock Classes="page-title" Text="班组原辅材料与能源消耗仪表板" />
+                        <TextBlock Classes="page-subtitle" Text="{Binding Description}" />
+                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                            <Border Classes="chip" Background="{DynamicResource DapSurfaceBrush}">
+                                <TextBlock Text="{Binding TeamChipText}" />
+                            </Border>
+                            <Border Classes="chip" Background="{DynamicResource DapSurfaceBrush}">
+                                <TextBlock Text="{Binding ShiftChipText}" />
+                            </Border>
+                            <Border Classes="chip" Background="{DynamicResource DapSurfaceBrush}"
+                                    IsVisible="{Binding HasShiftRange}">
+                                <TextBlock Text="{Binding ShiftRangeText}" />
+                            </Border>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8"
+                                VerticalAlignment="Center">
+                        <StackPanel Spacing="3">
+                            <TextBlock Classes="field-label" Text="查看班组" />
+                            <ComboBox Classes="field" Width="168"
+                                      ItemsSource="{Binding Teams}"
+                                      SelectedItem="{Binding SelectedTeam}"
+                                      PlaceholderText="选择班组" />
+                        </StackPanel>
+                        <StackPanel Spacing="3">
+                            <TextBlock Classes="field-label" Text="趋势天数" />
+                            <ComboBox Classes="field" Width="118"
+                                      ItemsSource="{Binding TrendDayOptions}"
+                                      SelectedItem="{Binding TrendDays}" />
+                        </StackPanel>
+                        <Button Classes="Primary" Content="刷新" VerticalAlignment="Bottom"
+                                Command="{Binding RefreshCommand}"
+                                IsEnabled="{Binding IsNotLoading}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- 数据新鲜度与自动刷新：四个能耗页共用的控制条，开关默认关闭 -->
+            <Border Classes="panel" Padding="12,8" Background="{DynamicResource DapSurfaceBrush}">
+                <StackPanel Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+                    <TextBlock Classes="timestamp" Text="{Binding LastUpdatedText}"
+                               VerticalAlignment="Center" />
+                    <TextBlock Classes="timestamp" Text="{Binding AutoRefreshHint}"
+                               VerticalAlignment="Center" />
+                    <CheckBox Content="自动刷新" IsChecked="{Binding AutoRefreshEnabled}"
+                              VerticalAlignment="Center" />
+                    <ComboBox Classes="field" Width="110" PlaceholderText="刷新频率"
+                              ItemsSource="{Binding RefreshIntervalOptions}"
+                              SelectedItem="{Binding SelectedRefreshInterval}"
+                              IsEnabled="{Binding AutoRefreshEnabled}" />
+                </StackPanel>
+            </Border>
+
+            <!-- 提示条：错误与普通说明分开配色，不用同一块底纹含混表达 -->
+            <Border Classes="panel" Padding="12,10" IsVisible="{Binding HasMessage}"
+                    Background="{DynamicResource DapErrorSoftBrush}"
+                    BorderBrush="{DynamicResource DapErrorStrongBrush}">
+                <TextBlock Classes="table-cell" Text="{Binding Message}" TextWrapping="Wrap"
+                           Foreground="{DynamicResource DapErrorStrongBrush}" />
+            </Border>
+
+            <ProgressBar IsIndeterminate="True" Height="3" IsVisible="{Binding IsLoading}" />
+
+            <!-- 班组归属提示：轮休 / 未导入时明确说明，不让现场猜 -->
+            <Border Classes="panel" Padding="12,10" IsVisible="{Binding HasResolutionHint}"
+                    Background="{DynamicResource DapWarningSoftBrush}"
+                    BorderBrush="{DynamicResource DapWarningStrongBrush}">
+                <TextBlock Classes="table-cell" Text="{Binding ResolutionHint}" TextWrapping="Wrap"
+                           Foreground="{DynamicResource DapWarningStrongBrush}" />
+            </Border>
+
+            <!-- 空状态 -->
+            <Border Classes="empty-state" Background="{DynamicResource DapSurfaceBrush}"
+                    IsVisible="{Binding !HasData}">
+                <StackPanel Spacing="8" HorizontalAlignment="Center">
+                    <PathIcon Data="{Binding HeaderIcon}" Width="34" Height="34"
+                              Foreground="{DynamicResource DapSuccessStrongBrush}" />
+                    <TextBlock Classes="empty-title" Text="暂无能耗数据" HorizontalAlignment="Center" />
+                    <TextBlock Classes="empty-text"
+                               Text="服务端未能返回当前班组的指标数据。请确认已导入排班，或稍后重试。" />
+                </StackPanel>
+            </Border>
+
+            <StackPanel Spacing="14" IsVisible="{Binding HasData}">
+                <!-- 综合能耗汇总 -->
+                <Border Classes="stat-card" Background="{DynamicResource DapPrimarySoftBrush}"
+                        BorderBrush="{DynamicResource DapPrimaryBrush}">
+                    <StackPanel Spacing="6">
+                        <TextBlock Classes="stat-label" Text="综合能耗合计"
+                                   Foreground="{DynamicResource DapPrimaryStrongBrush}" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Classes="stat-value-large" Text="{Binding TotalText}" />
+                            <TextBlock Classes="stat-supporting" Text="{Binding TotalUnit}"
+                                       VerticalAlignment="Bottom" Margin="0,0,0,6" />
+                        </StackPanel>
+                        <TextBlock Classes="stat-supporting" Text="4 项指标折算标准煤后求和" />
+                    </StackPanel>
+                </Border>
+
+                <!-- 四项指标 -->
+                <ItemsControl ItemsSource="{Binding MetricCards}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="4" />
+                        <!-- 卡片数量固定，等分填满整行，避免固定宽在宽窗口下右侧留白 -->
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:MetricCardModel">
+                            <Border Classes="stat-card" Background="{Binding Background}"
+                                    BorderBrush="{Binding Accent}" Margin="0,0,12,12">
+                                <StackPanel Spacing="6">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Border Width="28" Height="28" CornerRadius="7"
+                                                Background="{Binding AccentSoft}">
+                                            <PathIcon Data="{Binding Icon}" Width="15" Height="15"
+                                                      Foreground="{Binding AccentStrong}" />
+                                        </Border>
+                                        <TextBlock Classes="stat-label" Text="{Binding Label}"
+                                                   Foreground="{Binding AccentStrong}"
+                                                   VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <TextBlock Classes="stat-value" Text="{Binding Value}" />
+                                    <TextBlock Classes="stat-supporting" Text="{Binding Supporting}" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- 趋势区标题 -->
+                <Border Classes="section-card" Background="{DynamicResource DapSurfaceBrush}"
+                        BorderBrush="{DynamicResource DapSuccessBrush}">
+                    <StackPanel Spacing="2">
+                        <TextBlock Classes="card-title" Text="四项指标趋势" />
+                        <TextBlock Classes="card-description"
+                                   Text="每项指标独立成图，避免共用纵轴时互相压线。" />
+                    </StackPanel>
+                </Border>
+
+                <ItemsControl ItemsSource="{Binding Trends}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="2" />
+                        <!-- 图表卡等分两列，随窗口宽度拉伸 -->
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:TrendCardModel">
+                            <Border Classes="section-card" Background="{Binding Background}"
+                                    BorderBrush="{Binding Accent}" Margin="0,0,12,12">
+                                <StackPanel Spacing="10">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Classes="card-title" Text="{Binding MetricName}" />
+                                            <TextBlock Classes="card-description" Text="{Binding Subtitle}" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
+                                                    VerticalAlignment="Center">
+                                            <Border Classes="chip" Background="{DynamicResource DapSurfaceBrush}">
+                                                <TextBlock Text="{Binding TotalText}" />
+                                            </Border>
+                                            <Border Classes="chip" Background="{DynamicResource DapSurfaceBrush}">
+                                                <TextBlock Text="{Binding AverageText}" />
+                                            </Border>
+                                            <Border Classes="chip" Background="{DynamicResource DapSurfaceBrush}"
+                                                    BorderBrush="{Binding DirectionAccent}">
+                                                <TextBlock Text="{Binding DirectionLabel}"
+                                                           Foreground="{Binding DirectionAccent}" />
+                                            </Border>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <Border Classes="chart-frame">
+                                        <controls:LineTrendChart Height="210"
+                                                                 Points="{Binding Samples}"
+                                                                 Accent="{Binding AccentStrong}"
+                                                                 Unit="{Binding Unit}" />
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- 明细 -->
+                <Border Classes="section-card" Background="{DynamicResource DapSurfaceBrush}"
+                        BorderBrush="{DynamicResource DapInfoBrush}">
+                    <StackPanel Spacing="10">
+                        <StackPanel Spacing="2">
+                            <TextBlock Classes="card-title" Text="趋势数据明细" />
+                            <TextBlock Classes="card-description" Text="与上方图表同源，可用于核对具体数值。" />
+                        </StackPanel>
+
+                        <Border Classes="chart-frame" Padding="0">
+                            <StackPanel>
+                                <Border Background="{DynamicResource DapInfoTintBrush}" Padding="12,8">
+                                    <Grid ColumnDefinitions="130,*,*,*,*">
+                                        <TextBlock Classes="field-label" Text="统计周期"
+                                                Foreground="{DynamicResource DapInfoStrongBrush}" />
+                                        <TextBlock Grid.Column="1" Classes="field-label" Foreground="{DynamicResource DapInfoStrongBrush}" Text="{Binding Column1}" />
+                                        <TextBlock Grid.Column="2" Classes="field-label" Foreground="{DynamicResource DapInfoStrongBrush}" Text="{Binding Column2}" />
+                                        <TextBlock Grid.Column="3" Classes="field-label" Foreground="{DynamicResource DapInfoStrongBrush}" Text="{Binding Column3}" />
+                                        <TextBlock Grid.Column="4" Classes="field-label" Foreground="{DynamicResource DapInfoStrongBrush}" Text="{Binding Column4}" />
+                                    </Grid>
+                                </Border>
+
+                                <ItemsControl ItemsSource="{Binding DetailRows}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:PivotRowModel">
+                                            <Border BorderThickness="0,0,0,1"
+                                                    BorderBrush="{DynamicResource DapBorderBrush}"
+                                                    Padding="12,7">
+                                                <Grid ColumnDefinitions="130,*,*,*,*">
+                                                    <TextBlock Classes="timestamp" Text="{Binding Label}" />
+                                                    <TextBlock Grid.Column="1" Classes="table-primary"
+                                                               Text="{Binding V1}" />
+                                                    <TextBlock Grid.Column="2" Classes="table-cell" Text="{Binding V2}" />
+                                                    <TextBlock Grid.Column="3" Classes="table-cell" Text="{Binding V3}" />
+                                                    <TextBlock Grid.Column="4" Classes="table-cell" Text="{Binding V4}" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

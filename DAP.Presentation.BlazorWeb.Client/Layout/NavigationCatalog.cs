@@ -108,6 +108,12 @@ public static class NavigationCatalog
     /// <summary>数据指标模块标识。</summary>
     public const string DataMetrics = "data-metrics";
 
+    /// <summary>能源模块标识。园区级用能，与钞纸的班组能耗并列而不重叠。</summary>
+    public const string Energy = "energy";
+
+    /// <summary>数据查看模块标识。</summary>
+    public const string DataView = "data-view";
+
     /// <summary>业务配置模块标识。</summary>
     public const string BusinessConfig = "business-config";
 
@@ -115,6 +121,7 @@ public static class NavigationCatalog
     public const string PlatformAdmin = "platform-admin";
 
     private const string AccentPrimary = "platform-nav-link--primary";
+    private const string AccentSecondary = "platform-nav-link--secondary";
     private const string AccentTertiary = "platform-nav-link--tertiary";
     private const string AccentSuccess = "platform-nav-link--success";
     private const string AccentWarning = "platform-nav-link--warning";
@@ -143,6 +150,44 @@ public static class NavigationCatalog
                 [
                     new NavItem("班组能耗报表", "/energy-report", Icons.Material.Filled.Assessment, AccentPrimary,
                         "energy-report")
+                ])
+            ]),
+        // 能源是园区级模块，与「数据指标」里的钞纸班组能耗并列而不重叠：
+        // 那边看工序（班组 × 四项指标 × 班次），这边看经营（介质 × 组织 × 用途 × 系统）。
+        // 路由前缀必须是 /park-energy：/energy-report 已被钞纸的班组报表占用。
+        new(
+            Energy,
+            "能源",
+            "园区用能总量、结构与负荷",
+            Icons.Material.Filled.ElectricBolt,
+            [],
+            [
+                new NavGroup("能源总览",
+                [
+                    new NavItem("园区能源总览", "/park-energy", Icons.Material.Filled.ElectricBolt,
+                        AccentSecondary, "park-energy-overview", AuthorizationCatalog.EnergyDomain)
+                ]),
+                new NavGroup("台账与配置",
+                [
+                    // 计量点是整块能源数据的地基：没有它，读数进来也没有归属，
+                    // 按用途、按系统的报表会直接空着，且不会报错。
+                    new NavItem("计量点台账", "/park-energy/meters",
+                        Icons.Material.Filled.FormatListBulleted, AccentSecondary, "energy-meters",
+                        AuthorizationCatalog.EnergyDomain, AuthorizationCatalog.ConfigureAccessLevel)
+                ])
+            ]),
+        new(
+            DataView,
+            "数据查看",
+            "实时采集运行数据，只读",
+            Icons.Material.Filled.Sensors,
+            [],
+            [
+                // 与桌面端「数据查看 → 采集运行」对齐：现场核对读数不必再回桌面客户端。
+                new NavGroup("采集运行",
+                [
+                    new NavItem("实时采集数据", "/collection-data", Icons.Material.Filled.Sensors, AccentInfo,
+                        "collection-data")
                 ])
             ]),
         new(

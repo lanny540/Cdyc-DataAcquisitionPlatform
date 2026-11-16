@@ -4,7 +4,7 @@
 <PageTitle>用户与角色</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
-    <MudPaper Class="platform-page-hero platform-accent-info tw-p-4" Elevation="0">
+    <MudPaper Class="platform-page-hero platform-accent-info pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
                   Spacing="3">
             <MudStack Spacing="1">
@@ -43,7 +43,7 @@
         <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
     }
 
-    <MudPaper Class="platform-section-card--tinted platform-accent-info tw-p-4" Elevation="0">
+    <MudPaper Class="platform-section-card--tinted platform-accent-info pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Wrap="Wrap.Wrap" Class="mb-2">
             <MudTextField T="string" Label="搜索账号或姓名" @bind-Value="_keyword" Immediate="true"
                           Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
@@ -147,7 +147,7 @@
     @* 目录同步：只有超级管理员看得到。部门里的普通管理员不需要知道目录里还有哪些人。 *@
     @if (_isSuperAdmin && _directoryStatus is { } directory)
     {
-        <MudPaper Class="platform-section-card--tinted platform-accent-secondary tw-p-4" Elevation="0">
+        <MudPaper Class="platform-section-card--tinted platform-accent-secondary pa-4" Elevation="0">
             <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
                       Wrap="Wrap.Wrap" Spacing="2">
                 <MudStack Spacing="1">

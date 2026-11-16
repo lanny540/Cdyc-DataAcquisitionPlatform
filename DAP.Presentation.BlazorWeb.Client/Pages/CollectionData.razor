@@ -1,0 +1,125 @@
+@page "/collection-data"
+
+<PageTitle>实时采集数据</PageTitle>
+
+<MudStack Class="platform-page-shell" Spacing="2">
+    <MudPaper Class="platform-page-hero platform-accent-info pa-4" Elevation="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
+                  Spacing="3">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h4" GutterBottom="true">实时采集数据</MudText>
+                <MudText Typo="Typo.body1">
+                    按采集时间倒序展示最新入库记录，用于核对现场读数。与桌面端「实时采集数据」同源同算。
+                </MudText>
+                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mt-2">
+                    <MudChip T="string" Variant="Variant.Outlined" Color="Color.Info">@SummaryText</MudChip>
+                    @if (Records.Length > 0)
+                    {
+                        <MudChip T="string" Variant="Variant.Outlined" Color="Color.Primary">
+                            @($"最新一条 {LatestCollectedText}")
+                        </MudChip>
+                    }
+                </MudStack>
+            </MudStack>
+
+            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
+                <MudSelect T="int" Label="返回条数" Value="_limit" ValueChanged="OnLimitChangedAsync"
+                           Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense"
+                           Style="min-width: 130px;">
+                    @foreach (int option in LimitOptions)
+                    {
+                        <MudSelectItem T="int" Value="@option">@($"{option} 条")</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Refresh"
+                           OnClick="LoadAsync" Disabled="@(_isLoading || _isRefreshing)">
+                    刷新
+                </MudButton>
+            </MudStack>
+        </MudStack>
+
+        @* 数据新鲜度与自动刷新：单独一行，不挤占筛选控件。 *@
+        <div class="mt-3">
+            <PlatformAutoRefresh @bind-Enabled="_autoRefreshEnabled" @bind-IntervalSeconds="_refreshIntervalSeconds"
+                                 LastUpdatedAt="_lastUpdatedAt" IsBusy="_isRefreshing"
+                                 Refresh="RefreshSilentlyAsync"/>
+        </div>
+    </MudPaper>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
+    }
+
+    <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-info pa-4" Elevation="0">
+        <div class="platform-card-header">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <span class="platform-section-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.Sensors" Size="Size.Small"/>
+                </span>
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.subtitle1" Class="platform-card-title">采集明细</MudText>
+                    <MudText Typo="Typo.body2" Class="platform-card-description">
+                        最近入库的采集记录；自动刷新不会清空表格，滚动位置保持不变。
+                    </MudText>
+                </MudStack>
+            </MudStack>
+            <MudChip T="string" Variant="Variant.Text" Color="Color.Default">@($"{Records.Length} 条")</MudChip>
+        </div>
+
+        @if (_isLoading)
+        {
+            <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="py-8">
+                <MudProgressCircular Indeterminate="true" Color="Color.Info"/>
+                <MudText Typo="Typo.body1">正在读取采集记录...</MudText>
+            </MudStack>
+        }
+        else if (Records.Length == 0)
+        {
+            <div class="platform-empty-state">
+                <span class="platform-empty-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.SensorsOff" Size="Size.Large"/>
+                </span>
+                <MudText Typo="Typo.subtitle2">暂无采集记录</MudText>
+                <MudText Typo="Typo.body2" Class="platform-empty-hint">
+                    服务端尚未收到任何采集上报。请确认采集服务器与点位配置已启用。
+                </MudText>
+            </div>
+        }
+        else
+        {
+            @* 一页显示全部已取回记录：MudTable 默认每页 10 条，且没有分页器时依然会静默截断，
+               那样「返回 500 条」只显示 10 条。分页交给顶部条数选择，避免两套分页互相打架。 *@
+            <MudTable Items="Records" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm"
+                      RowsPerPage="@_limit" Class="platform-data-table">
+                <HeaderContent>
+                    <MudTh>采集时间</MudTh>
+                    <MudTh>采集点编码</MudTh>
+                    <MudTh>采集点名称</MudTh>
+                    <MudTh>指标名称</MudTh>
+                    <MudTh>数值</MudTh>
+                    <MudTh>单位</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="采集时间">
+                        <MudText Typo="Typo.body2">@FormatCollectedAt(context.CollectedAt)</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="采集点编码">
+                        <MudText Typo="Typo.caption" Class="platform-table-secondary platform-inline-code">
+                            @context.CollectionPointCode
+                        </MudText>
+                    </MudTd>
+                    <MudTd DataLabel="采集点名称">
+                        <MudText Typo="Typo.body1" Class="platform-table-primary">
+                            @context.CollectionPointName
+                        </MudText>
+                    </MudTd>
+                    <MudTd DataLabel="指标名称">@context.MetricName</MudTd>
+                    <MudTd DataLabel="数值">@FormatValue(context.Value)</MudTd>
+                    <MudTd DataLabel="单位">@context.Unit</MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudPaper>
+</MudStack>

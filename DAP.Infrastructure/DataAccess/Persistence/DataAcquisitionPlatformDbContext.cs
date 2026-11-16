@@ -97,6 +97,36 @@ public sealed class DataAcquisitionPlatformDbContext : DbContext
     /// </summary>
     public DbSet<DirectorySyncIssue> DirectorySyncIssues => Set<DirectorySyncIssue>();
 
+    /// <summary>
+    /// 获取能源介质集合。
+    /// </summary>
+    public DbSet<EnergyMedium> EnergyMedia => Set<EnergyMedium>();
+
+    /// <summary>
+    /// 获取用能用途集合。
+    /// </summary>
+    public DbSet<EnergyUsageType> EnergyUsageTypes => Set<EnergyUsageType>();
+
+    /// <summary>
+    /// 获取设备系统集合。
+    /// </summary>
+    public DbSet<EnergySystemType> EnergySystems => Set<EnergySystemType>();
+
+    /// <summary>
+    /// 获取能源组织节点集合。
+    /// </summary>
+    public DbSet<EnergyOrgUnit> EnergyOrgUnits => Set<EnergyOrgUnit>();
+
+    /// <summary>
+    /// 获取能源计量点集合。
+    /// </summary>
+    public DbSet<EnergyMeter> EnergyMeters => Set<EnergyMeter>();
+
+    /// <summary>
+    /// 获取能源读数集合。
+    /// </summary>
+    public DbSet<EnergyReading> EnergyReadings => Set<EnergyReading>();
+
 
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)

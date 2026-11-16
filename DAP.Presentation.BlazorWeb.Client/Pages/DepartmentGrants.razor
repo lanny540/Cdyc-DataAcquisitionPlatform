@@ -5,7 +5,7 @@
 <PageTitle>部门与授权</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
-    <MudPaper Class="platform-page-hero platform-accent-tertiary tw-p-4" Elevation="0">
+    <MudPaper Class="platform-page-hero platform-accent-tertiary pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
             <MudStack Spacing="1">
                 <MudText Typo="Typo.h4" GutterBottom="true">部门与授权</MudText>
@@ -28,14 +28,14 @@
 
     @if (_isLoading)
     {
-        <MudPaper Class="platform-section-card--tinted platform-accent-tertiary tw-p-6" Elevation="0">
+        <MudPaper Class="platform-section-card--tinted platform-accent-tertiary pa-6" Elevation="0">
             <MudProgressLinear Indeterminate="true" Color="Color.Tertiary"/>
             <MudText Typo="Typo.body2" Class="mt-2" Align="Align.Center">正在加载部门与授权数据…</MudText>
         </MudPaper>
     }
     else if (_departments.Count == 0)
     {
-        <MudPaper Class="platform-section-card--tinted platform-accent-tertiary tw-p-6" Elevation="0">
+        <MudPaper Class="platform-section-card--tinted platform-accent-tertiary pa-6" Elevation="0">
             <div class="platform-empty-state">
                 <span class="platform-empty-icon">
                     <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Large"/>
@@ -49,7 +49,7 @@
     }
     else
     {
-        <MudPaper Class="platform-section-card--tinted platform-accent-tertiary tw-p-4" Elevation="0">
+        <MudPaper Class="platform-section-card--tinted platform-accent-tertiary pa-4" Elevation="0">
             <MudText Typo="Typo.h6" GutterBottom="true">授权矩阵</MudText>
             <MudText Typo="Typo.body2" Class="mb-2">
                 勾选后点击该行「保存授权」生效。授权变更后，受影响用户重新登录即按新授权进入。

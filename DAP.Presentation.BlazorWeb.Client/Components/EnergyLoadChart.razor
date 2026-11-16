@@ -1,0 +1,52 @@
+@using System.Globalization
+
+<svg class="load-chart" viewBox="0 0 720 240" role="img" xmlns="http://www.w3.org/2000/svg">
+    <title>园区 24 小时总负荷曲线</title>
+    <desc>按小时展示园区总负荷，并用虚线标出申报需量；负荷逼近需量时应当引起注意。</desc>
+
+    @foreach ((double value, double y) in YTicks)
+    {
+        <line x1="@F(Left)" y1="@F(y)" x2="@F(Right)" y2="@F(y)" class="load-chart-grid"/>
+        <SvgText X="@F(Left - 10)" Y="@F(y)" Anchor="end" CssClass="load-chart-axis">
+            @FormatValue(value)
+        </SvgText>
+    }
+
+    <line x1="@F(Left)" y1="@F(Bottom)" x2="@F(Right)" y2="@F(Bottom)" class="load-chart-axis-line"/>
+
+    @if (Points.Count > 0)
+    {
+        <polygon points="@AreaPoints" class="load-chart-area"/>
+        <polyline points="@LinePoints" class="load-chart-line"/>
+    }
+
+    @if (DeclaredDemand is > 0)
+    {
+        <line x1="@F(Left)" y1="@F(DemandY)" x2="@F(Right)" y2="@F(DemandY)" class="load-chart-demand"/>
+        <SvgText X="@F(Left + 6)" Y="@F(DemandY - 8)" CssClass="load-chart-demand-label">
+            @($"申报需量 {FormatValue((double)DeclaredDemand!.Value)} {Unit}")
+        </SvgText>
+    }
+
+    @if (Peak is { } peak)
+    {
+        @* 峰值只画点，不写字：峰值时刻前后的曲线正好从这一点向两侧下降，
+           文字无论放哪一侧都会压在线上；具体数值由卡片右上角的摘要给出。 *@
+        <circle cx="@F(XOf(peak.Hour))" cy="@F(YOf((double)peak.LoadKw))" r="4" class="load-chart-peak"/>
+    }
+
+    @foreach ((string label, double x) in XTicks)
+    {
+        <SvgText X="@F(x)" Y="@F(Bottom + 20)" Anchor="@(label == "24:00" ? "end" : "middle")"
+                 CssClass="load-chart-axis">
+            @label
+        </SvgText>
+    }
+</svg>
+
+@* 峰平谷电量需要分时计量与当地分时电价时段配置，当前没有数据源，
+   所以这里不展示——写死一组百分比会被当成实测值拿去汇报。 *@
+<div class="load-chart-foot">
+    <span>@(DeclaredDemand is > 0 ? $"需量使用率 {FormatUsage(DemandUsage)}" : "未配置申报需量")</span>
+    <span>峰平谷电量待接入分时计量</span>
+</div>

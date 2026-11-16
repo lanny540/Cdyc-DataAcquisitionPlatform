@@ -28,17 +28,21 @@
 语义映射：在线/成功=绿、离线/失败/删除=红、停用/检测中=琥珀、提示=信息蓝、主操作=蓝。
 **禁用灰色表达业务状态。**
 
-**改色板必须核验四条底线**（由守卫测试 `Palette_Should_Meet_Contrast_Baselines` 强制）：
+**全站采用深色主题**（Web `IsDarkMode="true"` + 桌面 `RequestedThemeVariant="Dark"`），
+底色层级遵循 M3 dark「越浮越亮」：页面底 → 卡片表面 → 区块容器逐级提亮。
+
+**改色板必须核验四条底线**（由守卫测试 `Palette_Should_Meet_Contrast_Baselines` 强制，
+参照表面从 app.css 的 `--platform-surface` 读取）：
 
 | 约束 | 阈值 |
 |---|---|
 | 白字 / base | ≥ 4.5:1（WCAG AA）|
-| tint / 白底 | ≥ 1.20:1（底纹要肉眼可辨）|
-| soft / 白底 | ≥ 1.25:1（统计卡底色要跳脱）|
-| strong / 底色 | ≥ 4.5:1（卡片数字要可读）|
+| tint / 卡片表面 | ≥ 1.20:1（底纹要肉眼可辨）|
+| soft / 卡片表面 | ≥ 1.25:1（统计卡底色要跳脱）|
+| strong / 容器底 | ≥ 4.5:1（卡片数字要可读；深色下 strong 是亮色强调文字）|
 
-底色**必须整块铺满**，不要用 `linear-gradient(tint → white)` 把颜色稀释回白色——
-那样卡片九成面积仍是白色，等于没上色。层次靠卡内的白色表格/图表底板区分。
+底色**必须整块铺满**，不要用 `linear-gradient(tint → surface)` 把颜色稀释回表面色——
+那样卡片九成面积仍是表面色，等于没上色。层次靠卡内的表格/图表底板区分。
 
 ### 2. 禁止硬编码色值
 
@@ -48,6 +52,8 @@
 - 桌面：`{DynamicResource Dap*Brush}`（必须 `DynamicResource`，禁用 `StaticResource`）
 
 权威色值文件：`app.css` 的 `:root`、`Themes/DapPalette.axaml`。
+守卫测试把这条规则落到两端：`Razor_Pages_Should_Not_Hardcode_Hex_Colors`（.razor）与
+`Avalonia_Styles_Should_Not_Hardcode_Hex_Colors`（.axaml，仅豁免两个色板文件本身）。
 
 ### 3. Web 端配色只加 class，不写新规则
 
@@ -71,8 +77,8 @@
 |---|---|
 | 页面根 | `<MudStack Class="platform-page-shell" Spacing="2">` |
 | 页面头部 | `platform-page-hero` + accent |
-| 统计卡 | `platform-stat-card--tinted` + `platform-stat-header`（底色铺满 soft 档）|
-| 区块卡/面板 | `platform-section-card--tinted` / `platform-panel--tinted`（底色铺满 tint 档 + 左侧 4px 色条）|
+| 统计卡 | `platform-stat-card--tinted` + `platform-stat-header`（中性卡底，色相由左色条/图标底块/标签行承载）；**全宽头条 KPI 用 `--filled`（soft 全幅，全页最多一两张）**|
+| 区块卡/面板 | `platform-section-card--tinted` / `platform-panel--tinted`（中性卡底 + 左侧 4px 色条）|
 | 表格 | `platform-data-table` |
 | 空状态 | `platform-empty-state` + `platform-empty-icon` |
 | 抽屉 | `platform-sheet` + `platform-sheet-section`（各分区不同 accent） |
@@ -103,10 +109,26 @@ MudChart 把系列色硬编码为 Material 默认蓝（`#2979FF`）。`app.css` 
 ### 8. 导航图标取色
 
 导航已分组，**禁止用 `nth-child`** 给图标着色，改用 `platform-nav-link--*` 修饰类。
+注意特异度：MudBlazor 用 (0,4,0) 选择器（`.mud-navmenu.mud-navmenu-default .mud-nav-link.active:not(...)` 与
+`.mud-nav-link:not(.mud-nav-link-disabled) .mud-nav-link-icon.mud-nav-link-icon-default`）强制激活文字与图标颜色，
+自定义规则必须以 `.mud-navmenu .mud-nav-item.platform-nav-link...` 开头（(0,5,0) 起），否则**静默被压制**
+（历史上分区图标着色与激活亮字都因此从未生效，激活项一直显示调色板 base 深蓝）。
 
-### 9. 新增页面必须登记主色
+### 9. 设计风格双端同步（强制）
+
+**Web 端的设计风格调整必须同步到桌面端**（卡片底色、文字层级、色档语义、导航状态等）。
+桌面端等价物：Web 的 CSS 变量 `--md-*` ↔ `DapPalette.axaml` 的 `Dap*Brush`；
+`platform-stat-card/section-card` ↔ `DapStyles.axaml` 的 `Border.stat-card/section-card` +
+页面 axaml 的资源绑定。同步后 `dotnet build` + `dotnet test` 必须全绿。
+
+### 10. 新增页面必须登记主色
 
 在 `docs/DESIGN_SYSTEM.md` 的「页面主色分配」表中登记，并在 `app.css` 之外无其他色板定义。
+
+桌面端另有一张同名表（含每个页面的 `Accent` 值）；新增桌面页面还要在
+`Navigation/DesktopNavigationCatalog.cs` 登记，否则守卫测试
+`Avalonia_Page_ViewModels_Should_Be_Registered_In_Navigation_Catalog` 会失败——
+这是为了防止「页面写完了却没有菜单入口」。
 
 ---
 
@@ -145,6 +167,27 @@ MudChart 把系列色硬编码为 Material 默认蓝（`#2979FF`）。`app.css` 
 - 表单提交走原生 `method="post"`，不要挂 `@onsubmit`：InteractiveAuto 下页面可能落在
   Server 电路里，电路内没有 `HttpContext`，签不出也签不掉 Cookie。
 - 设计基线见 `docs/AUTH_DESIGN.md`；当前只落地 P0，域授权矩阵与审计属 P1。
+
+### 两端共用的 API 客户端
+
+`DAP.Clients` 是 Web 与桌面端唯一的接口入口，**新增接口只加在这里**：
+
+| 文件 | 职责 |
+|---|---|
+| `IPlatformApiClient.cs` / `PlatformApiClient.cs` | 业务契约与 HTTP 实现（`/api/*`） |
+| `IPlatformAuthClient.cs` / `PlatformAuthClient.cs` | 登录、当前用户、登出、改密（302 + `Location` 表达结果） |
+| `PlatformHttpResponse.cs` | 统一错误文案：401/403/404/429/5xx 翻成中文，非 JSON 响应不回显原文 |
+
+约定：
+
+- **不得**把接口搬回 `DAP.Presentation.BlazorWeb.Client`（会让桌面端反向依赖展示层），
+  也**不得**在桌面端复制一份实现——守卫测试 `Shared_Api_Client_Should_Live_In_Dap_Clients_Project` 强制。
+- `DAP.Clients` 只引用 `DAP.Core.Shared`，不引用 `DAP.Presentation.*` 与 `DAP.Infrastructure`。
+- Web 端服务端预渲染走 `ServerPlatformApiClient`（`PlatformPresentationServiceCollectionExtensions.cs`
+  内的适配器，直调领域服务）；它必须实现同一个接口，新增成员时两处都要补。
+- 桌面端**不要**用 `IHttpClientFactory` 创建会话客户端：Cookie 容器随客户端实例存活，
+  换实例就掉线。用 `DesktopSession` 里的专用 `HttpClient`（`AllowAutoRedirect = false`）。
+- 桌面端只做读取。给 `IPlatformApiClient` 加写方法可以，但不要在桌面端界面上暴露写操作。
 
 ### 组件 API 不可臆测
 

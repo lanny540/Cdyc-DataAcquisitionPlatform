@@ -26,6 +26,7 @@ public static class PlatformApiEndpointRouteBuilderExtensions
         endpoints.MapHistoryApiEndpoints();
         endpoints.MapShiftSchedulingEndpoints();
         endpoints.MapEnergyMetricEndpoints();
+        endpoints.MapParkEnergyEndpoints();
 
         return endpoints;
     }

@@ -1,0 +1,104 @@
+/* 能源计量点台账 */
+
+.meter-code {
+    font-family: var(--platform-font-mono, monospace);
+    font-size: 12px;
+    color: var(--platform-text-muted);
+}
+
+/* 列多但不换行：一旦换行，一行表会占三行高度，扫读效率反而更差 */
+.meter-table ::deep .mud-table-cell {
+    white-space: nowrap;
+}
+
+.meter-table ::deep .meter-col-right {
+    text-align: right;
+}
+
+.meter-empty-text {
+    max-width: 660px;
+    text-align: center;
+    color: var(--platform-text-muted);
+}
+
+.meter-footnote {
+    display: block;
+    padding: 0 4px;
+    color: var(--platform-text-subtle);
+    line-height: 1.7;
+}
+
+.meter-footnote code {
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: var(--platform-surface-sunken);
+    font-size: 12px;
+}
+
+/* 组织节点树 */
+
+.meter-org-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 14px;
+}
+
+.meter-org-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+}
+
+.meter-org-indent {
+    flex: none;
+}
+
+.meter-org-name {
+    color: var(--platform-text);
+    white-space: nowrap;
+}
+
+.meter-org-code {
+    font-size: 11px;
+    color: var(--platform-text-subtle);
+    font-family: var(--platform-font-mono, monospace);
+}
+
+/* 介质折标系数 */
+
+.meter-factor-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 14px;
+}
+
+.meter-factor-row {
+    display: grid;
+    grid-template-columns: 88px 84px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+}
+
+.meter-factor-name {
+    font-size: 13px;
+    color: var(--platform-text);
+}
+
+.meter-factor-unit {
+    font-size: 11px;
+    color: var(--platform-text-subtle);
+}
+
+.meter-factor-na {
+    grid-column: span 2;
+    font-size: 11px;
+    color: var(--platform-text-subtle);
+}
+
+/* 两张配置卡等高：组织树行数少于介质行数时，右侧会短一截，视觉上像没加载完 */
+.meter-config-card {
+    height: 100%;
+}

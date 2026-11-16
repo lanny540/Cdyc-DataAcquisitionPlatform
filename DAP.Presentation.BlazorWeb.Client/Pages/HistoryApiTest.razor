@@ -3,7 +3,7 @@
 <PageTitle>History 数据库 API 测试</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
-    <MudPaper Class="platform-page-hero platform-accent-warning tw-p-4" Elevation="0">
+    <MudPaper Class="platform-page-hero platform-accent-warning pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
             <MudStack Spacing="1">
                 <MudText Typo="Typo.h4">History 数据库 API 测试</MudText>
@@ -28,7 +28,7 @@
     <MudGrid Spacing="3">
         <MudItem xs="12" lg="5">
             <MudStack Spacing="2">
-                <MudPaper Class="platform-panel platform-section-card--tinted platform-accent-primary tw-p-4"
+                <MudPaper Class="platform-panel platform-section-card--tinted platform-accent-primary pa-4"
                           Elevation="0">
                     <MudStack Spacing="2">
                         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
@@ -56,7 +56,7 @@
                         <MudPaper Class="platform-summary" Elevation="0">
                             <MudText Typo="Typo.caption" Class="platform-field-label">上游请求预览</MudText>
                             <MudText Typo="Typo.body2"
-                                     Class="tw-break-all platform-inline-code">@CurrentValuePreview</MudText>
+                                     Class="platform-break-all platform-inline-code">@CurrentValuePreview</MudText>
                         </MudPaper>
 
                         <MudButton Variant="Variant.Filled"
@@ -69,7 +69,7 @@
                     </MudStack>
                 </MudPaper>
 
-                <MudPaper Class="platform-panel platform-section-card--tinted platform-accent-tertiary tw-p-4"
+                <MudPaper Class="platform-panel platform-section-card--tinted platform-accent-tertiary pa-4"
                           Elevation="0">
                     <MudStack Spacing="2">
                         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
@@ -138,7 +138,7 @@
                         <MudPaper Class="platform-summary" Elevation="0">
                             <MudText Typo="Typo.caption" Class="platform-field-label">上游请求预览</MudText>
                             <MudText Typo="Typo.body2"
-                                     Class="tw-break-all platform-inline-code">@RawDataPreview</MudText>
+                                     Class="platform-break-all platform-inline-code">@RawDataPreview</MudText>
                         </MudPaper>
                     </MudStack>
                 </MudPaper>
@@ -146,7 +146,7 @@
         </MudItem>
 
         <MudItem xs="12" lg="7">
-            <MudPaper Class="platform-panel platform-panel--tinted platform-accent-info tw-p-4" Elevation="0">
+            <MudPaper Class="platform-panel platform-panel--tinted platform-accent-info pa-4" Elevation="0">
                 <MudStack Spacing="2">
                     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap">
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
@@ -214,7 +214,7 @@
                         <MudPaper Class="platform-summary" Elevation="0">
                             <MudText Typo="Typo.caption" Class="platform-field-label">上游实际请求地址</MudText>
                             <MudText Typo="Typo.body2"
-                                     Class="tw-break-all platform-inline-code">@_latestResponse.RequestUrl</MudText>
+                                     Class="platform-break-all platform-inline-code">@_latestResponse.RequestUrl</MudText>
                         </MudPaper>
 
                         @if (!string.IsNullOrWhiteSpace(_latestResponse.ErrorMessage))

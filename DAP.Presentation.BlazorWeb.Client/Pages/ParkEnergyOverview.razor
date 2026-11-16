@@ -1,0 +1,297 @@
+@page "/park-energy"
+@using DAP.Presentation.BlazorWeb.Client.Components
+
+<PageTitle>园区能源总览</PageTitle>
+
+<MudStack Class="platform-page-shell" Spacing="2">
+    <MudPaper Class="platform-page-hero platform-accent-secondary pa-4" Elevation="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
+                  Spacing="3">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h4" GutterBottom="true">园区能源总览</MudText>
+                <MudText Typo="Typo.body1">
+                    全园区水、电、蒸汽与二次能源的用量、结构与负荷。
+                </MudText>
+                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mt-2">
+                    <MudChip T="string" Variant="Variant.Outlined" Color="Color.Secondary">
+                        @(_overview?.PeriodLabel ?? "—")
+                    </MudChip>
+                    <MudChip T="string" Variant="Variant.Outlined" Color="Color.Info">
+                        @LastUpdatedText
+                    </MudChip>
+                    @if (IsSample)
+                    {
+                        <MudChip T="string" Variant="Variant.Filled" Color="Color.Warning">
+                            示例数据
+                        </MudChip>
+                    }
+                </MudStack>
+            </MudStack>
+            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
+                <MudSelect T="string" Label="统计期间" Value="_period" ValueChanged="OnPeriodChangedAsync"
+                           Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense"
+                           Style="min-width: 130px;">
+                    <MudSelectItem T="string" Value="@PeriodMonth">本月</MudSelectItem>
+                    <MudSelectItem T="string" Value="@PeriodYear">本年</MudSelectItem>
+                </MudSelect>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadAsync" Disabled="_isLoading">
+                    刷新
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+
+    @if (_isLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Secondary"/>
+    }
+    else if (IsEmpty)
+    {
+        @* 空态不是错误：开发环境没有计量读数属于正常情况。
+           这里给两条出口——重新检查（数据可能刚推上来）与示例预览（确认版式）。 *@
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-secondary pa-4"
+                  Elevation="0">
+            <div class="platform-empty-state park-empty-state">
+                <span class="platform-empty-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.QueryStats" Size="Size.Large"/>
+                </span>
+                <MudText Typo="Typo.h5">尚无能源读数</MudText>
+                <MudText Typo="Typo.body2" Class="park-empty-text">
+                    @(_message ?? "统计期间内没有能源读数。")
+                </MudText>
+                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" Justify="Justify.Center">
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                               StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadAsync">
+                        重新检查
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
+                               StartIcon="@Icons.Material.Filled.Science" OnClick="ToggleDemoAsync">
+                        用示例数据预览版式
+                    </MudButton>
+                </MudStack>
+                <MudText Typo="Typo.caption" Class="park-empty-hint">
+                    示例数据仅在当前页面渲染，不写入数据库，也不参与任何报表与导出。
+                </MudText>
+            </div>
+        </MudPaper>
+    }
+    else
+    {
+        @if (IsSample)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Outlined"
+                      Icon="@Icons.Material.Filled.Science">
+                <div class="park-alert-row">
+                    <span>当前为示例数据，仅用于确认页面版式与口径，不代表任何真实计量值，不可用于汇报。</span>
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Secondary"
+                               OnClick="ToggleDemoAsync">
+                        返回实测数据
+                    </MudButton>
+                </div>
+            </MudAlert>
+        }
+        else if (_message is not null)
+        {
+            <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
+        }
+
+        @if (_overview!.Warnings.Count > 0 && !IsSample)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined"
+                      Icon="@Icons.Material.Filled.Info">
+                @foreach (var warning in _overview.Warnings)
+                {
+                    <div>@warning</div>
+                }
+            </MudAlert>
+        }
+
+        <MudGrid Spacing="3">
+            @foreach (var kpi in _overview!.Kpis)
+            {
+                <MudItem xs="12" sm="6" lg="3">
+                    <MudPaper Class="platform-stat-card platform-stat-card--tinted platform-accent-secondary pa-4"
+                              Elevation="0">
+                        <div class="platform-stat-header">
+                            <span class="platform-section-icon">
+                                <MudIcon Icon="@KpiIcon(kpi.Key)" Size="Size.Small"/>
+                            </span>
+                            <MudText Typo="Typo.caption">@kpi.Label</MudText>
+                        </div>
+                        <div class="park-kpi-value">
+                            <span class="park-kpi-number">@kpi.Value</span>
+                            <span class="park-kpi-unit">@kpi.Unit</span>
+                        </div>
+                        <div class="park-kpi-delta @KpiDeltaClass(kpi.IsImprovement)">
+                            @(kpi.Delta ?? "无对比基准")
+                        </div>
+                        <div class="park-kpi-hint">@kpi.Hint</div>
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+
+        <MudGrid Spacing="3">
+            <MudItem xs="12" lg="8">
+                <MudPaper
+                    Class="platform-section-card platform-section-card--tinted platform-accent-secondary park-panel-fill pa-4"
+                    Elevation="0">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
+                              Wrap="Wrap.Wrap" Spacing="2">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <span class="platform-section-icon">
+                                <MudIcon Icon="@Icons.Material.Filled.ShowChart" Size="Size.Small"/>
+                            </span>
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.h6" Class="platform-card-title">今日园区总负荷</MudText>
+                                <MudText Typo="Typo.body2" Class="platform-card-description">
+                                    按小时展示，红色虚线为申报需量；与上方统计期间无关，始终为最近一个有数据的自然日。
+                                </MudText>
+                            </MudStack>
+                        </MudStack>
+                        <MudChip T="string" Variant="Variant.Outlined" Color="Color.Error">@PeakSummary</MudChip>
+                    </MudStack>
+
+                    @if (_overview.LoadPoints.Count == 0)
+                    {
+                        <div class="platform-empty-state park-chart-empty">
+                            <MudText Typo="Typo.body2">当日没有电表读数，无法绘制负荷曲线。</MudText>
+                        </div>
+                    }
+                    else
+                    {
+                        <EnergyLoadChart Points="_overview.LoadPoints" DeclaredDemand="_overview.DeclaredDemandKw"/>
+                    }
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" lg="4">
+                <MudPaper
+                    Class="platform-section-card platform-section-card--tinted platform-accent-secondary park-panel-fill pa-4"
+                    Elevation="0">
+                    <div class="park-stack">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <span class="platform-section-icon">
+                                <MudIcon Icon="@Icons.Material.Filled.DonutLarge" Size="Size.Small"/>
+                            </span>
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.h6" Class="platform-card-title">一次能源构成</MudText>
+                                <MudText Typo="Typo.body2" Class="platform-card-description">按折标煤口径计算占比</MudText>
+                            </MudStack>
+                        </MudStack>
+
+                        <div class="park-share-list">
+                            @for (var index = 0; index < _overview.PrimaryShares.Count; index++)
+                            {
+                                var slice = _overview.PrimaryShares[index];
+                                var level = Math.Min(index + 1, 3);
+
+                                <div class="park-share-row">
+                                    <div class="park-share-head">
+                                        <span>@slice.Name</span>
+                                        <span class="park-share-value">@slice.DisplayValue · @slice.ShareText</span>
+                                    </div>
+                                    @if (slice.Share is { } share)
+                                    {
+                                        <div class="park-share-track">
+                                            <div class="park-share-fill park-share-fill--@level"
+                                                 style="width: @($"{share * 100:0.#}%")"></div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        @* 缺折标系数时不画一条 0% 的空白轨道，那看起来像「用得极少」；
+                                           明确标注待配置，读者才知道是数据没配好。 *@
+                                        <div class="park-share-missing">—</div>
+                                    }
+                                </div>
+                            }
+
+                            @if (_overview.PrimaryShares.Count == 0)
+                            {
+                                <MudText Typo="Typo.body2">尚无一次能源用量。</MudText>
+                            }
+                        </div>
+
+                        <div class="park-share-note">
+                            <div class="park-share-note-title">不计入综合能耗</div>
+                            @if (_overview.SecondaryShares.Count == 0)
+                            {
+                                <div class="park-share-note-row">
+                                    <span>暂无二次能源计量</span>
+                                    <span>—</span>
+                                </div>
+                            }
+                            else
+                            {
+                                @foreach (var slice in _overview.SecondaryShares)
+                                {
+                                    <div class="park-share-note-row">
+                                        <span>@slice.Name</span>
+                                        <span>@slice.DisplayValue · @slice.ShareText</span>
+                                    </div>
+                                }
+                            }
+                            <div class="park-share-note-foot">由电或蒸汽转换，只作分项，避免重复计算。</div>
+                        </div>
+                    </div>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-secondary pa-4"
+                  Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
+                      Spacing="2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <span class="platform-section-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.AccountTree" Size="Size.Small"/>
+                    </span>
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.h6" Class="platform-card-title">各部门能耗占比</MudText>
+                        <MudText Typo="Typo.body2" Class="platform-card-description">
+                            按折标量汇总，条形按最大部门归一；右侧为环比变化。
+                        </MudText>
+                    </MudStack>
+                </MudStack>
+                <MudChip T="string" Variant="Variant.Outlined" Color="Color.Secondary">
+                    @($"{_overview.OrgRows.Count} 个部门")
+                </MudChip>
+            </MudStack>
+
+            @if (_overview.OrgRows.Count == 0)
+            {
+                <div class="platform-empty-state park-chart-empty">
+                    <MudText Typo="Typo.body2">尚无部门级能耗数据。请先为计量点配置所属组织节点。</MudText>
+                </div>
+            }
+            else
+            {
+                <div class="park-org-list">
+                    @foreach (var row in _overview.OrgRows)
+                    {
+                        <div class="park-org-row">
+                            <span class="park-org-name">@row.Name</span>
+                            <div class="park-org-track">
+                                <div class="park-org-fill"
+                                     style="width: @($"{row.Share / MaxOrgShare * 100:0.#}%")"></div>
+                            </div>
+                            <span class="park-org-value">@row.DisplayValue</span>
+                            <span class="park-org-share">@($"{row.Share * 100:0.#}%")</span>
+                            <span class="park-org-delta @(row.DeltaPercent is null ? "park-org-delta--flat" : row.DeltaPercent > 0 ? "park-org-delta--bad" : "park-org-delta--good")">
+                                @FormatDelta(row.DeltaPercent)
+                            </span>
+                        </div>
+                    }
+                </div>
+            }
+        </MudPaper>
+
+        <MudText Typo="Typo.caption" Class="park-footnote mt-2">
+            口径：综合能耗只汇总一次能源（电、水、蒸汽），按 GB/T 2589 当量值折标；
+            空调制冷量与压缩空气由电或蒸汽转换而来，作为分项展示，不重复计入。
+            累计表按期间首末示数差计算用量，期间内读数不足两条且无期间前基线时不参与汇总。
+        </MudText>
+    }
+</MudStack>

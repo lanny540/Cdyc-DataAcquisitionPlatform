@@ -8,6 +8,11 @@
 
 ## 一、色彩体系（Material Design 3）
 
+> **全站固定深色主题**（2026-11 起）：Web 端 MudThemeProvider 传 `IsDarkMode="true"` 读取
+> `PlatformTheme.Dark`；桌面端 `App.axaml` 的 `RequestedThemeVariant="Dark"`。整体采用深色背景，
+> 页面底 → 卡片表面 → 区块容器按 M3 dark 惯例「越浮越亮」。浅色面板仍保留在
+> `PlatformTheme.Light` 中（打印/未来切换用），但页面样式一律以深色档为准。
+
 ### 1.1 唯一权威来源
 
 | 端 | 权威文件 | 说明 |
@@ -15,78 +20,121 @@
 | Web | `DAP.Presentation.BlazorWeb/wwwroot/app.css` 的 `:root` 变量 | `--md-*` / `--platform-*` |
 |桌面 | `DAP.Presentation.AvaloniaApp/Themes/DapPalette.axaml` | `Dap*Brush` / `Dap*Color` |
 | 桌面主题对接 | `DAP.Presentation.AvaloniaApp/Themes/SemiBrandOverride.axaml` | 覆盖 Semi 默认调色板 |
-| Web 组件对接 | `DAP.Presentation.BlazorWeb.Client/Layout/PlatformTheme.cs` 的 `MudTheme.PaletteLight` | 传给 MudBlazor；主框架与登录页共用同一份 |
+| Web 组件对接 | `DAP.Presentation.BlazorWeb.Client/Layout/PlatformTheme.cs` 的 `PaletteDark` / `PaletteLight` | 传给 MudBlazor；主框架与登录页共用同一份 |
 
 **改色流程**：先改权威文件 → 再同步到对接文件 → 验证双端一致。禁止只改其中一处。
 
 ### 1.2 七组角色色
 
-每组角色色固定三级深度，**不得新增其他色相**：
+每组角色色固定四级深度，**不得新增其他色相**。base 是唯一色相锚点，浅深两套主题共用；
+深色主题下 soft/tint 是「带色相的深色容器」，strong 是「容器底上的亮色强调文字」：
 
-| 角色 | 变量 | Base（主色） | Soft（浅填充） | Tint（极浅底） |
-|---|---|---|---|---|
-| Primary 主色 | `--md-primary` | `#0B4FC4` | `#C9DCF8` | `#DCE8FA` |
-| Secondary 次色 | `--md-secondary` | `#33475C` | `#D3DDE8` | `#DFE6EE` |
-| Tertiary 第三色 | `--md-tertiary` | `#7B2F9E` | `#ECDCF6` | `#ECDEF7` |
-| Success 成功/在线 | `--md-success` | `#0D7A3C` | `#C3E8D2` | `#D7F0E1` |
-| Warning 警告/停用 | `--md-warning` | `#B15600` | `#FFDDB0` | `#FFE4BC` || Error 错误/危险 | `--md-error` | `#B32318` | `#F7CCC7` | `#FBE0DC` |
-| Info 信息 | `--md-info` | `#0F6FBD` | `#C2DDF6` | `#D5E8FA` |
+| 角色 | 变量 | Base（主色） | Strong（强调文字） | Soft（统计卡底） | Tint（区块底） |
+|---|---|---|---|---|---|
+| Primary 主色 | `--md-primary` | `#0B4FC4` | `#9CC0FA` | `#303A4C` | `#283140` |
+| Secondary 次色 | `--md-secondary` | `#33475C` | `#B6C8DC` | `#363F4A` | `#2E3641` |
+| Tertiary 第三色 | `--md-tertiary` | `#7B2F9E` | `#D9B4F0` | `#3C344A` | `#383146` |
+| Success 成功/在线 | `--md-success` | `#0D7A3C` | `#7FD6A0` | `#25352E` | `#24322B` |
+| Warning 警告/停用 | `--md-warning` | `#B15600` | `#F5B25E` | `#393122` | `#362F21` |
+| Error 错误/危险 | `--md-error` | `#B32318` | `#EF8D80` | `#423033` | `#3C2D2F` |
+| Info 信息 | `--md-info` | `#0F6FBD` | `#7FC0F0` | `#2A3545` | `#273140` |
 
-> Warning 的 soft 精确值为 `#FFDDB0`（无空格），本表中的写法仅为示意；
+> Warning 的 soft 精确值为 `#393122`（无空格），本表中的写法仅为示意；
 > **一切以 `app.css` 的 `:root` 变量为准**，改色时先改那里。
 
 **深度用途（不可混用）**：
-- **Base**：色条、强调文字、主按钮、图标本身
-- **Soft**：**统计卡片底色**、图标底色块、标签底、选中态背景
-- **Tint**：**区块卡片底色**、页面头部底色、区域底纹、hover 背景
+- **Base**：色条、主按钮、图标本身（白字在其上 ≥4.5:1）——**不做前景文字**；
+- **Strong**：强调文字、徽章文字、图表折线/柱形、标签行（在容器底上 ≥4.5:1）；
+- **Soft**：**头条 KPI 卡底色**、图标底色块、提示条底色（与卡片表面 ≥1.25:1）；
+- **Tint**：页面头部底色、表格表头底色、图表渐变起点（与卡片表面 ≥1.20:1）。
+
+**文字层级铁律（深色主题下尤其重要）**：
+- **数值（h3/h5）与页头/区块标题（h4/h6）一律用近白 `--platform-text`**——
+  彩色大文字叠在同色相容器底上会融成一片，这是「文字不突出」的根源；
+- accent 色相只出现在**小面积元素**：左侧色条、图标、标签行（caption）、
+  图表折线/柱形（strong 档）；
+- soft/tint 容器刻意压低饱和度（S≈20%），让中性次要文字与底色协调，
+  色相辨识交给小面积的 base 色条与图标。
 
 #### 1.2.1 为什么底色要压到这个深度（可读性底线）
 
-「整站看上去很素」的根因**不是颜色不够艳，而是底色层与白色表面太接近**。
-早期 tint 与白底的对比度只有 1.05~1.09 倍，肉眼完全分辨不出，
-于是所有卡片实际都呈现为白色，再鲜艳的 base 色也只出现在 3~4px 的色条上。
+「整站看上去很素」的根因**不是颜色不够艳，而是底色层与表面太接近**。
+早期 tint 与表面的对比度只有 1.05~1.09 倍，肉眼完全分辨不出，
+于是所有卡片实际都呈现为同一个颜色，再鲜艳的 base 色也只出现在 3~4px 的色条上。
 
-当前色板已核验三条底线（由守卫测试 `Palette_Should_Meet_Contrast_Baselines` 强制）：
+当前色板已核验四条底线（由守卫测试 `Palette_Should_Meet_Contrast_Baselines` 强制，
+参照表面从 app.css 的 `--platform-surface` 读取）：
 
 | 约束 | 阈值 | 含义 |
 |---|---|---|
 | 白字 / base | ≥ 4.5:1 | WCAG AA 正文级，主按钮与徽章可读 |
-| tint / 白底 | ≥ 1.20:1 | 区块底纹必须肉眼可辨，否则等于没上色 |
-| soft / 白底 | ≥ 1.25:1 | 统计卡底色用 soft 档，比区块更跳脱 |
-| strong / 底色 | ≥ 4.5:1 | 卡片数值在有色底上仍清晰 |
+| tint / 卡片表面 | ≥ 1.20:1 | 区块底纹必须肉眼可辨，否则等于没上色 |
+| soft / 卡片表面 | ≥ 1.25:1 | 统计卡底色用 soft 档，比区块更跳脱 |
+| strong / 容器底 | ≥ 4.5:1 | 卡片数值在 soft/tint 容器上仍清晰 |
 
 **改动色板时必须重新核验这四条**，否则「改配色」很容易改成「变淡」或「看不清」。
 
-### 1.2.2 卡片底色的分配
+### 1.2.2 卡片底色的分配（2026-11-16 修订：三层强调体系）
 
-| 容器 | 底色 | 修饰类 |
-|---|---|---|
-| 页面头部 | tint 全幅 | `platform-page-hero` |
-| 统计卡片 | soft 全幅 | `platform-stat-card--tinted` |
-| 区块卡片 | tint 全幅 + 左侧 4px 色条 | `platform-section-card--tinted` |
-| 面板 | tint 全幅 + 左侧 4px 色条 | `platform-panel--tinted` |
-| 图表容器 | tint→白渐变（上 42% 渐隐） | `platform-chart-frame` |
-| 数据表格 | 白色底板 | `platform-data-table` |
+深色主题的教训：**每张卡都铺彩色底会变成「色块马赛克」**——四五种深色容器并排
+彼此打架，暖色容器（琥珀/紫）还容易发闷显脏。色彩改为三层强调：
 
-**不要用渐变把底色稀释回白色**——早期实现用 `linear-gradient(tint → white 78px)`，
-结果卡片九成面积仍是白色，视觉上等于没上色。要有色就整块铺满。
+| 容器 | 底色 | 色彩由谁承载 | 修饰类 |
+|---|---|---|---|
+| 页面头部 | tint 全幅 | 底色 + 左色条 | `platform-page-hero` |
+| **头条 KPI**（全宽汇总卡） | **soft 全幅** | 底色 + 左色条 | `platform-stat-card--filled` |
+| 常规统计卡 | **中性表面** | 左色条 + 图标底块 + 标签行 | `platform-stat-card--tinted` |
+| 区块卡片 | **中性表面** | 左侧 4px 色条 + 图标底块 | `platform-section-card--tinted` |
+| 面板 | **中性表面** | 左侧 4px 色条 | `platform-panel--tinted` |
+| 图表容器 | tint→表面渐变（上 42% 渐隐） | 渐变 + 系列色 | `platform-chart-frame` |
+| 数据表格 | 中性卡底 + tint 表头 | 表头底色 + 表头文字 | `platform-data-table` |
 
-### 1.3 中性色
+要点：
+- `--tinted` 类名保留（卡内点缀元素——图标底块、表头——仍取 tint/soft 档），
+  但**卡底一律中性表面**；`--filled` 是唯一 soft 全幅变体，全页最多一两张（头条 KPI）。
+- **桌面端等价实现（2026-11-16 已同步）**：`DapStyles.axaml` 的 `Border.stat-card`
+  自带 4px 左色条；卡片底色由页面绑定 `DapSurfaceBrush`（中性），色条绑定 `Dap*Brush`
+  （base），图标底块 = `Dap*SoftBrush` 底 + `Dap*StrongBrush` 图标，标签/图表系列 =
+  `Dap*StrongBrush`，数值 = `DapTextPrimaryBrush`（近白）。头条 KPI 保留 Soft 全幅 +
+  base 色条。**Web 端设计风格调整必须同步到桌面端**（改 Web 卡片/文字/色档语义时，
+  同步修改桌面端对应资源绑定与 `DapStyles.axaml`）。
+- 卡片数量多时（KPI 行 4~5 张、图表 4 张），中性卡 + 彩色左条的组合既保留
+  每张卡的色彩身份，又不会让整页变成彩色瓷砖。
+- **不要用渐变把底色稀释回表面色**；有色的容器（hero、头条 KPI）整块铺满。
+
+### 1.2.3 徽章与提示条（MudChip / MudAlert）的深色可读性
+
+MudBlazor 的 outlined/text 徽章与提示条用调色板 **base 色**作文字与描边——
+深色主题下 base 本身是深色，叠在深色表面上对比只有 2~3:1。app.css 统一覆盖：
+
+- **文字与描边一律 strong 档**（描边 55%/50% 半透明，填充保持 outlined 语义）；
+- outlined 提示条补一层 45% 的 soft 底色，让提示区域可被一眼圈出；
+- 类名是**复合类**：`mud-chip-color-warning` / `mud-alert-outlined-warning`，
+  不是 `mud-warning`（写错会静默不生效）。
+
+### 1.2.4 焦点框范围
+
+`:focus-visible` 只作用于**可交互元素**（链接/按钮/输入/`[role=button]`/
+非负 `[tabindex]`）。原因：Blazor 增强导航会给内容区标题加 `tabindex="-1"`
+并在跳转后聚焦它，全量规则会让页头标题画出蓝色框（仪表板页头实测出现过）。
+
+### 1.3 中性色（深色）
 
 | 用途 | 变量 | 色值 |
 |---|---|---|
-| 页面背景 | `--platform-bg` | `#F4F7FA` |
-| 卡片表面 | `--platform-surface` | `#FFFFFF` |
-| 次级表面 | `--platform-surface-muted` | `#F8FAFC` |
-| 下沉表面 | `--platform-surface-sunken` | `#EEF2F7` |
-| 常规边框 | `--platform-border` | `#E1E7EE` |
-| 强边框 | `--platform-border-strong` | `#C7D0DA` |
-| 主要文字 | `--platform-text` | `#16202B` |
-| 次要文字 | `--platform-text-muted` | `#4E5A70` |
-| 弱化文字 | `--platform-text-subtle` | `#8593A6` |
+| 页面背景 | `--platform-bg` | `#0E151D` |
+| 卡片表面 | `--platform-surface` | `#17212C` |
+| 次级表面 | `--platform-surface-muted` | `#1D2836` |
+| 下沉表面 | `--platform-surface-sunken` | `#223042` |
+| 常规边框 | `--platform-border` | `#2B3A4B` |
+| 强边框 | `--platform-border-strong` | `#42576E` |
+| 主要文字 | `--platform-text` | `#E6EDF5` |
+| 次要文字 | `--platform-text-muted` | `#A7B6C8` |
+| 弱化文字 | `--platform-text-subtle` | `#7A8BA0` |
 
-> 次要文字从 `#56637A` 加深到 `#4E5A70`：原值在 tint 底色上对比度只有 4.16~4.41，
-> 低于 WCAG AA 的 4.5:1。加深后对全部 14 个底色档（7 色 × tint/soft）均 ≥ 4.77:1。
+> 层级遵循 M3 dark 的「越浮越亮」：页面底最深，卡片表面亮一档，
+> 区块容器（tint/soft）再亮一档且带色相。主要文字对表面 ≥ 7:1，
+> 次要文字对表面 ≥ 4.5:1。
 
 ### 1.4 语义色映射（强制）
 
@@ -131,7 +179,8 @@
 <MudPaper Class="platform-stat-card platform-stat-card--tinted platform-accent-success pa-4">
 ```
 
-- `platform-stat-card` + `platform-stat-card--tinted`：左侧色条 + 极浅底纹
+- `platform-stat-card` + `platform-stat-card--tinted`：中性卡底 + 左侧色条 + 彩色标签行
+- `platform-stat-card--filled`：头条 KPI 专用，soft 全幅底（全页最多一两张）
 - `platform-page-hero platform-accent-<色>`：页面头部，自动获得色条 + 渐层 + 装饰圆
 - `platform-section-card--banded`：区块顶部 3px 色带
 - `platform-empty-state platform-accent-<色>`：空状态
@@ -161,10 +210,31 @@
 | 历史指标 `/energy-history` | 数据指标 → 能耗指标 | tertiary |
 | 班组横向对比 `/energy-comparison` | 数据指标 → 能耗指标 | warning |
 | 班组能耗报表 `/energy-report` | 数据指标 → 数据报表 | primary |
+| 园区能源总览 `/park-energy` | 能源 → 能源总览 | secondary |
+| 计量点台账 `/park-energy/meters` | 能源 → 台账与配置 | secondary |
+| 实时采集数据 `/collection-data` | 数据查看 → 采集运行 | info |
 | 登录 `/login`、改密 `/change-password` | 不在菜单内（AuthLayout） | primary |
 | 无权限 `/no-access`、无访问权 `/forbidden`、未上线 `/coming-soon` | 不在菜单内（状态页） | info |
 
+> 「数据指标」与「能源」是两个并列的域，不要混：「数据指标」是钞纸工序视角（班组 × 四项指标 × 班次），
+> 「能源」是园区经营视角（介质 × 组织 × 用途 × 系统）。两者都用到了「能耗」这个词，但口径与受众不同。
+> 能源域统一取 `secondary`，与钞纸的 `success` 绿区分开，否则从顶栏切过去会以为没跳转。
+
 新增页面时必须在本表中登记主色。
+
+**桌面端（Avalonia）页面主色**：与 Web 同名页面保持一致，颜色由各页面视图模型的
+`Accent` 属性声明（守卫测试 `Avalonia_Page_ViewModels_Should_Be_Registered_In_Navigation_Catalog`
+保证每个页面都登记在导航目录里）。
+
+| 桌面页面 | 抽屉归属 | 主色 |
+|---|---|---|
+| 能耗仪表板 | 数据指标 → 能耗指标 | success |
+| 历史指标 | 数据指标 → 能耗指标 | tertiary |
+| 班组横向对比 | 数据指标 → 能耗指标 | warning |
+| 班组能耗报表 | 数据指标 → 数据报表 | primary |
+| 实时采集数据 | 数据查看 → 采集运行 | info |
+| 排班日历 | 数据查看 → 班组排班 | info |
+| 登录 / 强制改密浮层 | 不在菜单内（覆盖层） | primary |
 
 ### 2.4 指标卡片的 accent 取色
 
@@ -201,9 +271,9 @@ private static readonly string[] MetricAccents =
 </MudPaper>
 ```
 
-- 必须带 `--tinted` 与accent 类
+- 必须带 `--tinted` 与 accent 类；**全宽汇总头条卡改用 `--filled`**（soft 全幅）
 - 必须有 `platform-stat-header` 图标行
-- 数值文字颜色由 accent 自动决定，**不要再加 `Color="..."`**
+- 数值文字颜色由样式统一为近白，**不要再加 `Color="..."`**
 
 ### 3.2 数据表格
 
@@ -214,7 +284,7 @@ private static readonly string[] MetricAccents =
 - 表头底色/文字色跟随所在卡片 accent
 - 编码、地址等标识文本用 `platform-inline-code` + `platform-table-primary`
 - 行操作区用 `table-action-grid` + `table-action-button`，按动作语义取色（详情=primary、调试=info、入库=success、编辑=primary、删除=error）
-- 表格本身用白色表面（`--platform-surface`），与有色卡片底形成层次，不要继承底色
+- 表格本身用卡片表面色（`--platform-surface`），与有色容器底形成层次，不要继承底色
 
 ### 3.2.1 区块卡片与面板
 
@@ -223,9 +293,10 @@ private static readonly string[] MetricAccents =
 ```
 
 - `--banded`：顶部 3px 色带
-- `--tinted`：卡片底铺 tint 档 + 左侧 4px 色条，与统计卡同源但更柔和（内容区需要沉静）
+- `--tinted`：中性卡底 + 左侧 4px 色条（深色主题下大面积彩色底会变成色块马赛克，
+  区块卡只留色条与图标底块的色彩身份）
 - 两者可叠加使用；只加 `--tinted` 不加 `--banded` 也成立
-- 卡片内的表格、图表、抽屉仍用白色表面，不要继承底色
+- 卡片内的表格、图表、抽屉仍用卡片表面色（深色主题下为深色表面），不要继承底色
 
 ### 3.3 空状态
 
@@ -272,22 +343,25 @@ private static readonly string[] MetricAccents =
 - **必须** `MatchBoundsToSize="true"` —— 否则 SVG 按固定 viewBox 居中，绘图区只占 79% 宽度；
 - **必须** 显式传 `ChartOptions`，配置统一走 `PlatformChartDefaults`（数据点标记、加粗线条、
   网格线、悬停提示、轴标题），纵轴标题传指标单位、横轴标题传维度名；
-- 图表底板是 `tint → 白` 的渐变（上 42% 渐隐）+ `soft` 描边。
+- 图表底板是 `tint → 表面` 的渐变（上 42% 渐隐）+ `soft` 描边。
   这是「卡片要整块铺色」规则的**唯一例外**：绘图区铺满 tint 会让网格线与数据点难以辨认，
-  因此只在顶部保留色调、向下渐隐为白。区块卡本身仍然整块铺色。
+  因此只在顶部保留色调、向下渐隐为表面色。区块卡本身仍然整块铺色。
 
 #### 图表系列颜色：跟随卡片 accent，禁止默认蓝
 
 MudChart 把系列颜色硬编码为 Material 默认蓝（`#2979FF`），写进 SVG presentation attribute。
 CSS 规则优先级高于 presentation attribute，因此 `app.css` 用 accent 变量覆盖：
 
-- 折线 `path.mud-chart-line` / 数据点 `circle.mud-chart-point` → `--card-accent`；
-- 柱形 `path.mud-chart-bar` → `--card-accent`，悬停加深为 `--card-accent-strong`；
+- 折线 `path.mud-chart-line` / 数据点 `circle.mud-chart-point` → `--card-accent-strong`；
+- 柱形 `path.mud-chart-bar` → `--card-accent-strong`，悬停提亮（`filter: brightness(1.25)`）；
 - 网格线统一为 `--platform-border`（替换 MudBlazor 的 `#e0e0e0`）。
+
+**系列取 strong 档而不是 base**：深色主题下 base 与深色表面对比不足，折线会看不清；
+浅色主题下 strong 是加深档，对比同样更高。两个主题里「系列色 = 图例色块」恒成立。
 
 **约束：图表必须放在带 `platform-accent-*` 的卡片内**，否则系列色会退回 Primary 蓝。
 图例用 `platform-chart-legend` + `platform-chart-legend-swatch`，
-色块同样取 `--card-accent`，保证「图例颜色 = 折线/柱形颜色」恒成立，**不得直接写十六进制**。
+色块同样取 `--card-accent-strong`，保证「图例颜色 = 折线/柱形颜色」恒成立，**不得直接写十六进制**。
 
 #### 响应式
 
@@ -414,6 +488,36 @@ app.TryGetResource("SemiColorXxx", ThemeVariant.Light, out var v);
 - 引入资源字典用 `<ResourceDictionary.MergedDictionaries>`，不能直接把 `ResourceInclude` 放进 `ResourceDictionary.Content`
 - 品牌色覆盖必须放在 `Application.Resources`，**不能**放在 `Application.Styles`（那里要求 `IStyle`）
 
+### 4.4 样式类（`Themes/DapStyles.axaml`）
+
+`App.axaml` 在 Semi 主题之后引入这份样式，桌面端页面只用这些类，不写行内颜色：
+
+| 类 | 用途 | 对应 Web |
+|---|---|---|
+| `page-hero` | 页头容器（配 `Background="{DynamicResource Dap<Role>TintBrush}"` 上色） | `platform-page-hero` |
+| `page-title` / `page-subtitle` | 页头标题与副标题 | 同名 |
+| `stat-card` / `stat-label` / `stat-value` / `stat-value-large` / `stat-supporting` | 统计卡：名称、数值、大号数值、辅助文字 | `platform-stat-card` |
+| `section-card` / `card-title` / `card-description` | 区块卡（左侧 4px 色条） | `platform-section-card` |
+| `panel` | 表面底容器（表格、明细、提示块） | `platform-chart-frame` / `platform-data-table` |
+| `chart-frame` | 图表底板 | `platform-chart-frame` |
+| `chip` | 状态标签 | `platform-chip` |
+| `empty-state` / `empty-title` / `empty-text` | 空状态 | `platform-empty-state` |
+| `field` / `field-label` | 表单控件与标签 | 同 Web 的 `MudTextField` |
+| `data-table` / `table-primary` / `table-cell` / `timestamp` | `DataGrid`、列头、主字段、次要字段、时间戳 | `platform-data-table` |
+| `nav-button` / `nav-item` / `nav-icon` / `nav-text` | 抽屉条目（`Classes.active` 表达选中） | `platform-nav-link` |
+| `module-button` / `accent-bar` / `divider` / `ghost` | 顶栏模块、色条、分隔线、次按钮 | — |
+
+**选中状态用 `Classes.active`**，不要用 `nth-child` 或按索引取色（与 Web 端「禁止 nth-child」同一条规则）。
+
+### 4.5 图表
+
+`Controls/LineTrendChart.cs`（面积折线）与 `Controls/BarCompareChart.cs`（单序列柱状）是自绘控件：
+
+- 颜色来自 `Accent` / `LabelBrush` / `GridBrush` 三个 `StyledProperty`，默认值走 `TryFindResource` 取色板，
+  **不得在控件里写死色值**；页面通过 `Accent` 传入本页主色资源键。
+- 横轴标签超过 6 个自动抽稀，避免挤成黑带（与 Web 端「超过 12 个标签需抽稀」同理）。
+- 柱状图是**一条系列 + N 个标签**，不是每班组一条系列——后者会全部挤在同一位置。
+
 ---
 
 ## 五、硬性禁止项
@@ -425,9 +529,9 @@ app.TryGetResource("SemiColorXxx", ThemeVariant.Light, out var v);
 5. **禁止引入第 8 种色相**，七个角色色 + 中性色是封闭集合
 6. **禁止手搓空状态、抽屉、确认框**，统一用既有class 与 `PlatformDialogs`
 7. **禁止直接改MudBlazor / Semi 主题源码**，只能通过 `PaletteLight` / `Application.Resources` 覆盖
-8. **禁止用渐变把底色稀释回白色**：`linear-gradient(tint → white 78px)` 这类写法会让卡片
-   九成面积仍是白色，视觉上等于没上色。要有色就整块铺满（`background: var(--card-accent-tint)`），
-   层次靠卡片内的白色表格/图表底板来区分，而不是靠稀释底色。
+8. **禁止用渐变把底色稀释回表面色**：`linear-gradient(tint → surface 78px)` 这类写法会让卡片
+   九成面积仍是表面色，视觉上等于没上色。要有色就整块铺满（`background: var(--card-accent-tint)`），
+   层次靠卡片内的表格/图表底板来区分，而不是靠稀释底色。
 
 ---
 
@@ -435,12 +539,32 @@ app.TryGetResource("SemiColorXxx", ThemeVariant.Light, out var v);
 
 - [ ] 页面根容器为 `<MudStack Class="platform-page-shell" Spacing="2">`
 - [ ] 头部为 `platform-page-hero` + 已登记的 accent 类
-- [ ] 统计卡片带 `--tinted` + accent + 图标行
+- [ ] 统计卡片带 `--tinted`（头条 KPI 用 `--filled`）+ accent + 图标行
 - [ ] 表格带 `platform-data-table`
 - [ ] 空状态用 `platform-empty-state`
 - [ ] 抽屉用 `platform-sheet` + 分区 accent；对话框走 `PlatformDialogs`
 - [ ] 全文件无硬编码色值
 - [ ] 在本文档「页面主色分配」表中登记新页面主色
+
+组件级样式（`Xxx.razor.css`）另需：
+
+- [ ] 组件专属样式写在同名 `Xxx.razor.css`，不要往 `wwwroot/*.css` 里塞一次性样式
+- [ ] 样式作用到**子组件渲染的元素**时选择器要加 `::deep`（例如 `SvgText` 渲染的 `<text>`），
+      否则作用域属性 `[b-xxxx]` 不匹配，样式静默不生效
+- [ ] 不要删 `App.razor` 里的 `DAP.Presentation.BlazorWeb.styles.css`
+
+> **为什么最后一条不能删**：宿主页面只 link 了应用样式包，但这个包的**第一行**是
+> `@import 'DAP.Presentation.BlazorWeb.Client.<指纹>.bundle.scp.css';`，
+> 客户端项目的组件样式正是通过这条 `@import` 进入页面的（浏览器的 CSSOM 里能看到嵌套表）。
+> 只读包体、不跟进 `@import`，会误判成「`.razor.css` 不生效」而把样式挪进全局文件——
+> 这是本项目真实踩过的坑，`App_Should_Link_Application_Styles_Bundle` 就是为它加的守卫。
+
+桌面端（Avalonia）页面另需：
+
+- [ ] 视图模型继承 `PageViewModelBase`，声明 `Accent`，实现 `LoadCoreAsync`
+- [ ] 视图与视图模型**同名配对**（`XxxPageView.axaml` ↔ `XxxPageViewModel.cs`），根上写 `x:DataType="vm:XxxPageViewModel"`
+- [ ] 在 `Navigation/DesktopNavigationCatalog.cs` 登记（否则菜单里进不去，守卫测试会失败）
+- [ ] 页面主色写进上表的「桌面端页面主色」分区
 
 ---
 

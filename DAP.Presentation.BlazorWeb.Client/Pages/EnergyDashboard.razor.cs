@@ -33,6 +33,54 @@ public partial class EnergyDashboard
     private IReadOnlyCollection<ShiftTeamDto> _teams = [];
 
     /// <summary>
+    /// 自动刷新开关。默认关闭：能耗页开着不动时不该持续打接口，
+    /// 需要看板常驻的用户自己打开（见 <c>PlatformAutoRefresh</c> 注释）。
+    /// </summary>
+    private bool _autoRefreshEnabled;
+
+    /// <summary>
+    /// 自动刷新间隔（秒），与下拉档位一致。
+    /// </summary>
+    private int _refreshIntervalSeconds = 60;
+
+    /// <summary>
+    /// 最近一次成功加载时间，用于「数据截至 HH:mm:ss」。
+    /// </summary>
+    private DateTimeOffset? _lastUpdatedAt;
+
+    /// <summary>
+    /// 是否正在静默刷新。与 <see cref="_isLoading"/> 分开：静默刷新不换遮罩、不清数据。
+    /// </summary>
+    private bool _isRefreshing;
+
+    /// <summary>
+    /// 指标看板视图标识。
+    /// </summary>
+    private const int BoardView = 0;
+
+    /// <summary>
+    /// 数字孪生视图标识：钞纸机工艺线示意，数值由 <c>PaperMachineSimulator</c> 模拟。
+    /// </summary>
+    private const int DigitalTwinView = 1;
+
+    /// <summary>
+    /// 当前视图。默认落在指标看板，与用户进入大屏的目的（先看数）一致。
+    /// </summary>
+    private int _activeView = BoardView;
+
+    private bool IsBoardView => _activeView == BoardView;
+
+    /// <summary>
+    /// 切换大屏视图。只切显示分支，不重新拉数据：
+    /// 看板数据在切回时仍是切走前那一份，「数据截至」时间也保持连续。
+    /// </summary>
+    /// <param name="view">目标视图标识。</param>
+    private void SwitchView(int view)
+    {
+        _activeView = view;
+    }
+
+    /// <summary>
     /// DTO 中的集合声明为 IReadOnlyCollection，页面按下标访问前先转成数组。
     /// </summary>
     private EnergyMetricValueDto[] MetricTotals => _dashboard?.MetricTotals.ToArray() ?? [];
@@ -66,10 +114,40 @@ public partial class EnergyDashboard
         await LoadAsync();
     }
 
-    private async Task LoadAsync()
+    /// <summary>
+    /// 首载与手动刷新：显示整页遮罩，失败时清空数据（此时没有旧数据可保留）。
+    /// </summary>
+    private Task LoadAsync()
     {
-        _isLoading = true;
-        _message = null;
+        return LoadInternalAsync(silent: false);
+    }
+
+    /// <summary>
+    /// 定时刷新：不换遮罩、不清旧数据，失败只出一条警告提示。
+    /// </summary>
+    private Task RefreshSilentlyAsync()
+    {
+        return LoadInternalAsync(silent: true);
+    }
+
+    /// <param name="silent">true 表示定时触发的静默刷新。</param>
+    private async Task LoadInternalAsync(bool silent)
+    {
+        // 首载尚未结束时定时器可能已经跑到第一拍：两个请求并行会互相覆盖结果。
+        if (silent && (_isLoading || _isRefreshing))
+        {
+            return;
+        }
+
+        if (silent)
+        {
+            _isRefreshing = true;
+        }
+        else
+        {
+            _isLoading = true;
+            _message = null;
+        }
 
         try
         {
@@ -84,16 +162,34 @@ public partial class EnergyDashboard
             {
                 _teamCode = _dashboard.TeamCode;
             }
+
+            _lastUpdatedAt = DateTimeOffset.Now;
+            _message = null;
         }
         catch (Exception ex)
         {
-            _message = $"能耗数据加载失败：{UserFacingErrors.Describe(ex)}";
-            _messageSeverity = Severity.Error;
-            _dashboard = null;
+            // 静默刷新失败保留上一次成功的数据：定时器跑在用户没操作的时刻，
+            // 一次瞬时抖动把看板清空比展示略旧的数据糟糕得多。
+            _message = silent
+                ? $"自动刷新未成功，页面仍显示上次加载的数据：{UserFacingErrors.Describe(ex)}"
+                : $"能耗数据加载失败：{UserFacingErrors.Describe(ex)}";
+            _messageSeverity = silent ? Severity.Warning : Severity.Error;
+
+            if (!silent)
+            {
+                _dashboard = null;
+            }
         }
         finally
         {
-            _isLoading = false;
+            if (silent)
+            {
+                _isRefreshing = false;
+            }
+            else
+            {
+                _isLoading = false;
+            }
         }
     }
 

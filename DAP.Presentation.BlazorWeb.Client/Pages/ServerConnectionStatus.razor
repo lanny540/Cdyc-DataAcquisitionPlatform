@@ -3,7 +3,7 @@
 <PageTitle>服务器连接状态</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
-    <MudPaper Class="platform-page-hero platform-accent-info tw-p-4" Elevation="0">
+    <MudPaper Class="platform-page-hero platform-accent-info pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
             <MudStack Spacing="1">
                 <MudText Typo="Typo.h4">服务器连接状态</MudText>
@@ -116,7 +116,7 @@
             @foreach (var item in _statuses)
             {
                 <MudItem xs="12" lg="6">
-                    <MudPaper Class="@($"platform-panel server-status-card {GetStatusCardClass(item)} tw-p-4")"
+                    <MudPaper Class="@($"platform-panel server-status-card {GetStatusCardClass(item)} pa-4")"
                               Elevation="0">
                         <MudStack Spacing="2">
                             <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.SpaceBetween"
@@ -130,7 +130,7 @@
                                         </MudChip>
                                     </MudStack>
                                     <MudText Typo="Typo.body2"
-                                             Class="platform-card-description tw-break-all platform-inline-code">@item.Address</MudText>
+                                             Class="platform-card-description platform-break-all platform-inline-code">@item.Address</MudText>
                                 </MudStack>
                                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                                     @if (item.IsChecking)

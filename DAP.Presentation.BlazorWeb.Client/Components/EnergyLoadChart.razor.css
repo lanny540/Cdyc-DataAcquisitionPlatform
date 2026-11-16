@@ -1,0 +1,68 @@
+.load-chart {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.load-chart-grid {
+    stroke: var(--platform-border);
+    stroke-width: 0.5;
+    stroke-dasharray: 3 3;
+}
+
+.load-chart-axis-line {
+    stroke: var(--platform-border-strong);
+    stroke-width: 0.8;
+}
+
+.load-chart-area {
+    fill: var(--md-secondary-tint);
+    opacity: 0.6;
+}
+
+.load-chart-line {
+    fill: none;
+    /* strong 档：深色主题下 base 太暗（与深色表面对比不足），亮色折线两套主题都可读 */
+    stroke: var(--md-secondary-strong);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.load-chart-demand {
+    stroke: var(--md-error-strong);
+    stroke-width: 1.2;
+    stroke-dasharray: 6 4;
+}
+
+.load-chart-peak {
+    fill: var(--md-error-strong);
+    stroke: var(--platform-surface);
+    stroke-width: 1.5;
+}
+
+/* SVG 文字由子组件 SvgText 渲染，拿不到本组件的 b-xxxx 作用域属性，
+   不加 ::deep 会静默不命中。 */
+::deep .load-chart-axis {
+    font-size: 11px;
+    fill: var(--platform-text-muted);
+}
+
+::deep .load-chart-demand-label {
+    font-size: 11px;
+    fill: var(--md-error-strong);
+}
+
+::deep .load-chart-peak-label {
+    font-size: 11px;
+    fill: var(--md-error-strong);
+}
+
+.load-chart-foot {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--platform-text-muted);
+}

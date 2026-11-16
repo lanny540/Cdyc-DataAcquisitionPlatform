@@ -47,11 +47,18 @@
                 </MudSelect>
                 <MudButton Variant="Variant.Filled" Color="Color.Primary"
                            StartIcon="@Icons.Material.Filled.Refresh"
-                           OnClick="@(() => LoadAsync())" Disabled="_isLoading">
+                           OnClick="@(() => LoadAsync())" Disabled="@(_isLoading || _isRefreshing)">
                     生成报表
                 </MudButton>
             </MudStack>
         </MudStack>
+
+        @* 数据新鲜度与自动刷新：单独一行，不挤占筛选控件。 *@
+        <div class="mt-3">
+            <PlatformAutoRefresh @bind-Enabled="_autoRefreshEnabled" @bind-IntervalSeconds="_refreshIntervalSeconds"
+                                 LastUpdatedAt="_lastUpdatedAt" IsBusy="_isRefreshing"
+                                 Refresh="RefreshSilentlyAsync"/>
+        </div>
     </MudPaper>
 
     @if (!string.IsNullOrWhiteSpace(_message))
