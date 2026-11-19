@@ -55,17 +55,14 @@ public sealed class BarCompareChart : PlatformChartBase
     {
         Rect bounds = new(Bounds.Size);
 
-        if (bounds.Width < 80 || bounds.Height < 60)
-        {
-            return;
-        }
+        if (bounds.Width < 80 || bounds.Height < 60) return;
 
         const double leftAxis = 54;
         const double bottomAxis = 28;
         const double topPadding = 22;
         const double rightPadding = 14;
 
-        var plot = new Rect(
+        Rect plot = new(
             leftAxis,
             topPadding,
             Math.Max(1, bounds.Width - leftAxis - rightPadding),
@@ -81,52 +78,49 @@ public sealed class BarCompareChart : PlatformChartBase
 
         double max = NiceCeiling(items.Max(item => (double) item.Value));
         IBrush accent = EffectiveAccent;
-        var gridPen = new Pen(EffectiveGrid, 1) { DashStyle = new DashStyle([3, 4], 0) };
-        var axisPen = new Pen(EffectiveGrid, 1);
+        Pen gridPen = new(EffectiveGrid, 1) {DashStyle = new DashStyle([3, 4], 0)};
+        Pen axisPen = new(EffectiveGrid, 1);
 
         const int ticks = 4;
 
-        for (var index = 0; index <= ticks; index++)
+        for (int index = 0; index <= ticks; index++)
         {
-            var ratio = index / (double) ticks;
-            var y = plot.Bottom - (plot.Height * ratio);
+            double ratio = index / (double) ticks;
+            double y = plot.Bottom - plot.Height * ratio;
 
             context.DrawLine(index == 0 ? axisPen : gridPen, new Point(plot.Left, y),
                 new Point(plot.Right, y));
 
-            var label = FormatAxisValue(max * ratio);
+            string label = FormatAxisValue(max * ratio);
             Size size = Measure(label, 11);
 
-            DrawText(context, label, new Point(plot.Left - size.Width - 8, y - (size.Height / 2)), 11,
+            DrawText(context, label, new Point(plot.Left - size.Width - 8, y - size.Height / 2), 11,
                 EffectiveLabel);
         }
 
-        if (!string.IsNullOrWhiteSpace(Unit))
-        {
-            DrawText(context, Unit!, new Point(6, 0), 11, EffectiveLabel);
-        }
+        if (!string.IsNullOrWhiteSpace(Unit)) DrawText(context, Unit!, new Point(6, 0), 11, EffectiveLabel);
 
-        var slot = plot.Width / items.Length;
-        var barWidth = Math.Min(56, Math.Max(14, slot * 0.5));
+        double slot = plot.Width / items.Length;
+        double barWidth = Math.Min(56, Math.Max(14, slot * 0.5));
 
-        for (var index = 0; index < items.Length; index++)
+        for (int index = 0; index < items.Length; index++)
         {
-            var value = (double) items[index].Value;
-            var height = Math.Max(value > 0 ? 2 : 0, plot.Height * (value / max));
-            var centerX = plot.Left + (slot * index) + (slot / 2);
-            var bar = new Rect(centerX - (barWidth / 2), plot.Bottom - height, barWidth, height);
+            double value = (double) items[index].Value;
+            double height = Math.Max(value > 0 ? 2 : 0, plot.Height * (value / max));
+            double centerX = plot.Left + slot * index + slot / 2;
+            Rect bar = new(centerX - barWidth / 2, plot.Bottom - height, barWidth, height);
 
             context.DrawRectangle(accent, null, bar, 4, 4, default);
 
-            var valueText = FormatAxisValue(value);
+            string valueText = FormatAxisValue(value);
             Size valueSize = Measure(valueText, 11);
 
             DrawText(context, valueText,
-                new Point(centerX - (valueSize.Width / 2), bar.Y - valueSize.Height - 4), 11, EffectiveLabel,
+                new Point(centerX - valueSize.Width / 2, bar.Y - valueSize.Height - 4), 11, EffectiveLabel,
                 FontWeight.SemiBold);
 
             Size labelSize = Measure(items[index].Label, 11);
-            var labelX = Math.Clamp(centerX - (labelSize.Width / 2), plot.Left, plot.Right - labelSize.Width);
+            double labelX = Math.Clamp(centerX - labelSize.Width / 2, plot.Left, plot.Right - labelSize.Width);
 
             DrawText(context, items[index].Label, new Point(labelX, plot.Bottom + 7), 11, EffectiveLabel);
         }
@@ -137,7 +131,7 @@ public sealed class BarCompareChart : PlatformChartBase
     /// </summary>
     private static Size Measure(string text, double size)
     {
-        var formatted = new FormattedText(
+        FormattedText formatted = new(
             text,
             CultureInfo.CurrentCulture,
             FlowDirection.LeftToRight,

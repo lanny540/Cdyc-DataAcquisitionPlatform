@@ -20,54 +20,36 @@ public static class BoardIpWhitelist
     /// <returns>命中时返回 true。</returns>
     public static bool IsMatch(IPAddress remote, string entry)
     {
-        if (string.IsNullOrWhiteSpace(entry))
-        {
-            return false;
-        }
+        if (string.IsNullOrWhiteSpace(entry)) return false;
 
-        var parts = entry.Trim().Split('/');
-        if (!IPAddress.TryParse(parts[0], out IPAddress? baseAddress))
-        {
-            return false;
-        }
+        string[] parts = entry.Trim().Split('/');
+        if (!IPAddress.TryParse(parts[0], out IPAddress? baseAddress)) return false;
 
-        var maxPrefix = baseAddress.AddressFamily == AddressFamily.InterNetworkV6 ? 128 : 32;
-        var prefixLength = maxPrefix;
+        int maxPrefix = baseAddress.AddressFamily == AddressFamily.InterNetworkV6 ? 128 : 32;
+        int prefixLength = maxPrefix;
 
-        if (parts.Length > 1 && (!int.TryParse(parts[1], out prefixLength) || prefixLength < 0 || prefixLength > maxPrefix))
-        {
-            return false;
-        }
+        if (parts.Length > 1 &&
+            (!int.TryParse(parts[1], out prefixLength) || prefixLength < 0 || prefixLength > maxPrefix)) return false;
 
         // 地址族不同（IPv4 vs IPv6）不匹配；IPv4 映射地址先归一化。
         remote = Unmap(remote);
         baseAddress = Unmap(baseAddress);
 
-        if (remote.AddressFamily != baseAddress.AddressFamily)
-        {
-            return false;
-        }
+        if (remote.AddressFamily != baseAddress.AddressFamily) return false;
 
         byte[] remoteBytes = remote.GetAddressBytes();
         byte[] baseBytes = baseAddress.GetAddressBytes();
 
-        var fullBytes = prefixLength / 8;
-        var remainingBits = prefixLength % 8;
+        int fullBytes = prefixLength / 8;
+        int remainingBits = prefixLength % 8;
 
-        for (var i = 0; i < fullBytes; i++)
-        {
+        for (int i = 0; i < fullBytes; i++)
             if (remoteBytes[i] != baseBytes[i])
-            {
                 return false;
-            }
-        }
 
-        if (remainingBits == 0)
-        {
-            return true;
-        }
+        if (remainingBits == 0) return true;
 
-        var mask = (byte) (0xFF << (8 - remainingBits));
+        byte mask = (byte) (0xFF << (8 - remainingBits));
         return (remoteBytes[fullBytes] & mask) == (baseBytes[fullBytes] & mask);
     }
 
@@ -80,25 +62,17 @@ public static class BoardIpWhitelist
     /// <returns>是宽网段时返回 true。</returns>
     public static bool IsWideScope(string entry)
     {
-        if (string.IsNullOrWhiteSpace(entry))
-        {
-            return false;
-        }
+        if (string.IsNullOrWhiteSpace(entry)) return false;
 
-        var parts = entry.Trim().Split('/');
-        if (!IPAddress.TryParse(parts[0], out IPAddress? baseAddress))
-        {
-            return true;
-        }
+        string[] parts = entry.Trim().Split('/');
+        if (!IPAddress.TryParse(parts[0], out IPAddress? baseAddress)) return true;
 
         if (baseAddress.AddressFamily == AddressFamily.InterNetworkV6)
-        {
             // IPv6 不套用 /24 规则，按前缀显式判断：小于 120 视为宽段。
-            return parts.Length > 1 && int.TryParse(parts[1], out var v6Prefix) && v6Prefix < 120;
-        }
+            return parts.Length > 1 && int.TryParse(parts[1], out int v6Prefix) && v6Prefix < 120;
 
         // 无前缀长度 = 单机（/32），不是宽段。
-        return parts.Length > 1 && (!int.TryParse(parts[1], out var prefix) || prefix < 24);
+        return parts.Length > 1 && (!int.TryParse(parts[1], out int prefix) || prefix < 24);
     }
 
     private static IPAddress Unmap(IPAddress address)

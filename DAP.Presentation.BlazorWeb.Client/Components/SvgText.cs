@@ -37,25 +37,13 @@ public sealed class SvgText : ComponentBase
     {
         builder.OpenElement(0, "text");
 
-        if (!string.IsNullOrEmpty(X))
-        {
-            builder.AddAttribute(1, "x", X);
-        }
+        if (!string.IsNullOrEmpty(X)) builder.AddAttribute(1, "x", X);
 
-        if (!string.IsNullOrEmpty(Y))
-        {
-            builder.AddAttribute(2, "y", Y);
-        }
+        if (!string.IsNullOrEmpty(Y)) builder.AddAttribute(2, "y", Y);
 
-        if (!string.IsNullOrEmpty(Anchor))
-        {
-            builder.AddAttribute(3, "text-anchor", Anchor);
-        }
+        if (!string.IsNullOrEmpty(Anchor)) builder.AddAttribute(3, "text-anchor", Anchor);
 
-        if (!string.IsNullOrEmpty(CssClass))
-        {
-            builder.AddAttribute(4, "class", CssClass);
-        }
+        if (!string.IsNullOrEmpty(CssClass)) builder.AddAttribute(4, "class", CssClass);
 
         builder.AddContent(5, ChildContent);
         builder.CloseElement();

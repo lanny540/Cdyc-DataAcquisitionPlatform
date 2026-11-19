@@ -18,10 +18,7 @@ internal static class PlatformHttpResponse
     /// <param name="cancellationToken">取消令牌。</param>
     public static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
-        if (response.IsSuccessStatusCode)
-        {
-            return;
-        }
+        if (response.IsSuccessStatusCode) return;
 
         throw new InvalidOperationException(await ReadErrorMessageAsync(response, cancellationToken));
     }
@@ -36,20 +33,15 @@ internal static class PlatformHttpResponse
         HttpResponseMessage response,
         CancellationToken cancellationToken)
     {
-        var payload = await response.Content.ReadAsStringAsync(cancellationToken);
+        string payload = await response.Content.ReadAsStringAsync(cancellationToken);
 
-        if (string.IsNullOrWhiteSpace(payload))
-        {
-            return DescribeStatusCode(response.StatusCode);
-        }
+        if (string.IsNullOrWhiteSpace(payload)) return DescribeStatusCode(response.StatusCode);
 
         try
         {
             using JsonDocument document = JsonDocument.Parse(payload);
             if (document.RootElement.TryGetProperty("message", out JsonElement message))
-            {
                 return message.GetString() ?? payload;
-            }
         }
         catch (JsonException)
         {

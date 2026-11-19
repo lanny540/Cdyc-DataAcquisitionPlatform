@@ -49,6 +49,7 @@
 </div>
 
 @code {
+
     /// <summary>
     /// 可用的外部登录方式。
     /// </summary>
@@ -92,4 +93,5 @@
             ? provider.Href
             : $"{provider.Href}?returnUrl={Uri.EscapeDataString(ReturnUrl)}";
     }
+
 }

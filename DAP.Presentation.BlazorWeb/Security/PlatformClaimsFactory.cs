@@ -32,47 +32,32 @@ public static class PlatformClaimsFactory
             new(AuthorizationCatalog.PlatformClaimTypes.UserId, user.Id.ToString()),
             new(AuthorizationCatalog.PlatformClaimTypes.UserName, user.UserName),
             new(AuthorizationCatalog.PlatformClaimTypes.DisplayName, user.DisplayName),
-            new(AuthorizationCatalog.PlatformClaimTypes.PageLevel, user.PageLevel.ToString(CultureInfo.InvariantCulture)),
+            new(AuthorizationCatalog.PlatformClaimTypes.PageLevel,
+                user.PageLevel.ToString(CultureInfo.InvariantCulture)),
             new(AuthorizationCatalog.PlatformClaimTypes.IssuedAt,
                 issuedAt.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture))
         ];
 
         if (!string.IsNullOrWhiteSpace(securityStamp))
-        {
             claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.SecurityStamp, securityStamp));
-        }
 
         if (!string.IsNullOrEmpty(user.DepartmentName))
-        {
             claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.DepartmentName, user.DepartmentName));
-        }
 
-        if (user.IsSuperAdmin)
-        {
-            claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.SuperAdmin, "true"));
-        }
+        if (user.IsSuperAdmin) claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.SuperAdmin, "true"));
 
-        if (user.IsBoardTerminal)
-        {
-            claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.BoardTerminal, "true"));
-        }
+        if (user.IsBoardTerminal) claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.BoardTerminal, "true"));
 
         if (user.MustChangePassword)
-        {
             claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.MustChangePassword, "true"));
-        }
 
-        foreach (var domain in user.Domains)
-        {
+        foreach (string domain in user.Domains)
             claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.Domain, domain));
-        }
 
-        foreach (var permission in user.Permissions)
-        {
+        foreach (string permission in user.Permissions)
             claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.Permission, permission));
-        }
 
-        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        ClaimsIdentity identity = new(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         return new ClaimsPrincipal(identity);
     }
 
@@ -83,9 +68,9 @@ public static class PlatformClaimsFactory
     /// <returns>签发时间。</returns>
     public static DateTimeOffset? ReadIssuedAt(ClaimsPrincipal? principal)
     {
-        var raw = principal?.FindFirst(AuthorizationCatalog.PlatformClaimTypes.IssuedAt)?.Value;
+        string? raw = principal?.FindFirst(AuthorizationCatalog.PlatformClaimTypes.IssuedAt)?.Value;
 
-        return long.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var seconds)
+        return long.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out long seconds)
             ? DateTimeOffset.FromUnixTimeSeconds(seconds)
             : null;
     }
@@ -98,15 +83,9 @@ public static class PlatformClaimsFactory
     /// <returns>具备时返回 true；超级管理员恒为 true。</returns>
     public static bool HasPermission(ClaimsPrincipal? principal, string permissionCode)
     {
-        if (principal?.Identity?.IsAuthenticated != true)
-        {
-            return false;
-        }
+        if (principal?.Identity?.IsAuthenticated != true) return false;
 
-        if (IsSuperAdmin(principal))
-        {
-            return true;
-        }
+        if (IsSuperAdmin(principal)) return true;
 
         return principal.HasClaim(AuthorizationCatalog.PlatformClaimTypes.Permission, permissionCode);
     }
@@ -119,10 +98,7 @@ public static class PlatformClaimsFactory
     /// <returns>可见时返回 true；超级管理员恒为 true。</returns>
     public static bool CanAccessDomain(ClaimsPrincipal? principal, string domainCode)
     {
-        if (principal?.Identity?.IsAuthenticated != true)
-        {
-            return false;
-        }
+        if (principal?.Identity?.IsAuthenticated != true) return false;
 
         return IsSuperAdmin(principal)
                || principal.HasClaim(AuthorizationCatalog.PlatformClaimTypes.Domain, domainCode);
@@ -145,14 +121,11 @@ public static class PlatformClaimsFactory
     /// <returns>页面等级。</returns>
     public static int ReadPageLevel(ClaimsPrincipal? principal)
     {
-        if (IsSuperAdmin(principal))
-        {
-            return AuthorizationCatalog.SuperAdminPageLevel;
-        }
+        if (IsSuperAdmin(principal)) return AuthorizationCatalog.SuperAdminPageLevel;
 
-        var raw = principal?.FindFirst(AuthorizationCatalog.PlatformClaimTypes.PageLevel)?.Value;
+        string? raw = principal?.FindFirst(AuthorizationCatalog.PlatformClaimTypes.PageLevel)?.Value;
 
-        return int.TryParse(raw, out var level) ? level : 0;
+        return int.TryParse(raw, out int level) ? level : 0;
     }
 
     /// <summary>

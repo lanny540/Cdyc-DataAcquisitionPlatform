@@ -57,12 +57,12 @@ public sealed class AdminAuditService(DataAcquisitionPlatformDbContext db)
         AuditLogFilter filter,
         CancellationToken cancellationToken = default)
     {
-        var page = Math.Max(1, filter.Page);
-        var pageSize = Math.Clamp(filter.PageSize, 1, MaxPageSize);
+        int page = Math.Max(1, filter.Page);
+        int pageSize = Math.Clamp(filter.PageSize, 1, MaxPageSize);
 
         IQueryable<AuditLog> query = ApplyFilter(filter);
 
-        var total = await query.CountAsync(cancellationToken);
+        int total = await query.CountAsync(cancellationToken);
 
         List<AuditLogDto> items = await query
             .OrderByDescending(log => log.OccurredAt)
@@ -114,7 +114,8 @@ public sealed class AdminAuditService(DataAcquisitionPlatformDbContext db)
 
         foreach (AuditLog log in logs)
         {
-            builder.Append(CsvField.Escape(log.OccurredAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)));
+            builder.Append(CsvField.Escape(log.OccurredAt.ToLocalTime()
+                .ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)));
             builder.Append(',');
             builder.Append(CsvField.Escape(log.UserName));
             builder.Append(',');
@@ -158,25 +159,24 @@ public sealed class AdminAuditService(DataAcquisitionPlatformDbContext db)
 
         if (!string.IsNullOrWhiteSpace(filter.UserName))
         {
-            var userName = filter.UserName.Trim();
+            string userName = filter.UserName.Trim();
             query = query.Where(log => log.UserName != null && EF.Functions.ILike(log.UserName, $"%{userName}%"));
         }
 
         if (!string.IsNullOrWhiteSpace(filter.TargetType))
         {
-            var targetType = filter.TargetType.Trim();
+            string targetType = filter.TargetType.Trim();
             query = query.Where(log => log.TargetType == targetType);
         }
 
         if (!string.IsNullOrWhiteSpace(filter.Result))
         {
-            var result = filter.Result.Trim();
+            string result = filter.Result.Trim();
             query = query.Where(log => log.Result == result);
         }
 
         return query;
     }
-
 }
 
 /// <summary>
@@ -207,7 +207,7 @@ public sealed class AuditRetentionService(
             return;
         }
 
-        var interval = TimeSpan.FromHours(Math.Max(1, _options.CleanupIntervalHours));
+        TimeSpan interval = TimeSpan.FromHours(Math.Max(1, _options.CleanupIntervalHours));
 
         logger.LogInformation(
             "审计保留期清理已启动：保留 {Days} 天，每 {Hours} 小时执行一次。",
@@ -253,7 +253,7 @@ public sealed class AuditRetentionService(
         }
 
         DateTimeOffset cutoff = timeProvider.GetUtcNow().AddDays(-_options.RetentionDays);
-        var total = 0;
+        int total = 0;
 
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -267,10 +267,7 @@ public sealed class AuditRetentionService(
                 .Take(BatchSize)
                 .ToListAsync(cancellationToken);
 
-            if (batch.Count == 0)
-            {
-                break;
-            }
+            if (batch.Count == 0) break;
 
             db.AuditLogs.RemoveRange(batch);
             await db.SaveChangesAsync(cancellationToken);
@@ -278,10 +275,8 @@ public sealed class AuditRetentionService(
         }
 
         if (total > 0)
-        {
             logger.LogInformation(
                 "已清理 {Count} 条超过 {Days} 天的审计记录（截止 {Cutoff:yyyy-MM-dd}）。",
                 total, _options.RetentionDays, cutoff);
-        }
     }
 }

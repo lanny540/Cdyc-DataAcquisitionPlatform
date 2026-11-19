@@ -15,11 +15,11 @@
 
 ### 1.1 唯一权威来源
 
-| 端 | 权威文件 | 说明 |
-|---|---|---|
-| Web | `DAP.Presentation.BlazorWeb/wwwroot/app.css` 的 `:root` 变量 | `--md-*` / `--platform-*` |
-|桌面 | `DAP.Presentation.AvaloniaApp/Themes/DapPalette.axaml` | `Dap*Brush` / `Dap*Color` |
-| 桌面主题对接 | `DAP.Presentation.AvaloniaApp/Themes/SemiBrandOverride.axaml` | 覆盖 Semi 默认调色板 |
+| 端           | 权威文件                                                                                      | 说明                                     |
+|--------------|-----------------------------------------------------------------------------------------------|------------------------------------------|
+| Web          | `DAP.Presentation.BlazorWeb/wwwroot/app.css` 的 `:root` 变量                                  | `--md-*` / `--platform-*`                |
+| 桌面         | `DAP.Presentation.AvaloniaApp/Themes/DapPalette.axaml`                                        | `Dap*Brush` / `Dap*Color`                |
+| 桌面主题对接 | `DAP.Presentation.AvaloniaApp/Themes/SemiBrandOverride.axaml`                                 | 覆盖 Semi 默认调色板                     |
 | Web 组件对接 | `DAP.Presentation.BlazorWeb.Client/Layout/PlatformTheme.cs` 的 `PaletteDark` / `PaletteLight` | 传给 MudBlazor；主框架与登录页共用同一份 |
 
 **改色流程**：先改权威文件 → 再同步到对接文件 → 验证双端一致。禁止只改其中一处。
@@ -29,26 +29,28 @@
 每组角色色固定四级深度，**不得新增其他色相**。base 是唯一色相锚点，浅深两套主题共用；
 深色主题下 soft/tint 是「带色相的深色容器」，strong 是「容器底上的亮色强调文字」：
 
-| 角色 | 变量 | Base（主色） | Strong（强调文字） | Soft（统计卡底） | Tint（区块底） |
-|---|---|---|---|---|---|
-| Primary 主色 | `--md-primary` | `#0B4FC4` | `#9CC0FA` | `#303A4C` | `#283140` |
-| Secondary 次色 | `--md-secondary` | `#33475C` | `#B6C8DC` | `#363F4A` | `#2E3641` |
-| Tertiary 第三色 | `--md-tertiary` | `#7B2F9E` | `#D9B4F0` | `#3C344A` | `#383146` |
-| Success 成功/在线 | `--md-success` | `#0D7A3C` | `#7FD6A0` | `#25352E` | `#24322B` |
-| Warning 警告/停用 | `--md-warning` | `#B15600` | `#F5B25E` | `#393122` | `#362F21` |
-| Error 错误/危险 | `--md-error` | `#B32318` | `#EF8D80` | `#423033` | `#3C2D2F` |
-| Info 信息 | `--md-info` | `#0F6FBD` | `#7FC0F0` | `#2A3545` | `#273140` |
+| 角色              | 变量             | Base（主色） | Strong（强调文字） | Soft（统计卡底） | Tint（区块底） |
+|-------------------|------------------|--------------|--------------------|------------------|----------------|
+| Primary 主色      | `--md-primary`   | `#0B4FC4`    | `#9CC0FA`          | `#303A4C`        | `#283140`      |
+| Secondary 次色    | `--md-secondary` | `#33475C`    | `#B6C8DC`          | `#363F4A`        | `#2E3641`      |
+| Tertiary 第三色   | `--md-tertiary`  | `#7B2F9E`    | `#D9B4F0`          | `#3C344A`        | `#383146`      |
+| Success 成功/在线 | `--md-success`   | `#0D7A3C`    | `#7FD6A0`          | `#25352E`        | `#24322B`      |
+| Warning 警告/停用 | `--md-warning`   | `#B15600`    | `#F5B25E`          | `#393122`        | `#362F21`      |
+| Error 错误/危险   | `--md-error`     | `#B32318`    | `#EF8D80`          | `#423033`        | `#3C2D2F`      |
+| Info 信息         | `--md-info`      | `#0F6FBD`    | `#7FC0F0`          | `#2A3545`        | `#273140`      |
 
 > Warning 的 soft 精确值为 `#393122`（无空格），本表中的写法仅为示意；
 > **一切以 `app.css` 的 `:root` 变量为准**，改色时先改那里。
 
 **深度用途（不可混用）**：
+
 - **Base**：色条、主按钮、图标本身（白字在其上 ≥4.5:1）——**不做前景文字**；
 - **Strong**：强调文字、徽章文字、图表折线/柱形、标签行（在容器底上 ≥4.5:1）；
 - **Soft**：**头条 KPI 卡底色**、图标底色块、提示条底色（与卡片表面 ≥1.25:1）；
 - **Tint**：页面头部底色、表格表头底色、图表渐变起点（与卡片表面 ≥1.20:1）。
 
 **文字层级铁律（深色主题下尤其重要）**：
+
 - **数值（h3/h5）与页头/区块标题（h4/h6）一律用近白 `--platform-text`**——
   彩色大文字叠在同色相容器底上会融成一片，这是「文字不突出」的根源；
 - accent 色相只出现在**小面积元素**：左侧色条、图标、标签行（caption）、
@@ -65,12 +67,12 @@
 当前色板已核验四条底线（由守卫测试 `Palette_Should_Meet_Contrast_Baselines` 强制，
 参照表面从 app.css 的 `--platform-surface` 读取）：
 
-| 约束 | 阈值 | 含义 |
-|---|---|---|
-| 白字 / base | ≥ 4.5:1 | WCAG AA 正文级，主按钮与徽章可读 |
+| 约束            | 阈值     | 含义                                 |
+|-----------------|----------|--------------------------------------|
+| 白字 / base     | ≥ 4.5:1  | WCAG AA 正文级，主按钮与徽章可读     |
 | tint / 卡片表面 | ≥ 1.20:1 | 区块底纹必须肉眼可辨，否则等于没上色 |
-| soft / 卡片表面 | ≥ 1.25:1 | 统计卡底色用 soft 档，比区块更跳脱 |
-| strong / 容器底 | ≥ 4.5:1 | 卡片数值在 soft/tint 容器上仍清晰 |
+| soft / 卡片表面 | ≥ 1.25:1 | 统计卡底色用 soft 档，比区块更跳脱   |
+| strong / 容器底 | ≥ 4.5:1  | 卡片数值在 soft/tint 容器上仍清晰    |
 
 **改动色板时必须重新核验这四条**，否则「改配色」很容易改成「变淡」或「看不清」。
 
@@ -79,17 +81,18 @@
 深色主题的教训：**每张卡都铺彩色底会变成「色块马赛克」**——四五种深色容器并排
 彼此打架，暖色容器（琥珀/紫）还容易发闷显脏。色彩改为三层强调：
 
-| 容器 | 底色 | 色彩由谁承载 | 修饰类 |
-|---|---|---|---|
-| 页面头部 | tint 全幅 | 底色 + 左色条 | `platform-page-hero` |
-| **头条 KPI**（全宽汇总卡） | **soft 全幅** | 底色 + 左色条 | `platform-stat-card--filled` |
-| 常规统计卡 | **中性表面** | 左色条 + 图标底块 + 标签行 | `platform-stat-card--tinted` |
-| 区块卡片 | **中性表面** | 左侧 4px 色条 + 图标底块 | `platform-section-card--tinted` |
-| 面板 | **中性表面** | 左侧 4px 色条 | `platform-panel--tinted` |
-| 图表容器 | tint→表面渐变（上 42% 渐隐） | 渐变 + 系列色 | `platform-chart-frame` |
-| 数据表格 | 中性卡底 + tint 表头 | 表头底色 + 表头文字 | `platform-data-table` |
+| 容器                       | 底色                         | 色彩由谁承载               | 修饰类                          |
+|----------------------------|------------------------------|----------------------------|---------------------------------|
+| 页面头部                   | tint 全幅                    | 底色 + 左色条              | `platform-page-hero`            |
+| **头条 KPI**（全宽汇总卡） | **soft 全幅**                | 底色 + 左色条              | `platform-stat-card--filled`    |
+| 常规统计卡                 | **中性表面**                 | 左色条 + 图标底块 + 标签行 | `platform-stat-card--tinted`    |
+| 区块卡片                   | **中性表面**                 | 左侧 4px 色条 + 图标底块   | `platform-section-card--tinted` |
+| 面板                       | **中性表面**                 | 左侧 4px 色条              | `platform-panel--tinted`        |
+| 图表容器                   | tint→表面渐变（上 42% 渐隐） | 渐变 + 系列色              | `platform-chart-frame`          |
+| 数据表格                   | 中性卡底 + tint 表头         | 表头底色 + 表头文字        | `platform-data-table`           |
 
 要点：
+
 - `--tinted` 类名保留（卡内点缀元素——图标底块、表头——仍取 tint/soft 档），
   但**卡底一律中性表面**；`--filled` 是唯一 soft 全幅变体，全页最多一两张（头条 KPI）。
 - **桌面端等价实现（2026-11-16 已同步）**：`DapStyles.axaml` 的 `Border.stat-card`
@@ -120,17 +123,17 @@ MudBlazor 的 outlined/text 徽章与提示条用调色板 **base 色**作文字
 
 ### 1.3 中性色（深色）
 
-| 用途 | 变量 | 色值 |
-|---|---|---|
-| 页面背景 | `--platform-bg` | `#0E151D` |
-| 卡片表面 | `--platform-surface` | `#17212C` |
-| 次级表面 | `--platform-surface-muted` | `#1D2836` |
+| 用途     | 变量                        | 色值      |
+|----------|-----------------------------|-----------|
+| 页面背景 | `--platform-bg`             | `#0E151D` |
+| 卡片表面 | `--platform-surface`        | `#17212C` |
+| 次级表面 | `--platform-surface-muted`  | `#1D2836` |
 | 下沉表面 | `--platform-surface-sunken` | `#223042` |
-| 常规边框 | `--platform-border` | `#2B3A4B` |
-| 强边框 | `--platform-border-strong` | `#42576E` |
-| 主要文字 | `--platform-text` | `#E6EDF5` |
-| 次要文字 | `--platform-text-muted` | `#A7B6C8` |
-| 弱化文字 | `--platform-text-subtle` | `#7A8BA0` |
+| 常规边框 | `--platform-border`         | `#2B3A4B` |
+| 强边框   | `--platform-border-strong`  | `#42576E` |
+| 主要文字 | `--platform-text`           | `#E6EDF5` |
+| 次要文字 | `--platform-text-muted`     | `#A7B6C8` |
+| 弱化文字 | `--platform-text-subtle`    | `#7A8BA0` |
 
 > 层级遵循 M3 dark 的「越浮越亮」：页面底最深，卡片表面亮一档，
 > 区块容器（tint/soft）再亮一档且带色相。主要文字对表面 ≥ 7:1，
@@ -138,13 +141,13 @@ MudBlazor 的 outlined/text 徽章与提示条用调色板 **base 色**作文字
 
 ### 1.4 语义色映射（强制）
 
-| 语义 | 颜色 | 用例 |
-|---|---|---|
-| 在线 / 成功 / 已启用 | `success` 绿 | 在线采集点、连通、启用态 |
-| 离线 / 失败 / 危险 | `error` 红 | 离线采集点、删除按钮、失败态 |
-| 停用 / 待处理 / 进行中 | `warning` 琥珀 | 停用、检测中、不可连接 |
-| 提示 / 中性信息 | `info` 信息蓝 | 来源标识、空状态、提示条 |
-| 主操作 / 当前页 | `primary` 蓝 | 主按钮、当前导航、编码文本 |
+| 语义                   | 颜色           | 用例                         |
+|------------------------|----------------|------------------------------|
+| 在线 / 成功 / 已启用   | `success` 绿   | 在线采集点、连通、启用态     |
+| 离线 / 失败 / 危险     | `error` 红     | 离线采集点、删除按钮、失败态 |
+| 停用 / 待处理 / 进行中 | `warning` 琥珀 | 停用、检测中、不可连接       |
+| 提示 / 中性信息        | `info` 信息蓝  | 来源标识、空状态、提示条     |
+| 主操作 / 当前页        | `primary` 蓝   | 主按钮、当前导航、编码文本   |
 
 **禁用**：不得用`default`（灰）表达业务状态。灰只用于「未配置」这类无状态信息的场景。
 
@@ -190,31 +193,31 @@ MudBlazor 的 outlined/text 徽章与提示条用调色板 **base 色**作文字
 
 **一个页面一个主色**，用于页面头部与抽屉；区块/卡片在主色体系内再取细分色。
 
-| 页面 | 菜单归属 | 主色 |
-|---|---|---|
-| 平台概览 `/platform-overview` | 平台管理 | primary |
-| 点位配置 `/collection-points` | 平台管理 → 采集配置 | info |
-| 点位数据管理 `/managed-data-definitions` | 平台管理 → 采集配置 | tertiary |
-| 采集服务器配置 `/acquisition-servers` | 平台管理 → 采集配置 | success |
-| 服务器状态查询 `/server-connection-status` | 平台管理 | info |
-| History API 测试 `/history-api-test` | 平台管理 → 接口管理 | warning |
-| MQTT 测试 `/mqtt-test` | 平台管理 → 接口管理 | tertiary |
-| 域与页面配置 `/domain-config` | 平台管理 → 权限管理 | secondary |
-| 部门与授权 `/department-grants` | 平台管理 → 权限管理 | tertiary |
-| 用户与角色 `/user-management` | 平台管理 → 权限管理 | info |
-| 系统审计 `/system-audit` | 平台管理 → 权限管理 | warning |
-| 采集节点详情 `/managed-data-definitions/{id}` | 平台管理 → 采集配置 | primary |
-| 排班时间管理 `/shift-schedules` | 业务配置 → 班组管理 | primary |
-| 排班日历 `/shift-calendar` | 业务配置 → 班组管理 | info |
-| 能耗仪表板 `/`（别名 `/energy-dashboard`） | 数据指标 → 能耗指标 | success |
-| 历史指标 `/energy-history` | 数据指标 → 能耗指标 | tertiary |
-| 班组横向对比 `/energy-comparison` | 数据指标 → 能耗指标 | warning |
-| 班组能耗报表 `/energy-report` | 数据指标 → 数据报表 | primary |
-| 园区能源总览 `/park-energy` | 能源 → 能源总览 | secondary |
-| 计量点台账 `/park-energy/meters` | 能源 → 台账与配置 | secondary |
-| 实时采集数据 `/collection-data` | 数据查看 → 采集运行 | info |
-| 登录 `/login`、改密 `/change-password` | 不在菜单内（AuthLayout） | primary |
-| 无权限 `/no-access`、无访问权 `/forbidden`、未上线 `/coming-soon` | 不在菜单内（状态页） | info |
+| 页面                                                              | 菜单归属                 | 主色      |
+|-------------------------------------------------------------------|--------------------------|-----------|
+| 平台概览 `/platform-overview`                                     | 平台管理                 | primary   |
+| 点位配置 `/collection-points`                                     | 平台管理 → 采集配置      | info      |
+| 点位数据管理 `/managed-data-definitions`                          | 平台管理 → 采集配置      | tertiary  |
+| 采集服务器配置 `/acquisition-servers`                             | 平台管理 → 采集配置      | success   |
+| 服务器状态查询 `/server-connection-status`                        | 平台管理                 | info      |
+| History API 测试 `/history-api-test`                              | 平台管理 → 接口管理      | warning   |
+| MQTT 测试 `/mqtt-test`                                            | 平台管理 → 接口管理      | tertiary  |
+| 域与页面配置 `/domain-config`                                     | 平台管理 → 权限管理      | secondary |
+| 部门与授权 `/department-grants`                                   | 平台管理 → 权限管理      | tertiary  |
+| 用户与角色 `/user-management`                                     | 平台管理 → 权限管理      | info      |
+| 系统审计 `/system-audit`                                          | 平台管理 → 权限管理      | warning   |
+| 采集节点详情 `/managed-data-definitions/{id}`                     | 平台管理 → 采集配置      | primary   |
+| 排班时间管理 `/shift-schedules`                                   | 业务配置 → 班组管理      | primary   |
+| 排班日历 `/shift-calendar`                                        | 业务配置 → 班组管理      | info      |
+| 能耗仪表板 `/`（别名 `/energy-dashboard`）                        | 数据指标 → 能耗指标      | success   |
+| 历史指标 `/energy-history`                                        | 数据指标 → 能耗指标      | tertiary  |
+| 班组横向对比 `/energy-comparison`                                 | 数据指标 → 能耗指标      | warning   |
+| 班组能耗报表 `/energy-report`                                     | 数据指标 → 数据报表      | primary   |
+| 园区能源总览 `/park-energy`                                       | 能源 → 能源总览          | secondary |
+| 计量点台账 `/park-energy/meters`                                  | 能源 → 台账与配置        | secondary |
+| 实时采集数据 `/collection-data`                                   | 数据查看 → 采集运行      | info      |
+| 登录 `/login`、改密 `/change-password`                            | 不在菜单内（AuthLayout） | primary   |
+| 无权限 `/no-access`、无访问权 `/forbidden`、未上线 `/coming-soon` | 不在菜单内（状态页）     | info      |
 
 > 「数据指标」与「能源」是两个并列的域，不要混：「数据指标」是钞纸工序视角（班组 × 四项指标 × 班次），
 > 「能源」是园区经营视角（介质 × 组织 × 用途 × 系统）。两者都用到了「能耗」这个词，但口径与受众不同。
@@ -226,15 +229,15 @@ MudBlazor 的 outlined/text 徽章与提示条用调色板 **base 色**作文字
 `Accent` 属性声明（守卫测试 `Avalonia_Page_ViewModels_Should_Be_Registered_In_Navigation_Catalog`
 保证每个页面都登记在导航目录里）。
 
-| 桌面页面 | 抽屉归属 | 主色 |
-|---|---|---|
-| 能耗仪表板 | 数据指标 → 能耗指标 | success |
-| 历史指标 | 数据指标 → 能耗指标 | tertiary |
-| 班组横向对比 | 数据指标 → 能耗指标 | warning |
-| 班组能耗报表 | 数据指标 → 数据报表 | primary |
-| 实时采集数据 | 数据查看 → 采集运行 | info |
-| 排班日历 | 数据查看 → 班组排班 | info |
-| 登录 / 强制改密浮层 | 不在菜单内（覆盖层） | primary |
+| 桌面页面            | 抽屉归属             | 主色     |
+|---------------------|----------------------|----------|
+| 能耗仪表板          | 数据指标 → 能耗指标  | success  |
+| 历史指标            | 数据指标 → 能耗指标  | tertiary |
+| 班组横向对比        | 数据指标 → 能耗指标  | warning  |
+| 班组能耗报表        | 数据指标 → 数据报表  | primary  |
+| 实时采集数据        | 数据查看 → 采集运行  | info     |
+| 排班日历            | 数据查看 → 班组排班  | info     |
+| 登录 / 强制改密浮层 | 不在菜单内（覆盖层） | primary  |
 
 ### 2.4 指标卡片的 accent 取色
 
@@ -283,7 +286,8 @@ private static readonly string[] MetricAccents =
 
 - 表头底色/文字色跟随所在卡片 accent
 - 编码、地址等标识文本用 `platform-inline-code` + `platform-table-primary`
-- 行操作区用 `table-action-grid` + `table-action-button`，按动作语义取色（详情=primary、调试=info、入库=success、编辑=primary、删除=error）
+- 行操作区用 `table-action-grid` + `table-action-button`，按动作语义取色（详情=primary、调试=info、入库=success、编辑=
+  primary、删除=error）
 - 表格本身用卡片表面色（`--platform-surface`），与有色容器底形成层次，不要继承底色
 
 ### 3.2.1 区块卡片与面板
@@ -398,23 +402,23 @@ teams.Select(t => new ChartSeries<double> { Name = t.TeamName, Data = [t.ValueA]
 
 导航分三层，唯一数据源是 `DAP.Presentation.BlazorWeb.Client/Layout/NavigationCatalog.cs`：
 
-| 层级 | 交互 | 实现位置 |
-|---|---|---|
+| 层级     | 交互                           | 实现位置                                |
+|----------|--------------------------------|-----------------------------------------|
 | 顶级模块 | 顶栏三个按钮，点击切换左侧菜单 | `MainLayout.razor` + `.platform-topnav` |
-| 分组 | 左侧菜单的分组标题 | `.platform-nav-section` |
-| 页面 | 左侧菜单条目，跳转路由 | `NavMenu.razor` + `NavMenuItem.razor` |
+| 分组     | 左侧菜单的分组标题             | `.platform-nav-section`                 |
+| 页面     | 左侧菜单条目，跳转路由         | `NavMenu.razor` + `NavMenuItem.razor`   |
 
 当前分配：
 
-| 顶级模块 | 分组 | 页面 |
-|---|---|---|
-| 数据指标 | 能耗指标 | 能耗仪表板、历史指标、班组横向对比 |
-| 数据指标 | 数据报表 | 班组能耗报表 |
-| 业务配置 | 班组管理 | 排班时间管理、排班日历 |
-| 平台管理 | （直接条目） | 平台概览、服务器状态查询 |
-| 平台管理 | 采集配置 | 点位配置、点位数据管理 |
-| 平台管理 | 接口管理 | History API 测试、MQTT 测试 |
-| 平台管理 | 权限管理 | 域与页面配置、部门与授权 |
+| 顶级模块 | 分组         | 页面                               |
+|----------|--------------|------------------------------------|
+| 数据指标 | 能耗指标     | 能耗仪表板、历史指标、班组横向对比 |
+| 数据指标 | 数据报表     | 班组能耗报表                       |
+| 业务配置 | 班组管理     | 排班时间管理、排班日历             |
+| 平台管理 | （直接条目） | 平台概览、服务器状态查询           |
+| 平台管理 | 采集配置     | 点位配置、点位数据管理             |
+| 平台管理 | 接口管理     | History API 测试、MQTT 测试        |
+| 平台管理 | 权限管理     | 域与页面配置、部门与授权           |
 
 约束：
 
@@ -444,11 +448,11 @@ MudBlazor 9.12 **未提供** `MudCalendar` 组件（只有 `MudDatePicker` 内�
 
 外部身份源（OIDC）的入口只在**确实配置了提供方**时渲染，未配置时整段不出现，不留空按钮。三个类名固定：
 
-| 类名 | 用途 |
-|---|---|
-| `.platform-auth-divider` | 「或使用统一登录」分隔线，两侧细线取中性色 |
-| `.platform-auth-external` | 外部入口容器（纵向堆叠、等宽） |
-| `.platform-auth-external-link` | 单个入口，**描边次级按钮**样式 |
+| 类名                           | 用途                                       |
+|--------------------------------|--------------------------------------------|
+| `.platform-auth-divider`       | 「或使用统一登录」分隔线，两侧细线取中性色 |
+| `.platform-auth-external`      | 外部入口容器（纵向堆叠、等宽）             |
+| `.platform-auth-external-link` | 单个入口，**描边次级按钮**样式             |
 
 - 外部入口一律**次级样式**：主按钮只能有一个（账号密码登录的「登录」），否则用户不知道该点哪个。
 - 提供方多于 3 家时优先考虑折叠，避免把登录表单挤出首屏（390px 高度下尤其明显）。
@@ -485,27 +489,28 @@ app.TryGetResource("SemiColorXxx", ThemeVariant.Light, out var v);
 ### 4.3 Axaml 编写注意
 
 - XML 注释内**不得出现连续两个连字符 `--`**（如 `--platform-*`），会导致 `AVLN1001` 解析失败
-- 引入资源字典用 `<ResourceDictionary.MergedDictionaries>`，不能直接把 `ResourceInclude` 放进 `ResourceDictionary.Content`
+- 引入资源字典用 `<ResourceDictionary.MergedDictionaries>`，不能直接把 `ResourceInclude` 放进
+  `ResourceDictionary.Content`
 - 品牌色覆盖必须放在 `Application.Resources`，**不能**放在 `Application.Styles`（那里要求 `IStyle`）
 
 ### 4.4 样式类（`Themes/DapStyles.axaml`）
 
 `App.axaml` 在 Semi 主题之后引入这份样式，桌面端页面只用这些类，不写行内颜色：
 
-| 类 | 用途 | 对应 Web |
-|---|---|---|
-| `page-hero` | 页头容器（配 `Background="{DynamicResource Dap<Role>TintBrush}"` 上色） | `platform-page-hero` |
-| `page-title` / `page-subtitle` | 页头标题与副标题 | 同名 |
-| `stat-card` / `stat-label` / `stat-value` / `stat-value-large` / `stat-supporting` | 统计卡：名称、数值、大号数值、辅助文字 | `platform-stat-card` |
-| `section-card` / `card-title` / `card-description` | 区块卡（左侧 4px 色条） | `platform-section-card` |
-| `panel` | 表面底容器（表格、明细、提示块） | `platform-chart-frame` / `platform-data-table` |
-| `chart-frame` | 图表底板 | `platform-chart-frame` |
-| `chip` | 状态标签 | `platform-chip` |
-| `empty-state` / `empty-title` / `empty-text` | 空状态 | `platform-empty-state` |
-| `field` / `field-label` | 表单控件与标签 | 同 Web 的 `MudTextField` |
-| `data-table` / `table-primary` / `table-cell` / `timestamp` | `DataGrid`、列头、主字段、次要字段、时间戳 | `platform-data-table` |
-| `nav-button` / `nav-item` / `nav-icon` / `nav-text` | 抽屉条目（`Classes.active` 表达选中） | `platform-nav-link` |
-| `module-button` / `accent-bar` / `divider` / `ghost` | 顶栏模块、色条、分隔线、次按钮 | — |
+| 类                                                                                 | 用途                                                                    | 对应 Web                                       |
+|------------------------------------------------------------------------------------|-------------------------------------------------------------------------|------------------------------------------------|
+| `page-hero`                                                                        | 页头容器（配 `Background="{DynamicResource Dap<Role>TintBrush}"` 上色） | `platform-page-hero`                           |
+| `page-title` / `page-subtitle`                                                     | 页头标题与副标题                                                        | 同名                                           |
+| `stat-card` / `stat-label` / `stat-value` / `stat-value-large` / `stat-supporting` | 统计卡：名称、数值、大号数值、辅助文字                                  | `platform-stat-card`                           |
+| `section-card` / `card-title` / `card-description`                                 | 区块卡（左侧 4px 色条）                                                 | `platform-section-card`                        |
+| `panel`                                                                            | 表面底容器（表格、明细、提示块）                                        | `platform-chart-frame` / `platform-data-table` |
+| `chart-frame`                                                                      | 图表底板                                                                | `platform-chart-frame`                         |
+| `chip`                                                                             | 状态标签                                                                | `platform-chip`                                |
+| `empty-state` / `empty-title` / `empty-text`                                       | 空状态                                                                  | `platform-empty-state`                         |
+| `field` / `field-label`                                                            | 表单控件与标签                                                          | 同 Web 的 `MudTextField`                       |
+| `data-table` / `table-primary` / `table-cell` / `timestamp`                        | `DataGrid`、列头、主字段、次要字段、时间戳                              | `platform-data-table`                          |
+| `nav-button` / `nav-item` / `nav-icon` / `nav-text`                                | 抽屉条目（`Classes.active` 表达选中）                                   | `platform-nav-link`                            |
+| `module-button` / `accent-bar` / `divider` / `ghost`                               | 顶栏模块、色条、分隔线、次按钮                                          | —                                              |
 
 **选中状态用 `Classes.active`**，不要用 `nth-child` 或按索引取色（与 Web 端「禁止 nth-child」同一条规则）。
 
@@ -550,7 +555,7 @@ app.TryGetResource("SemiColorXxx", ThemeVariant.Light, out var v);
 
 - [ ] 组件专属样式写在同名 `Xxx.razor.css`，不要往 `wwwroot/*.css` 里塞一次性样式
 - [ ] 样式作用到**子组件渲染的元素**时选择器要加 `::deep`（例如 `SvgText` 渲染的 `<text>`），
-      否则作用域属性 `[b-xxxx]` 不匹配，样式静默不生效
+  否则作用域属性 `[b-xxxx]` 不匹配，样式静默不生效
 - [ ] 不要删 `App.razor` 里的 `DAP.Presentation.BlazorWeb.styles.css`
 
 > **为什么最后一条不能删**：宿主页面只 link 了应用样式包，但这个包的**第一行**是

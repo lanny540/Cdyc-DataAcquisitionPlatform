@@ -1,6 +1,7 @@
 @inject NavigationManager Nav
 
 @code {
+
     /// <summary>
     /// 未认证时把浏览器送到登录页，并带上当前地址以便登录后跳回。
     ///
@@ -9,9 +10,10 @@
     /// </summary>
     protected override void OnInitialized()
     {
-        var relative = Nav.ToBaseRelativePath(Nav.Uri);
-        var returnUrl = string.IsNullOrEmpty(relative) ? "/" : $"/{relative}";
+        string relative = Nav.ToBaseRelativePath(Nav.Uri);
+        string returnUrl = string.IsNullOrEmpty(relative) ? "/" : $"/{relative}";
 
-        Nav.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(returnUrl)}", forceLoad: true);
+        Nav.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(returnUrl)}", true);
     }
+
 }

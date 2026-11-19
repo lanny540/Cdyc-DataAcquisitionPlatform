@@ -2,6 +2,7 @@ using DAP.Core.Domain.Entities;
 using DAP.Core.Domain.Services;
 using DAP.Core.Shared.Catalog;
 using DAP.Infrastructure.DataAccess.Persistence;
+using DAP.Presentation.BlazorWeb.Security.External;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -37,10 +38,8 @@ public sealed class AuthDataInitializer(
         try
         {
             if (!await db.Database.CanConnectAsync(cancellationToken))
-            {
                 throw new InvalidOperationException(
                     "认证初始化失败：无法连接 PostgreSQL。请检查 ConnectionStrings:PostgreSql 配置与数据库服务状态。");
-            }
 
             await EnsureRolesAsync(db, timeProvider, cancellationToken);
             await ApplyDepartmentAdminSwitchAsync(db, timeProvider, cancellationToken);
@@ -94,7 +93,7 @@ public sealed class AuthDataInitializer(
         DataAcquisitionPlatformDbContext db,
         CancellationToken cancellationToken)
     {
-        var domainCount = await db.BusinessDomains.CountAsync(cancellationToken);
+        int domainCount = await db.BusinessDomains.CountAsync(cancellationToken);
 
         if (domainCount == 0)
         {
@@ -103,30 +102,23 @@ public sealed class AuthDataInitializer(
             return;
         }
 
-        var departmentCount = await db.Departments.CountAsync(cancellationToken);
+        int departmentCount = await db.Departments.CountAsync(cancellationToken);
 
-        if (departmentCount == 0)
-        {
-            return;
-        }
+        if (departmentCount == 0) return;
 
-        var grantedDepartmentCount = await db.DepartmentDomainGrants
+        int grantedDepartmentCount = await db.DepartmentDomainGrants
             .Select(item => item.DepartmentId)
             .Distinct()
             .CountAsync(cancellationToken);
 
         if (grantedDepartmentCount == 0)
-        {
             logger.LogWarning(
                 "已有 {DepartmentCount} 个部门，但没有任何部门获得职能域授权：非超管用户登录后会落在「无访问权限」页。请在「部门与授权」矩阵里勾选。",
                 departmentCount);
-        }
         else if (grantedDepartmentCount < departmentCount)
-        {
             logger.LogInformation(
                 "部门授权情况：{Granted}/{Total} 个部门已获得至少一个职能域。未授权的部门成员登录后会落在「无访问权限」页。",
                 grantedDepartmentCount, departmentCount);
-        }
     }
 
     /// <summary>
@@ -139,37 +131,29 @@ public sealed class AuthDataInitializer(
         IReadOnlyList<string> ldapErrors = _options.Ldap.Validate();
 
         if (ldapErrors.Count > 0)
-        {
             throw new InvalidOperationException(
                 $"LDAP 配置不完整，应用已停止启动：{string.Join(" ", ldapErrors)}");
-        }
 
         IReadOnlyList<string> oidcErrors = _options.Oidc.Validate();
 
         if (oidcErrors.Count > 0)
-        {
             throw new InvalidOperationException(
                 $"OIDC 配置不完整，应用已停止启动：{string.Join(" ", oidcErrors)}");
-        }
 
         if (_options.Ldap.Enabled)
-        {
             logger.LogInformation(
                 "LDAP 已启用：{Host}:{Port}，BaseDn={BaseDn}，同步间隔 {Interval} 分钟。",
                 _options.Ldap.Host,
                 _options.Ldap.Port,
                 _options.Ldap.BaseDn,
                 _options.Ldap.SyncIntervalMinutes);
-        }
 
-        foreach (var provider in _options.Oidc.EnabledProviders())
-        {
+        foreach (OidcProviderOptions provider in _options.Oidc.EnabledProviders())
             logger.LogInformation(
                 "OIDC 已启用：{Code}（{Authority}），回调 {CallbackPath}。",
                 provider.Code,
                 provider.Authority,
                 provider.CallbackPath);
-        }
     }
 
     /// <summary>
@@ -179,26 +163,17 @@ public sealed class AuthDataInitializer(
     /// </summary>
     private void ValidateBoardOptions()
     {
-        if (!_options.Board.Enabled)
-        {
-            return;
-        }
+        if (!_options.Board.Enabled) return;
 
         if (_options.Board.IpWhitelist.Length == 0)
-        {
             throw new InvalidOperationException(
                 "Auth:Board:Enabled 已启用但 Auth:Board:IpWhitelist 为空。请登记车间那台机器的固定 IP（单机 /32），或暂时关闭开关。");
-        }
 
-        foreach (var entry in _options.Board.IpWhitelist)
-        {
+        foreach (string entry in _options.Board.IpWhitelist)
             if (BoardIpWhitelist.IsWideScope(entry))
-            {
                 logger.LogWarning(
                     "车间白名单条目 {Entry} 是宽网段（宽于 /24）。本方案不做行级过滤，等级 1 能看到全部班组的历史数据，开成网段等于整个网段都拿得到。生产环境只应有一条单机 /32。",
                     entry);
-            }
-        }
     }
 
     private async Task EnsureRolesAsync(
@@ -213,7 +188,7 @@ public sealed class AuthDataInitializer(
 
         foreach (BuiltInRole builtIn in AuthorizationCatalog.Roles)
         {
-            var isNew = !roles.TryGetValue(builtIn.Code, out Role? role);
+            bool isNew = !roles.TryGetValue(builtIn.Code, out Role? role);
 
             if (isNew)
             {
@@ -255,18 +230,12 @@ public sealed class AuthDataInitializer(
         TimeProvider timeProvider,
         CancellationToken cancellationToken)
     {
-        if (!_options.DepartmentAdmin.Enabled)
-        {
-            return;
-        }
+        if (!_options.DepartmentAdmin.Enabled) return;
 
         Role? role = await db.Roles.FirstOrDefaultAsync(
             item => item.Code == AuthorizationCatalog.DepartmentAdminRole, cancellationToken);
 
-        if (role is null || role.IsEnabled)
-        {
-            return;
-        }
+        if (role is null || role.IsEnabled) return;
 
         role.IsEnabled = true;
         role.UpdatedAt = timeProvider.GetUtcNow();
@@ -288,7 +257,7 @@ public sealed class AuthDataInitializer(
 
         foreach (BuiltInPermission builtIn in AuthorizationCatalog.Permissions)
         {
-            var isNew = !permissions.TryGetValue(builtIn.Code, out Permission? permission);
+            bool isNew = !permissions.TryGetValue(builtIn.Code, out Permission? permission);
 
             if (isNew)
             {
@@ -329,10 +298,7 @@ public sealed class AuthDataInitializer(
 
         foreach (BuiltInRole builtIn in AuthorizationCatalog.Roles)
         {
-            if (!roles.TryGetValue(builtIn.Code, out Role? role))
-            {
-                continue;
-            }
+            if (!roles.TryGetValue(builtIn.Code, out Role? role)) continue;
 
             HashSet<Guid> desired = builtIn.PermissionCodes
                 .Where(code => permissions.ContainsKey(code))
@@ -340,19 +306,12 @@ public sealed class AuthDataInitializer(
                 .ToHashSet();
 
             foreach (RolePermission link in existing.Where(link => link.RoleId == role.Id))
-            {
                 if (!desired.Contains(link.PermissionId))
-                {
                     db.RolePermissions.Remove(link);
-                }
-            }
 
             foreach (Guid permissionId in desired)
             {
-                if (existing.Any(link => link.RoleId == role.Id && link.PermissionId == permissionId))
-                {
-                    continue;
-                }
+                if (existing.Any(link => link.RoleId == role.Id && link.PermissionId == permissionId)) continue;
 
                 db.RolePermissions.Add(new RolePermission {RoleId = role.Id, PermissionId = permissionId});
             }
@@ -376,10 +335,7 @@ public sealed class AuthDataInitializer(
 
         foreach (BuiltInDomain builtIn in AuthorizationCatalog.Domains)
         {
-            if (existingCodes.Contains(builtIn.Code))
-            {
-                continue;
-            }
+            if (existingCodes.Contains(builtIn.Code)) continue;
 
             db.BusinessDomains.Add(new BusinessDomain
             {
@@ -408,40 +364,31 @@ public sealed class AuthDataInitializer(
         Role superAdminRole = await db.Roles
             .FirstAsync(role => role.Code == AuthorizationCatalog.SuperAdminRole, cancellationToken);
 
-        var hasSuperAdmin = await db.UserRoles
+        bool hasSuperAdmin = await db.UserRoles
             .AnyAsync(link => link.RoleId == superAdminRole.Id && link.User!.IsEnabled, cancellationToken);
 
-        if (hasSuperAdmin)
-        {
-            return;
-        }
+        if (hasSuperAdmin) return;
 
         DateTimeOffset now = timeProvider.GetUtcNow();
-        var userName = PlatformAuthService.NormalizeUserName(_options.BootstrapAdmin.UserName);
-        var password = _options.BootstrapAdmin.Password;
+        string userName = PlatformAuthService.NormalizeUserName(_options.BootstrapAdmin.UserName);
+        string? password = _options.BootstrapAdmin.Password;
 
         if (userName.Length == 0 || string.IsNullOrWhiteSpace(password))
-        {
             throw new InvalidOperationException(
                 "库中不存在启用状态的超级管理员，且未配置 Auth:BootstrapAdmin:UserName / Password，应用拒绝启动。"
                 + "否则首次上线将无人能登录。请在 appsettings 中补上初始账号后重新启动。");
-        }
 
-        var passwordError = PlatformAuthService.ValidateNewPassword(userName, password);
+        string? passwordError = PlatformAuthService.ValidateNewPassword(userName, password);
         if (passwordError is not null)
-        {
             throw new InvalidOperationException($"Auth:BootstrapAdmin:Password 不满足要求：{passwordError}");
-        }
 
         // appsettings.json 里的初始密码是仓库公开的默认值，只能用于开发环境。
         // 生产环境若照抄这份配置建超管，等于把入口密码写进了代码库。
         if (environment.IsProduction()
             && string.Equals(password, KnownDefaultBootstrapPassword, StringComparison.Ordinal))
-        {
             throw new InvalidOperationException(
                 "生产环境拒绝使用内置的默认初始密码创建超级管理员。"
                 + "请通过环境变量 Auth__BootstrapAdmin__Password 或用户机密覆盖后再启动。");
-        }
 
         AppUser? user = await db.AppUsers
             .FirstOrDefaultAsync(item => item.UserName == userName, cancellationToken);
@@ -489,14 +436,11 @@ public sealed class AuthDataInitializer(
         DataAcquisitionPlatformDbContext db,
         CancellationToken cancellationToken)
     {
-        var count = await db.UserRoles.CountAsync(
+        int count = await db.UserRoles.CountAsync(
             link => link.Role!.Code == AuthorizationCatalog.SuperAdminRole && link.User!.IsEnabled,
             cancellationToken);
 
-        if (count == 1)
-        {
-            return;
-        }
+        if (count == 1) return;
 
         throw new InvalidOperationException(count == 0
             ? "启动自检失败：库中不存在启用状态的超级管理员，系统将无人可管理，已拒绝启动。"

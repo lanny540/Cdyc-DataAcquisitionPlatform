@@ -4,12 +4,12 @@
 
 ## 一、文件清单与执行顺序
 
-| 顺序 | 文件 | 是否必执行 | 作用 |
-|---|---|---|---|
-| 1 | `01_schema.sql` | **必须** | 建 16 张业务表、索引与 CHECK 约束，附带 `__EFMigrationsHistory` |
-| 2 | `02_seed_authorization.sql` | 推荐 | 职能域 4、权限点 5、内置角色 4、角色权限关联 3 |
-| 3 | `03_verify.sql` | 建议 | 只读自检，确认表结构与字典完整 |
-| — | 应用启动 | — | 自动写入领域页面 17 条、创建初始超管 |
+| 顺序 | 文件                        | 是否必执行 | 作用                                                            |
+|------|-----------------------------|------------|-----------------------------------------------------------------|
+| 1    | `01_schema.sql`             | **必须**   | 建 16 张业务表、索引与 CHECK 约束，附带 `__EFMigrationsHistory` |
+| 2    | `02_seed_authorization.sql` | 推荐       | 职能域 4、权限点 5、内置角色 4、角色权限关联 3                  |
+| 3    | `03_verify.sql`             | 建议       | 只读自检，确认表结构与字典完整                                  |
+| —    | 应用启动                    | —          | 自动写入领域页面 17 条、创建初始超管                            |
 
 ```bash
 export PGPASSWORD='<口令>'
@@ -30,8 +30,7 @@ SHOW client_encoding;  -- 期望 UTF8
 
 ## 二、三个刻意的「不插入」
 
-部署脚本里最容易出错的地方是「把不该手工插的数据插了」。以下三类数据由应用在启动时写入，
-**不要手工 INSERT**。
+部署脚本里最容易出错的地方是「把不该手工插的数据插了」。以下三类数据由应用在启动时写入， **不要手工 INSERT**。
 
 ### 1. 初始超管（`app_users`）不插
 
@@ -63,13 +62,13 @@ SHOW client_encoding;  -- 期望 UTF8
 
 建表只是第一步，以下配置缺失会导致「能建库但登不上」或「重启后全员掉线」。
 
-| 配置项 | 说明 |
-|---|---|
-| `ConnectionStrings:PostgreSql` | 指向生产库 |
-| `Auth:BootstrapAdmin:UserName` / `Password` | 初始超管。**口令不得留默认值**，Production 下会用默认口令直接拒绝启动 |
-| `Auth:DataProtection:KeyPath` | 数据保护密钥目录。默认在内容根目录的 `data-protection-keys`，容器部署须指向持久卷 |
-| `Auth:Board` | 车间只读终端 IP 白名单，不需要就不配 |
-| `Auth:DepartmentAdmin:Enabled` | 部门管理员角色开关，默认关闭 |
+| 配置项                                      | 说明                                                                              |
+|---------------------------------------------|-----------------------------------------------------------------------------------|
+| `ConnectionStrings:PostgreSql`              | 指向生产库                                                                        |
+| `Auth:BootstrapAdmin:UserName` / `Password` | 初始超管。**口令不得留默认值**，Production 下会用默认口令直接拒绝启动             |
+| `Auth:DataProtection:KeyPath`               | 数据保护密钥目录。默认在内容根目录的 `data-protection-keys`，容器部署须指向持久卷 |
+| `Auth:Board`                                | 车间只读终端 IP 白名单，不需要就不配                                              |
+| `Auth:DepartmentAdmin:Enabled`              | 部门管理员角色开关，默认关闭                                                      |
 
 **密钥目录必须备份。** 它同时用于 Cookie 加密与采集服务器凭据（ClientSecret 等）的落库加密。
 密钥环丢失的后果有两个：所有已签发会话立即作废（表现为「全员同时被踢下线」），
@@ -127,11 +126,11 @@ TRUNCATE collection_data_records, collection_points, managed_data_definitions, s
 
 ## 六、常见故障对照
 
-| 现象 | 原因 |
-|---|---|
-| 执行时报 `function gen_random_uuid() does not exist` | PostgreSQL 低于 13，需安装 `pgcrypto` 扩展或升级 |
-| 启动后菜单空白 / 只有顶栏 | `business_domains` 为空，页面被对账跳过；检查第 2 步是否执行 |
-| 登录提示密码错误 | 手工插过 `app_users`，散列格式不符；删掉该行让初始化器重建 |
-| 重启后所有人掉登录 | `Auth:DataProtection:KeyPath` 未持久化，密钥环随部署丢失 |
-| 提示「请先修改初始密码」并拒绝其它操作 | 首登强制改密，属预期行为 |
-| 中文状态约束插入失败 | 数据库或客户端编码不是 UTF-8 |
+| 现象                                                 | 原因                                                         |
+|------------------------------------------------------|--------------------------------------------------------------|
+| 执行时报 `function gen_random_uuid() does not exist` | PostgreSQL 低于 13，需安装 `pgcrypto` 扩展或升级             |
+| 启动后菜单空白 / 只有顶栏                            | `business_domains` 为空，页面被对账跳过；检查第 2 步是否执行 |
+| 登录提示密码错误                                     | 手工插过 `app_users`，散列格式不符；删掉该行让初始化器重建   |
+| 重启后所有人掉登录                                   | `Auth:DataProtection:KeyPath` 未持久化，密钥环随部署丢失     |
+| 提示「请先修改初始密码」并拒绝其它操作               | 首登强制改密，属预期行为                                     |
+| 中文状态约束插入失败                                 | 数据库或客户端编码不是 UTF-8                                 |

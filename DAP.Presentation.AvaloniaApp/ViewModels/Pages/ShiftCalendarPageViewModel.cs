@@ -51,20 +51,17 @@ public sealed partial class ShiftCalendarPageViewModel : PageViewModelBase
     /// <summary>
     /// 月份标题。
     /// </summary>
-    [ObservableProperty]
-    private string _monthText = string.Empty;
+    [ObservableProperty] private string _monthText = string.Empty;
 
     /// <summary>
     /// 是否有排班数据。
     /// </summary>
-    [ObservableProperty]
-    private bool _hasData;
+    [ObservableProperty] private bool _hasData;
 
     /// <summary>
     /// 汇总文案。
     /// </summary>
-    [ObservableProperty]
-    private string _summaryText = string.Empty;
+    [ObservableProperty] private string _summaryText = string.Empty;
 
     /// <summary>
     /// 日历单元格（固定 42 个）。
@@ -102,10 +99,10 @@ public sealed partial class ShiftCalendarPageViewModel : PageViewModelBase
 
         Cells.Clear();
 
-        for (var index = 0; index < TotalCells; index++)
+        for (int index = 0; index < TotalCells; index++)
         {
             DateOnly date = gridStart.AddDays(index);
-            var inMonth = date.Month == _month.Month && date.Year == _month.Year;
+            bool inMonth = date.Month == _month.Month && date.Year == _month.Year;
 
             if (lookup.TryGetValue(date, out DailyShiftScheduleDto? day))
             {
@@ -145,8 +142,8 @@ public sealed partial class ShiftCalendarPageViewModel : PageViewModelBase
             }
         }
 
-        var scheduled = days.Count;
-        var complete = days.Count(day => day.CoverageComplete);
+        int scheduled = days.Count;
+        int complete = days.Count(day => day.CoverageComplete);
 
         HasData = scheduled > 0;
         SummaryText = scheduled == 0
@@ -154,13 +151,9 @@ public sealed partial class ShiftCalendarPageViewModel : PageViewModelBase
             : $"本月已排班 {scheduled} 天，其中 {complete} 天满足四班三运转完整覆盖";
 
         if (scheduled == 0)
-        {
             SetMessage("当前区间内没有排班数据，请先在 Web 端「业务配置 → 排班时间管理」中导入排班表。");
-        }
         else
-        {
             SetMessage(null);
-        }
     }
 
     /// <summary>
@@ -168,8 +161,8 @@ public sealed partial class ShiftCalendarPageViewModel : PageViewModelBase
     /// </summary>
     private static DateOnly ResolveGridStart(DateOnly month)
     {
-        var first = new DateOnly(month.Year, month.Month, 1);
-        var offset = ((int) first.DayOfWeek + 6) % 7;
+        DateOnly first = new(month.Year, month.Month, 1);
+        int offset = ((int) first.DayOfWeek + 6) % 7;
 
         return first.AddDays(-offset);
     }

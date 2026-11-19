@@ -71,7 +71,7 @@ public interface IDataAcquisitionPlatformService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// 删除指定后台数据定义。
+    /// 软删除指定后台数据定义，并停用关联采集点；历史采集记录保留。
     /// </summary>
     /// <param name="id">数据定义标识。</param>
     /// <param name="cancellationToken">取消令牌。</param>

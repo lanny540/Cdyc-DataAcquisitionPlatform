@@ -20,7 +20,7 @@ public class HistoryApiProxyRequestTests
     [Fact]
     public async Task GetCurrentValueAsync_Should_Request_Configured_CurrentValue_Path()
     {
-        var handler = new RecordingHandler(BusinessOnly(_ => JsonResponse("""{"value":42}""")));
+        RecordingHandler handler = new(BusinessOnly(_ => JsonResponse("""{"value":42}""")));
         HistoryApiProxyService service = CreateService(handler);
 
         await service.GetCurrentValueAsync(
@@ -35,7 +35,7 @@ public class HistoryApiProxyRequestTests
     [Fact]
     public async Task GetCurrentValueAsync_Should_Escape_Tag_Name_In_Query()
     {
-        var handler = new RecordingHandler(BusinessOnly(_ => JsonResponse("""{"value":1}""")));
+        RecordingHandler handler = new(BusinessOnly(_ => JsonResponse("""{"value":1}""")));
         HistoryApiProxyService service = CreateService(handler);
 
         await service.GetCurrentValueAsync(
@@ -50,17 +50,17 @@ public class HistoryApiProxyRequestTests
     [Fact]
     public async Task GetRawDataAsync_Should_Build_Path_With_Tag_TimeRange_And_Paging()
     {
-        var handler = new RecordingHandler(BusinessOnly(_ => JsonResponse("""{"items":[]}""")));
+        RecordingHandler handler = new(BusinessOnly(_ => JsonResponse("""{"items":[]}""")));
         HistoryApiProxyService service = CreateService(handler);
 
-        var start = new DateTimeOffset(2026, 10, 20, 0, 0, 0, TimeSpan.Zero);
-        var end = new DateTimeOffset(2026, 10, 20, 8, 0, 0, TimeSpan.Zero);
+        DateTimeOffset start = new(2026, 10, 20, 0, 0, 0, TimeSpan.Zero);
+        DateTimeOffset end = new(2026, 10, 20, 8, 0, 0, TimeSpan.Zero);
 
         await service.GetRawDataAsync(
             new HistoryRawDataQueryRequest("TAG001", start, end, 0, 100),
             Conn("https://hist.example.com", rawDataPathPrefix: "/api/rawdata"));
 
-        var path = handler.LastRequestUri!.AbsolutePath;
+        string path = handler.LastRequestUri!.AbsolutePath;
 
         // 路径应形如 /api/rawdata/{tag}/{start}/{end}/{startIndex}/{count}
         Assert.StartsWith("/api/rawdata/", path, StringComparison.Ordinal);
@@ -71,7 +71,7 @@ public class HistoryApiProxyRequestTests
     [Fact]
     public async Task GetRawDataAsync_Should_Ignore_Blank_RawData_Prefix()
     {
-        var handler = new RecordingHandler(BusinessOnly(_ => JsonResponse("""{"items":[]}""")));
+        RecordingHandler handler = new(BusinessOnly(_ => JsonResponse("""{"items":[]}""")));
         HistoryApiProxyService service = CreateService(handler);
 
         DateTimeOffset now = DateTimeOffset.UnixEpoch;
@@ -86,7 +86,7 @@ public class HistoryApiProxyRequestTests
     [Fact]
     public async Task GetCurrentValueAsync_When_Server_Returns_500_Should_Return_Chinese_Failure()
     {
-        var handler = new RecordingHandler(BusinessOnly(_ => new HttpResponseMessage(HttpStatusCode.InternalServerError)
+        RecordingHandler handler = new(BusinessOnly(_ => new HttpResponseMessage(HttpStatusCode.InternalServerError)
         {
             Content = new StringContent("Internal Server Error boom")
         }));
@@ -107,7 +107,7 @@ public class HistoryApiProxyRequestTests
     [Fact]
     public async Task GetCurrentValueAsync_When_Timeout_Should_Report_Readably()
     {
-        var handler = new RecordingHandler(_ => throw new TaskCanceledException(
+        RecordingHandler handler = new(_ => throw new TaskCanceledException(
             "The request was canceled due to the configured HttpClient.Timeout of 5 seconds elapsing."));
 
         HistoryApiProxyService service = CreateService(handler);
@@ -126,7 +126,7 @@ public class HistoryApiProxyRequestTests
     [Fact]
     public async Task GetCurrentValueAsync_When_Network_Unreachable_Should_Report_Readably()
     {
-        var handler = new RecordingHandler(_ => throw new HttpRequestException(
+        RecordingHandler handler = new(_ => throw new HttpRequestException(
             "No such host is known. (hist.invalid:443)"));
 
         HistoryApiProxyService service = CreateService(handler);
@@ -142,7 +142,7 @@ public class HistoryApiProxyRequestTests
     [Fact]
     public async Task GetCurrentValueAsync_Should_Send_Authorization_Header_When_Credentials_Provided()
     {
-        var handler = new RecordingHandler(BusinessOnly(_ => JsonResponse("""{"value":1}""")));
+        RecordingHandler handler = new(BusinessOnly(_ => JsonResponse("""{"value":1}""")));
         HistoryApiProxyService service = CreateService(handler);
 
         await service.GetCurrentValueAsync(
@@ -151,6 +151,23 @@ public class HistoryApiProxyRequestTests
 
         // 有凭据时应带上认证信息；这里只断言头存在，不断言具体 token 形态
         Assert.NotNull(handler.LastRequest);
+    }
+
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(1, true)]
+    [InlineData(HistoryRawDataQueryRequest.MaxCount, true)]
+    [InlineData(HistoryRawDataQueryRequest.MaxCount + 1, false)]
+    public void Raw_Data_Query_Should_Enforce_Count_Limit(int count, bool expectedValid)
+    {
+        DateTimeOffset start = DateTimeOffset.UnixEpoch;
+        HistoryRawDataQueryRequest request = new("TAG001", start, start.AddHours(1), 0, count);
+
+        string? error = request.Validate();
+
+        Assert.Equal(expectedValid, error is null);
+        if (!expectedValid && count > 0)
+            Assert.Contains(HistoryRawDataQueryRequest.MaxCount.ToString(), error, StringComparison.Ordinal);
     }
 
     #region 辅助
@@ -210,7 +227,7 @@ public class HistoryApiProxyRequestTests
         {
             return new HttpClient(handler, false)
             {
-                Timeout = System.Threading.Timeout.InfiniteTimeSpan
+                Timeout = Timeout.InfiniteTimeSpan
             };
         }
     }
@@ -232,10 +249,7 @@ public class HistoryApiProxyRequestTests
             LastRequest = request;
             LastRequestUri = request.RequestUri;
 
-            if (responder(request) is { } response)
-            {
-                return Task.FromResult(response);
-            }
+            if (responder(request) is { } response) return Task.FromResult(response);
 
             throw new InvalidOperationException("测试处理器未配置响应。");
         }

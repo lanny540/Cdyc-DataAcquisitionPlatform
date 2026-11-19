@@ -34,10 +34,7 @@ public static class CollectionPointEndpoints
                     CancellationToken cancellationToken) =>
                 {
                     IResult? validationError = ValidateCollectionPointRequest(request);
-                    if (validationError is not null)
-                    {
-                        return validationError;
-                    }
+                    if (validationError is not null) return validationError;
 
                     CollectionPointDto savedPoint =
                         await platformService.UpsertCollectionPointAsync(request, cancellationToken);
@@ -49,7 +46,7 @@ public static class CollectionPointEndpoints
                 "/{id:guid}",
                 async (Guid id, IDataAcquisitionPlatformService platformService, CancellationToken cancellationToken) =>
                 {
-                    var deleted = await platformService.DeleteCollectionPointAsync(id, cancellationToken);
+                    bool deleted = await platformService.DeleteCollectionPointAsync(id, cancellationToken);
                     return deleted ? Results.NoContent() : Results.NotFound();
                 })
             .WithName("DeleteCollectionPoint");
@@ -74,12 +71,10 @@ public static class CollectionPointEndpoints
             string.IsNullOrWhiteSpace(request.Name) ||
             string.IsNullOrWhiteSpace(request.Protocol) ||
             string.IsNullOrWhiteSpace(request.Endpoint))
-        {
             return Results.ValidationProblem(new Dictionary<string, string[]>
             {
                 ["CollectionPoint"] = ["编码、名称、协议和端点不能为空。"]
             });
-        }
 
         return null;
     }

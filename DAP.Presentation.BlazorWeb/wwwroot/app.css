@@ -596,23 +596,84 @@ textarea:focus-visible, [role="button"]:focus-visible,
    文字用 strong，描边用 55% 半透明 strong；浅色主题下 strong
    是加深档，同样成立。类名注意：MudBlazor 用的是复合类
    （mud-chip-color-warning / mud-alert-outlined-warning），不是 mud-warning。 */
-.mud-chip-outlined.mud-chip-color-primary, .mud-chip-text.mud-chip-color-primary { color: var(--md-primary-strong); border-color: color-mix(in srgb, var(--md-primary-strong) 55%, transparent); }
-.mud-chip-outlined.mud-chip-color-secondary, .mud-chip-text.mud-chip-color-secondary { color: var(--md-secondary-strong); border-color: color-mix(in srgb, var(--md-secondary-strong) 55%, transparent); }
-.mud-chip-outlined.mud-chip-color-tertiary, .mud-chip-text.mud-chip-color-tertiary { color: var(--md-tertiary-strong); border-color: color-mix(in srgb, var(--md-tertiary-strong) 55%, transparent); }
-.mud-chip-outlined.mud-chip-color-success, .mud-chip-text.mud-chip-color-success { color: var(--md-success-strong); border-color: color-mix(in srgb, var(--md-success-strong) 55%, transparent); }
-.mud-chip-outlined.mud-chip-color-warning, .mud-chip-text.mud-chip-color-warning { color: var(--md-warning-strong); border-color: color-mix(in srgb, var(--md-warning-strong) 55%, transparent); }
-.mud-chip-outlined.mud-chip-color-error, .mud-chip-text.mud-chip-color-error { color: var(--md-error-strong); border-color: color-mix(in srgb, var(--md-error-strong) 55%, transparent); }
-.mud-chip-outlined.mud-chip-color-info, .mud-chip-text.mud-chip-color-info { color: var(--md-info-strong); border-color: color-mix(in srgb, var(--md-info-strong) 55%, transparent); }
+.mud-chip-outlined.mud-chip-color-primary, .mud-chip-text.mud-chip-color-primary {
+    color: var(--md-primary-strong);
+    border-color: color-mix(in srgb, var(--md-primary-strong) 55%, transparent);
+}
+
+.mud-chip-outlined.mud-chip-color-secondary, .mud-chip-text.mud-chip-color-secondary {
+    color: var(--md-secondary-strong);
+    border-color: color-mix(in srgb, var(--md-secondary-strong) 55%, transparent);
+}
+
+.mud-chip-outlined.mud-chip-color-tertiary, .mud-chip-text.mud-chip-color-tertiary {
+    color: var(--md-tertiary-strong);
+    border-color: color-mix(in srgb, var(--md-tertiary-strong) 55%, transparent);
+}
+
+.mud-chip-outlined.mud-chip-color-success, .mud-chip-text.mud-chip-color-success {
+    color: var(--md-success-strong);
+    border-color: color-mix(in srgb, var(--md-success-strong) 55%, transparent);
+}
+
+.mud-chip-outlined.mud-chip-color-warning, .mud-chip-text.mud-chip-color-warning {
+    color: var(--md-warning-strong);
+    border-color: color-mix(in srgb, var(--md-warning-strong) 55%, transparent);
+}
+
+.mud-chip-outlined.mud-chip-color-error, .mud-chip-text.mud-chip-color-error {
+    color: var(--md-error-strong);
+    border-color: color-mix(in srgb, var(--md-error-strong) 55%, transparent);
+}
+
+.mud-chip-outlined.mud-chip-color-info, .mud-chip-text.mud-chip-color-info {
+    color: var(--md-info-strong);
+    border-color: color-mix(in srgb, var(--md-info-strong) 55%, transparent);
+}
 
 /* outlined 提示条（页头的排班提示、操作结果反馈）：同口径换 strong 档，
    底色补一层 45% 的 soft，让提示区域可被一眼圈出。 */
-.mud-alert-outlined-primary { color: var(--md-primary-strong); border-color: color-mix(in srgb, var(--md-primary-strong) 50%, transparent); background-color: color-mix(in srgb, var(--md-primary-soft) 45%, transparent); }
-.mud-alert-outlined-secondary { color: var(--md-secondary-strong); border-color: color-mix(in srgb, var(--md-secondary-strong) 50%, transparent); background-color: color-mix(in srgb, var(--md-secondary-soft) 45%, transparent); }
-.mud-alert-outlined-tertiary { color: var(--md-tertiary-strong); border-color: color-mix(in srgb, var(--md-tertiary-strong) 50%, transparent); background-color: color-mix(in srgb, var(--md-tertiary-soft) 45%, transparent); }
-.mud-alert-outlined-success { color: var(--md-success-strong); border-color: color-mix(in srgb, var(--md-success-strong) 50%, transparent); background-color: color-mix(in srgb, var(--md-success-soft) 45%, transparent); }
-.mud-alert-outlined-warning { color: var(--md-warning-strong); border-color: color-mix(in srgb, var(--md-warning-strong) 50%, transparent); background-color: color-mix(in srgb, var(--md-warning-soft) 45%, transparent); }
-.mud-alert-outlined-error { color: var(--md-error-strong); border-color: color-mix(in srgb, var(--md-error-strong) 50%, transparent); background-color: color-mix(in srgb, var(--md-error-soft) 45%, transparent); }
-.mud-alert-outlined-info { color: var(--md-info-strong); border-color: color-mix(in srgb, var(--md-info-strong) 50%, transparent); background-color: color-mix(in srgb, var(--md-info-soft) 45%, transparent); }
+.mud-alert-outlined-primary {
+    color: var(--md-primary-strong);
+    border-color: color-mix(in srgb, var(--md-primary-strong) 50%, transparent);
+    background-color: color-mix(in srgb, var(--md-primary-soft) 45%, transparent);
+}
+
+.mud-alert-outlined-secondary {
+    color: var(--md-secondary-strong);
+    border-color: color-mix(in srgb, var(--md-secondary-strong) 50%, transparent);
+    background-color: color-mix(in srgb, var(--md-secondary-soft) 45%, transparent);
+}
+
+.mud-alert-outlined-tertiary {
+    color: var(--md-tertiary-strong);
+    border-color: color-mix(in srgb, var(--md-tertiary-strong) 50%, transparent);
+    background-color: color-mix(in srgb, var(--md-tertiary-soft) 45%, transparent);
+}
+
+.mud-alert-outlined-success {
+    color: var(--md-success-strong);
+    border-color: color-mix(in srgb, var(--md-success-strong) 50%, transparent);
+    background-color: color-mix(in srgb, var(--md-success-soft) 45%, transparent);
+}
+
+.mud-alert-outlined-warning {
+    color: var(--md-warning-strong);
+    border-color: color-mix(in srgb, var(--md-warning-strong) 50%, transparent);
+    background-color: color-mix(in srgb, var(--md-warning-soft) 45%, transparent);
+}
+
+.mud-alert-outlined-error {
+    color: var(--md-error-strong);
+    border-color: color-mix(in srgb, var(--md-error-strong) 50%, transparent);
+    background-color: color-mix(in srgb, var(--md-error-soft) 45%, transparent);
+}
+
+.mud-alert-outlined-info {
+    color: var(--md-info-strong);
+    border-color: color-mix(in srgb, var(--md-info-strong) 50%, transparent);
+    background-color: color-mix(in srgb, var(--md-info-soft) 45%, transparent);
+}
 
 .mud-alert[class*="mud-alert-outlined"] .mud-icon-root {
     color: inherit;

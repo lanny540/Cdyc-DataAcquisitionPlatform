@@ -164,18 +164,18 @@ public static class PaperMachineSimulator
 
     private static readonly MetricSpec[] KeyMetricSpecs =
     [
-        new MetricSpec("车速", 420, 8, 0, "m/min"),
-        new MetricSpec("定量", 78.4, 0.9, 1, "g/m²"),
-        new MetricSpec("成纸水分", 5.8, 0.25, 1, "%"),
-        new MetricSpec("运行率", 97.2, 0.4, 1, "%")
+        new("车速", 420, 8, 0, "m/min"),
+        new("定量", 78.4, 0.9, 1, "g/m²"),
+        new("成纸水分", 5.8, 0.25, 1, "%"),
+        new("运行率", 97.2, 0.4, 1, "%")
     ];
 
     private static readonly MetricSpec[] ShiftTotalSpecs =
     [
-        new MetricSpec("产量", 62.4, 1.2, 1, "t"),
-        new MetricSpec("断纸", 0, 0, 0, "次"),
-        new MetricSpec("运行时长", 6.8, 0.05, 1, "h"),
-        new MetricSpec("吨纸汽耗", 1.82, 0.03, 2, "t/t")
+        new("产量", 62.4, 1.2, 1, "t"),
+        new("断纸", 0, 0, 0, "次"),
+        new("运行时长", 6.8, 0.05, 1, "h"),
+        new("吨纸汽耗", 1.82, 0.03, 2, "t/t")
     ];
 
     /// <summary>
@@ -195,9 +195,9 @@ public static class PaperMachineSimulator
     /// <returns>整线快照。</returns>
     public static PaperMachineSnapshot Snapshot(DateTimeOffset capturedAt)
     {
-        var bucket = capturedAt.ToUnixTimeSeconds() / (long) Tick.TotalSeconds;
+        long bucket = capturedAt.ToUnixTimeSeconds() / (long) Tick.TotalSeconds;
 
-        var stations = StationSpecs
+        TwinStation[] stations = StationSpecs
             .Select(spec => new TwinStation(
                 spec.Code,
                 spec.Name,
@@ -232,11 +232,11 @@ public static class PaperMachineSimulator
     /// </summary>
     private static TwinMetric Measure(MetricSpec spec, long bucket)
     {
-        var key = spec.Label + "|" + spec.Unit;
-        var phase = Noise01(key + "|phase", 0) * Math.Tau;
-        var wave = Math.Sin(Math.Tau * bucket / WavePeriodBuckets + phase);
-        var noise = Noise01(key, bucket) * 2 - 1;
-        var value = spec.Base + spec.Amplitude * (0.65 * wave + 0.35 * noise);
+        string key = spec.Label + "|" + spec.Unit;
+        double phase = Noise01(key + "|phase", 0) * Math.Tau;
+        double wave = Math.Sin(Math.Tau * bucket / WavePeriodBuckets + phase);
+        double noise = Noise01(key, bucket) * 2 - 1;
+        double value = spec.Base + spec.Amplitude * (0.65 * wave + 0.35 * noise);
 
         return new TwinMetric(spec.Label, Math.Round(value, spec.Decimals), spec.Decimals, spec.Unit);
     }
@@ -252,9 +252,9 @@ public static class PaperMachineSimulator
             const uint offset = 2166136261;
             const uint prime = 16777619;
 
-            var hash = offset;
+            uint hash = offset;
 
-            foreach (var ch in key)
+            foreach (char ch in key)
             {
                 hash ^= ch;
                 hash *= prime;

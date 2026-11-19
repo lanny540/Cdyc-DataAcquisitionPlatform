@@ -65,11 +65,16 @@ public sealed class ManagedDataDefinitionConfiguration : IEntityTypeConfiguratio
         builder.Property(item => item.CollectionIntervalSeconds).HasColumnName("collection_interval_seconds")
             .HasDefaultValue(300).IsRequired();
         builder.Property(item => item.IsEnabled).HasColumnName("is_enabled").IsRequired();
+        builder.Property(item => item.DeletedAt).HasColumnName("deleted_at");
         builder.Property(item => item.UpdatedAt).HasColumnName("updated_at").IsRequired();
+
+        // Dapper 查询需同步使用 deleted_at IS NULL；EF 写模型由全局过滤器保证同一口径。
+        builder.HasQueryFilter(item => item.DeletedAt == null);
 
         builder.HasIndex(item => item.Code)
             .IsUnique()
-            .HasDatabaseName("ux_managed_data_definitions_code");
+            .HasDatabaseName("ux_managed_data_definitions_code")
+            .HasFilter("deleted_at IS NULL");
 
         builder.HasIndex(item => new {item.AcquisitionType, item.IsEnabled, item.UpdatedAt})
             .HasDatabaseName("ix_managed_data_definitions_type_enabled_updated_at");

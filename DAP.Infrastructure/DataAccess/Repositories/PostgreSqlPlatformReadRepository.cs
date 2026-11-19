@@ -55,19 +55,16 @@ public sealed class PostgreSqlPlatformReadRepository : IPlatformReadRepository
     {
         await using NpgsqlConnection connection = await _dataSource.OpenConnectionAsync(cancellationToken);
 
-        var definition =
+        ManagedDataDefinitionReadModel? definition =
             await connection.QuerySingleOrDefaultAsync<ManagedDataDefinitionReadModel>(
                 new CommandDefinition(
                     PlatformReadSql.ManagedDataDefinitionById,
                     new {Id = id},
                     cancellationToken: cancellationToken));
 
-        if (definition is null)
-        {
-            return null;
-        }
+        if (definition is null) return null;
 
-        var collectionPoint =
+        CollectionPointReadModel? collectionPoint =
             await connection.QuerySingleOrDefaultAsync<CollectionPointReadModel>(
                 new CommandDefinition(
                     PlatformReadSql.CollectionPointByCode,
@@ -110,7 +107,7 @@ public sealed class PostgreSqlPlatformReadRepository : IPlatformReadRepository
     {
         await using NpgsqlConnection connection = await _dataSource.OpenConnectionAsync(cancellationToken);
 
-        var summary = await connection.QuerySingleAsync<DashboardSummaryModel>(new CommandDefinition(
+        DashboardSummaryModel summary = await connection.QuerySingleAsync<DashboardSummaryModel>(new CommandDefinition(
             PlatformReadSql.DashboardSummary,
             cancellationToken: cancellationToken));
 

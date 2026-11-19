@@ -15,7 +15,7 @@ public sealed class EnergyDashboardTeamResolutionTests
     /// </summary>
     private static TimeProvider FixedClock(int hour = 12)
     {
-        var local = new DateTimeOffset(2026, 11, 3, hour, 0, 0, TimeSpan.FromHours(8));
+        DateTimeOffset local = new(2026, 11, 3, hour, 0, 0, TimeSpan.FromHours(8));
         return new FixedTimeProvider(local);
     }
 
@@ -40,7 +40,7 @@ public sealed class EnergyDashboardTeamResolutionTests
     {
         IShiftSchedulingService service = ServiceWithRows(
             Row("TEAM-甲", new DateOnly(2026, 11, 3), new TimeOnly(8, 0), new TimeOnly(16, 0)));
-        var energy = new DeterministicEnergyMetricService(service, FixedClock(12));
+        DeterministicEnergyMetricService energy = new(service, FixedClock(12));
 
         EnergyDashboardDto dashboard = await energy.GetDashboardAsync();
 
@@ -52,7 +52,7 @@ public sealed class EnergyDashboardTeamResolutionTests
     public async Task No_Schedule_Should_Not_Fabricate_OnDuty_Team()
     {
         IShiftSchedulingService service = ServiceWithRows();
-        var energy = new DeterministicEnergyMetricService(service, FixedClock(12));
+        DeterministicEnergyMetricService energy = new(service, FixedClock(12));
 
         EnergyDashboardDto dashboard = await energy.GetDashboardAsync();
 
@@ -69,11 +69,11 @@ public sealed class EnergyDashboardTeamResolutionTests
         DateOnly today = new(2026, 11, 3);
 
         IShiftSchedulingService service = ServiceWithRows(
-            Row("TEAM-甲", today, new TimeOnly(8, 0), new TimeOnly(16, 0), restDay: true),
-            Row("TEAM-乙", today, new TimeOnly(8, 0), new TimeOnly(16, 0), restDay: true),
-            Row("TEAM-丙", today, new TimeOnly(8, 0), new TimeOnly(16, 0), restDay: true),
-            Row("TEAM-丁", today, new TimeOnly(8, 0), new TimeOnly(16, 0), restDay: true));
-        var energy = new DeterministicEnergyMetricService(service, FixedClock(12));
+            Row("TEAM-甲", today, new TimeOnly(8, 0), new TimeOnly(16, 0), true),
+            Row("TEAM-乙", today, new TimeOnly(8, 0), new TimeOnly(16, 0), true),
+            Row("TEAM-丙", today, new TimeOnly(8, 0), new TimeOnly(16, 0), true),
+            Row("TEAM-丁", today, new TimeOnly(8, 0), new TimeOnly(16, 0), true));
+        DeterministicEnergyMetricService energy = new(service, FixedClock(12));
 
         EnergyDashboardDto dashboard = await energy.GetDashboardAsync();
 
@@ -89,7 +89,7 @@ public sealed class EnergyDashboardTeamResolutionTests
         IShiftSchedulingService service = ServiceWithRows(
             Row("TEAM-甲", today, new TimeOnly(8, 0), new TimeOnly(12, 0)),
             Row("TEAM-乙", today, new TimeOnly(16, 0), new TimeOnly(23, 59)));
-        var energy = new DeterministicEnergyMetricService(service, FixedClock(12));
+        DeterministicEnergyMetricService energy = new(service, FixedClock(12));
 
         EnergyDashboardDto dashboard = await energy.GetDashboardAsync();
 
@@ -101,7 +101,7 @@ public sealed class EnergyDashboardTeamResolutionTests
     {
         IShiftSchedulingService service = ServiceWithRows(
             Row("TEAM-甲", new DateOnly(2026, 11, 3), new TimeOnly(8, 0), new TimeOnly(16, 0)));
-        var energy = new DeterministicEnergyMetricService(service, FixedClock(12));
+        DeterministicEnergyMetricService energy = new(service, FixedClock(12));
 
         EnergyDashboardDto dashboard = await energy.GetDashboardAsync(teamCode: "TEAM-乙");
 
@@ -114,7 +114,10 @@ public sealed class EnergyDashboardTeamResolutionTests
     /// </summary>
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
     {
-        public override DateTimeOffset GetUtcNow() => now.ToUniversalTime();
+        public override DateTimeOffset GetUtcNow()
+        {
+            return now.ToUniversalTime();
+        }
     }
 
     /// <summary>
@@ -125,23 +128,36 @@ public sealed class EnergyDashboardTeamResolutionTests
     {
         public Task<ShiftScheduleImportResultDto> ImportAsync(
             string fileName, Stream stream, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException("测试桩不支持导入。");
+        {
+            throw new NotSupportedException("测试桩不支持导入。");
+        }
 
-        public Task<bool> ClearAsync() => throw new NotSupportedException("测试桩不支持清空。");
+        public Task<bool> ClearAsync()
+        {
+            throw new NotSupportedException("测试桩不支持清空。");
+        }
 
         public Task<ShiftScheduleStatusDto> GetStatusAsync(CancellationToken cancellationToken = default)
-            => throw new NotSupportedException("测试桩不支持状态查询。");
+        {
+            throw new NotSupportedException("测试桩不支持状态查询。");
+        }
 
         public Task<IReadOnlyCollection<DailyShiftScheduleDto>> GetCalendarAsync(
             DateOnly from, DateOnly to, string? teamCode = null, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException("测试桩不支持日历查询。");
+        {
+            throw new NotSupportedException("测试桩不支持日历查询。");
+        }
 
         public Task<TeamShiftScheduleDto> GetTeamScheduleAsync(
             string teamCode, DateOnly from, DateOnly to, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException("测试桩不支持班组查询。");
+        {
+            throw new NotSupportedException("测试桩不支持班组查询。");
+        }
 
         public Task<IReadOnlyCollection<ShiftScheduleRowDto>> GetAllRowsAsync(
             CancellationToken cancellationToken = default)
-            => Task.FromResult(rows);
+        {
+            return Task.FromResult(rows);
+        }
     }
 }

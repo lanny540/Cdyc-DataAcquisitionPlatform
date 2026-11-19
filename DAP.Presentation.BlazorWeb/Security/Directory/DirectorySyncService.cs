@@ -66,10 +66,7 @@ public sealed class DirectorySyncService(
         LdapOptions ldap = _options.Ldap;
         DateTimeOffset startedAt = timeProvider.GetUtcNow();
 
-        if (!ldap.Enabled)
-        {
-            return new DirectorySyncRunDto(false, "目录认证未启用，未执行同步。", 0, 0, 0, 0, 0);
-        }
+        if (!ldap.Enabled) return new DirectorySyncRunDto(false, "目录认证未启用，未执行同步。", 0, 0, 0, 0, 0);
 
         // 跨实例互斥：定时任务与手工触发都可能同时发生（两台实例同一分钟各跑一次，
         // 或两名管理员同时点「立即同步」）。不互斥的后果是唯一索引冲突、审计记录翻倍。
@@ -162,20 +159,18 @@ public sealed class DirectorySyncService(
             .FirstOrDefaultAsync(role => role.Code == ldap.DefaultRoleCode, cancellationToken);
 
         if (defaultRole is null)
-        {
             logger.LogWarning(
                 "目录同步：默认角色 {RoleCode} 不存在，新建的账号将没有任何角色。",
                 ldap.DefaultRoleCode);
-        }
 
         IssueCollector issues = new();
         HashSet<string> seenExternalIds = new(StringComparer.Ordinal);
 
-        var created = 0;
-        var updated = 0;
-        var disabled = 0;
-        var unchanged = 0;
-        var keptManualDisable = 0;
+        int created = 0;
+        int updated = 0;
+        int disabled = 0;
+        int unchanged = 0;
+        int keptManualDisable = 0;
 
         foreach (LdapDirectoryUser record in records)
         {
@@ -186,24 +181,22 @@ public sealed class DirectorySyncService(
             if (!string.IsNullOrWhiteSpace(record.DepartmentExternalCode))
             {
                 if (departmentByCode.TryGetValue(record.DepartmentExternalCode, out Guid departmentId))
-                {
                     mappedDepartmentId = departmentId;
-                }
                 else
-                {
                     // 不自动建部门：目录里的脏数据会让组织树膨胀，且新部门没有任何域授权，
                     // 建出来只是把「账号看不到数据」从显式问题变成隐式问题。
                     issues.Add(DirectorySyncIssue.DepartmentUnmatched, record.DepartmentExternalCode, record.UserName);
-                }
             }
 
             if (userByExternalId.TryGetValue(record.ExternalId, out AppUser? user))
             {
                 ExternalIdentity? identity = user.ExternalIdentities
                     .FirstOrDefault(item => item.Provider == LdapProvider
-                                            && string.Equals(item.ExternalId, record.ExternalId, StringComparison.Ordinal));
+                                            && string.Equals(item.ExternalId, record.ExternalId,
+                                                StringComparison.Ordinal));
 
-                DirectorySyncDecision decision = DirectorySyncPlanner.Decide(record, Snapshot(user), mappedDepartmentId);
+                DirectorySyncDecision decision =
+                    DirectorySyncPlanner.Decide(record, Snapshot(user), mappedDepartmentId);
 
                 if (!decision.RequiresWrite)
                 {
@@ -218,10 +211,7 @@ public sealed class DirectorySyncService(
                             user.UserName);
                     }
 
-                    if (identity is not null)
-                    {
-                        identity.LastSyncedAt = now;
-                    }
+                    if (identity is not null) identity.LastSyncedAt = now;
 
                     continue;
                 }
@@ -258,7 +248,7 @@ public sealed class DirectorySyncService(
                 continue;
             }
 
-            var derivedUserName = DirectoryUserFactory.DeriveUserName(record);
+            string derivedUserName = DirectoryUserFactory.DeriveUserName(record);
 
             if (userByUserName.TryGetValue(derivedUserName, out AppUser? occupied)
                 && !HasIdentity(occupied, LdapProvider, record.ExternalId))
@@ -276,9 +266,7 @@ public sealed class DirectorySyncService(
             db.ExternalIdentities.Add(createdIdentity);
 
             if (defaultRole is {IsEnabled: true})
-            {
                 db.UserRoles.Add(new UserRole {UserId = createdUser.Id, RoleId = defaultRole.Id});
-            }
 
             userByExternalId[record.ExternalId] = createdUser;
             userByUserName[createdUser.UserName] = createdUser;
@@ -287,19 +275,13 @@ public sealed class DirectorySyncService(
 
         foreach (AppUser user in users)
         {
-            if (user.IsEnabled is false)
-            {
-                continue;
-            }
+            if (user.IsEnabled is false) continue;
 
             List<ExternalIdentity> identities = user.ExternalIdentities
                 .Where(item => item.Provider == LdapProvider)
                 .ToList();
 
-            if (identities.Count == 0 || identities.Any(item => seenExternalIds.Contains(item.ExternalId)))
-            {
-                continue;
-            }
+            if (identities.Count == 0 || identities.Any(item => seenExternalIds.Contains(item.ExternalId))) continue;
 
             if (IsSuperAdmin(user))
             {
@@ -357,9 +339,9 @@ public sealed class DirectorySyncService(
                 keptManualDisable);
         }
 
-        var elapsed = timeProvider.GetUtcNow() - startedAt;
+        TimeSpan elapsed = timeProvider.GetUtcNow() - startedAt;
 
-        var summary = keptManualDisable > 0
+        string summary = keptManualDisable > 0
             ? $"同步完成：新建 {created}，更新 {updated}，停用 {disabled}，无变化 {unchanged}，"
               + $"手工停用保持 {keptManualDisable}，待处理 {issueCount}。"
             : $"同步完成：新建 {created}，更新 {updated}，停用 {disabled}，无变化 {unchanged}，待处理 {issueCount}。";
@@ -441,15 +423,9 @@ public sealed class DirectorySyncService(
         DirectorySyncIssue? issue = await db.DirectorySyncIssues
             .FirstOrDefaultAsync(item => item.Id == issueId, cancellationToken);
 
-        if (issue is null)
-        {
-            return new AuthOperationResultDto(false, "待处理项不存在或已处理。");
-        }
+        if (issue is null) return new AuthOperationResultDto(false, "待处理项不存在或已处理。");
 
-        if (issue.ResolvedAt is not null)
-        {
-            return new AuthOperationResultDto(true, null);
-        }
+        if (issue.ResolvedAt is not null) return new AuthOperationResultDto(true, null);
 
         DateTimeOffset now = timeProvider.GetUtcNow();
         issue.ResolvedAt = now;
@@ -483,10 +459,7 @@ public sealed class DirectorySyncService(
 
     private static string? ReadSummary(string? detail)
     {
-        if (string.IsNullOrWhiteSpace(detail))
-        {
-            return null;
-        }
+        if (string.IsNullOrWhiteSpace(detail)) return null;
 
         try
         {
@@ -533,15 +506,9 @@ public sealed class DirectorySyncService(
         Dictionary<string, AppUser> index = new(StringComparer.Ordinal);
 
         foreach (AppUser user in users)
-        {
-            foreach (ExternalIdentity identity in user.ExternalIdentities)
-            {
-                if (string.Equals(identity.Provider, LdapProvider, StringComparison.Ordinal))
-                {
-                    index[identity.ExternalId] = user;
-                }
-            }
-        }
+        foreach (ExternalIdentity identity in user.ExternalIdentities)
+            if (string.Equals(identity.Provider, LdapProvider, StringComparison.Ordinal))
+                index[identity.ExternalId] = user;
 
         return index;
     }
@@ -552,22 +519,16 @@ public sealed class DirectorySyncService(
         Dictionary<string, Guid> index = new(StringComparer.OrdinalIgnoreCase);
 
         foreach (Department department in departments)
-        {
             if (!string.IsNullOrWhiteSpace(department.ExternalCode))
-            {
                 index[department.ExternalCode.Trim()] = department.Id;
-            }
-        }
 
         return index;
     }
 
-    private async Task<int> PersistIssuesAsync(IssueCollector collector, DateTimeOffset now, CancellationToken cancellationToken)
+    private async Task<int> PersistIssuesAsync(IssueCollector collector, DateTimeOffset now,
+        CancellationToken cancellationToken)
     {
-        if (collector.Items.Count == 0)
-        {
-            return 0;
-        }
+        if (collector.Items.Count == 0) return 0;
 
         List<DirectorySyncIssue> pending = await db.DirectorySyncIssues
             .Where(issue => issue.Provider == LdapProvider && issue.ResolvedAt == null)
@@ -613,7 +574,7 @@ public sealed class DirectorySyncService(
 
         public void Add(string issueType, string externalCode, string? sampleUserName)
         {
-            var key = $"{issueType}|{externalCode}";
+            string key = $"{issueType}|{externalCode}";
 
             if (Items.TryGetValue(key, out CollectedIssue? existing))
             {

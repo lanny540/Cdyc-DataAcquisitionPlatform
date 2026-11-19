@@ -34,7 +34,7 @@
                           Class="platform-filter-field"/>
             <MudSelect T="string" Label="对象类型" @bind-Value="_targetType" Clearable="true"
                        Class="platform-filter-select">
-                @foreach (var type in _targetTypes)
+                @foreach (string type in _targetTypes)
                 {
                     <MudSelectItem T="string" Value="@type">@type</MudSelectItem>
                 }
@@ -90,7 +90,8 @@
                         </MudStack>
                     </MudTd>
                     <MudTd DataLabel="动作">@context.ActionCode</MudTd>
-                    <MudTd DataLabel="对象">@($"{context.TargetType ?? "—"} / {context.TargetName ?? context.TargetId ?? "—"}")</MudTd>
+                    <MudTd
+                        DataLabel="对象">@($"{context.TargetType ?? "—"} / {context.TargetName ?? context.TargetId ?? "—"}")</MudTd>
                     <MudTd DataLabel="结果">
                         <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
                                  Color="@(context.Result == "success" ? Color.Success : Color.Error)">

@@ -39,7 +39,7 @@
             {
                 @foreach (NavigationDomainDto domain in _navigation.Domains)
                 {
-                    var target = domain;
+                    NavigationDomainDto target = domain;
                     <button type="button"
                             class="@TopNavClass(target)"
                             aria-current="@(IsActiveDomain(target) ? "page" : null)"
@@ -132,8 +132,7 @@
     /// </summary>
     private string _activeDomainCode = string.Empty;
 
-    [CascadingParameter]
-    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
 
     private NavigationDomainDto? ActiveDomain => _navigation?.Domains
         .FirstOrDefault(domain => string.Equals(domain.Code, _activeDomainCode, StringComparison.Ordinal));
@@ -198,7 +197,7 @@
     /// </summary>
     private void OnLocationChanged(object? sender, LocationChangedEventArgs args)
     {
-        var domain = ResolveDomain(Nav.ToBaseRelativePath(args.Location));
+        NavigationDomainDto? domain = ResolveDomain(Nav.ToBaseRelativePath(args.Location));
 
         if (domain is null || string.Equals(domain.Code, _activeDomainCode, StringComparison.Ordinal))
         {
@@ -216,7 +215,7 @@
     /// </summary>
     private void SelectDomain(NavigationDomainDto domain)
     {
-        var domainChanged = !string.Equals(domain.Code, _activeDomainCode, StringComparison.Ordinal);
+        bool domainChanged = !string.Equals(domain.Code, _activeDomainCode, StringComparison.Ordinal);
         _activeDomainCode = domain.Code;
 
         if (!_drawerOpen)
@@ -246,18 +245,18 @@
             return null;
         }
 
-        var path = Normalize(relativePath);
+        string path = Normalize(relativePath);
 
         NavigationDomainDto? matched = null;
-        var matchedLength = -1;
+        int matchedLength = -1;
 
         foreach (NavigationDomainDto domain in _navigation.Domains)
         {
             foreach (NavigationPageDto page in domain.Groups.SelectMany(group => group.Pages))
             {
-                var href = Normalize(page.Route);
+                string href = Normalize(page.Route);
 
-                var isMatch = href.Length == 0
+                bool isMatch = href.Length == 0
                     ? path.Length == 0
                     : path.Equals(href, StringComparison.OrdinalIgnoreCase)
                       || path.StartsWith(href + "/", StringComparison.OrdinalIgnoreCase);
@@ -290,9 +289,9 @@
             return string.Empty;
         }
 
-        var trimmed = path.Trim();
+        string trimmed = path.Trim();
 
-        var queryIndex = trimmed.IndexOfAny(['?', '#']);
+        int queryIndex = trimmed.IndexOfAny(['?', '#']);
         if (queryIndex >= 0)
         {
             trimmed = trimmed[..queryIndex];
@@ -319,7 +318,7 @@
     /// </summary>
     private static string ResolveDisplayName(ClaimsPrincipal user)
     {
-        var displayName = user.FindFirst(AuthorizationCatalog.PlatformClaimTypes.DisplayName)?.Value;
+        string? displayName = user.FindFirst(AuthorizationCatalog.PlatformClaimTypes.DisplayName)?.Value;
 
         return string.IsNullOrWhiteSpace(displayName)
             ? user.Identity?.Name ?? "未命名账号"

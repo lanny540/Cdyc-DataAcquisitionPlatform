@@ -113,7 +113,7 @@
         }
         else
         {
-            @foreach (var item in _statuses)
+            @foreach (ServerConnectionStatusDto item in _statuses)
             {
                 <MudItem xs="12" lg="6">
                     <MudPaper Class="@($"platform-panel server-status-card {GetStatusCardClass(item)} pa-4")"

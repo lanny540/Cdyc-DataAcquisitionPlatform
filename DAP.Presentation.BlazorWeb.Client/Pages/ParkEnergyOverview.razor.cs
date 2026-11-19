@@ -33,8 +33,7 @@ public partial class ParkEnergyOverview
         ["steam"] = Icons.Material.Filled.Cloud
     };
 
-    [Inject]
-    private IPlatformApiClient PlatformApiClient { get; set; } = null!;
+    [Inject] private IPlatformApiClient PlatformApiClient { get; set; } = null!;
 
     private ParkEnergyOverviewDto? _overview;
     private string _period = PeriodMonth;
@@ -61,10 +60,7 @@ public partial class ParkEnergyOverview
     {
         get
         {
-            if (_overview is null || _overview.LoadPoints.Count == 0)
-            {
-                return "暂无负荷数据";
-            }
+            if (_overview is null || _overview.LoadPoints.Count == 0) return "暂无负荷数据";
 
             ParkEnergyLoadPointDto peak = _overview.LoadPoints.MaxBy(point => point.LoadKw)!;
 
@@ -103,10 +99,7 @@ public partial class ParkEnergyOverview
 
             // 服务端给的是实测数据时，复位本地演示标记，
             // 否则页头会一直挂着「示例数据」标签，而数其实是真的。
-            if (_overview.DataStatus != ParkEnergyDataStatus.Sample)
-            {
-                _demoMode = false;
-            }
+            if (_overview.DataStatus != ParkEnergyDataStatus.Sample) _demoMode = false;
 
             if (_overview.DataStatus == ParkEnergyDataStatus.Empty && _overview.Warnings.Count > 0)
             {
@@ -128,10 +121,7 @@ public partial class ParkEnergyOverview
 
     private async Task OnPeriodChangedAsync(string period)
     {
-        if (string.Equals(_period, period, StringComparison.Ordinal))
-        {
-            return;
-        }
+        if (string.Equals(_period, period, StringComparison.Ordinal)) return;
 
         _period = period;
         await LoadAsync();
@@ -143,22 +133,30 @@ public partial class ParkEnergyOverview
         await LoadAsync();
     }
 
-    private static string KpiIcon(string key) =>
-        KpiIcons.TryGetValue(key, out var icon) ? icon : Icons.Material.Filled.Insights;
-
-    private static string KpiDeltaClass(bool? isImprovement) => isImprovement switch
+    private static string KpiIcon(string key)
     {
-        true => "park-kpi-delta--good",
-        false => "park-kpi-delta--bad",
-        // 无可比基准时不能用绿色或红色：那会让「没数据」看起来像「表现良好」。
-        null => "park-kpi-delta--flat"
-    };
+        return KpiIcons.TryGetValue(key, out string? icon) ? icon : Icons.Material.Filled.Insights;
+    }
 
-    private static string FormatDelta(decimal? delta) => delta switch
+    private static string KpiDeltaClass(bool? isImprovement)
     {
-        null => "—",
-        > 0 => $"↑ {delta:0.#}%",
-        < 0 => $"↓ {Math.Abs(delta.Value):0.#}%",
-        _ => "→ 0%"
-    };
+        return isImprovement switch
+        {
+            true => "park-kpi-delta--good",
+            false => "park-kpi-delta--bad",
+            // 无可比基准时不能用绿色或红色：那会让「没数据」看起来像「表现良好」。
+            null => "park-kpi-delta--flat"
+        };
+    }
+
+    private static string FormatDelta(decimal? delta)
+    {
+        return delta switch
+        {
+            null => "—",
+            > 0 => $"↑ {delta:0.#}%",
+            < 0 => $"↓ {Math.Abs(delta.Value):0.#}%",
+            _ => "→ 0%"
+        };
+    }
 }

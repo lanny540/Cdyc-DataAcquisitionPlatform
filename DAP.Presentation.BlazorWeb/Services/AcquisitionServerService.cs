@@ -99,12 +99,9 @@ public sealed class AcquisitionServerService(
             .AsNoTracking()
             .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
 
-        if (server is null)
-        {
-            return null;
-        }
+        if (server is null) return null;
 
-        var nodeCount = await dbContext.ManagedDataDefinitions
+        int nodeCount = await dbContext.ManagedDataDefinitions
             .AsNoTracking()
             .CountAsync(item => item.ServerConnectionId == id, cancellationToken);
 
@@ -116,13 +113,13 @@ public sealed class AcquisitionServerService(
         CancellationToken cancellationToken = default)
     {
         // JSON 请求里缺失的字符串字段是 null，直接 Trim 会在校验前抛 NullReferenceException。
-        var serverType = (request.ServerType ?? string.Empty).Trim();
-        var description = (request.Description ?? string.Empty).Trim();
+        string serverType = (request.ServerType ?? string.Empty).Trim();
+        string description = (request.Description ?? string.Empty).Trim();
         AcquisitionServerTypeDescriptor descriptor =
             AcquisitionServerCatalog.Find(serverType) ??
             throw new InvalidOperationException($"不支持的采集服务器类型：{serverType}。");
 
-        var address = AcquisitionServerCatalog.NormalizeAddress(request.Address);
+        string address = AcquisitionServerCatalog.NormalizeAddress(request.Address);
         Dictionary<string, string> configuration =
             AcquisitionServerCatalog.MergeWithDefaults(serverType, request.Configuration);
 
@@ -136,41 +133,29 @@ public sealed class AcquisitionServerService(
 
         // 密钥字段回显为掩码时表示"保持原值"，避免因掩码覆盖真实密钥。
         if (existing is not null)
-        {
-            foreach (var secretKey in configuration.Keys.Where(key => IsSecretKey(serverType, key)).ToArray())
-            {
+            foreach (string secretKey in configuration.Keys.Where(key => IsSecretKey(serverType, key)).ToArray())
                 if (string.Equals(configuration[secretKey], SecretMask, StringComparison.Ordinal) &&
                     existing.ConfigurationJson.Contains(secretKey))
                 {
-                    var storedValue = ParseConfiguration(existing.ConfigurationJson)
+                    string? storedValue = ParseConfiguration(existing.ConfigurationJson)
                         .GetValueOrDefault(secretKey);
-                    if (!string.IsNullOrWhiteSpace(storedValue))
-                    {
-                        configuration[secretKey] = storedValue;
-                    }
+                    if (!string.IsNullOrWhiteSpace(storedValue)) configuration[secretKey] = storedValue;
                 }
-            }
-        }
 
         IReadOnlyCollection<string> errors =
             AcquisitionServerCatalog.ValidateServer(serverType, address, configuration);
-        if (errors.Count > 0)
-        {
-            throw new InvalidOperationException(string.Join(" ", errors));
-        }
+        if (errors.Count > 0) throw new InvalidOperationException(string.Join(" ", errors));
 
         // 校验用明文（上游要求真实密码），落库前统一加密。
         // 掩码分支取回的已是密文，Protect 对已加密值幂等，不会套两层。
-        foreach (var secretKey in configuration.Keys.Where(key => IsSecretKey(serverType, key)).ToArray())
-        {
+        foreach (string secretKey in configuration.Keys.Where(key => IsSecretKey(serverType, key)).ToArray())
             configuration[secretKey] = secretProtector.Protect(configuration[secretKey]);
-        }
 
         DateTimeOffset now = DateTimeOffset.UtcNow;
-        var displayName = string.IsNullOrWhiteSpace(request.DisplayName)
+        string displayName = string.IsNullOrWhiteSpace(request.DisplayName)
             ? $"{descriptor.DisplayName} {address}"
             : request.DisplayName.Trim();
-        var configurationJson = SerializeConfiguration(configuration);
+        string configurationJson = SerializeConfiguration(configuration);
 
         if (existing is null)
         {
@@ -207,7 +192,7 @@ public sealed class AcquisitionServerService(
         // 地址或类型变化后，同步刷新引用该服务器的节点连接地址。
         await SyncRelatedNodesAsync(existing, cancellationToken);
 
-        var nodeCount = await dbContext.ManagedDataDefinitions
+        int nodeCount = await dbContext.ManagedDataDefinitions
             .AsNoTracking()
             .CountAsync(item => item.ServerConnectionId == existing.Id, cancellationToken);
 
@@ -221,19 +206,13 @@ public sealed class AcquisitionServerService(
         ServerConnection? server = await dbContext.ServerConnections
             .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
 
-        if (server is null)
-        {
-            return (false, "采集服务器不存在或已被删除。");
-        }
+        if (server is null) return (false, "采集服务器不存在或已被删除。");
 
-        var nodeCount = await dbContext.ManagedDataDefinitions
+        int nodeCount = await dbContext.ManagedDataDefinitions
             .AsNoTracking()
             .CountAsync(item => item.ServerConnectionId == id, cancellationToken);
 
-        if (nodeCount > 0)
-        {
-            return (false, $"该服务器仍被 {nodeCount} 个采集节点引用，请先调整这些节点的服务器绑定。");
-        }
+        if (nodeCount > 0) return (false, $"该服务器仍被 {nodeCount} 个采集节点引用，请先调整这些节点的服务器绑定。");
 
         dbContext.ServerConnections.Remove(server);
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -247,8 +226,8 @@ public sealed class AcquisitionServerService(
         IReadOnlyDictionary<string, string>? nodeConfiguration = null,
         CancellationToken cancellationToken = default)
     {
-        var serverType = (request.ServerType ?? string.Empty).Trim();
-        var address = AcquisitionServerCatalog.NormalizeAddress(request.Address);
+        string serverType = (request.ServerType ?? string.Empty).Trim();
+        string address = AcquisitionServerCatalog.NormalizeAddress(request.Address);
         Dictionary<string, string> configuration =
             AcquisitionServerCatalog.MergeWithDefaults(serverType, request.Configuration);
 
@@ -280,10 +259,7 @@ public sealed class AcquisitionServerService(
                                                                   .OrdinalIgnoreCase))
                 {
                     // 掩码占位表示「保持原值」，不能覆盖库中真实密钥。
-                    if (string.Equals(item.Value, SecretMask, StringComparison.Ordinal))
-                    {
-                        continue;
-                    }
+                    if (string.Equals(item.Value, SecretMask, StringComparison.Ordinal)) continue;
 
                     configuration[item.Key] = item.Value;
                 }
@@ -291,18 +267,13 @@ public sealed class AcquisitionServerService(
         }
 
         // 探针要拿真实密码去连上游，密文必须先还原；请求里新填的值本就是明文，Unprotect 原样返回。
-        foreach (var secretKey in configuration.Keys.Where(key => IsSecretKey(serverType, key)).ToArray())
-        {
+        foreach (string secretKey in configuration.Keys.Where(key => IsSecretKey(serverType, key)).ToArray())
             configuration[secretKey] = secretProtector.Unprotect(configuration[secretKey]);
-        }
 
         AcquisitionServerProbeResultDto result = await probeService.ProbeAsync(
             serverType, address, configuration, identifier, requestPath, nodeConfiguration, cancellationToken);
 
-        if (request.Id.HasValue)
-        {
-            await PersistProbeResultAsync(request.Id.Value, result, cancellationToken);
-        }
+        if (request.Id.HasValue) await PersistProbeResultAsync(request.Id.Value, result, cancellationToken);
 
         return result;
     }
@@ -317,10 +288,7 @@ public sealed class AcquisitionServerService(
             ServerConnection? server = await dbContext.ServerConnections
                 .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
 
-            if (server is null)
-            {
-                return;
-            }
+            if (server is null) return;
 
             server.LastProbeStatus = result.Success ? "成功" : "失败";
             server.LastProbeMessage = Truncate(result.StatusMessage);
@@ -341,15 +309,9 @@ public sealed class AcquisitionServerService(
                            item.ConnectionAddress != server.Address)
             .ToListAsync(cancellationToken);
 
-        if (nodes.Count == 0)
-        {
-            return;
-        }
+        if (nodes.Count == 0) return;
 
-        foreach (ManagedDataDefinition node in nodes)
-        {
-            node.ConnectionAddress = server.Address;
-        }
+        foreach (ManagedDataDefinition node in nodes) node.ConnectionAddress = server.Address;
 
         await dbContext.SaveChangesAsync(cancellationToken);
     }
@@ -390,9 +352,9 @@ public sealed class AcquisitionServerService(
                 item.Key, item.Value, false, !string.IsNullOrWhiteSpace(item.Value))).ToArray()
             : descriptor.ServerFields.Select(field =>
             {
-                configuration.TryGetValue(field.Key, out var value);
-                var isSecret = field.FieldType == AcquisitionServerFieldTypes.Password;
-                var hasValue = !string.IsNullOrWhiteSpace(value);
+                configuration.TryGetValue(field.Key, out string? value);
+                bool isSecret = field.FieldType == AcquisitionServerFieldTypes.Password;
+                bool hasValue = !string.IsNullOrWhiteSpace(value);
 
                 return new AcquisitionServerConfigValueDto(
                     field.Key,
@@ -429,21 +391,18 @@ public sealed class AcquisitionServerService(
         AcquisitionServerTypeDescriptor descriptor,
         string address)
     {
-        if (!string.IsNullOrWhiteSpace(requestedCode))
-        {
-            return requestedCode.Trim().ToUpperInvariant();
-        }
+        if (!string.IsNullOrWhiteSpace(requestedCode)) return requestedCode.Trim().ToUpperInvariant();
 
-        var suffix = new string(address
+        string suffix = new(address
             .Replace("://", string.Empty, StringComparison.Ordinal)
             .Where(char.IsLetterOrDigit)
             .ToArray());
 
-        var prefix = descriptor.ServerType
+        string prefix = descriptor.ServerType
             .Replace(" API", string.Empty, StringComparison.Ordinal)
             .Replace(" ", string.Empty, StringComparison.Ordinal)
             .ToUpperInvariant();
-        var code = $"SRV_{prefix}{(string.IsNullOrEmpty(suffix) ? "SERVER" : suffix)}";
+        string code = $"SRV_{prefix}{(string.IsNullOrEmpty(suffix) ? "SERVER" : suffix)}";
 
         // 编码有 64 字符上限与全大写约束。
         return code.Length <= 64 ? code : code[..64];
@@ -460,14 +419,11 @@ public sealed class AcquisitionServerService(
 
     private static Dictionary<string, string> ParseConfiguration(string json)
     {
-        if (string.IsNullOrWhiteSpace(json))
-        {
-            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        }
+        if (string.IsNullOrWhiteSpace(json)) return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         try
         {
-            var parsed =
+            Dictionary<string, JsonElement>? parsed =
                 JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
 
             return parsed?.ToDictionary(

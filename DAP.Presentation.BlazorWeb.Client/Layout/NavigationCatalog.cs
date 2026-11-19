@@ -245,7 +245,7 @@ public static class NavigationCatalog
                     new NavItem("用户与角色", "/user-management", Icons.Material.Filled.ManageAccounts,
                         AccentInfo, "user-management", AuthorizationCatalog.PlatformDomain,
                         AuthorizationCatalog.ConfigureAccessLevel,
-                        AuthorizationCatalog.UserManagePermission, IsShared: true),
+                        AuthorizationCatalog.UserManagePermission, true),
                     new NavItem("域与页面配置", "/domain-config", Icons.Material.Filled.AccountTree, AccentPrimary,
                         "domain-config", AuthorizationCatalog.PlatformDomain,
                         AuthorizationCatalog.ConfigureAccessLevel),
@@ -306,24 +306,21 @@ public static class NavigationCatalog
     /// <returns>命中的共享页条目；未命中返回 null。</returns>
     public static NavItem? ResolveSharedPage(string? relativePath)
     {
-        var path = Normalize(relativePath);
+        string path = Normalize(relativePath);
 
         NavItem? matched = null;
-        var matchedLength = -1;
+        int matchedLength = -1;
 
         foreach (NavItem item in SharedPages)
         {
-            var href = Normalize(item.Href);
+            string href = Normalize(item.Href);
 
-            var isMatch = href.Length == 0
+            bool isMatch = href.Length == 0
                 ? path.Length == 0
                 : path.Equals(href, StringComparison.OrdinalIgnoreCase)
                   || path.StartsWith(href + "/", StringComparison.OrdinalIgnoreCase);
 
-            if (!isMatch || href.Length <= matchedLength)
-            {
-                continue;
-            }
+            if (!isMatch || href.Length <= matchedLength) continue;
 
             matched = item;
             matchedLength = href.Length;
@@ -340,18 +337,11 @@ public static class NavigationCatalog
 
         foreach (NavSection section in AllSections)
         {
-            foreach (NavItem item in section.QuickLinks)
-            {
-                pages.Add(new NavPageDescriptor(item, section, null));
-            }
+            foreach (NavItem item in section.QuickLinks) pages.Add(new NavPageDescriptor(item, section, null));
 
             foreach (NavGroup group in section.Groups)
-            {
-                foreach (NavItem item in group.Items)
-                {
-                    pages.Add(new NavPageDescriptor(item, section, group.Title));
-                }
-            }
+            foreach (NavItem item in group.Items)
+                pages.Add(new NavPageDescriptor(item, section, group.Title));
         }
 
         return pages.ToArray();
@@ -384,30 +374,25 @@ public static class NavigationCatalog
     /// <returns>所属模块。</returns>
     public static NavSection ResolveSection(string? relativePath)
     {
-        var path = Normalize(relativePath);
+        string path = Normalize(relativePath);
 
         NavSection? matched = null;
-        var matchedLength = -1;
+        int matchedLength = -1;
 
         foreach (NavSection section in AllSections)
+        foreach (NavItem item in section.AllItems)
         {
-            foreach (NavItem item in section.AllItems)
-            {
-                var href = Normalize(item.Href);
+            string href = Normalize(item.Href);
 
-                var isMatch = href.Length == 0
-                    ? path.Length == 0
-                    : path.Equals(href, StringComparison.OrdinalIgnoreCase)
-                      || path.StartsWith(href + "/", StringComparison.OrdinalIgnoreCase);
+            bool isMatch = href.Length == 0
+                ? path.Length == 0
+                : path.Equals(href, StringComparison.OrdinalIgnoreCase)
+                  || path.StartsWith(href + "/", StringComparison.OrdinalIgnoreCase);
 
-                if (!isMatch || href.Length <= matchedLength)
-                {
-                    continue;
-                }
+            if (!isMatch || href.Length <= matchedLength) continue;
 
-                matched = section;
-                matchedLength = href.Length;
-            }
+            matched = section;
+            matchedLength = href.Length;
         }
 
         return matched ?? DefaultSection;
@@ -429,18 +414,12 @@ public static class NavigationCatalog
     /// </summary>
     private static string Normalize(string? path)
     {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            return string.Empty;
-        }
+        if (string.IsNullOrWhiteSpace(path)) return string.Empty;
 
-        var trimmed = path.Trim();
+        string trimmed = path.Trim();
 
-        var queryIndex = trimmed.IndexOfAny(['?', '#']);
-        if (queryIndex >= 0)
-        {
-            trimmed = trimmed[..queryIndex];
-        }
+        int queryIndex = trimmed.IndexOfAny(['?', '#']);
+        if (queryIndex >= 0) trimmed = trimmed[..queryIndex];
 
         return trimmed.Trim('/');
     }

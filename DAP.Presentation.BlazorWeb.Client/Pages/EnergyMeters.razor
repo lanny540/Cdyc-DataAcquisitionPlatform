@@ -129,8 +129,9 @@
 
     <MudGrid Spacing="3">
         <MudItem xs="12" lg="6">
-            <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-secondary meter-config-card pa-4"
-                      Elevation="0">
+            <MudPaper
+                Class="platform-section-card platform-section-card--tinted platform-accent-secondary meter-config-card pa-4"
+                Elevation="0">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
                           Wrap="Wrap.Wrap" Spacing="2">
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
@@ -151,7 +152,7 @@
                 </MudStack>
 
                 <div class="meter-org-list">
-                    @foreach (var unit in OrderedOrgUnits)
+                    @foreach (EnergyOrgUnitDto unit in OrderedOrgUnits)
                     {
                         <div class="meter-org-row">
                             <span class="meter-org-indent" style="@IndentStyle(unit.Depth)"></span>
@@ -175,8 +176,9 @@
         </MudItem>
 
         <MudItem xs="12" lg="6">
-            <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-secondary meter-config-card pa-4"
-                      Elevation="0">
+            <MudPaper
+                Class="platform-section-card platform-section-card--tinted platform-accent-secondary meter-config-card pa-4"
+                Elevation="0">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                     <span class="platform-section-icon">
                         <MudIcon Icon="@Icons.Material.Filled.Scale" Size="Size.Small"/>
@@ -190,7 +192,7 @@
                 </MudStack>
 
                 <div class="meter-factor-list">
-                    @foreach (var row in _factorRows)
+                    @foreach (MediumFactorRow row in _factorRows)
                     {
                         <div class="meter-factor-row">
                             <span class="meter-factor-name">@row.Medium.Name</span>
@@ -237,28 +239,28 @@
                 <MudText Typo="Typo.subtitle2">分类标签</MudText>
                 <MudSelect T="Guid?" Label="介质" @bind-Value="_editorMediumId" Variant="Variant.Outlined"
                            Dense="true" HelperText="决定单位与折标煤系数">
-                    @foreach (var item in _dictionary?.Media ?? [])
+                    @foreach (EnergyMediumDto item in _dictionary?.Media ?? [])
                     {
                         <MudSelectItem T="Guid?" Value="@item.Id">@MediumLabel(item)</MudSelectItem>
                     }
                 </MudSelect>
                 <MudSelect T="Guid?" Label="组织" @bind-Value="_editorOrgUnitId" Variant="Variant.Outlined"
                            Dense="true" HelperText="园区 → 部门 → 工序，选能覆盖到的最细层级">
-                    @foreach (var unit in _dictionary?.OrgUnits ?? [])
+                    @foreach (EnergyOrgUnitDto unit in _dictionary?.OrgUnits ?? [])
                     {
                         <MudSelectItem T="Guid?" Value="@unit.Id">@OrgLabel(unit)</MudSelectItem>
                     }
                 </MudSelect>
                 <MudSelect T="Guid?" Label="用能用途" @bind-Value="_editorUsageTypeId" Variant="Variant.Outlined"
                            Dense="true" HelperText="回答「这笔能源为谁服务」，跟随所在区域">
-                    @foreach (var item in _dictionary?.UsageTypes ?? [])
+                    @foreach (EnergyDictionaryItemDto item in _dictionary?.UsageTypes ?? [])
                     {
                         <MudSelectItem T="Guid?" Value="@item.Id">@item.Name</MudSelectItem>
                     }
                 </MudSelect>
                 <MudSelect T="Guid?" Label="设备系统" @bind-Value="_editorSystemTypeId" Variant="Variant.Outlined"
                            Dense="true" HelperText="回答「什么设备在用」，照明归这里不归用途">
-                    @foreach (var item in _dictionary?.Systems ?? [])
+                    @foreach (EnergyDictionaryItemDto item in _dictionary?.Systems ?? [])
                     {
                         <MudSelectItem T="Guid?" Value="@item.Id">@item.Name</MudSelectItem>
                     }
@@ -274,7 +276,7 @@
                 <MudSelect T="Guid?" Label="上级计量点" @bind-Value="_editorParentId" Variant="Variant.Outlined"
                            Dense="true" Clearable="true"
                            HelperText="用于总分表平衡校验，差额会单列为损耗">
-                    @foreach (var meter in _meters.Where(item => item.Id != _editingId))
+                    @foreach (EnergyMeterDto meter in _meters.Where(item => item.Id != _editingId))
                     {
                         <MudSelectItem T="Guid?" Value="@meter.Id">@($"{meter.Code} · {meter.Name}")</MudSelectItem>
                     }

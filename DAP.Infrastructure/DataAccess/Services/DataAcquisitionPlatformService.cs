@@ -63,14 +63,14 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
     {
         ValidateCollectionPointRequest(request);
 
-        var normalizedCode = NormalizeCode(request.Code);
+        string normalizedCode = NormalizeCode(request.Code);
         CollectionPoint? existingPoint = request.Id.HasValue
             ? await _collectionPointRepository.GetByIdAsync(request.Id.Value, cancellationToken)
             : null;
 
         existingPoint ??= await _collectionPointRepository.GetByCodeAsync(normalizedCode, cancellationToken);
 
-        var source = NormalizeSource(request.Source);
+        string source = NormalizeSource(request.Source);
         DateTimeOffset updatedAt = DateTimeOffset.UtcNow;
 
         if (existingPoint is null)
@@ -111,10 +111,7 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
     public async Task<bool> DeleteCollectionPointAsync(Guid id, CancellationToken cancellationToken = default)
     {
         CollectionPoint? collectionPoint = await _collectionPointRepository.GetByIdAsync(id, cancellationToken);
-        if (collectionPoint is null)
-        {
-            return false;
-        }
+        if (collectionPoint is null) return false;
 
         _collectionPointRepository.Remove(collectionPoint);
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -142,38 +139,35 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
         ManagedDataDefinitionUpsertRequest request,
         CancellationToken cancellationToken = default)
     {
-        var normalizedCode = NormalizeCode(request.Code);
+        string normalizedCode = NormalizeCode(request.Code);
         ManagedDataDefinition? existingDefinition = request.Id.HasValue
             ? await _managedDataDefinitionRepository.GetByIdAsync(request.Id.Value, cancellationToken)
             : null;
 
         existingDefinition ??= await _managedDataDefinitionRepository.GetByCodeAsync(normalizedCode, cancellationToken);
-        var originalCode = existingDefinition?.Code;
+        string? originalCode = existingDefinition?.Code;
 
         // 请求来自 JSON：非必填字符串缺失时是 null 而不是空串，
         // 直接 .Trim() 会在校验之前抛 NullReferenceException（表现为 500 而不是中文校验提示）。
-        var name = request.Name?.Trim() ?? string.Empty;
-        var identifier = request.Identifier?.Trim() ?? string.Empty;
-        var department = request.Department?.Trim() ?? string.Empty;
-        var processCode = request.ProcessCode?.Trim() ?? string.Empty;
-        var dataCategory = request.DataCategory?.Trim() ?? string.Empty;
-        var unit = request.Unit?.Trim() ?? string.Empty;
-        var description = request.Description?.Trim() ?? string.Empty;
+        string name = request.Name?.Trim() ?? string.Empty;
+        string identifier = request.Identifier?.Trim() ?? string.Empty;
+        string department = request.Department?.Trim() ?? string.Empty;
+        string processCode = request.ProcessCode?.Trim() ?? string.Empty;
+        string dataCategory = request.DataCategory?.Trim() ?? string.Empty;
+        string unit = request.Unit?.Trim() ?? string.Empty;
+        string description = request.Description?.Trim() ?? string.Empty;
 
         // 选择采集服务器后，采集方式与连接地址由服务器决定，节点只需补充自身采集信息。
         ServerConnection? boundServer = await ResolveBoundServerAsync(
             request.ServerConnectionId ?? existingDefinition?.ServerConnectionId, cancellationToken);
-        var (acquisitionType, connectionAddress) = ResolveAcquisitionTarget(request, boundServer);
+        (string acquisitionType, string connectionAddress) = ResolveAcquisitionTarget(request, boundServer);
 
         ValidateManagedDataDefinitionRequest(request, acquisitionType, connectionAddress);
 
         Dictionary<string, string> nodeConfiguration = ParseJsonDictionary(request.ConfigurationJson);
         IReadOnlyCollection<string> nodeErrors = AcquisitionServerCatalog.ValidateNode(
             acquisitionType, identifier, nodeConfiguration);
-        if (nodeErrors.Count > 0)
-        {
-            throw new InvalidOperationException(string.Join(" ", nodeErrors));
-        }
+        if (nodeErrors.Count > 0) throw new InvalidOperationException(string.Join(" ", nodeErrors));
 
         DateTimeOffset updatedAt = DateTimeOffset.UtcNow;
         Guid? serverConnectionId = boundServer?.Id ?? request.ServerConnectionId;
@@ -239,13 +233,15 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
     public async Task<bool> DeleteManagedDataDefinitionAsync(Guid id, CancellationToken cancellationToken = default)
     {
         ManagedDataDefinition? definition = await _managedDataDefinitionRepository.GetByIdAsync(id, cancellationToken);
-        if (definition is null)
-        {
-            return false;
-        }
+        if (definition is null) return false;
 
-        await RemoveCollectionPointForManagedDefinitionAsync(definition.Code, cancellationToken);
-        _managedDataDefinitionRepository.Remove(definition);
+        DateTimeOffset deletedAt = DateTimeOffset.UtcNow;
+        definition.IsEnabled = false;
+        definition.DeletedAt = deletedAt;
+        definition.UpdatedAt = deletedAt;
+
+        // 只停用同步采集点，不删除点位及其历史记录；节点本身也保留为归档行。
+        await DisableCollectionPointForManagedDefinitionAsync(definition.Code, deletedAt, cancellationToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
         return true;
     }
@@ -265,20 +261,15 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
     {
         if (string.IsNullOrWhiteSpace(request.CollectionPointCode) ||
             string.IsNullOrWhiteSpace(request.MetricName))
-        {
             throw new InvalidOperationException("采集点编码和指标名称不能为空。");
-        }
 
         // 单位在库上有「不得为空」的 check 约束：这里先给出可读的中文提示，
         // 而不是让一次登录式上报变成 500。
-        var unit = request.Unit?.Trim() ?? string.Empty;
+        string unit = request.Unit?.Trim() ?? string.Empty;
 
-        if (unit.Length == 0)
-        {
-            throw new InvalidOperationException("指标单位不能为空。");
-        }
+        if (unit.Length == 0) throw new InvalidOperationException("指标单位不能为空。");
 
-        var normalizedCode = NormalizeCode(request.CollectionPointCode);
+        string normalizedCode = NormalizeCode(request.CollectionPointCode);
         CollectionPoint? collectionPoint =
             await _collectionPointRepository.GetByCodeAsync(normalizedCode, cancellationToken);
         if (collectionPoint is null)
@@ -306,7 +297,7 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
             collectionPoint.UpdatedAt = request.CollectedAt;
         }
 
-        var record = new CollectionDataRecord
+        CollectionDataRecord record = new()
         {
             Id = Guid.NewGuid(),
             CollectionPointId = collectionPoint.Id,
@@ -335,34 +326,27 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
         SyncCollectionPointsRequest request,
         CancellationToken cancellationToken = default)
     {
-        var createdCount = 0;
-        var updatedCount = 0;
-        var syncedIds = new List<Guid>();
+        int createdCount = 0;
+        int updatedCount = 0;
+        List<Guid> syncedIds = new();
 
         // 上限防止一次请求塞进几十万条：这是客户端配置同步，正常规模是几十到几百。
         if (request.Points.Count > MaxLocalSyncPoints)
-        {
             throw new InvalidOperationException(
                 $"单次最多同步 {MaxLocalSyncPoints} 个采集点，本次提交 {request.Points.Count} 个。");
-        }
 
         foreach (LocalCollectionPointDto localPoint in request.Points)
         {
-            var normalizedCode = NormalizeCode(localPoint.Code);
+            string normalizedCode = NormalizeCode(localPoint.Code);
 
-            if (normalizedCode.Length == 0)
-            {
-                throw new InvalidOperationException("采集点编码不能为空。");
-            }
+            if (normalizedCode.Length == 0) throw new InvalidOperationException("采集点编码不能为空。");
 
-            var name = localPoint.Name?.Trim() ?? string.Empty;
-            var protocol = localPoint.Protocol?.Trim() ?? string.Empty;
-            var endpoint = localPoint.Endpoint?.Trim() ?? string.Empty;
+            string name = localPoint.Name?.Trim() ?? string.Empty;
+            string protocol = localPoint.Protocol?.Trim() ?? string.Empty;
+            string endpoint = localPoint.Endpoint?.Trim() ?? string.Empty;
 
             if (name.Length == 0 || protocol.Length == 0 || endpoint.Length == 0)
-            {
                 throw new InvalidOperationException($"采集点 {normalizedCode} 的名称、协议和端点不能为空。");
-            }
 
             CollectionPoint? collectionPoint =
                 await _collectionPointRepository.GetByCodeAsync(normalizedCode, cancellationToken);
@@ -416,9 +400,7 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
             string.IsNullOrWhiteSpace(request.Name) ||
             string.IsNullOrWhiteSpace(request.Protocol) ||
             string.IsNullOrWhiteSpace(request.Endpoint))
-        {
             throw new InvalidOperationException("编码、名称、协议和端点不能为空。");
-        }
     }
 
     private static void ValidateManagedDataDefinitionRequest(
@@ -428,65 +410,32 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
     {
         List<string> errors = [];
 
-        if (string.IsNullOrWhiteSpace(request.Code))
-        {
-            errors.Add("编码不能为空。");
-        }
+        if (string.IsNullOrWhiteSpace(request.Code)) errors.Add("编码不能为空。");
 
-        if (string.IsNullOrWhiteSpace(request.Name))
-        {
-            errors.Add("名称不能为空。");
-        }
+        if (string.IsNullOrWhiteSpace(request.Name)) errors.Add("名称不能为空。");
 
-        if (string.IsNullOrWhiteSpace(acquisitionType))
-        {
-            errors.Add("采集方式不能为空。");
-        }
+        if (string.IsNullOrWhiteSpace(acquisitionType)) errors.Add("采集方式不能为空。");
 
-        if (string.IsNullOrWhiteSpace(connectionAddress))
-        {
-            errors.Add("连接地址不能为空，请选择已配置地址的采集服务器。");
-        }
+        if (string.IsNullOrWhiteSpace(connectionAddress)) errors.Add("连接地址不能为空，请选择已配置地址的采集服务器。");
 
-        if (string.IsNullOrWhiteSpace(request.Identifier))
-        {
-            errors.Add("数据标识不能为空。");
-        }
+        if (string.IsNullOrWhiteSpace(request.Identifier)) errors.Add("数据标识不能为空。");
 
-        if (string.IsNullOrWhiteSpace(request.Department))
-        {
-            errors.Add("部门不能为空。");
-        }
+        if (string.IsNullOrWhiteSpace(request.Department)) errors.Add("部门不能为空。");
 
-        if (string.IsNullOrWhiteSpace(request.ProcessCode))
-        {
-            errors.Add("工序不能为空。");
-        }
+        if (string.IsNullOrWhiteSpace(request.ProcessCode)) errors.Add("工序不能为空。");
 
-        if (string.IsNullOrWhiteSpace(request.DataCategory))
-        {
-            errors.Add("数据类别不能为空。");
-        }
+        if (string.IsNullOrWhiteSpace(request.DataCategory)) errors.Add("数据类别不能为空。");
 
-        if (request.CollectionIntervalSeconds <= 0)
-        {
-            errors.Add("采集频次必须大于 0 秒。");
-        }
+        if (request.CollectionIntervalSeconds <= 0) errors.Add("采集频次必须大于 0 秒。");
 
-        if (errors.Count > 0)
-        {
-            throw new InvalidOperationException(string.Join(" ", errors));
-        }
+        if (errors.Count > 0) throw new InvalidOperationException(string.Join(" ", errors));
     }
 
     private async Task<ServerConnection?> ResolveBoundServerAsync(
         Guid? serverConnectionId,
         CancellationToken cancellationToken)
     {
-        if (!serverConnectionId.HasValue)
-        {
-            return null;
-        }
+        if (!serverConnectionId.HasValue) return null;
 
         return await _dbContext.ServerConnections
             .AsNoTracking()
@@ -497,10 +446,7 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
         ManagedDataDefinitionUpsertRequest request,
         ServerConnection? boundServer)
     {
-        if (boundServer is not null)
-        {
-            return (boundServer.AcquisitionType.Trim(), boundServer.Address.Trim());
-        }
+        if (boundServer is not null) return (boundServer.AcquisitionType.Trim(), boundServer.Address.Trim());
 
         return (request.AcquisitionType?.Trim() ?? string.Empty, request.ConnectionAddress?.Trim() ?? string.Empty);
     }
@@ -517,10 +463,7 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
 
     private static string ResolveCommunicationStatus(string? existingStatus, bool isEnabled)
     {
-        if (!isEnabled)
-        {
-            return "停用";
-        }
+        if (!isEnabled) return "停用";
 
         return existingStatus is "在线" or "离线" ? existingStatus : "在线";
     }
@@ -573,9 +516,7 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
         CollectionPoint? collectionPoint = null;
         if (!string.IsNullOrWhiteSpace(originalCode) &&
             !string.Equals(originalCode, definition.Code, StringComparison.OrdinalIgnoreCase))
-        {
             collectionPoint = await _collectionPointRepository.GetByCodeAsync(originalCode, cancellationToken);
-        }
 
         collectionPoint ??= await _collectionPointRepository.GetByCodeAsync(definition.Code, cancellationToken);
 
@@ -609,15 +550,17 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
         collectionPoint.UpdatedAt = definition.UpdatedAt;
     }
 
-    private async Task RemoveCollectionPointForManagedDefinitionAsync(string code, CancellationToken cancellationToken)
+    private async Task DisableCollectionPointForManagedDefinitionAsync(
+        string code,
+        DateTimeOffset updatedAt,
+        CancellationToken cancellationToken)
     {
         CollectionPoint? collectionPoint = await _collectionPointRepository.GetByCodeAsync(code, cancellationToken);
-        if (collectionPoint is null)
-        {
-            return;
-        }
+        if (collectionPoint is null) return;
 
-        _collectionPointRepository.Remove(collectionPoint);
+        collectionPoint.IsEnabled = false;
+        collectionPoint.CommunicationStatus = "停用";
+        collectionPoint.UpdatedAt = updatedAt;
     }
 
     private async Task<ServerConnection> EnsureServerConnectionForManagedDefinitionAsync(
@@ -628,25 +571,19 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
         {
             ServerConnection? boundConnection = await _dbContext.ServerConnections
                 .FirstOrDefaultAsync(item => item.Id == definition.ServerConnectionId.Value, cancellationToken);
-            if (boundConnection is not null)
-            {
-                return boundConnection;
-            }
+            if (boundConnection is not null) return boundConnection;
         }
 
-        var acquisitionType = definition.AcquisitionType.Trim();
-        var address = NormalizeServerAddress(definition.ConnectionAddress);
+        string acquisitionType = definition.AcquisitionType.Trim();
+        string address = NormalizeServerAddress(definition.ConnectionAddress);
 
         ServerConnection? existingConnection = await _dbContext.ServerConnections
             .FirstOrDefaultAsync(
                 item => item.AcquisitionType == acquisitionType && item.Address == address,
                 cancellationToken);
-        if (existingConnection is not null)
-        {
-            return existingConnection;
-        }
+        if (existingConnection is not null) return existingConnection;
 
-        var serverConnection = new ServerConnection
+        ServerConnection serverConnection = new()
         {
             Id = Guid.NewGuid(),
             Code = $"SRV_{Guid.NewGuid():N}".ToUpperInvariant(),
@@ -668,10 +605,7 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
 
     private static string NormalizeJsonOrEmptyObject(string json)
     {
-        if (string.IsNullOrWhiteSpace(json))
-        {
-            return "{}";
-        }
+        if (string.IsNullOrWhiteSpace(json)) return "{}";
 
         try
         {
@@ -686,14 +620,11 @@ public sealed class DataAcquisitionPlatformService : IDataAcquisitionPlatformSer
 
     private static Dictionary<string, string> ParseJsonDictionary(string json)
     {
-        if (string.IsNullOrWhiteSpace(json))
-        {
-            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        }
+        if (string.IsNullOrWhiteSpace(json)) return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         try
         {
-            var parsed =
+            Dictionary<string, JsonElement>? parsed =
                 JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
 
             return parsed?.ToDictionary(

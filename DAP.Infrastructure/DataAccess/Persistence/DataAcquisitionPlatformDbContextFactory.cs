@@ -13,8 +13,8 @@ public sealed class DataAcquisitionPlatformDbContextFactory
     /// <inheritdoc />
     public DataAcquisitionPlatformDbContext CreateDbContext(string[] args)
     {
-        var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
-        var basePath = ResolveConfigurationBasePath();
+        string environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
+        string basePath = ResolveConfigurationBasePath();
 
         IConfiguration configuration = new ConfigurationBuilder()
             .SetBasePath(basePath)
@@ -23,10 +23,10 @@ public sealed class DataAcquisitionPlatformDbContextFactory
             .AddEnvironmentVariables()
             .Build();
 
-        var connectionString = configuration.GetConnectionString("PostgreSql")
-                               ?? throw new InvalidOperationException("未找到 ConnectionStrings:PostgreSql 配置。");
+        string connectionString = configuration.GetConnectionString("PostgreSql")
+                                  ?? throw new InvalidOperationException("未找到 ConnectionStrings:PostgreSql 配置。");
 
-        var optionsBuilder = new DbContextOptionsBuilder<DataAcquisitionPlatformDbContext>();
+        DbContextOptionsBuilder<DataAcquisitionPlatformDbContext> optionsBuilder = new();
         optionsBuilder.UseNpgsql(connectionString);
 
         return new DataAcquisitionPlatformDbContext(optionsBuilder.Options);
@@ -34,17 +34,15 @@ public sealed class DataAcquisitionPlatformDbContextFactory
 
     private static string ResolveConfigurationBasePath()
     {
-        var currentDirectory = Directory.GetCurrentDirectory();
+        string currentDirectory = Directory.GetCurrentDirectory();
         DirectoryInfo? directory = new(currentDirectory);
 
         while (directory is not null)
         {
-            var candidate = Path.Combine(directory.FullName, "DAP.Presentation.BlazorWeb", "appsettings.json");
+            string candidate = Path.Combine(directory.FullName, "DAP.Presentation.BlazorWeb", "appsettings.json");
             if (File.Exists(candidate))
-            {
                 return Path.GetDirectoryName(candidate)
                        ?? throw new InvalidOperationException("无法解析 BlazorWeb 配置目录。");
-            }
 
             directory = directory.Parent;
         }

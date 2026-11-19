@@ -37,14 +37,14 @@
                 <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
                     <MudSelect T="string" Label="查看班组" Value="_teamCode" ValueChanged="OnTeamChangedAsync"
                                Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width: 160px;">
-                        @foreach (var team in _teams)
+                        @foreach (ShiftTeamDto team in _teams)
                         {
                             <MudSelectItem T="string" Value="@team.TeamCode">@team.TeamName</MudSelectItem>
                         }
                     </MudSelect>
                     <MudSelect T="int" Label="趋势天数" Value="_trendDays" ValueChanged="OnTrendDaysChangedAsync"
                                Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width: 120px;">
-                        @foreach (var days in TrendDayOptions)
+                        @foreach (int days in TrendDayOptions)
                         {
                             <MudSelectItem T="int" Value="@days">近 @days 天</MudSelectItem>
                         }
@@ -100,7 +100,8 @@
         @* 班组归属提示：轮休 / 排班未导入时不给在岗默认值，显式说明而不是让现场猜（docs/AUTH_DESIGN.md 6.6）。 *@
         @if (!string.IsNullOrWhiteSpace(TeamResolutionHint))
         {
-            <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Info">
+            <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Outlined"
+                      Icon="@Icons.Material.Filled.Info">
                 @TeamResolutionHint
             </MudAlert>
         }
@@ -150,10 +151,10 @@
                         </MudText>
                     </MudPaper>
                 </MudItem>
-                @for (var i = 0; i < MetricTotals.Length && i < MetricAccents.Length; i++)
+                @for (int i = 0; i < MetricTotals.Length && i < MetricAccents.Length; i++)
                 {
-                    var total = MetricTotals[i];
-                    var metricIndex = i;
+                    EnergyMetricValueDto total = MetricTotals[i];
+                    int metricIndex = i;
 
                     <MudItem xs="12" sm="6" md="4" lg="3">
                         <MudPaper
@@ -196,10 +197,10 @@
             </MudPaper>
 
             <MudGrid Spacing="3">
-                @for (var i = 0; i < Trends.Length && i < MetricAccents.Length; i++)
+                @for (int i = 0; i < Trends.Length && i < MetricAccents.Length; i++)
                 {
-                    var trend = Trends[i];
-                    var metricIndex = i;
+                    EnergyTrendDto trend = Trends[i];
+                    int metricIndex = i;
 
                     <MudItem xs="12" lg="6">
                         <MudPaper
@@ -219,7 +220,8 @@
                                                  Color="Color.Primary">
                                             合计 @FormatValue(trend.Total)
                                         </MudChip>
-                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info">
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                                 Color="Color.Info">
                                             均值 @FormatValue(trend.Average)
                                         </MudChip>
                                         <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
@@ -254,7 +256,8 @@
                 }
             </MudGrid>
 
-            <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-info pa-4" Elevation="0">
+            <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-info pa-4"
+                      Elevation="0">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
                           Spacing="2">
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
@@ -291,9 +294,9 @@
                                 @context.Date.ToString("yyyy-MM-dd")
                             </MudText>
                         </MudTd>
-                        @for (var column = 0; column < 4; column++)
+                        @for (int column = 0; column < 4; column++)
                         {
-                            var value = context.Values.ElementAtOrDefault(column);
+                            decimal? value = context.Values.ElementAtOrDefault(column);
                             <MudTd DataLabel="@($"指标 {column + 1}")">
                                 <MudText Typo="Typo.body2" Class="platform-table-primary">
                                     @(value.HasValue ? FormatValue(value.Value) : "--")

@@ -69,21 +69,21 @@ public static class ShiftRotationValidator
                 ShiftScheduleRowDto[] dayRows =
                     group.OrderBy(item => item.StartTime).ThenBy(item => item.TeamCode).ToArray();
 
-                var onDuty = dayRows
+                string[] onDuty = dayRows
                     .Where(item => !item.IsRestDay)
                     .Select(item => item.TeamName)
                     .Distinct(StringComparer.Ordinal)
                     .OrderBy(name => name, StringComparer.Ordinal)
                     .ToArray();
 
-                var rest = dayRows
+                string[] rest = dayRows
                     .Where(item => item.IsRestDay)
                     .Select(item => item.TeamName)
                     .Distinct(StringComparer.Ordinal)
                     .OrderBy(name => name, StringComparer.Ordinal)
                     .ToArray();
 
-                var complete = dayRows.Count(item => !item.IsRestDay) == 24d / ShiftHours;
+                bool complete = dayRows.Count(item => !item.IsRestDay) == 24d / ShiftHours;
 
                 return new DailyShiftScheduleDto(group.Key, dayRows, onDuty, rest, complete);
             })
@@ -106,9 +106,9 @@ public static class ShiftRotationValidator
             .ThenBy(item => item.StartTime)
             .ToArray();
 
-        var teamName = teamRows.FirstOrDefault()?.TeamName ?? teamCode;
+        string teamName = teamRows.FirstOrDefault()?.TeamName ?? teamCode;
 
-        var totalShifts = teamRows.Count(item => !item.IsRestDay);
+        int totalShifts = teamRows.Count(item => !item.IsRestDay);
 
         return new TeamShiftScheduleDto(
             teamCode,
@@ -125,12 +125,10 @@ public static class ShiftRotationValidator
     {
         foreach (var group in rows.GroupBy(item => new {item.WorkDate, item.TeamCode})
                      .Where(group => group.Count() > 1))
-        {
             issues.Add(new ShiftScheduleIssueDto(
                 0,
                 $"{group.Key.WorkDate:yyyy-MM-dd} 的班组 {group.Key.TeamCode} 出现了 {group.Count()} 条记录，同一自然日同一班组只能有一条排班。",
                 "error"));
-        }
     }
 
     private static void ValidateDuration(
@@ -138,15 +136,11 @@ public static class ShiftRotationValidator
         List<ShiftScheduleIssueDto> issues)
     {
         foreach (ShiftScheduleRowDto row in rows.Where(item => !item.IsRestDay))
-        {
             if (Math.Abs(row.DurationHours - ShiftHours) > DurationToleranceHours)
-            {
                 issues.Add(new ShiftScheduleIssueDto(
                     0,
                     $"{row.WorkDate:yyyy-MM-dd} 班组 {row.TeamName} 的班次时长为 {row.DurationHours:0.##} 小时，四班三运转要求每班 {ShiftHours:0} 小时。",
                     "error"));
-            }
-        }
     }
 
     private static IReadOnlyCollection<string> ValidateCoverage(
@@ -157,19 +151,17 @@ public static class ShiftRotationValidator
         DateOnly end = rows.Max(item => item.WorkDate);
 
         if (end.DayNumber - start.DayNumber + 1 > MaxDateSpanDays)
-        {
             issues.Add(new ShiftScheduleIssueDto(
                 0,
                 $"排班区间跨度 {end.DayNumber - start.DayNumber + 1} 天，超过单次导入上限 {MaxDateSpanDays} 天。",
                 "error"));
-        }
 
         foreach (IGrouping<DateOnly, ShiftScheduleRowDto> dayRows in rows.GroupBy(item => item.WorkDate))
         {
             ShiftScheduleRowDto[] dutyRows = dayRows.Where(item => !item.IsRestDay).ToArray();
 
             // 24 小时需要恰好三个 8 小时班次，多或少都不符合四班三运转。
-            var requiredShifts = (int) (24d / ShiftHours);
+            int requiredShifts = (int) (24d / ShiftHours);
             if (dutyRows.Length != requiredShifts)
             {
                 issues.Add(new ShiftScheduleIssueDto(
@@ -196,12 +188,10 @@ public static class ShiftRotationValidator
             }
 
             if (expectedStartTicks < 24d * TimeSpan.TicksPerHour)
-            {
                 issues.Add(new ShiftScheduleIssueDto(
                     0,
                     $"{dayRows.Key:yyyy-MM-dd} 的排班未覆盖完整 24 小时，当日班次结束后仍有空档。",
                     "error"));
-            }
         }
 
         return rows
@@ -220,18 +210,13 @@ public static class ShiftRotationValidator
         List<ShiftScheduleIssueDto> issues)
     {
         if (teams.Count < TeamsPerCycle)
-        {
             issues.Add(new ShiftScheduleIssueDto(
                 0,
                 $"仅识别到 {teams.Count} 个班组，四班三运转需要 {TeamsPerCycle} 个班组轮转。",
                 "warning"));
-        }
 
-        var dutyDays = rows.Select(item => item.WorkDate).Distinct().Count();
-        if (dutyDays == 0)
-        {
-            return;
-        }
+        int dutyDays = rows.Select(item => item.WorkDate).Distinct().Count();
+        if (dutyDays == 0) return;
 
         Dictionary<string, int> restCounts = teams.ToDictionary(
             team => team,
@@ -239,28 +224,24 @@ public static class ShiftRotationValidator
                 string.Equals(item.TeamCode, team, StringComparison.OrdinalIgnoreCase) && item.IsRestDay),
             StringComparer.OrdinalIgnoreCase);
 
-        var expectedRest = dutyDays / Math.Max(1, teams.Count);
-        var tolerance = expectedRest > 0 ? 1 : 0;
+        int expectedRest = dutyDays / Math.Max(1, teams.Count);
+        int tolerance = expectedRest > 0 ? 1 : 0;
 
         foreach (KeyValuePair<string, int> pair in restCounts.OrderBy(item => item.Key, StringComparer.Ordinal))
-        {
             if (Math.Abs(pair.Value - expectedRest) > tolerance)
-            {
                 issues.Add(new ShiftScheduleIssueDto(
                     0,
                     $"班组 {pair.Key} 轮休 {pair.Value} 天，与其他班组的轮休分配不均衡（期望约 {expectedRest} 天）。",
                     "warning"));
-            }
-        }
     }
 
     private static ShiftScheduleValidationDto BuildResult(
         IReadOnlyCollection<ShiftScheduleRowDto> rows,
         List<ShiftScheduleIssueDto> issues)
     {
-        var dutyDays = rows.Select(item => item.WorkDate).Distinct().Count();
-        var teams = rows.Select(item => item.TeamCode).Distinct(StringComparer.OrdinalIgnoreCase).Count();
-        var coverageDays = GroupByDate(rows).Count(item => item.CoverageComplete);
+        int dutyDays = rows.Select(item => item.WorkDate).Distinct().Count();
+        int teams = rows.Select(item => item.TeamCode).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+        int coverageDays = GroupByDate(rows).Count(item => item.CoverageComplete);
 
         (string TeamName, string Code)[] teamNames = rows
             .GroupBy(item => item.TeamCode, StringComparer.OrdinalIgnoreCase)
@@ -268,7 +249,7 @@ public static class ShiftRotationValidator
             .OrderBy(item => item.Code, StringComparer.Ordinal)
             .ToArray();
 
-        var restBalance = BuildRestBalanceDescription(teamNames, rows);
+        string restBalance = BuildRestBalanceDescription(teamNames, rows);
 
         return new ShiftScheduleValidationDto(
             !issues.Any(item => string.Equals(item.Severity, "error", StringComparison.OrdinalIgnoreCase)),
@@ -284,16 +265,13 @@ public static class ShiftRotationValidator
         IReadOnlyCollection<(string TeamName, string Code)> teams,
         IReadOnlyCollection<ShiftScheduleRowDto> rows)
     {
-        if (teams.Count == 0)
-        {
-            return "暂无数据。";
-        }
+        if (teams.Count == 0) return "暂无数据。";
 
         return string.Join(
             "、",
             teams.Select(team =>
             {
-                var rest = rows.Count(item =>
+                int rest = rows.Count(item =>
                     string.Equals(item.TeamCode, team.Code, StringComparison.OrdinalIgnoreCase) && item.IsRestDay);
 
                 return $"{team.TeamName} 休 {rest} 天";

@@ -147,10 +147,10 @@
         </MudGrid>
 
         <MudGrid Spacing="3">
-            @for (var i = 0; i < Metrics.Length && i < MetricAccents.Length; i++)
+            @for (int i = 0; i < Metrics.Length && i < MetricAccents.Length; i++)
             {
-                var metric = Metrics[i];
-                var metricIndex = i;
+                EnergyMetricDescriptorDto metric = Metrics[i];
+                int metricIndex = i;
 
                 <MudItem xs="12" lg="6">
                     <MudPaper
@@ -221,7 +221,7 @@
                       Dense="true" Hover="true" Breakpoint="Breakpoint.Sm" Class="platform-data-table">
                 <HeaderContent>
                     <MudTh>班组</MudTh>
-                    @foreach (var metric in Metrics)
+                    @foreach (EnergyMetricDescriptorDto metric in Metrics)
                     {
                         <MudTh>@metric.MetricName (@metric.Unit)</MudTh>
                     }
@@ -247,9 +247,9 @@
                             }
                         </MudStack>
                     </MudTd>
-                    @foreach (var metric in Metrics)
+                    @foreach (EnergyMetricDescriptorDto metric in Metrics)
                     {
-                        var value = context.MetricValues.FirstOrDefault(item => item.MetricCode == metric.MetricCode);
+                        EnergyMetricValueDto? value = context.MetricValues.FirstOrDefault(item => item.MetricCode == metric.MetricCode);
                         <MudTd DataLabel="@metric.MetricName">
                             <MudText Typo="Typo.body2" Class="platform-table-primary">
                                 @(value is null ? "--" : FormatValue(value.Value))

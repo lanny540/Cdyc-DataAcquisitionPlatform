@@ -95,7 +95,7 @@ public partial class CollectionPoints
 
         try
         {
-            var request = new CollectionPointUpsertRequest(
+            CollectionPointUpsertRequest request = new(
                 _editingId,
                 _code,
                 _name,
@@ -126,10 +126,7 @@ public partial class CollectionPoints
 
     private void CancelDelete()
     {
-        if (_isDeleting)
-        {
-            return;
-        }
+        if (_isDeleting) return;
 
         _pendingDeletePoint = null;
         _isDeleteConfirmOpen = false;
@@ -137,17 +134,14 @@ public partial class CollectionPoints
 
     private async Task ConfirmDeleteAsync()
     {
-        if (_pendingDeletePoint is null)
-        {
-            return;
-        }
+        if (_pendingDeletePoint is null) return;
 
         CollectionPointDto point = _pendingDeletePoint;
         _isDeleting = true;
 
         try
         {
-            var deleted = await PlatformApiClient.DeleteCollectionPointAsync(point.Id);
+            bool deleted = await PlatformApiClient.DeleteCollectionPointAsync(point.Id);
             if (!deleted)
             {
                 _message = $"采集点 {point.Code} 不存在或已被删除。";
@@ -155,10 +149,7 @@ public partial class CollectionPoints
                 return;
             }
 
-            if (_editingId == point.Id)
-            {
-                ResetEditor();
-            }
+            if (_editingId == point.Id) ResetEditor();
 
             _message = $"采集点 {point.Code} 已从服务端删除。";
             _messageSeverity = Severity.Success;

@@ -62,45 +62,38 @@ public sealed partial class EnergyDashboardPageViewModel : EnergyPageViewModelBa
     /// <summary>
     /// 趋势天数。
     /// </summary>
-    [ObservableProperty]
-    private int _trendDays = 7;
+    [ObservableProperty] private int _trendDays = 7;
 
     /// <summary>
     /// 是否已有数据可展示。
     /// </summary>
-    [ObservableProperty]
-    private bool _hasData;
+    [ObservableProperty] private bool _hasData;
 
     /// <summary>
     /// 班组徽标文案。
     /// </summary>
-    [ObservableProperty]
-    private string _teamChipText = string.Empty;
+    [ObservableProperty] private string _teamChipText = string.Empty;
 
     /// <summary>
     /// 日期与班次徽标文案。
     /// </summary>
-    [ObservableProperty]
-    private string _shiftChipText = string.Empty;
+    [ObservableProperty] private string _shiftChipText = string.Empty;
 
     /// <summary>
     /// 班次时间段徽标文案。
     /// </summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasShiftRange))]
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(HasShiftRange))]
     private string _shiftRangeText = string.Empty;
 
     /// <summary>
     /// 是否严格解析出在岗班组。轮休 / 未导入 / 手动切换都算非在岗。
     /// </summary>
-    [ObservableProperty]
-    private bool _isOnDuty;
+    [ObservableProperty] private bool _isOnDuty;
 
     /// <summary>
     /// 非在岗时的说明文案，避免把猜测的班组当成在岗事实。
     /// </summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasResolutionHint))]
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(HasResolutionHint))]
     private string? _resolutionHint;
 
     /// <summary>
@@ -116,14 +109,12 @@ public sealed partial class EnergyDashboardPageViewModel : EnergyPageViewModelBa
     /// <summary>
     /// 综合能耗文本。
     /// </summary>
-    [ObservableProperty]
-    private string _totalText = "--";
+    [ObservableProperty] private string _totalText = "--";
 
     /// <summary>
     /// 综合能耗单位。
     /// </summary>
-    [ObservableProperty]
-    private string _totalUnit = string.Empty;
+    [ObservableProperty] private string _totalUnit = string.Empty;
 
     /// <summary>
     /// 指标统计卡。
@@ -143,36 +134,29 @@ public sealed partial class EnergyDashboardPageViewModel : EnergyPageViewModelBa
     /// <summary>
     /// 明细表头：指标名称，固定四列。
     /// </summary>
-    [ObservableProperty]
-    private string _column1 = "指标 1";
+    [ObservableProperty] private string _column1 = "指标 1";
 
     /// <summary>
     /// 第二列。
     /// </summary>
-    [ObservableProperty]
-    private string _column2 = "指标 2";
+    [ObservableProperty] private string _column2 = "指标 2";
 
     /// <summary>
     /// 第三列。
     /// </summary>
-    [ObservableProperty]
-    private string _column3 = "指标 3";
+    [ObservableProperty] private string _column3 = "指标 3";
 
     /// <summary>
     /// 第四列。
     /// </summary>
-    [ObservableProperty]
-    private string _column4 = "指标 4";
+    [ObservableProperty] private string _column4 = "指标 4";
 
     /// <summary>
     /// 趋势天数变化后重新查询。
     /// </summary>
     partial void OnTrendDaysChanged(int value)
     {
-        if (!_isApplyingDashboard)
-        {
-            _ = ReloadAsync();
-        }
+        if (!_isApplyingDashboard) _ = ReloadAsync();
     }
 
     /// <inheritdoc />
@@ -227,10 +211,7 @@ public sealed partial class EnergyDashboardPageViewModel : EnergyPageViewModelBa
             TotalUnit = dashboard.TotalUnit;
 
             // 在岗时回填班组选择器，便于用户直接切换；非在岗不回填，避免把猜测的班组当成事实。
-            if (IsOnDuty)
-            {
-                SelectTeam(dashboard.TeamCode);
-            }
+            if (IsOnDuty) SelectTeam(dashboard.TeamCode);
 
             BuildMetricCards(dashboard.MetricTotals.ToArray());
             BuildTrends(dashboard.Trends.ToArray(), dashboard.TeamName);
@@ -249,7 +230,7 @@ public sealed partial class EnergyDashboardPageViewModel : EnergyPageViewModelBa
     {
         MetricCards.Clear();
 
-        for (var index = 0; index < totals.Length && index < 4; index++)
+        for (int index = 0; index < totals.Length && index < 4; index++)
         {
             EnergyMetricValueDto total = totals[index];
 
@@ -272,7 +253,7 @@ public sealed partial class EnergyDashboardPageViewModel : EnergyPageViewModelBa
     {
         Trends.Clear();
 
-        for (var index = 0; index < trends.Length && index < 4; index++)
+        for (int index = 0; index < trends.Length && index < 4; index++)
         {
             EnergyTrendDto trend = trends[index];
 
@@ -314,14 +295,12 @@ public sealed partial class EnergyDashboardPageViewModel : EnergyPageViewModelBa
             .OrderBy(group => group.Key);
 
         foreach (IGrouping<DateOnly, (DateOnly Bucket, string Code, decimal Value)> group in groups)
-        {
             DetailRows.Add(new PivotRowModel(
                 group.Key.ToString("yyyy-MM-dd"),
                 ValueOf(group, trends.ElementAtOrDefault(0)),
                 ValueOf(group, trends.ElementAtOrDefault(1)),
                 ValueOf(group, trends.ElementAtOrDefault(2)),
                 ValueOf(group, trends.ElementAtOrDefault(3))));
-        }
     }
 
     /// <summary>
@@ -331,18 +310,11 @@ public sealed partial class EnergyDashboardPageViewModel : EnergyPageViewModelBa
         IEnumerable<(DateOnly Bucket, string Code, decimal Value)> group,
         EnergyTrendDto? trend)
     {
-        if (trend is null)
-        {
-            return "--";
-        }
+        if (trend is null) return "--";
 
         foreach ((DateOnly _, string code, decimal value) in group)
-        {
             if (code == trend.MetricCode)
-            {
                 return MetricFormat.Value(value);
-            }
-        }
 
         return "--";
     }

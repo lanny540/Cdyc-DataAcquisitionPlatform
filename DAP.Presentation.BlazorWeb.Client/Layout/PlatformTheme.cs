@@ -56,7 +56,7 @@ public static class PlatformTheme
     /// </summary>
     private static PaletteLight Light()
     {
-        var palette = new PaletteLight();
+        PaletteLight palette = new();
 
         ApplyBrand(palette);
 
@@ -96,7 +96,7 @@ public static class PlatformTheme
     /// </summary>
     private static PaletteDark Dark()
     {
-        var palette = new PaletteDark();
+        PaletteDark palette = new();
 
         ApplyBrand(palette);
 

@@ -211,7 +211,8 @@
                         <MudTd DataLabel="目录中的值">@context.ExternalCode</MudTd>
                         <MudTd DataLabel="样例账号">@(context.SampleUserName ?? "—")</MudTd>
                         <MudTd DataLabel="出现次数">@context.Occurrences</MudTd>
-                        <MudTd DataLabel="最近出现">@context.LastSeenAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</MudTd>
+                        <MudTd
+                            DataLabel="最近出现">@context.LastSeenAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</MudTd>
                         <MudTd Style="text-align: right;">
                             <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Secondary"
                                        OnClick="@(() => ResolveDirectoryIssueAsync(context.Id))">
@@ -245,7 +246,7 @@
                 @if (_isSuperAdmin && !_editingSuperAdmin)
                 {
                     <MudSelect T="Guid?" Label="所属部门" @bind-Value="_editorDepartmentId" Clearable="true">
-                        @foreach (var department in _departments)
+                        @foreach (AdminDepartmentDto department in _departments)
                         {
                             <MudSelectItem T="Guid?" Value="@((Guid?) department.Id)">@department.Name</MudSelectItem>
                         }
@@ -259,7 +260,7 @@
                     </MudText>
                 }
                 <MudSelect T="Guid" Label="角色" @bind-SelectedValues="_editorRoleIds" MultiSelection="true">
-                    @foreach (var role in _roles)
+                    @foreach (AdminRoleDto role in _roles)
                     {
                         <MudSelectItem T="Guid" Value="@role.Id">
                             @($"{role.Name}（{(role.PageLevel >= 99 ? "全部页面" : role.PageLevel >= 2 ? "含配置类" : "只看查看类")}）")
@@ -322,7 +323,7 @@
                     完成后当前会话立即退出，请用接任账号登录。
                 </MudText>
                 <MudSelect T="Guid" Label="接任账号" @bind-Value="_handoverUserId">
-                    @foreach (var user in HandoverCandidates)
+                    @foreach (AdminUserDto user in HandoverCandidates)
                     {
                         <MudSelectItem T="Guid" Value="@user.Id">
                             @($"{user.DisplayName}（{user.UserName}）")

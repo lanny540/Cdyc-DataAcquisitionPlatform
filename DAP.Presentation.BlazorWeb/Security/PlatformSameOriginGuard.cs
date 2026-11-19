@@ -60,16 +60,11 @@ public static class PlatformSameOriginGuard
         if (HttpMethods.IsGet(request.Method)
             || HttpMethods.IsHead(request.Method)
             || HttpMethods.IsOptions(request.Method))
-        {
             return false;
-        }
 
-        var path = request.Path.Value ?? string.Empty;
+        string path = request.Path.Value ?? string.Empty;
 
-        if (ExemptPrefixes.Any(prefix => path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
-        {
-            return false;
-        }
+        if (ExemptPrefixes.Any(prefix => path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))) return false;
 
         return path.StartsWith("/api", StringComparison.OrdinalIgnoreCase);
     }
@@ -86,24 +81,18 @@ public static class PlatformSameOriginGuard
     /// <returns>来源与本站一致时 true。</returns>
     public static bool IsSameOrigin(HttpRequest request)
     {
-        var origin = request.Headers.Origin.ToString();
+        string origin = request.Headers.Origin.ToString();
 
-        if (!string.IsNullOrEmpty(origin))
-        {
-            return MatchesHost(origin, request);
-        }
+        if (!string.IsNullOrEmpty(origin)) return MatchesHost(origin, request);
 
-        var referer = request.Headers.Referer.ToString();
+        string referer = request.Headers.Referer.ToString();
 
         return string.IsNullOrEmpty(referer) || MatchesHost(referer, request);
     }
 
     private static bool MatchesHost(string value, HttpRequest request)
     {
-        if (!Uri.TryCreate(value, UriKind.Absolute, out Uri? uri))
-        {
-            return false;
-        }
+        if (!Uri.TryCreate(value, UriKind.Absolute, out Uri? uri)) return false;
 
         return string.Equals(uri.Host, request.Host.Host, StringComparison.OrdinalIgnoreCase)
                && (request.Host.Port is null || uri.Port == request.Host.Port);

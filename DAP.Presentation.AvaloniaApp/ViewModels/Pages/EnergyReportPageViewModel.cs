@@ -69,38 +69,32 @@ public sealed partial class EnergyReportPageViewModel : AutoRefreshPageViewModel
     /// <summary>
     /// 统计粒度。
     /// </summary>
-    [ObservableProperty]
-    private GranularityOption? _selectedGranularity;
+    [ObservableProperty] private GranularityOption? _selectedGranularity;
 
     /// <summary>
     /// 起始日期。
     /// </summary>
-    [ObservableProperty]
-    private DateTime? _fromDate;
+    [ObservableProperty] private DateTime? _fromDate;
 
     /// <summary>
     /// 结束日期。
     /// </summary>
-    [ObservableProperty]
-    private DateTime? _toDate;
+    [ObservableProperty] private DateTime? _toDate;
 
     /// <summary>
     /// 是否有报表数据。
     /// </summary>
-    [ObservableProperty]
-    private bool _hasData;
+    [ObservableProperty] private bool _hasData;
 
     /// <summary>
     /// 区间与口径文案。
     /// </summary>
-    [ObservableProperty]
-    private string _rangeText = string.Empty;
+    [ObservableProperty] private string _rangeText = string.Empty;
 
     /// <summary>
     /// 是否有可导出的明细。
     /// </summary>
-    [ObservableProperty]
-    private bool _canExport;
+    [ObservableProperty] private bool _canExport;
 
     /// <summary>
     /// 概览卡。
@@ -120,62 +114,52 @@ public sealed partial class EnergyReportPageViewModel : AutoRefreshPageViewModel
     /// <summary>
     /// 合计行的四个指标值。
     /// </summary>
-    [ObservableProperty]
-    private string _totalV1 = "--";
+    [ObservableProperty] private string _totalV1 = "--";
 
     /// <summary>
     /// 合计行第二列。
     /// </summary>
-    [ObservableProperty]
-    private string _totalV2 = "--";
+    [ObservableProperty] private string _totalV2 = "--";
 
     /// <summary>
     /// 合计行第三列。
     /// </summary>
-    [ObservableProperty]
-    private string _totalV3 = "--";
+    [ObservableProperty] private string _totalV3 = "--";
 
     /// <summary>
     /// 合计行第四列。
     /// </summary>
-    [ObservableProperty]
-    private string _totalV4 = "--";
+    [ObservableProperty] private string _totalV4 = "--";
 
     /// <summary>
     /// 第一列指标名。
     /// </summary>
-    [ObservableProperty]
-    private string _column1 = "指标 1";
+    [ObservableProperty] private string _column1 = "指标 1";
 
     /// <summary>
     /// 第二列指标名。
     /// </summary>
-    [ObservableProperty]
-    private string _column2 = "指标 2";
+    [ObservableProperty] private string _column2 = "指标 2";
 
     /// <summary>
     /// 第三列指标名。
     /// </summary>
-    [ObservableProperty]
-    private string _column3 = "指标 3";
+    [ObservableProperty] private string _column3 = "指标 3";
 
     /// <summary>
     /// 第四列指标名。
     /// </summary>
-    [ObservableProperty]
-    private string _column4 = "指标 4";
+    [ObservableProperty] private string _column4 = "指标 4";
 
     /// <summary>
     /// 明细条数文案。
     /// </summary>
-    [ObservableProperty]
-    private string _detailCountText = string.Empty;
+    [ObservableProperty] private string _detailCountText = string.Empty;
 
     /// <inheritdoc />
     protected override async Task LoadCoreAsync()
     {
-        ShiftScheduleStatusDto status = await _session.Api.GetShiftScheduleStatusAsync();
-        ShiftTeamDto[] teams = status.Teams.ToArray();
+        ShiftTeamDto[] teams = (await _session.Api.GetEnergyTeamsAsync()).ToArray();
 
         if (teams.Length == 0)
         {
@@ -215,7 +199,7 @@ public sealed partial class EnergyReportPageViewModel : AutoRefreshPageViewModel
             .Select(group => group.First())
             .ToArray();
 
-        var metricTotals = new decimal[_metrics.Length];
+        decimal[] metricTotals = new decimal[_metrics.Length];
 
         TeamRows.Clear();
         DetailRows.Clear();
@@ -230,12 +214,9 @@ public sealed partial class EnergyReportPageViewModel : AutoRefreshPageViewModel
                     ?.Total)
                 .ToArray();
 
-            for (var index = 0; index < values.Length; index++)
-            {
-                metricTotals[index] += values[index] ?? 0m;
-            }
+            for (int index = 0; index < values.Length; index++) metricTotals[index] += values[index] ?? 0m;
 
-            var periods = history.Trends.Count == 0 ? 0 : history.Trends.Max(trend => trend.Points.Count);
+            int periods = history.Trends.Count == 0 ? 0 : history.Trends.Max(trend => trend.Points.Count);
 
             TeamRows.Add(new TeamReportRowModel(
                 history.TeamName,
@@ -248,14 +229,12 @@ public sealed partial class EnergyReportPageViewModel : AutoRefreshPageViewModel
             foreach (EnergyMetricValueDto detail in history.DetailRows
                          .OrderByDescending(row => row.BucketStart)
                          .ThenBy(row => row.MetricName, StringComparer.Ordinal))
-            {
                 DetailRows.Add(new ReportDetailRowModel(
                     history.TeamName,
                     MetricFormat.Bucket(detail.BucketStart, detail.BucketEnd),
                     detail.MetricName,
                     MetricFormat.Value(detail.Value),
                     detail.Unit));
-            }
         }
 
         HasData = TeamRows.Count > 0;
@@ -295,7 +274,7 @@ public sealed partial class EnergyReportPageViewModel : AutoRefreshPageViewModel
     /// </summary>
     private static int ParsePeriods(string text)
     {
-        return int.TryParse(text.Split(' ')[0], NumberStyles.Integer, CultureInfo.CurrentCulture, out var value)
+        return int.TryParse(text.Split(' ')[0], NumberStyles.Integer, CultureInfo.CurrentCulture, out int value)
             ? value
             : 0;
     }
@@ -306,27 +285,24 @@ public sealed partial class EnergyReportPageViewModel : AutoRefreshPageViewModel
     /// <returns>CSV 文本。</returns>
     public string BuildCsv()
     {
-        var builder = new StringBuilder();
+        StringBuilder builder = new();
 
         builder.AppendLine($"班组能耗报表,{RangeText}");
         builder.AppendLine("班组,统计周期,指标,数值,单位");
 
         foreach (ReportDetailRowModel row in DetailRows)
-        {
             builder.AppendLine(string.Join(',',
                 Escape(row.TeamName),
                 Escape(row.Period),
                 Escape(row.MetricName),
                 Escape(row.Value),
                 Escape(row.Unit)));
-        }
 
         builder.AppendLine();
         builder.AppendLine("班组汇总");
         builder.AppendLine($"班组,{Column1},{Column2},{Column3},{Column4},周期数");
 
         foreach (TeamReportRowModel row in TeamRows)
-        {
             builder.AppendLine(string.Join(',',
                 Escape(row.TeamName),
                 Escape(row.V1),
@@ -334,7 +310,6 @@ public sealed partial class EnergyReportPageViewModel : AutoRefreshPageViewModel
                 Escape(row.V3),
                 Escape(row.V4),
                 Escape(row.Periods)));
-        }
 
         builder.AppendLine(string.Join(',', "合计", Escape(TotalV1), Escape(TotalV2), Escape(TotalV3),
             Escape(TotalV4), "--"));
@@ -347,10 +322,7 @@ public sealed partial class EnergyReportPageViewModel : AutoRefreshPageViewModel
     /// </summary>
     private static string Escape(string value)
     {
-        if (value.IndexOfAny([',', '"', '\n', '\r']) < 0)
-        {
-            return value;
-        }
+        if (value.IndexOfAny([',', '"', '\n', '\r']) < 0) return value;
 
         return $"\"{value.Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
     }

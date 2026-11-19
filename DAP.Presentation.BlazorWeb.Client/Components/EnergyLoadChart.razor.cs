@@ -25,7 +25,8 @@ public partial class EnergyLoadChart
     /// <summary>
     /// 获取或设置负荷数据点，按小时升序。
     /// </summary>
-    [Parameter, EditorRequired]
+    [Parameter]
+    [EditorRequired]
     public IReadOnlyList<ParkEnergyLoadPointDto> Points { get; set; } = [];
 
     /// <summary>
@@ -52,13 +53,10 @@ public partial class EnergyLoadChart
     {
         get
         {
-            if (Points.Count == 0)
-            {
-                return 1000;
-            }
+            if (Points.Count == 0) return 1000;
 
-            double peak = Points.Max(point => (double)point.LoadKw);
-            double top = Math.Max(peak, (double)(DeclaredDemand ?? 0m));
+            double peak = Points.Max(point => (double) point.LoadKw);
+            double top = Math.Max(peak, (double) (DeclaredDemand ?? 0m));
 
             return Math.Ceiling(top * 1.08 / 500) * 500;
         }
@@ -76,12 +74,9 @@ public partial class EnergyLoadChart
         {
             ParkEnergyLoadPointDto? peak = Peak;
 
-            if (peak is null || DeclaredDemand is not > 0)
-            {
-                return 0;
-            }
+            if (peak is null || DeclaredDemand is not > 0) return 0;
 
-            return (double)(peak.LoadKw / DeclaredDemand.Value);
+            return (double) (peak.LoadKw / DeclaredDemand.Value);
         }
     }
 
@@ -89,9 +84,9 @@ public partial class EnergyLoadChart
     {
         get
         {
-            var ticks = new List<(double, double)>(5);
+            List<(double, double)> ticks = new(5);
 
-            for (var index = 0; index <= 4; index++)
+            for (int index = 0; index <= 4; index++)
             {
                 double value = YMax * index / 4;
                 ticks.Add((value, YOf(value)));
@@ -104,9 +99,9 @@ public partial class EnergyLoadChart
     private IReadOnlyList<(string Label, double X)> XTicks { get; } =
     [
         ("00:00", Left),
-        ("06:00", Left + ((Right - Left) * 6 / 24)),
-        ("12:00", Left + ((Right - Left) * 12 / 24)),
-        ("18:00", Left + ((Right - Left) * 18 / 24)),
+        ("06:00", Left + (Right - Left) * 6 / 24),
+        ("12:00", Left + (Right - Left) * 12 / 24),
+        ("18:00", Left + (Right - Left) * 18 / 24),
         ("24:00", Right)
     ];
 
@@ -114,25 +109,25 @@ public partial class EnergyLoadChart
     {
         // 按 24 小时等分，而不是按点数等分：最后一个点落在 23/24 处，
         // 右侧留出一小时的空白，X 轴标签才能与整点对齐。
-        return Left + (PlotWidth * index / 24);
+        return Left + PlotWidth * index / 24;
     }
 
-    private double YOf(double value) => Bottom - (PlotHeight * value / YMax);
+    private double YOf(double value)
+    {
+        return Bottom - PlotHeight * value / YMax;
+    }
 
     private string LinePoints =>
         string.Join(
             ' ',
             Points.Select((point, index) =>
-                $"{F(XOf(point.Hour))},{F(YOf((double)point.LoadKw))}"));
+                $"{F(XOf(point.Hour))},{F(YOf((double) point.LoadKw))}"));
 
     private string AreaPoints
     {
         get
         {
-            if (Points.Count == 0)
-            {
-                return string.Empty;
-            }
+            if (Points.Count == 0) return string.Empty;
 
             double firstX = XOf(Points[0].Hour);
             double lastX = XOf(Points[^1].Hour);
@@ -150,9 +145,15 @@ public partial class EnergyLoadChart
         return value.ToString("0.##", CultureInfo.InvariantCulture);
     }
 
-    private double DemandY => YOf((double)(DeclaredDemand ?? 0m));
+    private double DemandY => YOf((double) (DeclaredDemand ?? 0m));
 
-    private string FormatValue(double value) => value.ToString("N0");
+    private string FormatValue(double value)
+    {
+        return value.ToString("N0");
+    }
 
-    private string FormatUsage(double usage) => $"{usage * 100:0.#}%";
+    private string FormatUsage(double usage)
+    {
+        return $"{usage * 100:0.#}%";
+    }
 }

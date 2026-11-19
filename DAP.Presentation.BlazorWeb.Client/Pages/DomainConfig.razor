@@ -36,9 +36,9 @@
     }
     else
     {
-        @foreach (var domain in _domains)
+        @foreach (AdminDomainDto domain in _domains)
         {
-            var current = domain;
+            AdminDomainDto current = domain;
             <MudPaper Class="platform-section-card--tinted platform-accent-secondary pa-4" Elevation="0">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
                           Wrap="Wrap.Wrap" Spacing="2">
@@ -53,7 +53,8 @@
                         }
                         @if (current.IsSystem)
                         {
-                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text">系统域 · 不参与授权矩阵</MudChip>
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text">系统域 · 不参与授权矩阵
+                            </MudChip>
                         }
                         @if (current.VisibleWhenEmpty)
                         {
@@ -241,7 +242,7 @@
                     路由 @_editorPageRoute · 页面标识 @_editorPageKey（均由代码声明，不可改）
                 </MudText>
                 <MudSelect T="Guid" Label="所属域" @bind-Value="_editorPageDomainId">
-                    @foreach (var domain in _domains)
+                    @foreach (AdminDomainDto domain in _domains)
                     {
                         <MudSelectItem T="Guid" Value="@domain.Id">@($"{domain.Name}（{domain.Code}）")</MudSelectItem>
                     }

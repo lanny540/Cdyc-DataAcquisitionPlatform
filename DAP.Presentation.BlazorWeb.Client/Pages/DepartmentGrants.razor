@@ -59,7 +59,7 @@
                 <HeaderContent>
                     <MudTh>部门</MudTh>
                     <MudTh>账号数</MudTh>
-                    @foreach (var domain in _businessDomains)
+                    @foreach ((Guid Id, string Name) domain in _businessDomains)
                     {
                         <MudTh>@domain.Name</MudTh>
                     }
@@ -74,10 +74,10 @@
                         </MudStack>
                     </MudTd>
                     <MudTd DataLabel="账号数">@context.UserCount</MudTd>
-                    @foreach (var domain in _businessDomains)
+                    @foreach ((Guid Id, string Name) domain in _businessDomains)
                     {
-                        var current = domain;
-                        var department = context;
+                        (Guid Id, string Name) current = domain;
+                        AdminDepartmentDto department = context;
                         <MudTd DataLabel="@current.Name">
                             <MudCheckBox T="bool"
                                          Value="@IsGranted(department, current)"
@@ -122,7 +122,8 @@
             <MudStack Row="true" Justify="Justify.SpaceBetween">
                 <MudButton Variant="Variant.Text" OnClick="CloseEditor">取消</MudButton>
                 <MudButton Variant="Variant.Filled" Color="Color.Tertiary" Disabled="_isSaving"
-                           OnClick="SaveDepartmentAsync">保存</MudButton>
+                           OnClick="SaveDepartmentAsync">保存
+                </MudButton>
             </MudStack>
         </MudStack>
     </DialogContent>

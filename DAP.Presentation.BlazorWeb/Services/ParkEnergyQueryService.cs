@@ -3,6 +3,8 @@ using DAP.Core.Domain.Services;
 using DAP.Core.Shared.Contracts;
 using DAP.Infrastructure.DataAccess.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using Npgsql;
 
 namespace DAP.Presentation.BlazorWeb.Services;
 
@@ -122,56 +124,47 @@ public sealed class ParkEnergyQueryService(
         bool demo = false,
         CancellationToken cancellationToken = default)
     {
-        var normalized = string.Equals(period, "year", StringComparison.OrdinalIgnoreCase) ? "year" : "month";
-        var offset = ResolveOffset();
-        var today = DateOnly.FromDateTime(DateTime.Now);
-        var periodRange = ResolvePeriod(normalized, today);
+        string normalized = string.Equals(period, "year", StringComparison.OrdinalIgnoreCase) ? "year" : "month";
+        TimeSpan offset = ResolveOffset();
+        DateOnly today = DateOnly.FromDateTime(DateTime.Now);
+        ParkEnergyPeriod periodRange = ResolvePeriod(normalized, today);
 
         // 示例数据只在开发环境提供。生产环境即使手工拼 ?demo=true 也拿不到，
         // 否则一张带「示例」标记的截图流出后，没人会注意那行小字。
-        var allowSample = environment.IsDevelopment() ||
-                          configuration.GetValue("Energy:AllowSamplePreview", false);
+        bool allowSample = environment.IsDevelopment() ||
+                           configuration.GetValue("Energy:AllowSamplePreview", false);
 
-        if (demo && allowSample)
-        {
-            return ParkEnergySampleProvider.Create(normalized, periodRange, offset);
-        }
+        if (demo && allowSample) return ParkEnergySampleProvider.Create(normalized, periodRange, offset);
 
-        if (demo)
-        {
-            return Empty(normalized, periodRange, "当前环境未开启示例数据预览。");
-        }
+        if (demo) return Empty(normalized, periodRange, "当前环境未开启示例数据预览。");
 
-        var meters = await LoadMetersAsync(null, cancellationToken);
+        List<ParkEnergyMeterInput> meters = await LoadMetersAsync(null, cancellationToken);
         if (meters.Count == 0)
-        {
             // 没有计量点等于还没有能源台账。这与「有表但没有读数」是两件事，
             // 页面上的提示不同：前者要去建台账，后者要去查采集链路。
             return Empty(normalized, periodRange, "尚未配置能源计量点，无法汇总。");
-        }
 
-        var current = await AggregateAsync(meters, periodRange, offset, cancellationToken);
-        var previousRange = ResolvePreviousPeriod(normalized, periodRange, today);
-        var previous = await AggregateAsync(meters, previousRange, offset, cancellationToken);
+        ParkEnergyAggregate current = await AggregateAsync(meters, periodRange, offset, cancellationToken);
+        ParkEnergyPeriod previousRange = ResolvePreviousPeriod(normalized, periodRange, today);
+        ParkEnergyAggregate previous = await AggregateAsync(meters, previousRange, offset, cancellationToken);
 
         if (!current.HasReadings)
-        {
             return Empty(
                 normalized,
                 periodRange,
                 "统计期间内没有能源读数。请确认正式环境的能源平台已按接口推送数据，或通过批量导入补录。");
-        }
 
-        var loadDay = current.DataThrough is { } through
+        DateOnly loadDay = current.DataThrough is { } through
             ? DateOnly.FromDateTime(through.ToOffset(offset).Date)
             : today;
 
-        var loadMeters = meters.Where(meter => string.Equals(meter.MediumCode, "ELEC", StringComparison.Ordinal)).ToArray();
-        var dayLoad = loadMeters.Length == 0
+        ParkEnergyMeterInput[] loadMeters =
+            meters.Where(meter => string.Equals(meter.MediumCode, "ELEC", StringComparison.Ordinal)).ToArray();
+        decimal?[] dayLoad = loadMeters.Length == 0
             ? new decimal?[24]
             : await BuildLoadAsync(loadMeters, loadDay, offset, cancellationToken);
 
-        var declared = ResolveDeclaredDemand();
+        decimal? declared = ResolveDeclaredDemand();
 
         return new ParkEnergyOverviewDto(
             normalized,
@@ -215,38 +208,35 @@ public sealed class ParkEnergyQueryService(
         var usages = await dbContext.EnergyUsageTypes.AsNoTracking()
             .Where(usage => usage.IsEnabled)
             .OrderBy(usage => usage.SortOrder)
-            .Select(usage => new { usage.Id, usage.Code, usage.Name })
+            .Select(usage => new {usage.Id, usage.Code, usage.Name})
             .ToListAsync(cancellationToken);
 
         var systems = await dbContext.EnergySystems.AsNoTracking()
             .Where(system => system.IsEnabled)
             .OrderBy(system => system.SortOrder)
-            .Select(system => new { system.Id, system.Code, system.Name })
+            .Select(system => new {system.Id, system.Code, system.Name})
             .ToListAsync(cancellationToken);
 
         var orgUnits = await dbContext.EnergyOrgUnits.AsNoTracking()
             .Where(unit => unit.IsEnabled)
             .OrderBy(unit => unit.SortOrder)
-            .Select(unit => new { unit.Id, unit.Code, unit.Name, unit.Level, unit.ParentId })
+            .Select(unit => new {unit.Id, unit.Code, unit.Name, unit.Level, unit.ParentId})
             .ToListAsync(cancellationToken);
 
         // 层级深度在内存里算：只有园区、部门、工序三级，没必要为它写递归 CTE，
         // 但必须算——界面上把工序和部门平铺成一个下拉框，打标时必然选错层级。
-        var parents = orgUnits.ToDictionary(unit => unit.Id, unit => unit.ParentId);
-        var depthOf = new Dictionary<Guid, int>();
+        Dictionary<Guid, Guid?> parents = orgUnits.ToDictionary(unit => unit.Id, unit => unit.ParentId);
+        Dictionary<Guid, int> depthOf = new();
 
         int ResolveDepth(Guid id)
         {
-            if (depthOf.TryGetValue(id, out var cached))
-            {
-                return cached;
-            }
+            if (depthOf.TryGetValue(id, out int cached)) return cached;
 
-            var depth = 0;
-            var cursor = id;
-            var guard = 0;
+            int depth = 0;
+            Guid cursor = id;
+            int guard = 0;
 
-            while (parents.TryGetValue(cursor, out var parent) && parent.HasValue && guard++ < 8)
+            while (parents.TryGetValue(cursor, out Guid? parent) && parent.HasValue && guard++ < 8)
             {
                 depth++;
                 cursor = parent.Value;
@@ -258,12 +248,12 @@ public sealed class ParkEnergyQueryService(
 
         return new EnergyDictionaryDto(
             media.Select(item => new EnergyMediumDto(
-                item.Id,
-                item.Code,
-                item.Name,
-                item.Unit,
-                item.IsPrimaryEnergy,
-                item.CoalFactor))
+                    item.Id,
+                    item.Code,
+                    item.Name,
+                    item.Unit,
+                    item.IsPrimaryEnergy,
+                    item.CoalFactor))
                 .ToArray(),
             usages.Select(item => new EnergyDictionaryItemDto(item.Id, item.Code, item.Name, null)).ToArray(),
             systems.Select(item => new EnergyDictionaryItemDto(item.Id, item.Code, item.Name, null)).ToArray(),
@@ -305,58 +295,58 @@ public sealed class ParkEnergyQueryService(
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var code = request.Code.Trim();
-        if (string.IsNullOrWhiteSpace(code))
-        {
-            throw new ArgumentException("计量点编码不能为空。");
-        }
+        string code = request.Code.Trim();
+        if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("计量点编码不能为空。");
 
-        if (request.Ratio <= 0)
-        {
-            throw new ArgumentException("倍率必须大于 0，否则读数会被算成 0。");
-        }
+        if (request.Ratio <= 0) throw new ArgumentException("倍率必须大于 0，否则读数会被算成 0。");
 
-        var currentId = request.Id ?? Guid.Empty;
-        var duplicated = await dbContext.EnergyMeters
+        Guid currentId = request.Id ?? Guid.Empty;
+        bool duplicated = await dbContext.EnergyMeters
             .AnyAsync(meter => meter.Code == code && meter.Id != currentId, cancellationToken);
 
-        if (duplicated)
+        if (duplicated) throw new ArgumentException($"计量点编码 {code} 已存在。");
+
+        if (request.ParentMeterId == currentId && request.Id.HasValue) throw new ArgumentException("上级计量点不能是自身。");
+
+        if (request.ParentMeterId is { } parentId)
         {
-            throw new ArgumentException($"计量点编码 {code} 已存在。");
+            var ancestors = await dbContext.EnergyMeters.AsNoTracking()
+                .Select(meter => new {meter.Id, meter.ParentMeterId, meter.MediumId})
+                .ToListAsync(cancellationToken);
+            var byId = ancestors.ToDictionary(meter => meter.Id);
+            if (!byId.TryGetValue(parentId, out var parent)) throw new ArgumentException("上级计量点不存在。");
+
+            if (parent.MediumId != request.MediumId) throw new ArgumentException("上级计量点必须使用相同介质。");
+
+            HashSet<Guid> visited = new();
+            Guid? cursor = (Guid?) parentId;
+            while (cursor is { } ancestorId && byId.TryGetValue(ancestorId, out var ancestor))
+            {
+                if (ancestorId == currentId || !visited.Add(ancestorId))
+                    throw new ArgumentException("上级计量点不能是自身或下级计量点。");
+
+                cursor = ancestor.ParentMeterId;
+            }
         }
 
-        if (request.ParentMeterId == currentId && request.Id.HasValue)
-        {
-            throw new ArgumentException("上级计量点不能是自身。");
-        }
-
-        if (request.ParentMeterId is { } parentId &&
-            !await dbContext.EnergyMeters.AnyAsync(meter => meter.Id == parentId, cancellationToken))
-        {
-            throw new ArgumentException("上级计量点不存在。");
-        }
+        if (request.Id.HasValue && await dbContext.EnergyMeters.AnyAsync(
+                meter => meter.ParentMeterId == currentId && meter.MediumId != request.MediumId,
+                cancellationToken))
+            throw new ArgumentException("存在不同介质的下级计量点，不能修改介质。");
 
         // 四个维度逐个校验存在性。交给外键约束也能拦住，但报出来的是英文约束名，
         // 用户看不出「是哪个下拉框没选」。
         if (!await dbContext.EnergyMedia.AnyAsync(item => item.Id == request.MediumId, cancellationToken))
-        {
             throw new ArgumentException("介质不存在。");
-        }
 
         if (!await dbContext.EnergyOrgUnits.AnyAsync(item => item.Id == request.OrgUnitId, cancellationToken))
-        {
             throw new ArgumentException("组织节点不存在。");
-        }
 
         if (!await dbContext.EnergyUsageTypes.AnyAsync(item => item.Id == request.UsageTypeId, cancellationToken))
-        {
             throw new ArgumentException("用能用途不存在。");
-        }
 
         if (!await dbContext.EnergySystems.AnyAsync(item => item.Id == request.SystemTypeId, cancellationToken))
-        {
             throw new ArgumentException("设备系统不存在。");
-        }
 
         EnergyMeter entity;
 
@@ -367,7 +357,7 @@ public sealed class ParkEnergyQueryService(
         }
         else
         {
-            entity = new EnergyMeter { Id = Guid.NewGuid(), CreatedAt = DateTimeOffset.UtcNow };
+            entity = new EnergyMeter {Id = Guid.NewGuid(), CreatedAt = DateTimeOffset.UtcNow};
             dbContext.EnergyMeters.Add(entity);
         }
 
@@ -422,25 +412,18 @@ public sealed class ParkEnergyQueryService(
     /// <inheritdoc />
     public async Task<bool> DeleteMeterAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var meter = await dbContext.EnergyMeters
+        EnergyMeter? meter = await dbContext.EnergyMeters
             .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
 
-        if (meter is null)
-        {
-            return false;
-        }
+        if (meter is null) return false;
 
         // 有读数就不能删：历史报表按 meter_id 聚合，删掉表之后这些读数
         // 会变成孤儿，既不进任何汇总，也查不到出处。正确做法是停用。
         if (await dbContext.EnergyReadings.AnyAsync(reading => reading.MeterId == id, cancellationToken))
-        {
             throw new InvalidOperationException("该计量点已有读数，删除会让历史数据失去归属；请改为停用。");
-        }
 
         if (await dbContext.EnergyMeters.AnyAsync(item => item.ParentMeterId == id, cancellationToken))
-        {
             throw new InvalidOperationException("该计量点下还有下级表，请先调整下级表的上级关系。");
-        }
 
         dbContext.EnergyMeters.Remove(meter);
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -454,15 +437,13 @@ public sealed class ParkEnergyQueryService(
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var code = request.Code.Trim();
-        var name = request.Name.Trim();
+        string code = request.Code.Trim();
+        string name = request.Name.Trim();
 
         if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(name))
-        {
             throw new ArgumentException("节点编码与名称都不能为空。");
-        }
 
-        var level = request.Level switch
+        string level = request.Level switch
         {
             EnergyOrgUnit.ParkLevel => EnergyOrgUnit.ParkLevel,
             EnergyOrgUnit.DepartmentLevel => EnergyOrgUnit.DepartmentLevel,
@@ -472,29 +453,23 @@ public sealed class ParkEnergyQueryService(
 
         // 园区必须无上级，其余必须有上级。少了这条校验，上卷汇总会悄悄漏掉整棵子树。
         if (level == EnergyOrgUnit.ParkLevel && request.ParentId is not null)
-        {
             throw new ArgumentException("园区级节点不能有上级。");
-        }
 
         if (level != EnergyOrgUnit.ParkLevel && request.ParentId is null)
-        {
             throw new ArgumentException("部门与工序级节点必须选择上级节点。");
-        }
 
-        var currentId = request.Id ?? Guid.Empty;
+        Guid currentId = request.Id ?? Guid.Empty;
         if (await dbContext.EnergyOrgUnits.AnyAsync(
                 unit => unit.Code == code && unit.Id != currentId, cancellationToken))
-        {
             throw new ArgumentException($"节点编码 {code} 已存在。");
-        }
 
         if (request.ParentId is { } parentId)
         {
-            var parent = await dbContext.EnergyOrgUnits.AsNoTracking()
-                             .FirstOrDefaultAsync(unit => unit.Id == parentId, cancellationToken)
-                         ?? throw new ArgumentException("上级节点不存在。");
+            EnergyOrgUnit parent = await dbContext.EnergyOrgUnits.AsNoTracking()
+                                       .FirstOrDefaultAsync(unit => unit.Id == parentId, cancellationToken)
+                                   ?? throw new ArgumentException("上级节点不存在。");
 
-            var expected = level switch
+            string? expected = level switch
             {
                 EnergyOrgUnit.DepartmentLevel => EnergyOrgUnit.ParkLevel,
                 EnergyOrgUnit.ProcessLevel => EnergyOrgUnit.DepartmentLevel,
@@ -502,33 +477,25 @@ public sealed class ParkEnergyQueryService(
             };
 
             if (expected is not null && parent.Level != expected)
-            {
                 throw new ArgumentException(
                     level == EnergyOrgUnit.DepartmentLevel
                         ? "部门级节点的上级必须是园区。"
                         : "工序级节点的上级必须是部门。");
-            }
 
             // 防成环：把上级设成自己的后代，整棵树从根上就断了，而且不会有任何报错。
-            var cursor = parentId;
-            var guard = 0;
+            Guid cursor = parentId;
+            int guard = 0;
 
             while (guard++ < 16)
             {
-                if (cursor == currentId && request.Id.HasValue)
-                {
-                    throw new ArgumentException("上级节点不能是自己或自己的下级。");
-                }
+                if (cursor == currentId && request.Id.HasValue) throw new ArgumentException("上级节点不能是自己或自己的下级。");
 
-                var next = await dbContext.EnergyOrgUnits.AsNoTracking()
+                Guid? next = await dbContext.EnergyOrgUnits.AsNoTracking()
                     .Where(unit => unit.Id == cursor)
                     .Select(unit => unit.ParentId)
                     .FirstOrDefaultAsync(cancellationToken);
 
-                if (next is null)
-                {
-                    break;
-                }
+                if (next is null) break;
 
                 cursor = next.Value;
             }
@@ -543,7 +510,7 @@ public sealed class ParkEnergyQueryService(
         }
         else
         {
-            entity = new EnergyOrgUnit { Id = Guid.NewGuid(), CreatedAt = DateTimeOffset.UtcNow };
+            entity = new EnergyOrgUnit {Id = Guid.NewGuid(), CreatedAt = DateTimeOffset.UtcNow};
             dbContext.EnergyOrgUnits.Add(entity);
         }
 
@@ -563,8 +530,8 @@ public sealed class ParkEnergyQueryService(
             throw new ArgumentException("保存失败：节点编码可能已被占用，或上级节点已被删除。", ex);
         }
 
-        var depth = 0;
-        var walk = entity.ParentId;
+        int depth = 0;
+        Guid? walk = entity.ParentId;
 
         while (walk is { } ancestorId && depth < 8)
         {
@@ -584,21 +551,16 @@ public sealed class ParkEnergyQueryService(
         decimal? coalFactor,
         CancellationToken cancellationToken = default)
     {
-        var medium = await dbContext.EnergyMedia
-                         .FirstOrDefaultAsync(item => item.Id == mediumId, cancellationToken)
-                     ?? throw new ArgumentException("介质不存在。");
+        EnergyMedium medium = await dbContext.EnergyMedia
+                                  .FirstOrDefaultAsync(item => item.Id == mediumId, cancellationToken)
+                              ?? throw new ArgumentException("介质不存在。");
 
-        if (coalFactor is < 0)
-        {
-            throw new ArgumentException("折标煤系数不能为负数。");
-        }
+        if (coalFactor is < 0) throw new ArgumentException("折标煤系数不能为负数。");
 
         if (!medium.IsPrimaryEnergy && coalFactor.HasValue)
-        {
             // 二次能源的折标煤系数没有意义：它的能量已经算在电或蒸汽里了，
             // 再配一个系数只会让人以为它进了综合能耗。
             throw new ArgumentException($"{medium.Name}不是一次能源，不使用折标煤系数；它的折算电耗系数属于另一个口径。");
-        }
 
         medium.CoalFactor = coalFactor;
         medium.UpdatedAt = DateTimeOffset.UtcNow;
@@ -618,42 +580,32 @@ public sealed class ParkEnergyQueryService(
         IngestEnergyReadingsRequest request,
         CancellationToken cancellationToken = default)
     {
-        var messages = new List<string>();
-        var rejected = 0;
+        List<string> messages = new();
+        int rejected = 0;
 
-        if (request.Readings.Count == 0)
-        {
-            return new IngestEnergyReadingsResultDto(0, 0, 0, messages);
-        }
+        if (request.Readings.Count == 0) return new IngestEnergyReadingsResultDto(0, 0, 0, messages);
 
-        if (request.Readings.Count > MaxIngestBatch)
-        {
-            throw new ArgumentException($"单次最多写入 {MaxIngestBatch} 条读数，请分批推送。");
-        }
+        if (request.Readings.Count > MaxIngestBatch) throw new ArgumentException($"单次最多写入 {MaxIngestBatch} 条读数，请分批推送。");
 
-        var codes = request.Readings
+        string[] codes = request.Readings
             .Select(item => item.MeterCode)
             .Where(code => !string.IsNullOrWhiteSpace(code))
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        var meterIds = await dbContext.EnergyMeters.AsNoTracking()
+        Dictionary<string, Guid> meterIds = await dbContext.EnergyMeters.AsNoTracking()
             .Where(meter => codes.Contains(meter.Code))
-            .Select(meter => new { meter.Id, meter.Code })
+            .Select(meter => new {meter.Id, meter.Code})
             .ToDictionaryAsync(meter => meter.Code, meter => meter.Id, StringComparer.Ordinal, cancellationToken);
 
-        var accepted = 0;
-        var updated = 0;
+        List<(Guid MeterId, DateTimeOffset ReadAt, decimal Value, string Source)> valid = new();
 
-        foreach (var item in request.Readings)
+        foreach (IngestEnergyReadingItem item in request.Readings)
         {
-            if (string.IsNullOrWhiteSpace(item.MeterCode) || !meterIds.TryGetValue(item.MeterCode, out var meterId))
+            if (string.IsNullOrWhiteSpace(item.MeterCode) || !meterIds.TryGetValue(item.MeterCode, out Guid meterId))
             {
                 rejected++;
-                if (messages.Count < MaxIngestMessages)
-                {
-                    messages.Add($"计量点编码 {item.MeterCode} 不存在，已跳过。");
-                }
+                if (messages.Count < MaxIngestMessages) messages.Add($"计量点编码 {item.MeterCode} 不存在，已跳过。");
 
                 continue;
             }
@@ -662,47 +614,67 @@ public sealed class ParkEnergyQueryService(
             {
                 rejected++;
                 if (messages.Count < MaxIngestMessages)
-                {
                     messages.Add($"计量点 {item.MeterCode} 在 {item.ReadAt:yyyy-MM-dd HH:mm} 的读数为负值，已拒绝。");
-                }
 
                 continue;
             }
 
-            var readAt = item.ReadAt.ToUniversalTime();
-            var source = string.IsNullOrWhiteSpace(item.Source) ? EnergyReading.CollectionSource : item.Source;
-
-            var existing = await dbContext.EnergyReadings
-                .FirstOrDefaultAsync(
-                    reading => reading.MeterId == meterId && reading.ReadAt == readAt,
-                    cancellationToken);
-
-            if (existing is null)
+            DateTimeOffset readAt = item.ReadAt.ToUniversalTime();
+            string source = string.IsNullOrWhiteSpace(item.Source) ? EnergyReading.CollectionSource : item.Source;
+            if (source is not (EnergyReading.CollectionSource or EnergyReading.ManualSource
+                or EnergyReading.ImportSource))
             {
-                dbContext.EnergyReadings.Add(new EnergyReading
-                {
-                    Id = Guid.NewGuid(),
-                    MeterId = meterId,
-                    ReadAt = readAt,
-                    Value = item.Value,
-                    Source = source,
-                    CreatedAt = DateTimeOffset.UtcNow
-                });
-                accepted++;
+                rejected++;
+                if (messages.Count < MaxIngestMessages) messages.Add($"计量点 {item.MeterCode} 的读数来源无效，已拒绝。");
+
+                continue;
             }
-            else
-            {
-                // 同一抄见时刻重复推送按覆盖处理，而不是再插一条：
-                // 重复行会让累计表的差分量凭空翻倍，而报表上完全看不出异常。
-                existing.Value = item.Value;
-                existing.Source = source;
-                updated++;
-            }
+
+            valid.Add((meterId, readAt, item.Value, source));
         }
 
-        if (accepted + updated > 0)
+        int accepted = 0;
+        int updated = 0;
+        if (valid.Count > 0)
         {
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await using IDbContextTransaction transaction =
+                await dbContext.Database.BeginTransactionAsync(cancellationToken);
+            NpgsqlConnection connection = (NpgsqlConnection) dbContext.Database.GetDbConnection();
+            await using NpgsqlBatch batch = new(connection, (NpgsqlTransaction) transaction.GetDbTransaction());
+            foreach ((Guid MeterId, DateTimeOffset ReadAt, decimal Value, string Source) item in valid)
+            {
+                NpgsqlBatchCommand command = new(
+                    """
+                    INSERT INTO energy_readings (id, meter_id, read_at, value, source, created_at)
+                    VALUES (@id, @meter, @read_at, @value, @source, @created_at)
+                    ON CONFLICT (meter_id, read_at)
+                    DO UPDATE SET value = EXCLUDED.value, source = EXCLUDED.source
+                    RETURNING (xmax = 0)
+                    """);
+                command.Parameters.AddWithValue("id", Guid.NewGuid());
+                command.Parameters.AddWithValue("meter", item.MeterId);
+                command.Parameters.AddWithValue("read_at", item.ReadAt);
+                command.Parameters.AddWithValue("value", item.Value);
+                command.Parameters.AddWithValue("source", item.Source);
+                command.Parameters.AddWithValue("created_at", DateTimeOffset.UtcNow);
+                batch.BatchCommands.Add(command);
+            }
+
+            await using (NpgsqlDataReader reader = await batch.ExecuteReaderAsync(cancellationToken))
+            {
+                do
+                {
+                    if (await reader.ReadAsync(cancellationToken))
+                    {
+                        if (reader.GetBoolean(0))
+                            accepted++;
+                        else
+                            updated++;
+                    }
+                } while (await reader.NextResultAsync(cancellationToken));
+            }
+
+            await transaction.CommitAsync(cancellationToken);
         }
 
         logger.LogInformation(
@@ -718,11 +690,8 @@ public sealed class ParkEnergyQueryService(
         Guid? orgUnitId,
         CancellationToken cancellationToken)
     {
-        var query = dbContext.EnergyMeters.AsNoTracking().Where(meter => meter.IsEnabled);
-        if (orgUnitId.HasValue)
-        {
-            query = query.Where(meter => meter.OrgUnitId == orgUnitId.Value);
-        }
+        IQueryable<EnergyMeter> query = dbContext.EnergyMeters.AsNoTracking();
+        if (orgUnitId.HasValue) query = query.Where(meter => meter.OrgUnitId == orgUnitId.Value);
 
         var rows = await query
             .Select(meter => new
@@ -730,6 +699,7 @@ public sealed class ParkEnergyQueryService(
                 meter.Id,
                 meter.Code,
                 meter.Name,
+                meter.ParentMeterId,
                 meter.IsCumulative,
                 meter.Ratio,
                 meter.OrgUnitId,
@@ -754,7 +724,8 @@ public sealed class ParkEnergyQueryService(
             row.IsCumulative,
             row.Ratio,
             row.OrgUnitId,
-            row.OrgUnitName)).ToList();
+            row.OrgUnitName,
+            row.ParentMeterId)).ToList();
     }
 
     private async Task<ParkEnergyAggregate> AggregateAsync(
@@ -763,10 +734,11 @@ public sealed class ParkEnergyQueryService(
         TimeSpan offset,
         CancellationToken cancellationToken)
     {
-        var start = period.StartInstant(offset).ToUniversalTime();
-        var end = period.EndInstant(offset).ToUniversalTime();
+        DateTimeOffset start = period.StartInstant(offset).ToUniversalTime();
+        DateTimeOffset end = period.EndInstant(offset).ToUniversalTime();
 
-        var readings = await LoadReadingsAsync(meters, start, end, cancellationToken);
+        IReadOnlyCollection<ParkEnergyReadingInput> readings =
+            await LoadReadingsAsync(meters, start, end, cancellationToken);
 
         return ParkEnergyAggregator.Aggregate(meters, readings, period, offset);
     }
@@ -777,11 +749,12 @@ public sealed class ParkEnergyQueryService(
         TimeSpan offset,
         CancellationToken cancellationToken)
     {
-        var start = new DateTimeOffset(day.ToDateTime(TimeOnly.MinValue), offset).ToUniversalTime();
-        var end = start.AddDays(1);
+        DateTimeOffset start = new DateTimeOffset(day.ToDateTime(TimeOnly.MinValue), offset).ToUniversalTime();
+        DateTimeOffset end = start.AddDays(1);
 
         // 首小时需要前一小时的最后一条读数来定区间，因此窗口向前多取一天。
-        var readings = await LoadReadingsAsync(meters, start, end, cancellationToken, start.AddDays(-1));
+        IReadOnlyCollection<ParkEnergyReadingInput> readings =
+            await LoadReadingsAsync(meters, start, end, cancellationToken, start.AddDays(-1));
 
         return ParkEnergyAggregator.BuildHourlyLoad(meters, readings, day, offset);
     }
@@ -793,54 +766,45 @@ public sealed class ParkEnergyQueryService(
         CancellationToken cancellationToken,
         DateTimeOffset? windowStart = null)
     {
-        var ids = meters.Select(meter => meter.Id).ToArray();
-        if (ids.Length == 0)
-        {
-            return [];
-        }
+        Guid[] ids = meters.Select(meter => meter.Id).ToArray();
+        if (ids.Length == 0) return [];
 
-        var result = new List<ParkEnergyReadingInput>();
+        List<ParkEnergyReadingInput> result = new();
 
         // 负荷曲线要从当天零点算起，零点那一段的用量依赖前一天最后一条读数，
         // 因此窗口可以前移；期间汇总则不需要，累计表已单独取基线。
-        var queryFrom = windowStart ?? start;
+        DateTimeOffset queryFrom = windowStart ?? start;
 
         var inPeriod = await dbContext.EnergyReadings.AsNoTracking()
             .Where(reading => ids.Contains(reading.MeterId) &&
                               reading.ReadAt >= queryFrom && reading.ReadAt < end)
-            .Select(reading => new { reading.MeterId, reading.ReadAt, reading.Value })
+            .Select(reading => new {reading.MeterId, reading.ReadAt, reading.Value})
             .ToListAsync(cancellationToken);
 
         result.AddRange(inPeriod.Select(row => new ParkEnergyReadingInput(row.MeterId, row.ReadAt, row.Value)));
 
-        if (windowStart.HasValue)
-        {
-            return result;
-        }
+        if (windowStart.HasValue) return result;
 
         // 累计表的用量要靠期间起点之前的最后一次抄见做基线，否则每月首日的报表
         // 会把整月前半段的用量整段丢掉。这里先按表取最大抄见时刻，再取回对应记录。
         var lastReads = await dbContext.EnergyReadings.AsNoTracking()
             .Where(reading => ids.Contains(reading.MeterId) && reading.ReadAt < start)
             .GroupBy(reading => reading.MeterId)
-            .Select(group => new { MeterId = group.Key, ReadAt = group.Max(reading => reading.ReadAt) })
+            .Select(group => new {MeterId = group.Key, ReadAt = group.Max(reading => reading.ReadAt)})
             .ToListAsync(cancellationToken);
 
-        if (lastReads.Count == 0)
-        {
-            return result;
-        }
+        if (lastReads.Count == 0) return result;
 
         // 只取「每块表最后一次抄见」对应的那几条。早先的写法是把 start 之前的
         // 全部历史读回来再在内存里筛，运行一年之后这个查询会开始明显变慢。
-        var baselineTimes = lastReads.Select(item => item.ReadAt).Distinct().ToArray();
+        DateTimeOffset[] baselineTimes = lastReads.Select(item => item.ReadAt).Distinct().ToArray();
 
         var baselineRows = await dbContext.EnergyReadings.AsNoTracking()
             .Where(reading => ids.Contains(reading.MeterId) && baselineTimes.Contains(reading.ReadAt))
-            .Select(reading => new { reading.MeterId, reading.ReadAt, reading.Value })
+            .Select(reading => new {reading.MeterId, reading.ReadAt, reading.Value})
             .ToListAsync(cancellationToken);
 
-        var wanted = lastReads
+        HashSet<(Guid MeterId, DateTimeOffset ReadAt)> wanted = lastReads
             .Select(item => (item.MeterId, item.ReadAt))
             .ToHashSet();
 
@@ -853,46 +817,42 @@ public sealed class ParkEnergyQueryService(
 
     private TimeSpan ResolveOffset()
     {
-        var hours = configuration.GetValue("Energy:UtcOffsetHours", 8d);
+        double hours = configuration.GetValue("Energy:UtcOffsetHours", 8d);
         return TimeSpan.FromHours(hours);
     }
 
     private decimal? ResolveDeclaredDemand()
     {
-        var value = configuration.GetValue<decimal?>("Energy:DeclaredDemandKw");
+        decimal? value = configuration.GetValue<decimal?>("Energy:DeclaredDemandKw");
         return value is > 0 ? value : null;
     }
 
     private static ParkEnergyPeriod ResolvePeriod(string period, DateOnly today)
     {
         if (string.Equals(period, "year", StringComparison.Ordinal))
-        {
             return new ParkEnergyPeriod(new DateOnly(today.Year, 1, 1), today);
-        }
 
-        var start = new DateOnly(today.Year, today.Month, 1);
+        DateOnly start = new(today.Year, today.Month, 1);
         return new ParkEnergyPeriod(start, today);
     }
 
     private static ParkEnergyPeriod ResolvePreviousPeriod(string period, ParkEnergyPeriod current, DateOnly today)
     {
-        var length = current.EndInclusive.DayNumber - current.Start.DayNumber;
-        var start = string.Equals(period, "year", StringComparison.Ordinal)
+        int length = current.EndInclusive.DayNumber - current.Start.DayNumber;
+        DateOnly start = string.Equals(period, "year", StringComparison.Ordinal)
             ? current.Start.AddYears(-1)
             : current.Start.AddMonths(-1);
 
-        var end = start.AddDays(length);
-        var maxEnd = start.AddMonths(1).AddDays(-1);
-        if (string.Equals(period, "month", StringComparison.Ordinal) && end > maxEnd)
-        {
-            end = maxEnd;
-        }
+        DateOnly end = start.AddDays(length);
+        DateOnly maxEnd = start.AddMonths(1).AddDays(-1);
+        if (string.Equals(period, "month", StringComparison.Ordinal) && end > maxEnd) end = maxEnd;
 
         return new ParkEnergyPeriod(start, end);
     }
 
-    private ParkEnergyOverviewDto Empty(string period, ParkEnergyPeriod range, string message) =>
-        new(
+    private ParkEnergyOverviewDto Empty(string period, ParkEnergyPeriod range, string message)
+    {
+        return new ParkEnergyOverviewDto(
             period,
             period == "year" ? $"{range.Start:yyyy} 年" : $"{range.Start:yyyy 年 M 月}",
             range.Start,
@@ -907,18 +867,19 @@ public sealed class ParkEnergyQueryService(
             [],
             [],
             []);
+    }
 
     private static IReadOnlyList<ParkEnergyKpiDto> BuildKpis(
         ParkEnergyAggregate current,
         ParkEnergyAggregate previous,
         string period)
     {
-        var suffix = period == "year" ? "同比" : "环比";
-        var totalDelta = BuildDelta(current.TotalTce, previous.TotalTce, suffix);
+        string suffix = period == "year" ? "同比" : "环比";
+        string? totalDelta = BuildDelta(current.TotalTce, previous.TotalTce, suffix);
 
-        var kpis = new List<ParkEnergyKpiDto>
+        List<ParkEnergyKpiDto> kpis = new()
         {
-            new(
+            new ParkEnergyKpiDto(
                 "totalTce",
                 "综合能耗",
                 FormatNumber(current.TotalTce),
@@ -930,20 +891,20 @@ public sealed class ParkEnergyQueryService(
                 "电、水、蒸汽折标煤合计，只汇一次能源")
         };
 
-        var primary = current.Mediums.Where(usage => usage.IsPrimaryEnergy).ToArray();
-        var total = current.TotalTce > 0 ? current.TotalTce : 0m;
+        ParkEnergyMediumUsage[] primary = current.Mediums.Where(usage => usage.IsPrimaryEnergy).ToArray();
+        decimal total = current.TotalTce > 0 ? current.TotalTce : 0m;
 
-        foreach (var usage in primary)
+        foreach (ParkEnergyMediumUsage usage in primary)
         {
-            var before = previous.Mediums
+            decimal before = previous.Mediums
                 .FirstOrDefault(item => string.Equals(item.Code, usage.Code, StringComparison.Ordinal))
                 ?.Quantity ?? 0m;
 
-            var shareText = total > 0 && usage.CoalEquivalentTce.HasValue
+            string shareText = total > 0 && usage.CoalEquivalentTce.HasValue
                 ? $"折标 {usage.CoalEquivalentTce:0.#} tce，占 {usage.CoalEquivalentTce.Value / total * 100m:0.#}%"
                 : $"折标系数待配置，共 {usage.MeterCount} 块表";
 
-            var delta = BuildDelta(usage.Quantity, before, suffix);
+            string? delta = BuildDelta(usage.Quantity, before, suffix);
 
             kpis.Add(new ParkEnergyKpiDto(
                 usage.Code.ToLowerInvariant(),
@@ -962,32 +923,37 @@ public sealed class ParkEnergyQueryService(
     /// 指标卡标题。不能简单拼「{介质名}量」——「水量」不是中文说法，
     /// 而「电」拼出来是「电量」，与业务习惯的「总用电量」也不一致。
     /// </summary>
-    private static string KpiLabel(string code, string name) => code switch
+    private static string KpiLabel(string code, string name)
     {
-        "ELEC" => "总用电量",
-        "WATER" => "用水量",
-        "STEAM" => "蒸汽量",
-        _ => $"{name}用量"
-    };
+        return code switch
+        {
+            "ELEC" => "总用电量",
+            "WATER" => "用水量",
+            "STEAM" => "蒸汽量",
+            _ => $"{name}用量"
+        };
+    }
 
     private static IReadOnlyList<ParkEnergyShareDto> BuildPrimaryShares(ParkEnergyAggregate current)
     {
-        var primary = current.Mediums
+        ParkEnergyMediumUsage[] primary = current.Mediums
             .Where(usage => usage.IsPrimaryEnergy)
             .OrderByDescending(usage => usage.CoalEquivalentTce ?? -1m)
             .ToArray();
 
-        var total = primary.Sum(usage => usage.CoalEquivalentTce ?? 0m);
+        decimal total = primary.Sum(usage => usage.CoalEquivalentTce ?? 0m);
 
         return primary.Select(usage =>
         {
-            var share = total > 0 && usage.CoalEquivalentTce.HasValue
+            decimal? share = total > 0 && usage.CoalEquivalentTce.HasValue
                 ? Math.Round(usage.CoalEquivalentTce.Value / total, 4)
-                : (decimal?)null;
+                : (decimal?) null;
 
             return new ParkEnergyShareDto(
                 usage.Name,
-                usage.CoalEquivalentTce is { } coal ? $"{coal:0.#} tce" : $"{FormatNumber(usage.Quantity)} {usage.Unit}",
+                usage.CoalEquivalentTce is { } coal
+                    ? $"{coal:0.#} tce"
+                    : $"{FormatNumber(usage.Quantity)} {usage.Unit}",
                 share,
                 share is { } value ? $"{value * 100m:0.#}%" : "待配置折标系数");
         }).ToArray();
@@ -1013,17 +979,14 @@ public sealed class ParkEnergyQueryService(
         ParkEnergyAggregate current,
         ParkEnergyAggregate previous)
     {
-        var total = current.TotalTce;
-        var rows = new List<ParkEnergyOrgShareDto>();
+        decimal total = current.TotalTce;
+        List<ParkEnergyOrgShareDto> rows = new();
 
-        foreach (var org in current.Orgs)
+        foreach (ParkEnergyOrgUsage org in current.Orgs)
         {
-            if (org.CoalEquivalentTce is not { } coal)
-            {
-                continue;
-            }
+            if (org.CoalEquivalentTce is not { } coal) continue;
 
-            var before = previous.Orgs.FirstOrDefault(item => item.OrgUnitId == org.OrgUnitId)?.CoalEquivalentTce;
+            decimal? before = previous.Orgs.FirstOrDefault(item => item.OrgUnitId == org.OrgUnitId)?.CoalEquivalentTce;
 
             decimal? delta = before is > 0
                 ? Math.Round((coal - before.Value) / before.Value * 100m, 1)
@@ -1042,13 +1005,11 @@ public sealed class ParkEnergyQueryService(
     private static string? BuildDelta(decimal current, decimal previous, string suffix)
     {
         if (previous <= 0)
-        {
             // 没有可比基数时给「新增」而不是 100%：后者会让读者以为翻了一倍。
             return current > 0 ? $"上期无数据，无法{suffix}" : null;
-        }
 
-        var percent = Math.Round((current - previous) / previous * 100m, 1);
-        var arrow = percent switch
+        decimal percent = Math.Round((current - previous) / previous * 100m, 1);
+        string arrow = percent switch
         {
             > 0 => "↑",
             < 0 => "↓",
@@ -1062,11 +1023,14 @@ public sealed class ParkEnergyQueryService(
     /// 格式化数值。万级用量换成「万」：园区月度电量在千万级，
     /// 卡片上写 2,864,000 kWh 既占宽度也没人愿意读。
     /// </summary>
-    private static string FormatNumber(decimal value) => value switch
+    private static string FormatNumber(decimal value)
     {
-        >= 100_000_000m => $"{value / 100_000_000m:0.##} 亿",
-        >= 10_000m => $"{value / 10_000m:0.##} 万",
-        >= 1_000m => $"{value:#,0.#}",
-        _ => $"{value:0.##}"
-    };
+        return value switch
+        {
+            >= 100_000_000m => $"{value / 100_000_000m:0.##} 亿",
+            >= 10_000m => $"{value / 10_000m:0.##} 万",
+            >= 1_000m => $"{value:#,0.#}",
+            _ => $"{value:0.##}"
+        };
+    }
 }

@@ -1,4 +1,7 @@
+using System.Net;
+using System.Net.Http;
 using ClosedXML.Excel;
+using DAP.Clients;
 using DAP.Core.Shared.Contracts;
 using DAP.Presentation.BlazorWeb.Services;
 
@@ -74,7 +77,7 @@ public class InMemoryShiftSchedulingServiceTests
     [Fact]
     public async Task ImportAsync_With_Corrupted_File_Should_Return_Readable_Chinese_Error()
     {
-        using var stream = new MemoryStream([0x00, 0x01, 0x02, 0x03, 0xFF, 0xFE]);
+        using MemoryStream stream = new([0x00, 0x01, 0x02, 0x03, 0xFF, 0xFE]);
 
         ShiftScheduleImportResultDto result = await _service.ImportAsync("坏文件.xlsx", stream);
 
@@ -102,7 +105,7 @@ public class InMemoryShiftSchedulingServiceTests
     [Fact]
     public async Task ImportAsync_When_Cancelled_Should_Throw_OperationCanceled()
     {
-        using var cts = new CancellationTokenSource();
+        using CancellationTokenSource cts = new();
         await cts.CancelAsync();
 
         using MemoryStream stream = BuildValidSchedule();
@@ -245,7 +248,7 @@ public class InMemoryShiftSchedulingServiceTests
     {
         await _service.ImportAsync("排班表.xlsx", BuildValidSchedule());
 
-        var cleared = await _service.ClearAsync();
+        bool cleared = await _service.ClearAsync();
 
         Assert.True(cleared);
 
@@ -278,6 +281,60 @@ public class InMemoryShiftSchedulingServiceTests
 
     #endregion
 
+    #region 只读 API 路由
+
+    [Fact]
+    public async Task ReadOnly_Clients_Should_Not_Call_Configuration_Level_Shift_API()
+    {
+        ReadOnlyRouteHandler handler = new();
+        using HttpClient httpClient = new(handler) {BaseAddress = new Uri("https://dap.test")};
+        PlatformApiClient client = new(httpClient);
+
+        Assert.Single(await client.GetEnergyTeamsAsync());
+        Assert.Single(await client.GetShiftScheduleTeamsAsync());
+        Assert.Empty(await client.GetShiftScheduleCalendarAsync(Day1, Day1.AddDays(1)));
+        Assert.Null(await client.GetTeamShiftScheduleAsync("TEAM-甲", Day1, Day1.AddDays(1)));
+
+        string[] expectedRoutes =
+        [
+            "/api/energy-metrics/teams",
+            "/api/shift-schedule-view/teams",
+            "/api/shift-schedule-view/calendar?from=2026-10-20&to=2026-10-21",
+            "/api/shift-schedule-view/teams/TEAM-%E7%94%B2?from=2026-10-20&to=2026-10-21"
+        ];
+
+        Assert.Equal(expectedRoutes, handler.Requests);
+        Assert.DoesNotContain(handler.Requests, path => path.StartsWith("/api/shift-schedules/", StringComparison.Ordinal));
+    }
+
+    private sealed class ReadOnlyRouteHandler : HttpMessageHandler
+    {
+        public List<string> Requests { get; } = [];
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            string path = request.RequestUri?.PathAndQuery ?? string.Empty;
+            Requests.Add(path);
+
+            if (request.RequestUri?.AbsolutePath.StartsWith(
+                    "/api/shift-schedule-view/teams/", StringComparison.Ordinal) == true)
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+
+            string payload = request.RequestUri?.AbsolutePath.EndsWith("/teams", StringComparison.Ordinal) == true
+                ? """[{"teamCode":"TEAM-甲","teamName":"甲班"}]"""
+                : "[]";
+
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(payload, System.Text.Encoding.UTF8, "application/json")
+            });
+        }
+    }
+
+    #endregion
+
     #region 测试数据构造
 
     /// <summary>
@@ -290,9 +347,9 @@ public class InMemoryShiftSchedulingServiceTests
 
     private static MemoryStream BuildSchedule(DateOnly[] dates)
     {
-        var stream = new MemoryStream();
+        MemoryStream stream = new();
 
-        using (var workbook = new XLWorkbook())
+        using (XLWorkbook workbook = new())
         {
             IXLWorksheet worksheet = workbook.Worksheets.Add("排班表");
             worksheet.Cell(1, 1).Value = "自然日";
@@ -301,22 +358,22 @@ public class InMemoryShiftSchedulingServiceTests
             worksheet.Cell(1, 4).Value = "下班时间";
 
             string[] teamNames = ["甲班", "乙班", "丙班", "丁班"];
-            var shifts = new (TimeOnly Start, TimeOnly End)[]
+            (TimeOnly Start, TimeOnly End)[] shifts = new (TimeOnly Start, TimeOnly End)[]
             {
                 (new TimeOnly(0, 0), new TimeOnly(8, 0)),
                 (new TimeOnly(8, 0), new TimeOnly(16, 0)),
                 (new TimeOnly(16, 0), new TimeOnly(0, 0))
             };
 
-            var row = 2;
-            for (var dayIndex = 0; dayIndex < dates.Length; dayIndex++)
+            int row = 2;
+            for (int dayIndex = 0; dayIndex < dates.Length; dayIndex++)
             {
                 DateOnly date = dates[dayIndex];
-                var restingIndex = dayIndex % 4;
+                int restingIndex = dayIndex % 4;
 
-                for (var dutyIndex = 0; dutyIndex < 3; dutyIndex++)
+                for (int dutyIndex = 0; dutyIndex < 3; dutyIndex++)
                 {
-                    var teamIndex = dutyIndex < restingIndex ? dutyIndex : dutyIndex + 1;
+                    int teamIndex = dutyIndex < restingIndex ? dutyIndex : dutyIndex + 1;
                     (TimeOnly Start, TimeOnly End) shift = shifts[dutyIndex];
 
                     worksheet.Cell(row, 1).Value = date.ToDateTime(new TimeOnly(0, 0));
@@ -345,9 +402,9 @@ public class InMemoryShiftSchedulingServiceTests
     /// </summary>
     private static MemoryStream BuildInvalidSchedule()
     {
-        var stream = new MemoryStream();
+        MemoryStream stream = new();
 
-        using (var workbook = new XLWorkbook())
+        using (XLWorkbook workbook = new())
         {
             IXLWorksheet worksheet = workbook.Worksheets.Add("排班表");
             worksheet.Cell(1, 1).Value = "自然日";

@@ -20,7 +20,7 @@ public sealed class PlatformAuthClient(HttpClient httpClient) : IPlatformAuthCli
         string password,
         CancellationToken cancellationToken = default)
     {
-        using var content = new FormUrlEncodedContent(new Dictionary<string, string>
+        using FormUrlEncodedContent content = new(new Dictionary<string, string>
         {
             ["userName"] = userName,
             ["password"] = password,
@@ -39,10 +39,7 @@ public sealed class PlatformAuthClient(HttpClient httpClient) : IPlatformAuthCli
         using HttpResponseMessage response =
             await httpClient.GetAsync("/api/auth/me", cancellationToken);
 
-        if (response.StatusCode == HttpStatusCode.Unauthorized)
-        {
-            return null;
-        }
+        if (response.StatusCode == HttpStatusCode.Unauthorized) return null;
 
         await PlatformHttpResponse.EnsureSuccessAsync(response, cancellationToken);
 
@@ -67,11 +64,9 @@ public sealed class PlatformAuthClient(HttpClient httpClient) : IPlatformAuthCli
         CancellationToken cancellationToken = default)
     {
         if (!string.Equals(newPassword, confirmPassword, StringComparison.Ordinal))
-        {
             return new AuthOperationResultDto(false, "两次输入的新密码不一致。");
-        }
 
-        using var content = new FormUrlEncodedContent(new Dictionary<string, string>
+        using FormUrlEncodedContent content = new(new Dictionary<string, string>
         {
             ["currentPassword"] = currentPassword,
             ["newPassword"] = newPassword,
@@ -102,8 +97,8 @@ public sealed class PlatformAuthClient(HttpClient httpClient) : IPlatformAuthCli
             or HttpStatusCode.TemporaryRedirect
             or HttpStatusCode.SeeOther)
         {
-            var location = response.Headers.Location?.ToString() ?? string.Empty;
-            var error = ReadQueryValue(location, "error");
+            string location = response.Headers.Location?.ToString() ?? string.Empty;
+            string? error = ReadQueryValue(location, "error");
 
             return string.IsNullOrWhiteSpace(error)
                 ? PlatformSignInResult.Success
@@ -111,10 +106,8 @@ public sealed class PlatformAuthClient(HttpClient httpClient) : IPlatformAuthCli
         }
 
         if (response.IsSuccessStatusCode)
-        {
             // 自动重定向已跟随时，服务端失败会最终渲染登录页（200 HTML），无法取到原因。
             return PlatformSignInResult.Failure(fallbackMessage);
-        }
 
         return PlatformSignInResult.Failure(
             await PlatformHttpResponse.ReadErrorMessageAsync(response, cancellationToken));
@@ -126,26 +119,17 @@ public sealed class PlatformAuthClient(HttpClient httpClient) : IPlatformAuthCli
     /// </summary>
     private static string? ReadQueryValue(string location, string key)
     {
-        var queryIndex = location.IndexOf('?');
-        if (queryIndex < 0 || queryIndex == location.Length - 1)
+        int queryIndex = location.IndexOf('?');
+        if (queryIndex < 0 || queryIndex == location.Length - 1) return null;
+
+        foreach (string pair in location[(queryIndex + 1)..].Split('&', StringSplitOptions.RemoveEmptyEntries))
         {
-            return null;
-        }
+            int separator = pair.IndexOf('=');
+            if (separator <= 0) continue;
 
-        foreach (var pair in location[(queryIndex + 1)..].Split('&', StringSplitOptions.RemoveEmptyEntries))
-        {
-            var separator = pair.IndexOf('=');
-            if (separator <= 0)
-            {
-                continue;
-            }
+            if (!string.Equals(pair[..separator], key, StringComparison.OrdinalIgnoreCase)) continue;
 
-            if (!string.Equals(pair[..separator], key, StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            var raw = pair[(separator + 1)..].Replace('+', ' ');
+            string raw = pair[(separator + 1)..].Replace('+', ' ');
             return Uri.UnescapeDataString(raw);
         }
 

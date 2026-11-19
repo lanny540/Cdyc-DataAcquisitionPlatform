@@ -24,8 +24,8 @@ public static class ShiftSchedulingEndpoints
     /// <summary>
     /// 映射班组排班相关 API 端点。
     ///
-    /// 读策略为「钞纸域 + 配置等级」：排班数据只服务于配置类页面，
-    /// 普通用户（等级 1）与车间只读终端均不可见；写操作另需排班配置权限点。
+    /// 配置组要求「钞纸域 + 配置等级」，写操作另需排班配置权限点；
+    /// 独立只读组只要求钞纸域，供查看级日历与车间终端使用，不包含导入元数据或写能力。
     /// </summary>
     /// <param name="endpoints">端点路由构建器。</param>
     /// <returns>当前端点路由构建器。</returns>
@@ -35,6 +35,19 @@ public static class ShiftSchedulingEndpoints
             .WithTags("ShiftSchedules")
             .RequireBanknotePaperDomain()
             .RequireConfigureAccess();
+
+        RouteGroupBuilder readOnlyGroup = endpoints.MapGroup("/api/shift-schedule-view")
+            .WithTags("ShiftScheduleView")
+            .RequireBanknotePaperDomain();
+
+        readOnlyGroup.MapGet(
+                "/teams",
+                async (IShiftSchedulingService service, CancellationToken cancellationToken) =>
+                {
+                    ShiftScheduleStatusDto status = await service.GetStatusAsync(cancellationToken);
+                    return Results.Ok(status.Teams);
+                })
+            .WithName("GetShiftScheduleTeams");
 
         group.MapGet(
                 "/status",
@@ -61,34 +74,25 @@ public static class ShiftSchedulingEndpoints
                 async (HttpRequest request, IShiftSchedulingService service, CancellationToken cancellationToken) =>
                 {
                     if (!request.HasFormContentType)
-                    {
                         return Results.BadRequest(new {message = "请以 multipart/form-data 方式上传 Excel 文件。"});
-                    }
 
                     IFormCollection form = await request.ReadFormAsync(cancellationToken);
-                    if (form.Files.Count == 0)
-                    {
-                        return Results.BadRequest(new {message = "未选择要上传的 Excel 文件。"});
-                    }
+                    if (form.Files.Count == 0) return Results.BadRequest(new {message = "未选择要上传的 Excel 文件。"});
 
                     IFormFile file = form.Files[0];
 
                     if (file.Length > MaxUploadBytes)
-                    {
                         return Results.BadRequest(new
                         {
                             message = $"文件体积 {file.Length / 1024} KB 超过 {MaxUploadBytes / 1024} KB 上限。"
                         });
-                    }
 
-                    var extension = Path.GetExtension(file.FileName);
+                    string extension = Path.GetExtension(file.FileName);
                     if (!AllowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
-                    {
                         return Results.BadRequest(new
                         {
                             message = $"不支持的文件类型 {extension}，请上传 .xlsx 或 .xls 文件。"
                         });
-                    }
 
                     await using Stream stream = file.OpenReadStream();
                     ShiftScheduleImportResultDto result =
@@ -110,7 +114,7 @@ public static class ShiftSchedulingEndpoints
             .WithName("ClearShiftSchedules")
             .RequirePermission(AuthorizationCatalog.ShiftManagePermission);
 
-        group.MapGet(
+        readOnlyGroup.MapGet(
                 "/calendar",
                 async (
                     DateOnly? from,
@@ -125,9 +129,7 @@ public static class ShiftSchedulingEndpoints
 
                     // 日历跨度限制为一年，避免传入异常区间导致返回体过大。
                     if (rangeEnd.DayNumber - rangeStart.DayNumber > 366)
-                    {
                         return Results.BadRequest(new {message = "查询跨度不能超过 366 天。"});
-                    }
 
                     IReadOnlyCollection<DailyShiftScheduleDto> calendar = await service.GetCalendarAsync(
                         rangeStart, rangeEnd, teamCode, cancellationToken);
@@ -136,7 +138,7 @@ public static class ShiftSchedulingEndpoints
                 })
             .WithName("GetShiftScheduleCalendar");
 
-        group.MapGet(
+        readOnlyGroup.MapGet(
                 "/teams/{teamCode}",
                 async (
                     string teamCode,
@@ -153,12 +155,9 @@ public static class ShiftSchedulingEndpoints
                         .SelectMany(item => item.Rows)
                         .ToArray();
 
-                    if (rows.Length == 0)
-                    {
-                        return Results.NotFound(new {message = "该班组在所选区间内没有排班记录。"});
-                    }
+                    if (rows.Length == 0) return Results.NotFound(new {message = "该班组在所选区间内没有排班记录。"});
 
-                    var dutyShifts = rows.Count(item => !item.IsRestDay);
+                    int dutyShifts = rows.Count(item => !item.IsRestDay);
 
                     return Results.Ok(new TeamShiftScheduleDto(
                         rows[0].TeamCode,

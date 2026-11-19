@@ -28,7 +28,7 @@
             <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
                 <MudSelect T="string" Label="班组" Value="_teamCode" ValueChanged="OnTeamChangedAsync"
                            Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width: 150px;">
-                    @foreach (var team in _teams)
+                    @foreach (ShiftTeamDto team in _teams)
                     {
                         <MudSelectItem T="string" Value="@team.TeamCode">@team.TeamName</MudSelectItem>
                     }
@@ -62,10 +62,10 @@
     <MudGrid Spacing="3">
         @if (Trends.Length > 0)
         {
-            for (var i = 0; i < Trends.Length && i < MetricAccents.Length; i++)
+            for (int i = 0; i < Trends.Length && i < MetricAccents.Length; i++)
             {
-                var trend = Trends[i];
-                var metricIndex = i;
+                EnergyTrendDto trend = Trends[i];
+                int metricIndex = i;
 
                 <MudItem xs="12" sm="6" lg="3">
                     <MudPaper
@@ -137,10 +137,10 @@
         </MudPaper>
 
         <MudGrid Spacing="3">
-            @for (var i = 0; i < Trends.Length && i < MetricAccents.Length; i++)
+            @for (int i = 0; i < Trends.Length && i < MetricAccents.Length; i++)
             {
-                var trend = Trends[i];
-                var metricIndex = i;
+                EnergyTrendDto trend = Trends[i];
+                int metricIndex = i;
 
                 <MudItem xs="12" lg="6">
                     <MudPaper
@@ -219,7 +219,7 @@
                       Class="platform-data-table">
                 <HeaderContent>
                     <MudTh>@GranularityLabel(_history.Granularity)</MudTh>
-                    @foreach (var metric in _history.Metrics)
+                    @foreach (EnergyMetricDescriptorDto metric in _history.Metrics)
                     {
                         <MudTh>@metric.MetricName (@metric.Unit)</MudTh>
                     }
@@ -228,7 +228,7 @@
                     <MudTd DataLabel="时间">
                         <MudText Typo="Typo.body2" Class="platform-timestamp">@context.Label</MudText>
                     </MudTd>
-                    @foreach (var value in context.Values)
+                    @foreach (decimal? value in context.Values)
                     {
                         <MudTd DataLabel="指标">
                             <MudText Typo="Typo.body2" Class="platform-table-primary">

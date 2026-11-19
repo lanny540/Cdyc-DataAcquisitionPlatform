@@ -46,10 +46,7 @@ public partial class ShiftCalendar
     {
         get
         {
-            if (_teamSummary is null || _teamSummary.TotalShifts == 0)
-            {
-                return 0d;
-            }
+            if (_teamSummary is null || _teamSummary.TotalShifts == 0) return 0d;
 
             return Math.Round(_teamSummary.TotalHours / _teamSummary.TotalShifts, 2);
         }
@@ -67,8 +64,7 @@ public partial class ShiftCalendar
 
         try
         {
-            ShiftScheduleStatusDto status = await PlatformApiClient.GetShiftScheduleStatusAsync();
-            _teams = status.Teams;
+            _teams = await PlatformApiClient.GetShiftScheduleTeamsAsync();
 
             DateOnly rangeStart = _monthAnchor.AddDays(-7);
             DateOnly rangeEnd = _monthAnchor.AddMonths(1).AddDays(7);
@@ -79,14 +75,10 @@ public partial class ShiftCalendar
             BuildCells();
 
             if (_selectedDay is not null)
-            {
                 _selectedDay = _calendar.FirstOrDefault(item => item.WorkDate == _selectedDay.WorkDate);
-            }
             else
-            {
                 _selectedDay = _calendar.FirstOrDefault(item => item.WorkDate == DateOnly.FromDateTime(DateTime.Today))
                                ?? _calendar.FirstOrDefault();
-            }
 
             await LoadTeamSummaryAsync();
         }
@@ -113,20 +105,17 @@ public partial class ShiftCalendar
         DateOnly monthEnd = _monthAnchor.AddMonths(1).AddDays(-1);
 
         // .NET 的 DayOfWeek 以周日为 0，这里转换成以周一为 0 的偏移。
-        var leading = ((int) monthStart.DayOfWeek + 6) % 7;
+        int leading = ((int) monthStart.DayOfWeek + 6) % 7;
         DateOnly gridStart = monthStart.AddDays(-leading);
 
         List<CalendarCell> cells = [];
 
-        for (var offset = 0; offset < 42; offset++)
+        for (int offset = 0; offset < 42; offset++)
         {
             DateOnly date = gridStart.AddDays(offset);
 
             // 整周都落在本月之外时不再生成，避免尾部出现整行空白格。
-            if (offset >= 35 && date > monthEnd)
-            {
-                break;
-            }
+            if (offset >= 35 && date > monthEnd) break;
 
             index.TryGetValue(date, out DailyShiftScheduleDto? day);
 
@@ -197,20 +186,11 @@ public partial class ShiftCalendar
     {
         List<string> classes = ["platform-calendar-cell"];
 
-        if (cell.IsOutsideMonth)
-        {
-            classes.Add("platform-calendar-cell--muted");
-        }
+        if (cell.IsOutsideMonth) classes.Add("platform-calendar-cell--muted");
 
-        if (cell.IsToday)
-        {
-            classes.Add("platform-calendar-cell--today");
-        }
+        if (cell.IsToday) classes.Add("platform-calendar-cell--today");
 
-        if (_selectedDay?.WorkDate == cell.Date)
-        {
-            classes.Add("platform-calendar-cell--selected");
-        }
+        if (_selectedDay?.WorkDate == cell.Date) classes.Add("platform-calendar-cell--selected");
 
         return string.Join(' ', classes);
     }

@@ -37,9 +37,9 @@ public static class PlatformDataProtectionExtensions
         IConfiguration configuration,
         IWebHostEnvironment environment)
     {
-        var configured = configuration[KeyPathConfigurationKey];
+        string? configured = configuration[KeyPathConfigurationKey];
 
-        var directoryPath = string.IsNullOrWhiteSpace(configured)
+        string directoryPath = string.IsNullOrWhiteSpace(configured)
             ? Path.Combine(environment.ContentRootPath, "data-protection-keys")
             : Path.GetFullPath(
                 Environment.ExpandEnvironmentVariables(configured),

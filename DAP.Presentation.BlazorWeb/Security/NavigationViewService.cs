@@ -24,10 +24,11 @@ public sealed class NavigationViewService(IServiceScopeFactory scopeFactory)
     /// <param name="principal">当前会话主体。</param>
     /// <param name="cancellationToken">取消令牌。</param>
     /// <returns>导航树。</returns>
-    public async Task<NavigationDto> BuildAsync(ClaimsPrincipal principal, CancellationToken cancellationToken = default)
+    public async Task<NavigationDto> BuildAsync(ClaimsPrincipal principal,
+        CancellationToken cancellationToken = default)
     {
-        var isSuperAdmin = PlatformClaimsFactory.IsSuperAdmin(principal);
-        var pageLevel = PlatformClaimsFactory.ReadPageLevel(principal);
+        bool isSuperAdmin = PlatformClaimsFactory.IsSuperAdmin(principal);
+        int pageLevel = PlatformClaimsFactory.ReadPageLevel(principal);
 
         HashSet<string> visibleDomainCodes = principal
             .FindAll(AuthorizationCatalog.PlatformClaimTypes.Domain)
@@ -69,14 +70,12 @@ public sealed class NavigationViewService(IServiceScopeFactory scopeFactory)
         // 根路由匹配需要精确匹配，见 NavigationCatalog 中 RequiresExactMatch 的说明。
         List<NavigationDomainDto> result = [];
 
-        foreach (var domain in domains)
+        foreach (BusinessDomain domain in domains)
         {
             // 域可见性：超管看全部（含系统域与空域）；普通用户只看已授权的业务域。
             if (!isSuperAdmin
                 && (domain.IsSystem || !visibleDomainCodes.Contains(domain.Code)))
-            {
                 continue;
-            }
 
             List<DomainPage> domainPages =
                 pages.Where(page => page.DomainId == domain.Id).ToList();
@@ -84,19 +83,14 @@ public sealed class NavigationViewService(IServiceScopeFactory scopeFactory)
             // 页面等级过滤：用户等级只保留不超过自身等级的页面。车间只读终端（等级 1）
             // 因此只见查看类页面，配置类页面连菜单都不出现。
             if (pageLevel < AuthorizationCatalog.SuperAdminPageLevel)
-            {
                 domainPages = domainPages
                     .Where(page => page.AccessLevel <= pageLevel)
                     .ToList();
-            }
 
-            var isEmpty = domainPages.Count == 0;
+            bool isEmpty = domainPages.Count == 0;
 
             // 空域默认对普通用户隐藏（visible_when_empty 可按域打开）；超管保留以便核对配置。
-            if (isEmpty && !isSuperAdmin && !domain.VisibleWhenEmpty)
-            {
-                continue;
-            }
+            if (isEmpty && !isSuperAdmin && !domain.VisibleWhenEmpty) continue;
 
             List<NavigationGroupDto> groups = [];
 
@@ -108,10 +102,7 @@ public sealed class NavigationViewService(IServiceScopeFactory scopeFactory)
                     .Select(page => ToDto(page, iconByPageKey))
             ];
 
-            if (quickLinks.Count > 0)
-            {
-                groups.Add(new NavigationGroupDto(string.Empty, quickLinks));
-            }
+            if (quickLinks.Count > 0) groups.Add(new NavigationGroupDto(string.Empty, quickLinks));
 
             // 带分组标题的页面，按页面排序中首次出现的顺序分组。
             groups.AddRange(
@@ -139,19 +130,19 @@ public sealed class NavigationViewService(IServiceScopeFactory scopeFactory)
             [
                 .. NavigationCatalog.SharedPages
                     .Where(item => pageLevel >= item.AccessLevel)
-                    .Where(item => !item.RequiresPermission || PlatformClaimsFactory.HasPermission(principal, item.RequiredPermission!))
+                    .Where(item =>
+                        !item.RequiresPermission ||
+                        PlatformClaimsFactory.HasPermission(principal, item.RequiredPermission!))
                     .Select(ToDto)
             ];
 
             if (sharedPages.Count > 0)
-            {
                 result.Add(new NavigationDomainDto(
                     SharedDomainCode,
                     "权限管理",
                     false,
                     false,
                     [new NavigationGroupDto(string.Empty, sharedPages)]));
-            }
         }
 
         return new NavigationDto(result);
@@ -177,8 +168,8 @@ public sealed class NavigationViewService(IServiceScopeFactory scopeFactory)
         DomainPage page,
         IReadOnlyDictionary<string, string> iconByPageKey)
     {
-        var pageKey = page.PageKey ?? string.Empty;
-        var icon = iconByPageKey.TryGetValue(pageKey, out var value)
+        string pageKey = page.PageKey ?? string.Empty;
+        string icon = iconByPageKey.TryGetValue(pageKey, out string? value)
             ? value
             : Icons.Material.Filled.Dashboard;
 

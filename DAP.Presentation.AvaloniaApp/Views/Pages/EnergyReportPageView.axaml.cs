@@ -29,9 +29,7 @@ public partial class EnergyReportPageView : UserControl
     {
         if (DataContext is not EnergyReportPageViewModel viewModel
             || TopLevel.GetTopLevel(this) is not { } topLevel)
-        {
             return;
-        }
 
         IStorageFile? file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
@@ -40,19 +38,16 @@ public partial class EnergyReportPageView : UserControl
             DefaultExtension = "csv",
             FileTypeChoices =
             [
-                new FilePickerFileType("CSV 文件") { Patterns = ["*.csv"] }
+                new FilePickerFileType("CSV 文件") {Patterns = ["*.csv"]}
             ]
         });
 
-        if (file is null)
-        {
-            return;
-        }
+        if (file is null) return;
 
         await using Stream stream = await file.OpenWriteAsync();
 
         // UTF-8 BOM：Excel 默认按本地编码解析无 BOM 的 CSV，中文列名会变成乱码。
-        await using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+        await using StreamWriter writer = new(stream, new UTF8Encoding(true));
         await writer.WriteAsync(viewModel.BuildCsv());
     }
 }

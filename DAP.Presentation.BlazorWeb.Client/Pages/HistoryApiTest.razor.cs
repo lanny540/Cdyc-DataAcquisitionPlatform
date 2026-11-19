@@ -60,10 +60,7 @@ public partial class HistoryApiTest
 
             _selectedServerId = _historianServers.FirstOrDefault()?.Id;
 
-            if (_historianServers.Count == 0)
-            {
-                SetMessage("尚未配置 GE Historian 采集服务器，请先在采集服务器页面新增并启用。", Severity.Warning);
-            }
+            if (_historianServers.Count == 0) SetMessage("尚未配置 GE Historian 采集服务器，请先在采集服务器页面新增并启用。", Severity.Warning);
         }
         catch (Exception ex)
         {
@@ -77,10 +74,7 @@ public partial class HistoryApiTest
 
     private async Task QueryCurrentValueAsync()
     {
-        if (!EnsureServerSelected())
-        {
-            return;
-        }
+        if (!EnsureServerSelected()) return;
 
         if (string.IsNullOrWhiteSpace(_currentTagNames))
         {
@@ -114,10 +108,7 @@ public partial class HistoryApiTest
 
     private async Task QueryRawDataAsync()
     {
-        if (!EnsureServerSelected())
-        {
-            return;
-        }
+        if (!EnsureServerSelected()) return;
 
         if (string.IsNullOrWhiteSpace(_rawTagName))
         {
@@ -132,15 +123,18 @@ public partial class HistoryApiTest
             return;
         }
 
-        if (endTime <= startTime)
-        {
-            SetMessage("结束时间必须晚于开始时间。", Severity.Warning);
-            return;
-        }
+        HistoryRawDataQueryRequest query = new(
+            _rawTagName.Trim(),
+            startTime,
+            endTime,
+            _rawStartIndex,
+            _rawCount,
+            _selectedServerId);
 
-        if (_rawStartIndex < 0 || _rawCount <= 0)
+        string? validationMessage = query.Validate();
+        if (validationMessage is not null)
         {
-            SetMessage("起始偏移量不能小于 0，返回条数必须大于 0。", Severity.Warning);
+            SetMessage(validationMessage, Severity.Warning);
             return;
         }
 
@@ -149,14 +143,7 @@ public partial class HistoryApiTest
 
         try
         {
-            _latestResponse = await PlatformApiClient.GetHistoryRawDataAsync(
-                new HistoryRawDataQueryRequest(
-                    _rawTagName.Trim(),
-                    startTime,
-                    endTime,
-                    _rawStartIndex,
-                    _rawCount,
-                    _selectedServerId));
+            _latestResponse = await PlatformApiClient.GetHistoryRawDataAsync(query);
 
             SetMessage(
                 _latestResponse.Success
@@ -217,17 +204,17 @@ public partial class HistoryApiTest
 
     private string BuildPreview(string configurationKey, string querySeparator, string tagNames)
     {
-        var baseAddress = SelectedServer?.Address ?? "（未选择服务器）";
-        var path = GetServerConfigValue(configurationKey);
-        var tag = Uri.EscapeDataString(tagNames.Trim());
+        string baseAddress = SelectedServer?.Address ?? "（未选择服务器）";
+        string path = GetServerConfigValue(configurationKey);
+        string tag = Uri.EscapeDataString(tagNames.Trim());
 
         return $"{baseAddress.TrimEnd('/')}{path}{querySeparator}{tag}";
     }
 
     private string BuildRawPreview()
     {
-        var baseAddress = SelectedServer?.Address ?? "（未选择服务器）";
-        var path = GetServerConfigValue("rawDataPathPrefix");
+        string baseAddress = SelectedServer?.Address ?? "（未选择服务器）";
+        string path = GetServerConfigValue("rawDataPathPrefix");
 
         return $"{baseAddress.TrimEnd('/')}{path}/{Uri.EscapeDataString(_rawTagName.Trim())}/" +
                $"{_rawStartText.Trim()}/{_rawEndText.Trim()}/{_rawStartIndex}/{_rawCount}";
@@ -238,7 +225,7 @@ public partial class HistoryApiTest
         AcquisitionServerConfigValueDto? matchedValue = SelectedServer?.Configuration?
             .FirstOrDefault(item => string.Equals(item.Key, key, StringComparison.OrdinalIgnoreCase));
 
-        var configuredValue = matchedValue?.Value ?? string.Empty;
+        string configuredValue = matchedValue?.Value ?? string.Empty;
 
         return configuredValue.Length > 0
             ? configuredValue

@@ -62,10 +62,10 @@ public class AdminUserRulesTests
     [Fact]
     public void Super_Admin_Should_Manage_Any_Department()
     {
-        var result = AdminUserRules.DescribeScopeViolation(
-            actorIsSuperAdmin: true,
-            actorDepartmentId: null,
-            targetDepartmentId: Guid.NewGuid());
+        string? result = AdminUserRules.DescribeScopeViolation(
+            true,
+            null,
+            Guid.NewGuid());
 
         Assert.Null(result);
     }
@@ -73,7 +73,7 @@ public class AdminUserRulesTests
     [Fact]
     public void Department_Admin_Should_Manage_Same_Department_Only()
     {
-        var departmentId = Guid.NewGuid();
+        Guid departmentId = Guid.NewGuid();
 
         Assert.Null(AdminUserRules.DescribeScopeViolation(false, departmentId, departmentId));
         Assert.NotNull(AdminUserRules.DescribeScopeViolation(false, departmentId, Guid.NewGuid()));
@@ -91,7 +91,7 @@ public class AdminUserRulesTests
     [Fact]
     public void Department_Admin_Without_Department_Should_Be_Rejected()
     {
-        var result = AdminUserRules.DescribeScopeViolation(false, null, Guid.NewGuid());
+        string? result = AdminUserRules.DescribeScopeViolation(false, null, Guid.NewGuid());
 
         Assert.NotNull(result);
         Assert.Contains("未归属部门", result);

@@ -25,18 +25,15 @@ public sealed class ManagedDataCollectionScheduler(
             return;
         }
 
-        var startupDelaySeconds = Math.Max(0, _options.StartupDelaySeconds);
-        var scanIntervalSeconds = Math.Max(1, _options.ScanIntervalSeconds);
+        int startupDelaySeconds = Math.Max(0, _options.StartupDelaySeconds);
+        int scanIntervalSeconds = Math.Max(1, _options.ScanIntervalSeconds);
 
         logger.LogInformation(
             "后台数据自动采集调度器已启动，启动延迟 {StartupDelaySeconds} 秒，扫描周期 {ScanIntervalSeconds} 秒。",
             startupDelaySeconds,
             scanIntervalSeconds);
 
-        if (startupDelaySeconds > 0)
-        {
-            await Task.Delay(TimeSpan.FromSeconds(startupDelaySeconds), stoppingToken);
-        }
+        if (startupDelaySeconds > 0) await Task.Delay(TimeSpan.FromSeconds(startupDelaySeconds), stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -72,11 +69,11 @@ public sealed class ManagedDataCollectionScheduler(
         }
 
         await using AsyncServiceScope scope = serviceScopeFactory.CreateAsyncScope();
-        var platformService =
+        IDataAcquisitionPlatformService platformService =
             scope.ServiceProvider.GetRequiredService<IDataAcquisitionPlatformService>();
-        var executionService =
+        IManagedDataExecutionService executionService =
             scope.ServiceProvider.GetRequiredService<IManagedDataExecutionService>();
-        var collectionPoints =
+        CollectionPointStateSynchronizer collectionPoints =
             scope.ServiceProvider.GetRequiredService<CollectionPointStateSynchronizer>();
 
         IReadOnlyCollection<ManagedDataDefinitionDto> definitions =
@@ -84,10 +81,7 @@ public sealed class ManagedDataCollectionScheduler(
 
         foreach (ManagedDataDefinitionDto definition in GetDefinitionsToDispatch(definitions))
         {
-            if (!await ShouldDispatchDefinitionAsync(platformService, definition, cancellationToken))
-            {
-                continue;
-            }
+            if (!await ShouldDispatchDefinitionAsync(platformService, definition, cancellationToken)) continue;
 
             await CollectDefinitionAsync(
                 definition,

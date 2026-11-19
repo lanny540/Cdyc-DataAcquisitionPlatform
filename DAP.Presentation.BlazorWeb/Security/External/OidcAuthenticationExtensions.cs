@@ -33,11 +33,9 @@ public static class OidcAuthenticationExtensions
         bool requireSecureCookie = false)
     {
         foreach (OidcProviderOptions provider in options.EnabledProviders())
-        {
             builder.AddOpenIdConnect(
                 provider.SchemeName,
                 openIdOptions => Configure(openIdOptions, provider, requireSecureCookie));
-        }
 
         return builder;
     }
@@ -68,10 +66,7 @@ public static class OidcAuthenticationExtensions
 
         options.Scope.Clear();
 
-        foreach (var scope in provider.Scopes)
-        {
-            options.Scope.Add(scope);
-        }
+        foreach (string scope in provider.Scopes) options.Scope.Add(scope);
 
         options.TokenValidationParameters.NameClaimType = provider.NameClaim;
         options.CorrelationCookie.SameSite = SameSiteMode.Lax;
@@ -142,11 +137,11 @@ public static class OidcAuthenticationExtensions
 
         // 统一登录不走「先改密」分支：外部 IdP 已经完成了身份校验，
         // 再强制改一个平台本地密码没有意义（域账号本来也没有本地密码）。
-        var returnUrl = context.Properties?.Items.TryGetValue("returnUrl", out var value) == true
+        string? returnUrl = context.Properties?.Items.TryGetValue("returnUrl", out string? value) == true
             ? value
             : null;
 
-        var landingPage = await authService.ResolveLandingPageAsync(user, cancellationToken);
+        string landingPage = await authService.ResolveLandingPageAsync(user, cancellationToken);
 
         context.Response.Redirect(PlatformReturnUrl.Resolve(returnUrl, landingPage));
         context.HandleResponse();

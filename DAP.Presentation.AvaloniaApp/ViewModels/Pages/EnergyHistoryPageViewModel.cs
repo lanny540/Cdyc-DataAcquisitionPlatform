@@ -63,32 +63,27 @@ public sealed partial class EnergyHistoryPageViewModel : EnergyPageViewModelBase
     /// <summary>
     /// 当前统计粒度。
     /// </summary>
-    [ObservableProperty]
-    private GranularityOption? _selectedGranularity;
+    [ObservableProperty] private GranularityOption? _selectedGranularity;
 
     /// <summary>
     /// 是否有数据。
     /// </summary>
-    [ObservableProperty]
-    private bool _hasData;
+    [ObservableProperty] private bool _hasData;
 
     /// <summary>
     /// 查询区间文案。
     /// </summary>
-    [ObservableProperty]
-    private string _rangeText = string.Empty;
+    [ObservableProperty] private string _rangeText = string.Empty;
 
     /// <summary>
     /// 数据点总数文案。
     /// </summary>
-    [ObservableProperty]
-    private string _pointCountText = string.Empty;
+    [ObservableProperty] private string _pointCountText = string.Empty;
 
     /// <summary>
     /// 明细行数文案。
     /// </summary>
-    [ObservableProperty]
-    private string _detailCountText = string.Empty;
+    [ObservableProperty] private string _detailCountText = string.Empty;
 
     /// <summary>
     /// 均值统计卡。
@@ -108,42 +103,34 @@ public sealed partial class EnergyHistoryPageViewModel : EnergyPageViewModelBase
     /// <summary>
     /// 第一列指标名。
     /// </summary>
-    [ObservableProperty]
-    private string _column1 = "指标 1";
+    [ObservableProperty] private string _column1 = "指标 1";
 
     /// <summary>
     /// 第二列指标名。
     /// </summary>
-    [ObservableProperty]
-    private string _column2 = "指标 2";
+    [ObservableProperty] private string _column2 = "指标 2";
 
     /// <summary>
     /// 第三列指标名。
     /// </summary>
-    [ObservableProperty]
-    private string _column3 = "指标 3";
+    [ObservableProperty] private string _column3 = "指标 3";
 
     /// <summary>
     /// 第四列指标名。
     /// </summary>
-    [ObservableProperty]
-    private string _column4 = "指标 4";
+    [ObservableProperty] private string _column4 = "指标 4";
 
     /// <summary>
     /// 周期列标题（跟随粒度变化）。
     /// </summary>
-    [ObservableProperty]
-    private string _periodHeader = "统计周期";
+    [ObservableProperty] private string _periodHeader = "统计周期";
 
     /// <summary>
     /// 粒度变化后重新查询。
     /// </summary>
     partial void OnSelectedGranularityChanged(GranularityOption? value)
     {
-        if (value is not null)
-        {
-            _ = ReloadAsync();
-        }
+        if (value is not null) _ = ReloadAsync();
     }
 
     /// <inheritdoc />
@@ -175,7 +162,7 @@ public sealed partial class EnergyHistoryPageViewModel : EnergyPageViewModelBase
     /// </summary>
     private static (DateOnly From, DateOnly To) ResolveRange(string granularity)
     {
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        DateOnly today = DateOnly.FromDateTime(DateTime.Today);
 
         return granularity switch
         {
@@ -201,7 +188,7 @@ public sealed partial class EnergyHistoryPageViewModel : EnergyPageViewModelBase
         MetricCards.Clear();
         Trends.Clear();
 
-        for (var index = 0; index < trends.Length && index < 4; index++)
+        for (int index = 0; index < trends.Length && index < 4; index++)
         {
             EnergyTrendDto trend = trends[index];
 
@@ -257,7 +244,7 @@ public sealed partial class EnergyHistoryPageViewModel : EnergyPageViewModelBase
         foreach (IGrouping<DateOnly, (DateOnly BucketStart, string Label, string MetricCode, decimal Value)> group
                  in entries.GroupBy(entry => entry.BucketStart).OrderBy(entry => entry.Key))
         {
-            var label = group.First().Label;
+            string label = group.First().Label;
 
             PivotRows.Add(new PivotRowModel(
                 label,
@@ -275,18 +262,11 @@ public sealed partial class EnergyHistoryPageViewModel : EnergyPageViewModelBase
         IEnumerable<(DateOnly BucketStart, string Label, string MetricCode, decimal Value)> group,
         EnergyTrendDto? trend)
     {
-        if (trend is null)
-        {
-            return "--";
-        }
+        if (trend is null) return "--";
 
         foreach ((DateOnly _, string _, string metricCode, decimal value) in group)
-        {
             if (metricCode == trend.MetricCode)
-            {
                 return MetricFormat.Value(value);
-            }
-        }
 
         return "--";
     }

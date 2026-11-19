@@ -188,6 +188,11 @@ public sealed class ManagedDataDefinition
     public bool IsEnabled { get; set; }
 
     /// <summary>
+    /// 获取或设置软删除时间；非空表示节点已归档，不再参与查询与采集。
+    /// </summary>
+    public DateTimeOffset? DeletedAt { get; set; }
+
+    /// <summary>
     /// 获取或设置最后更新时间。
     /// </summary>
     public DateTimeOffset UpdatedAt { get; set; }

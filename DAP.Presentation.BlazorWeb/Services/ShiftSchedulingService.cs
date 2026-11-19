@@ -126,7 +126,7 @@ public sealed class InMemoryShiftSchedulingService : IShiftSchedulingService
         ShiftScheduleValidationDto validation = ShiftRotationValidator.Validate(parsedRows);
 
         List<ShiftScheduleIssueDto> allIssues = [.. parseIssues, .. validation.Issues];
-        var hasParseError = parseIssues.Any(item =>
+        bool hasParseError = parseIssues.Any(item =>
             string.Equals(item.Severity, "error", StringComparison.OrdinalIgnoreCase));
 
         // 只有全部通过校验才覆盖旧数据，避免坏文件把可用排班清空。
@@ -199,9 +199,7 @@ public sealed class InMemoryShiftSchedulingService : IShiftSchedulingService
             .Where(item => item.WorkDate >= from && item.WorkDate <= to);
 
         if (!string.IsNullOrWhiteSpace(teamCode))
-        {
             rows = rows.Where(item => string.Equals(item.TeamCode, teamCode, StringComparison.OrdinalIgnoreCase));
-        }
 
         return Task.FromResult(ShiftRotationValidator.GroupByDate(rows.ToArray()));
     }

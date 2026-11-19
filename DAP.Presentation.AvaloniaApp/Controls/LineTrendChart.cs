@@ -54,17 +54,14 @@ public sealed class LineTrendChart : PlatformChartBase
     {
         Rect bounds = new(Bounds.Size);
 
-        if (bounds.Width < 80 || bounds.Height < 60)
-        {
-            return;
-        }
+        if (bounds.Width < 80 || bounds.Height < 60) return;
 
         const double leftAxis = 54;
         const double bottomAxis = 24;
         const double topPadding = 16;
         const double rightPadding = 14;
 
-        var plot = new Rect(
+        Rect plot = new(
             leftAxis,
             topPadding,
             Math.Max(1, bounds.Width - leftAxis - rightPadding),
@@ -80,49 +77,43 @@ public sealed class LineTrendChart : PlatformChartBase
 
         double max = NiceCeiling(points.Max(point => (double) point.Value));
         IBrush accent = EffectiveAccent;
-        var gridPen = new Pen(EffectiveGrid, 1) { DashStyle = new DashStyle([3, 4], 0) };
-        var axisPen = new Pen(EffectiveGrid, 1);
+        Pen gridPen = new(EffectiveGrid, 1) {DashStyle = new DashStyle([3, 4], 0)};
+        Pen axisPen = new(EffectiveGrid, 1);
 
         // 横向网格与纵轴刻度
         const int ticks = 4;
 
-        for (var index = 0; index <= ticks; index++)
+        for (int index = 0; index <= ticks; index++)
         {
-            var ratio = index / (double) ticks;
-            var y = plot.Bottom - (plot.Height * ratio);
+            double ratio = index / (double) ticks;
+            double y = plot.Bottom - plot.Height * ratio;
 
             context.DrawLine(index == 0 ? axisPen : gridPen, new Point(plot.Left, y),
                 new Point(plot.Right, y));
 
-            var label = FormatAxisValue(max * ratio);
+            string label = FormatAxisValue(max * ratio);
             Size size = Measure(label, 11);
 
-            DrawText(context, label, new Point(plot.Left - size.Width - 8, y - (size.Height / 2)), 11,
+            DrawText(context, label, new Point(plot.Left - size.Width - 8, y - size.Height / 2), 11,
                 EffectiveLabel);
         }
 
-        if (!string.IsNullOrWhiteSpace(Unit))
-        {
-            DrawText(context, Unit!, new Point(6, 0), 11, EffectiveLabel);
-        }
+        if (!string.IsNullOrWhiteSpace(Unit)) DrawText(context, Unit!, new Point(6, 0), 11, EffectiveLabel);
 
         // 数据点坐标：单点居中，多点等距
-        var step = points.Length > 1 ? plot.Width / (points.Length - 1) : 0;
+        double step = points.Length > 1 ? plot.Width / (points.Length - 1) : 0;
         Point[] coordinates = points
             .Select((point, index) => new Point(
-                points.Length == 1 ? plot.Center.X : plot.Left + (step * index),
-                plot.Bottom - (plot.Height * ((double) point.Value / max))))
+                points.Length == 1 ? plot.Center.X : plot.Left + step * index,
+                plot.Bottom - plot.Height * ((double) point.Value / max)))
             .ToArray();
 
         // 面积填充
-        var area = new StreamGeometry();
+        StreamGeometry area = new();
         using (StreamGeometryContext geometry = area.Open())
         {
             geometry.BeginFigure(new Point(coordinates[0].X, plot.Bottom), true);
-            foreach (Point coordinate in coordinates)
-            {
-                geometry.LineTo(coordinate);
-            }
+            foreach (Point coordinate in coordinates) geometry.LineTo(coordinate);
 
             geometry.LineTo(new Point(coordinates[^1].X, plot.Bottom));
             geometry.EndFigure(true);
@@ -131,14 +122,11 @@ public sealed class LineTrendChart : PlatformChartBase
         context.DrawGeometry(CreateAreaBrush(accent), null, area);
 
         // 折线
-        var line = new StreamGeometry();
+        StreamGeometry line = new();
         using (StreamGeometryContext geometry = line.Open())
         {
             geometry.BeginFigure(coordinates[0], false);
-            foreach (Point coordinate in coordinates.Skip(1))
-            {
-                geometry.LineTo(coordinate);
-            }
+            foreach (Point coordinate in coordinates.Skip(1)) geometry.LineTo(coordinate);
 
             geometry.EndFigure(false);
         }
@@ -149,17 +137,15 @@ public sealed class LineTrendChart : PlatformChartBase
         IBrush surface = Resolve("DapSurfaceBrush", Brushes.White);
 
         foreach (Point coordinate in coordinates)
-        {
             context.DrawEllipse(surface, new Pen(accent, 2), coordinate, 3.2, 3.2);
-        }
 
         // 横轴标签抽稀：最多 6 个
-        var labelStep = Math.Max(1, (int) Math.Ceiling(points.Length / 6.0));
+        int labelStep = Math.Max(1, (int) Math.Ceiling(points.Length / 6.0));
 
-        for (var index = 0; index < points.Length; index += labelStep)
+        for (int index = 0; index < points.Length; index += labelStep)
         {
             Size size = Measure(points[index].Label, 11);
-            var x = Math.Clamp(coordinates[index].X - (size.Width / 2), plot.Left, plot.Right - size.Width);
+            double x = Math.Clamp(coordinates[index].X - size.Width / 2, plot.Left, plot.Right - size.Width);
 
             DrawText(context, points[index].Label, new Point(x, plot.Bottom + 6), 11, EffectiveLabel);
         }
@@ -180,7 +166,7 @@ public sealed class LineTrendChart : PlatformChartBase
     /// </summary>
     private static Size Measure(string text, double size)
     {
-        var formatted = new FormattedText(
+        FormattedText formatted = new(
             text,
             CultureInfo.CurrentCulture,
             FlowDirection.LeftToRight,

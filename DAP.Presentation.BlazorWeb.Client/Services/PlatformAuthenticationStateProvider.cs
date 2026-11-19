@@ -23,10 +23,7 @@ public sealed class PlatformAuthenticationStateProvider(HttpClient httpClient) :
     /// <inheritdoc />
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
-        if (_cachedState is not null)
-        {
-            return _cachedState;
-        }
+        if (_cachedState is not null) return _cachedState;
 
         try
         {
@@ -39,10 +36,8 @@ public sealed class PlatformAuthenticationStateProvider(HttpClient httpClient) :
             }
 
             if (!response.IsSuccessStatusCode)
-            {
                 // 网络或服务端异常不缓存：下次导航重试，避免把偶发失败当成「未登录」。
                 return AnonymousState;
-            }
 
             AuthUserDto? user = await response.Content.ReadFromJsonAsync<AuthUserDto>();
 
@@ -86,21 +81,13 @@ public sealed class PlatformAuthenticationStateProvider(HttpClient httpClient) :
         ];
 
         if (!string.IsNullOrEmpty(user.DepartmentName))
-        {
             claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.DepartmentName, user.DepartmentName));
-        }
 
-        if (user.IsSuperAdmin)
-        {
-            claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.SuperAdmin, "true"));
-        }
+        if (user.IsSuperAdmin) claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.SuperAdmin, "true"));
 
         // 车间只读终端：顶栏据此显示「只读」并隐藏登出按钮，
         // 与 SSR 阶段由 Cookie claims 渲染的结果保持一致。
-        if (user.IsBoardTerminal)
-        {
-            claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.BoardTerminal, "true"));
-        }
+        if (user.IsBoardTerminal) claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.BoardTerminal, "true"));
 
         claims.AddRange(user.Domains.Select(domain =>
             new Claim(AuthorizationCatalog.PlatformClaimTypes.Domain, domain)));

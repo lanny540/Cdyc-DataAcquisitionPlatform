@@ -43,29 +43,23 @@ public sealed class PageAccessResolver(
         Dictionary<string, PageAccessRequirement> map = await GetAccessMapAsync(cancellationToken);
 
         // 归一化：去查询串、去首尾斜杠。
-        var trimmed = path.Trim();
-        var queryIndex = trimmed.IndexOfAny(['?', '#']);
-        if (queryIndex >= 0)
-        {
-            trimmed = trimmed[..queryIndex];
-        }
+        string trimmed = path.Trim();
+        int queryIndex = trimmed.IndexOfAny(['?', '#']);
+        if (queryIndex >= 0) trimmed = trimmed[..queryIndex];
 
-        var normalized = trimmed.Trim('/');
+        string normalized = trimmed.Trim('/');
 
         PageAccessRequirement? matched = null;
-        var matchedLength = -1;
+        int matchedLength = -1;
 
-        foreach (var (route, requirement) in map)
+        foreach ((string route, PageAccessRequirement requirement) in map)
         {
-            var isMatch = route.Length == 0
+            bool isMatch = route.Length == 0
                 ? normalized.Length == 0
                 : normalized.Equals(route, StringComparison.OrdinalIgnoreCase)
                   || normalized.StartsWith(route + "/", StringComparison.OrdinalIgnoreCase);
 
-            if (!isMatch || route.Length <= matchedLength)
-            {
-                continue;
-            }
+            if (!isMatch || route.Length <= matchedLength) continue;
 
             matched = requirement;
             matchedLength = route.Length;
@@ -77,10 +71,8 @@ public sealed class PageAccessResolver(
     private async Task<Dictionary<string, PageAccessRequirement>> GetAccessMapAsync(
         CancellationToken cancellationToken)
     {
-        if (cache.TryGetValue(CacheKey, out Dictionary<string, PageAccessRequirement>? cached) && cached is not null)
-        {
-            return cached;
-        }
+        if (cache.TryGetValue(CacheKey, out Dictionary<string, PageAccessRequirement>? cached) &&
+            cached is not null) return cached;
 
         List<DomainPage> pages = await db.DomainPages
             .Where(page => page.IsEnabled && !page.IsOrphaned && page.Domain!.IsEnabled)
@@ -90,17 +82,14 @@ public sealed class PageAccessResolver(
             .Where(domain => domain.IsEnabled)
             .ToDictionaryAsync(domain => domain.Id, domain => domain.Code, cancellationToken);
 
-        var map = new Dictionary<string, PageAccessRequirement>(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, PageAccessRequirement> map = new(StringComparer.OrdinalIgnoreCase);
 
         foreach (DomainPage page in pages)
         {
-            if (!domainCodes.TryGetValue(page.DomainId, out var domainCode))
-            {
-                continue;
-            }
+            if (!domainCodes.TryGetValue(page.DomainId, out string? domainCode)) continue;
 
             // 根路由存为空串，与 Normalize 之后的比较逻辑一致。
-            var route = page.Route.Trim().Trim('/');
+            string route = page.Route.Trim().Trim('/');
             map[route] = new PageAccessRequirement(domainCode, page.AccessLevel);
         }
 

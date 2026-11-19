@@ -11,7 +11,7 @@ public class CollectionPointServiceTests
     [Fact]
     public async Task UpsertCollectionPointAsync_ShouldCreateNewPoint()
     {
-        var service = new InMemoryDataAcquisitionPlatformService();
+        InMemoryDataAcquisitionPlatformService service = new();
 
         CollectionPointDto result = await service.UpsertCollectionPointAsync(new CollectionPointUpsertRequest(
             null,
@@ -30,8 +30,8 @@ public class CollectionPointServiceTests
     [Fact]
     public async Task SyncLocalCollectionPointsAsync_ShouldMarkPointsAsLocalSource()
     {
-        var service = new InMemoryDataAcquisitionPlatformService();
-        var localPoint = new LocalCollectionPointDto(
+        InMemoryDataAcquisitionPlatformService service = new();
+        LocalCollectionPointDto localPoint = new(
             Guid.NewGuid(),
             "SYNC-01",
             "客户端同步点",
@@ -52,7 +52,7 @@ public class CollectionPointServiceTests
     [Fact]
     public async Task DeleteCollectionPointAsync_ShouldRemoveExistingPoint()
     {
-        var service = new InMemoryDataAcquisitionPlatformService();
+        InMemoryDataAcquisitionPlatformService service = new();
         CollectionPointDto savedPoint = await service.UpsertCollectionPointAsync(new CollectionPointUpsertRequest(
             null,
             "DELETE-01",
@@ -62,7 +62,7 @@ public class CollectionPointServiceTests
             true,
             "Server"));
 
-        var deleted = await service.DeleteCollectionPointAsync(savedPoint.Id);
+        bool deleted = await service.DeleteCollectionPointAsync(savedPoint.Id);
         IReadOnlyCollection<CollectionPointDto> points = await service.GetCollectionPointsAsync();
 
         Assert.True(deleted);

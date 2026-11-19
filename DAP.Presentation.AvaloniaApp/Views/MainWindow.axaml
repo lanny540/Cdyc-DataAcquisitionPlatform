@@ -15,8 +15,8 @@
               Title="CDYC 数据采集平台 · 数据查看客户端">
 
     <Grid>
-        <!-- 主壳：登录后才显示 -->
-        <Grid RowDefinitions="Auto,*" IsVisible="{Binding Session.IsAuthenticated}">
+        <!-- 主壳：登录且完成强制改密后才显示 -->
+        <Grid RowDefinitions="Auto,*" IsVisible="{Binding ShowShell}">
             <!-- 顶栏：品牌 / 模块 / 账号 -->
             <Border Grid.Row="0"
                     Background="{DynamicResource DapSurfaceBrush}"
@@ -156,8 +156,8 @@
             </Grid>
         </Grid>
 
-        <!-- 登录浮层 -->
-        <Grid IsVisible="{Binding !Session.IsAuthenticated}"
+        <!-- 登录/强制改密浮层 -->
+        <Grid IsVisible="{Binding ShowLogin}"
               Background="{DynamicResource DapPageBackgroundBrush}">
             <views:LoginView DataContext="{Binding Login}" />
         </Grid>

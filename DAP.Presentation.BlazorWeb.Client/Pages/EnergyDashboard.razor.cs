@@ -119,7 +119,7 @@ public partial class EnergyDashboard
     /// </summary>
     private Task LoadAsync()
     {
-        return LoadInternalAsync(silent: false);
+        return LoadInternalAsync(false);
     }
 
     /// <summary>
@@ -127,17 +127,14 @@ public partial class EnergyDashboard
     /// </summary>
     private Task RefreshSilentlyAsync()
     {
-        return LoadInternalAsync(silent: true);
+        return LoadInternalAsync(true);
     }
 
     /// <param name="silent">true 表示定时触发的静默刷新。</param>
     private async Task LoadInternalAsync(bool silent)
     {
         // 首载尚未结束时定时器可能已经跑到第一拍：两个请求并行会互相覆盖结果。
-        if (silent && (_isLoading || _isRefreshing))
-        {
-            return;
-        }
+        if (silent && (_isLoading || _isRefreshing)) return;
 
         if (silent)
         {
@@ -151,17 +148,13 @@ public partial class EnergyDashboard
 
         try
         {
-            ShiftScheduleStatusDto status = await PlatformApiClient.GetShiftScheduleStatusAsync();
-            _teams = status.Teams;
+            _teams = await PlatformApiClient.GetEnergyTeamsAsync();
 
             _dashboard = await PlatformApiClient.GetEnergyDashboardAsync(_trendDays, _teamCode);
 
             // 首次加载后回填服务端解析出的班组，便于用户直接切换。
             // 非在岗解析（轮休/未导入）不回填默认值：让选择器保持空，提示文案引导手动选择。
-            if (_teamCode is null && IsOnDuty)
-            {
-                _teamCode = _dashboard.TeamCode;
-            }
+            if (_teamCode is null && IsOnDuty) _teamCode = _dashboard.TeamCode;
 
             _lastUpdatedAt = DateTimeOffset.Now;
             _message = null;
@@ -175,21 +168,14 @@ public partial class EnergyDashboard
                 : $"能耗数据加载失败：{UserFacingErrors.Describe(ex)}";
             _messageSeverity = silent ? Severity.Warning : Severity.Error;
 
-            if (!silent)
-            {
-                _dashboard = null;
-            }
+            if (!silent) _dashboard = null;
         }
         finally
         {
             if (silent)
-            {
                 _isRefreshing = false;
-            }
             else
-            {
                 _isLoading = false;
-            }
         }
     }
 
@@ -223,19 +209,13 @@ public partial class EnergyDashboard
     private static string[] BuildLabels(EnergyTrendDto trend)
     {
         IReadOnlyCollection<EnergyTrendPointDto> points = trend.Points;
-        if (points.Count == 0)
-        {
-            return [];
-        }
+        if (points.Count == 0) return [];
 
         const int maxLabels = 12;
 
-        if (points.Count <= maxLabels)
-        {
-            return points.Select(item => item.Label).ToArray();
-        }
+        if (points.Count <= maxLabels) return points.Select(item => item.Label).ToArray();
 
-        var step = (int) Math.Ceiling(points.Count / (double) maxLabels);
+        int step = (int) Math.Ceiling(points.Count / (double) maxLabels);
 
         return points
             .Select((point, index) => index % step == 0 ? point.Label : string.Empty)

@@ -44,8 +44,8 @@ public static class PlatformRateLimiting
                 RateLimitPartition.GetFixedWindowLimiter(
                     // 直连 Kestrel 时 RemoteIpAddress 即真实对端；
                     // 加反向代理后必须配 ForwardedHeaders 且只信已知代理，否则所有人共用一个桶。
-                    partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    factory: _ => new FixedWindowRateLimiterOptions
+                    context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
                     {
                         PermitLimit = PermitLimitPerMinute,
                         Window = TimeSpan.FromMinutes(1),
@@ -61,7 +61,7 @@ public static class PlatformRateLimiting
                 // {"message":...}。表单请求改成 303 跳回对应页面并带上中文原因。
                 if (httpContext.Request.HasFormContentType && !httpContext.Response.HasStarted)
                 {
-                    var target = httpContext.Request.Path.StartsWithSegments("/api/auth/change-password")
+                    string target = httpContext.Request.Path.StartsWithSegments("/api/auth/change-password")
                         ? "/change-password"
                         : "/login";
 

@@ -22,7 +22,27 @@ public sealed record HistoryRawDataQueryRequest(
     DateTimeOffset EndTime,
     int StartIndex,
     int Count,
-    Guid? ServerConnectionId = null);
+    Guid? ServerConnectionId = null)
+{
+    /// <summary>
+    /// 单次原始数据查询的返回条数硬上限，超出时应分页查询。
+    /// </summary>
+    public const int MaxCount = 10000;
+
+    /// <summary>
+    /// 校验查询参数，供 API 与交互页面共用，避免只在客户端限制。
+    /// </summary>
+    /// <returns>参数合法时返回 null，否则返回可直接展示的中文错误。</returns>
+    public string? Validate()
+    {
+        if (string.IsNullOrWhiteSpace(TagName)) return "标签名称不能为空。";
+        if (EndTime <= StartTime) return "结束时间必须晚于开始时间。";
+        if (StartIndex < 0 || Count <= 0) return "起始偏移量不能小于 0，返回条数必须大于 0。";
+        if (Count > MaxCount) return $"返回条数不能超过 {MaxCount}，请分页查询。";
+
+        return null;
+    }
+}
 
 /// <summary>
 /// 表示 History 数据库测试查询的响应。

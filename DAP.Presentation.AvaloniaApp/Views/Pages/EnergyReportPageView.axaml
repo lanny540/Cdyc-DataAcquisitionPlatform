@@ -89,7 +89,7 @@
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <UniformGrid Columns="4" />
-                        <!-- 卡片数量固定，等分填满整行，避免固定宽在宽窗口下右侧留白 -->
+                            <!-- 卡片数量固定，等分填满整行，避免固定宽在宽窗口下右侧留白 -->
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
@@ -128,12 +128,22 @@
                             <StackPanel>
                                 <Border Background="{DynamicResource DapPrimaryTintBrush}" Padding="12,8">
                                     <Grid ColumnDefinitions="160,*,*,*,*,110">
-                                        <TextBlock Classes="field-label" Foreground="{DynamicResource DapPrimaryStrongBrush}" Text="班组" />
-                                        <TextBlock Grid.Column="1" Classes="field-label" Foreground="{DynamicResource DapPrimaryStrongBrush}" Text="{Binding Column1}" />
-                                        <TextBlock Grid.Column="2" Classes="field-label" Foreground="{DynamicResource DapPrimaryStrongBrush}" Text="{Binding Column2}" />
-                                        <TextBlock Grid.Column="3" Classes="field-label" Foreground="{DynamicResource DapPrimaryStrongBrush}" Text="{Binding Column3}" />
-                                        <TextBlock Grid.Column="4" Classes="field-label" Foreground="{DynamicResource DapPrimaryStrongBrush}" Text="{Binding Column4}" />
-                                        <TextBlock Grid.Column="5" Classes="field-label" Foreground="{DynamicResource DapPrimaryStrongBrush}" Text="统计周期" />
+                                        <TextBlock Classes="field-label"
+                                                   Foreground="{DynamicResource DapPrimaryStrongBrush}" Text="班组" />
+                                        <TextBlock Grid.Column="1" Classes="field-label"
+                                                   Foreground="{DynamicResource DapPrimaryStrongBrush}"
+                                                   Text="{Binding Column1}" />
+                                        <TextBlock Grid.Column="2" Classes="field-label"
+                                                   Foreground="{DynamicResource DapPrimaryStrongBrush}"
+                                                   Text="{Binding Column2}" />
+                                        <TextBlock Grid.Column="3" Classes="field-label"
+                                                   Foreground="{DynamicResource DapPrimaryStrongBrush}"
+                                                   Text="{Binding Column3}" />
+                                        <TextBlock Grid.Column="4" Classes="field-label"
+                                                   Foreground="{DynamicResource DapPrimaryStrongBrush}"
+                                                   Text="{Binding Column4}" />
+                                        <TextBlock Grid.Column="5" Classes="field-label"
+                                                   Foreground="{DynamicResource DapPrimaryStrongBrush}" Text="统计周期" />
                                     </Grid>
                                 </Border>
 

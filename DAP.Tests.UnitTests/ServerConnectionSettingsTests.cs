@@ -15,12 +15,9 @@ public class ServerConnectionSettingsTests
 {
     private static ServerConnectionSettings Create(params (string Key, string Value)[] config)
     {
-        var dictionary = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, string> dictionary = new(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var (key, value) in config)
-        {
-            dictionary[key] = value;
-        }
+        foreach ((string key, string value) in config) dictionary[key] = value;
 
         return new ServerConnectionSettings(
             Guid.NewGuid(), "HIST-01", "历史库服务器", "https://hist.example.com/", dictionary);

@@ -19,7 +19,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 {
     private readonly DesktopSession _session;
     private readonly PageFactory _pageFactory;
-    private bool _wasAuthenticated;
+    private bool _wasShellVisible;
 
     /// <summary>
     /// 初始化主窗口视图模型。
@@ -60,15 +60,13 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     /// <summary>
     /// 当前选中的模块。
     /// </summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(DrawerDescription))]
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(DrawerDescription))]
     private NavModuleViewModel? _selectedModule;
 
     /// <summary>
     /// 当前页面。
     /// </summary>
-    [ObservableProperty]
-    private PageViewModelBase? _currentPage;
+    [ObservableProperty] private PageViewModelBase? _currentPage;
 
     /// <summary>
     /// 抽屉头部说明。
@@ -84,6 +82,16 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     /// 桌面会话（视图直接绑定其登录态与账号信息）。
     /// </summary>
     public DesktopSession Session => _session;
+
+    /// <summary>
+    /// 是否显示业务主壳。强制改密属于半登录状态，不能加载任何业务页面。
+    /// </summary>
+    public bool ShowShell => _session.IsAuthenticated && !_session.MustChangePassword;
+
+    /// <summary>
+    /// 是否显示登录/改密界面。
+    /// </summary>
+    public bool ShowLogin => !ShowShell;
 
     /// <summary>
     /// 服务端地址。
@@ -116,10 +124,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     /// <param name="module">目标模块。</param>
     private async Task SelectModuleAsync(NavModuleViewModel module)
     {
-        if (SelectModule(module) && _session.IsAuthenticated)
-        {
-            await NavigateAsync(module.Items[0]);
-        }
+        if (SelectModule(module) && ShowShell) await NavigateAsync(module.Items[0]);
     }
 
     /// <summary>
@@ -129,12 +134,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     /// <returns>模块是否发生变化。</returns>
     private bool SelectModule(NavModuleViewModel module)
     {
-        var changed = !ReferenceEquals(SelectedModule, module);
+        bool changed = !ReferenceEquals(SelectedModule, module);
 
-        foreach (NavModuleViewModel item in Modules)
-        {
-            item.IsSelected = ReferenceEquals(item, module);
-        }
+        foreach (NavModuleViewModel item in Modules) item.IsSelected = ReferenceEquals(item, module);
 
         SelectedModule = module;
 
@@ -158,26 +160,22 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     /// <param name="item">目标条目。</param>
     private async Task NavigateAsync(NavItemViewModel item)
     {
+        // 导航命令还可能在登录状态切换的瞬间排队执行，入口必须再次校验。
+        if (!ShowShell) return;
+
         DesktopNavModule module = DesktopNavigationCatalog.ResolveModule(item.PageKey);
         NavModuleViewModel? moduleViewModel = Modules.FirstOrDefault(candidate => candidate.Id == module.Id);
 
         if (moduleViewModel is not null && !ReferenceEquals(SelectedModule, moduleViewModel))
-        {
             SelectModule(moduleViewModel);
-        }
 
         foreach (NavItemViewModel candidate in Modules.SelectMany(entry => entry.Items))
-        {
             candidate.IsSelected = string.Equals(candidate.PageKey, item.PageKey, StringComparison.Ordinal);
-        }
 
         PageViewModelBase? previous = CurrentPage;
         PageViewModelBase next = _pageFactory.Resolve(item.Source);
 
-        if (!ReferenceEquals(previous, next))
-        {
-            previous?.OnDeactivated();
-        }
+        if (!ReferenceEquals(previous, next)) previous?.OnDeactivated();
 
         CurrentPage = next;
 
@@ -185,27 +183,23 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// 登录态变化：登录后落到默认模块的落地页，登出后清空内容区。
+    /// 登录态或强制改密状态变化：只有完整可用的会话才能进入业务主壳。
     /// </summary>
     private void OnSessionPropertyChanged(object? sender, PropertyChangedEventArgs args)
     {
-        if (args.PropertyName != nameof(DesktopSession.IsAuthenticated))
-        {
-            return;
-        }
+        if (args.PropertyName != nameof(DesktopSession.IsAuthenticated) &&
+            args.PropertyName != nameof(DesktopSession.MustChangePassword)) return;
 
-        // NotifyPropertyChangedFor 只在用户对象变化时触发通知，改密刷新用户也会走到这里，
-        // 但登录态没变，不能因此重新导航一次（会把用户正在看的页面拉回落地页）。
-        var isAuthenticated = _session.IsAuthenticated;
+        OnPropertyChanged(nameof(ShowShell));
+        OnPropertyChanged(nameof(ShowLogin));
 
-        if (isAuthenticated == _wasAuthenticated)
-        {
-            return;
-        }
+        // 改密成功会刷新用户但登录态不变，因此必须按“主壳是否可用”而不是仅按登录态判断。
+        bool showShell = ShowShell;
+        if (showShell == _wasShellVisible) return;
 
-        _wasAuthenticated = isAuthenticated;
+        _wasShellVisible = showShell;
 
-        if (isAuthenticated)
+        if (showShell)
         {
             _ = NavigateToLandingAsync();
             return;
@@ -214,10 +208,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         CurrentPage?.OnDeactivated();
         CurrentPage = null;
 
-        foreach (NavItemViewModel item in Modules.SelectMany(module => module.Items))
-        {
-            item.IsSelected = false;
-        }
+        foreach (NavItemViewModel item in Modules.SelectMany(module => module.Items)) item.IsSelected = false;
     }
 
     /// <summary>
@@ -237,6 +228,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private async Task TryRestoreSessionAsync()
     {
         await _session.TryRestoreAsync();
+
+        if (!_session.MustChangePassword) return;
+
+        Login.NeedsPasswordChange = true;
+        Login.Message = "当前会话要求先修改初始密码，请设置新密码后继续。";
     }
 
     /// <summary>

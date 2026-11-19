@@ -6,10 +6,6 @@ namespace DAP.Presentation.AvaloniaApp.ViewModels;
 
 /// <summary>
 /// 业务页面的公共基类：统一加载态、错误提示与刷新命令。
-///
-/// 页面不写 <c>async void</c>，也不在构造函数里 fire-and-forget：
-/// 外壳在切页时 <c>await EnsureLoadedAsync()</c>，异常一律转成中文提示，
-/// 避免未观察的任务异常悄悄吞掉（上一个版本有页面因此在加载失败时永远停在“正在刷新”）。
 /// </summary>
 public abstract partial class PageViewModelBase : ViewModelBase
 {
@@ -20,7 +16,7 @@ public abstract partial class PageViewModelBase : ViewModelBase
     /// </summary>
     protected PageViewModelBase()
     {
-        RefreshCommand = new AsyncRelayCommand(() => LoadAsync(force: true));
+        RefreshCommand = new AsyncRelayCommand(() => LoadAsync(true));
     }
 
     /// <summary>
@@ -51,22 +47,19 @@ public abstract partial class PageViewModelBase : ViewModelBase
     /// <summary>
     /// 是否正在加载。
     /// </summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsNotLoading))]
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(IsNotLoading))]
     private bool _isLoading;
 
     /// <summary>
     /// 状态提示（错误或空数据说明）；为空时不显示提示条。
     /// </summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasMessage))]
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(HasMessage))]
     private string? _message;
 
     /// <summary>
     /// 提示条是否为错误级别。
     /// </summary>
-    [ObservableProperty]
-    private bool _isError;
+    [ObservableProperty] private bool _isError;
 
     /// <summary>
     /// 是否空闲（用于按钮可用性）。
@@ -110,12 +103,9 @@ public abstract partial class PageViewModelBase : ViewModelBase
     /// <returns>加载任务。</returns>
     public async Task EnsureLoadedAsync()
     {
-        if (_loaded)
-        {
-            return;
-        }
+        if (_loaded) return;
 
-        await LoadAsync(force: false);
+        await LoadAsync(false);
     }
 
     /// <summary>
@@ -139,16 +129,11 @@ public abstract partial class PageViewModelBase : ViewModelBase
     /// </summary>
     /// <param name="force">为 true 时忽略「已加载」标记，表示用户主动刷新。</param>
     /// <returns>加载任务。</returns>
-    private async Task LoadAsync(bool force)    {
-        if (IsLoading)
-        {
-            return;
-        }
+    private async Task LoadAsync(bool force)
+    {
+        if (IsLoading) return;
 
-        if (_loaded && !force)
-        {
-            return;
-        }
+        if (_loaded && !force) return;
 
         IsLoading = true;
         Message = null;
@@ -192,7 +177,7 @@ public abstract partial class PageViewModelBase : ViewModelBase
     /// <returns>加载任务。</returns>
     protected Task ReloadAsync()
     {
-        return LoadAsync(force: true);
+        return LoadAsync(true);
     }
 
     /// <summary>

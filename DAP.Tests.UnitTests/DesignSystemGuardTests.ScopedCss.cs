@@ -20,7 +20,7 @@ public partial class DesignSystemGuardTests
     [Fact]
     public void App_Should_Link_Application_Styles_Bundle()
     {
-        var app = ReadRepoFile("DAP.Presentation.BlazorWeb/Components/Shell/App.razor");
+        string app = ReadRepoFile("DAP.Presentation.BlazorWeb/Components/Shell/App.razor");
 
         Assert.Contains("DAP.Presentation.BlazorWeb.styles.css", app, StringComparison.Ordinal);
     }

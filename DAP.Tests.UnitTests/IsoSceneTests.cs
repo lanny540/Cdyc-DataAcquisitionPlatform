@@ -24,12 +24,12 @@ public sealed class IsoSceneTests
     [Fact]
     public void Project_Should_Lift_Higher_Points()
     {
-        var ground = IsoScene.Project(10, 5, 0);
-        var raised = IsoScene.Project(10, 5, 2);
+        ScenePoint ground = IsoScene.Project(10, 5, 0);
+        ScenePoint raised = IsoScene.Project(10, 5, 2);
 
         Assert.Equal(ground.X, raised.X, 3);
         Assert.True(raised.Y < ground.Y);
-        Assert.Equal(ground.Y - (2 * Scale), raised.Y, 3);
+        Assert.Equal(ground.Y - 2 * Scale, raised.Y, 3);
     }
 
     /// <summary>
@@ -38,8 +38,8 @@ public sealed class IsoSceneTests
     [Fact]
     public void Project_Should_Recede_Up_And_Right()
     {
-        var front = IsoScene.Project(10, 0, 0);
-        var back = IsoScene.Project(10, 10, 0);
+        ScenePoint front = IsoScene.Project(10, 0, 0);
+        ScenePoint back = IsoScene.Project(10, 10, 0);
 
         Assert.True(back.X > front.X);
         Assert.True(back.Y < front.Y);
@@ -51,12 +51,12 @@ public sealed class IsoSceneTests
     [Fact]
     public void Box_Should_Emit_Three_Faces()
     {
-        var scene = new IsoScene();
+        IsoScene scene = new();
         scene.AddBox(0, 4, 0, 6, 0, 3, "stage-wet");
 
         Assert.Equal(3, scene.Shapes.Count);
 
-        var classes = scene.Shapes.Cast<ScenePolygon>().Select(shape => shape.CssClass).ToArray();
+        string[] classes = scene.Shapes.Cast<ScenePolygon>().Select(shape => shape.CssClass).ToArray();
         Assert.Contains(classes, css => css.Contains("iso-front", StringComparison.Ordinal));
         Assert.Contains(classes, css => css.Contains("iso-top", StringComparison.Ordinal));
         Assert.Contains(classes, css => css.Contains("iso-side", StringComparison.Ordinal));
@@ -69,14 +69,14 @@ public sealed class IsoSceneTests
     [Fact]
     public void Cylinder_Should_Emit_Cap_Body_And_Near_Cap()
     {
-        var scene = new IsoScene();
+        IsoScene scene = new();
         scene.AddCylinderAlongY(20, 6, 2, 4, 12, "stage-metal");
 
         Assert.Equal(3, scene.Shapes.Count);
         Assert.IsType<SceneEllipse>(scene.Shapes[0]);
         Assert.IsType<ScenePolygon>(scene.Shapes[1]);
 
-        var nearCap = Assert.IsType<SceneEllipse>(scene.Shapes[2]);
+        SceneEllipse nearCap = Assert.IsType<SceneEllipse>(scene.Shapes[2]);
         Assert.Equal((2 * Scale).ToString("F1", CultureInfo.InvariantCulture), nearCap.Radius);
         Assert.Contains("iso-cyl-cap", nearCap.CssClass, StringComparison.Ordinal);
     }
@@ -87,11 +87,11 @@ public sealed class IsoSceneTests
     [Fact]
     public void Cylinder_Body_Should_Cover_Whole_Silhouette()
     {
-        var scene = new IsoScene();
+        IsoScene scene = new();
         scene.AddCylinderAlongY(20, 6, 2, 4, 12, "stage-metal");
 
-        var body = Assert.IsType<ScenePolygon>(scene.Shapes[1]);
-        var xs = ParsePoints(body.Points).Select(point => point.X).ToArray();
+        ScenePolygon body = Assert.IsType<ScenePolygon>(scene.Shapes[1]);
+        double[] xs = ParsePoints(body.Points).Select(point => point.X).ToArray();
 
         Assert.True(xs.Max() - xs.Min() > 2 * 2 * Scale,
             "筒身宽度应大于端面直径，否则端面会悬在筒身之外");
@@ -103,16 +103,16 @@ public sealed class IsoSceneTests
     [Fact]
     public void Vertical_Cylinder_Should_Emit_Single_Shell_And_Top()
     {
-        var scene = new IsoScene();
+        IsoScene scene = new();
         scene.AddVerticalCylinder(12, 8, 3, 0, 7, "stage-stock");
 
         Assert.Equal(2, scene.Shapes.Count);
 
-        var shell = Assert.IsType<ScenePolygon>(scene.Shapes[0]);
+        ScenePolygon shell = Assert.IsType<ScenePolygon>(scene.Shapes[0]);
         Assert.Contains("iso-shell", shell.CssClass, StringComparison.Ordinal);
         Assert.DoesNotContain("iso-side", shell.CssClass, StringComparison.Ordinal);
 
-        var top = Assert.IsType<ScenePolygon>(scene.Shapes[1]);
+        ScenePolygon top = Assert.IsType<ScenePolygon>(scene.Shapes[1]);
         Assert.Contains("iso-top", top.CssClass, StringComparison.Ordinal);
     }
 
@@ -122,7 +122,7 @@ public sealed class IsoSceneTests
     [Fact]
     public void Scene_Should_Stay_Inside_ViewBox()
     {
-        var scene = new IsoScene();
+        IsoScene scene = new();
 
         scene.AddFloor(0, 120, 0, 30, "scene-floor");
         scene.AddBox(0.8, 118.4, 3.4, 19.4, 0, 0.5, "stage-metal");
@@ -130,13 +130,11 @@ public sealed class IsoSceneTests
         scene.AddCylinderAlongY(114.9, 5.6, 3.4, 7.2, 14.8, "stage-paper");
         scene.AddBox(78.4, 98.8, 3.6, 19.2, 13.4, 14.4, "stage-dry");
 
-        foreach (var polygon in scene.Shapes.OfType<ScenePolygon>())
+        foreach (ScenePolygon polygon in scene.Shapes.OfType<ScenePolygon>())
+        foreach ((double X, double Y) point in ParsePoints(polygon.Points))
         {
-            foreach (var point in ParsePoints(polygon.Points))
-            {
-                Assert.InRange(point.X, 0, IsoScene.ViewWidth);
-                Assert.InRange(point.Y, 0, IsoScene.ViewHeight);
-            }
+            Assert.InRange(point.X, 0, IsoScene.ViewWidth);
+            Assert.InRange(point.Y, 0, IsoScene.ViewHeight);
         }
     }
 
@@ -146,13 +144,13 @@ public sealed class IsoSceneTests
     /// </summary>
     private static IEnumerable<(double X, double Y)> ParsePoints(string points)
     {
-        foreach (var pair in points.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        foreach (string pair in points.Split(' ', StringSplitOptions.RemoveEmptyEntries))
         {
-            var parts = pair.Split(',');
+            string[] parts = pair.Split(',');
             Assert.Equal(2, parts.Length);
 
-            var x = double.Parse(parts[0], CultureInfo.InvariantCulture);
-            var y = double.Parse(parts[1], CultureInfo.InvariantCulture);
+            double x = double.Parse(parts[0], CultureInfo.InvariantCulture);
+            double y = double.Parse(parts[1], CultureInfo.InvariantCulture);
 
             Assert.False(double.IsNaN(x) || double.IsInfinity(x), $"横坐标异常：{pair}");
             Assert.False(double.IsNaN(y) || double.IsInfinity(y), $"纵坐标异常：{pair}");

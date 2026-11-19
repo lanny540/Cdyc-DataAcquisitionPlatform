@@ -24,10 +24,8 @@ public static class ForbiddenAccessExtensions
             catch (ForbiddenAccessException ex)
             {
                 if (context.Response.HasStarted)
-                {
                     // 电路帧已经开始下发，无法改写响应：只能终止连接由客户端报错。
                     throw;
-                }
 
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
 

@@ -61,7 +61,7 @@
                 }
 
                 <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Outlined">
-                    删除后将无法继续用于采集配置，请确认操作。
+                    删除后节点将归档并停止自动采集；关联采集点会停用，历史采集记录保留。
                 </MudAlert>
             </MudStack>
         </DialogContent>
@@ -111,7 +111,7 @@
             <MudItem xs="12" md="4" lg="3">
                 <MudSelect T="string" Margin="Margin.Dense" Label="采集方式筛选" Variant="Variant.Outlined"
                            @bind-Value="_typeFilter">
-                    @foreach (var item in TypeFilterOptions)
+                    @foreach (string item in TypeFilterOptions)
                     {
                         <MudSelectItem T="string" Value="@item">@item</MudSelectItem>
                     }

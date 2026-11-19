@@ -19,9 +19,9 @@ public class ShiftScheduleExcelParserBoundaryTests
     public void Parse_With_Oversized_Stream_Should_Report_Size_Limit()
     {
         // 用可 seek 的长流模拟超限文件，避免真的分配上百 MB 内存
-        using var stream = new LengthOnlyStream(64L * 1024 * 1024);
+        using LengthOnlyStream stream = new(64L * 1024 * 1024);
 
-        var parsed = _parser.Parse("大文件.xlsx", stream, out List<ShiftScheduleRowDto> rows,
+        int parsed = _parser.Parse("大文件.xlsx", stream, out List<ShiftScheduleRowDto> rows,
             out List<ShiftScheduleIssueDto> issues);
 
         Assert.Equal(0, parsed);
@@ -34,9 +34,9 @@ public class ShiftScheduleExcelParserBoundaryTests
     [Fact]
     public void Parse_With_Empty_Worksheet_Should_Report_No_Content()
     {
-        using var stream = new MemoryStream();
+        using MemoryStream stream = new();
 
-        using (var workbook = new XLWorkbook())
+        using (XLWorkbook workbook = new())
         {
             workbook.Worksheets.Add("空表");
             workbook.SaveAs(stream);
@@ -206,7 +206,7 @@ public class ShiftScheduleExcelParserBoundaryTests
     public void Parse_With_Corrupted_Stream_Should_Throw_Format_Exception()
     {
         // 随机字节不是有效的 xlsx，XLWorkbook 构造时会失败
-        using var stream = new MemoryStream([0x00, 0x01, 0x02, 0x03]);
+        using MemoryStream stream = new([0x00, 0x01, 0x02, 0x03]);
 
         Assert.ThrowsAny<Exception>(() => _parser.Parse("坏文件.xlsx", stream, out _, out _));
     }
@@ -217,7 +217,7 @@ public class ShiftScheduleExcelParserBoundaryTests
         using MemoryStream stream = BuildWorkbook(worksheet =>
         {
             WriteHeader(worksheet, 1);
-            for (var i = 0; i < 5; i++)
+            for (int i = 0; i < 5; i++)
             {
                 worksheet.Cell(2 + i, 1).Value = new DateTime(2026, 10, 20);
                 worksheet.Cell(2 + i, 2).Value = $"班{i}";
@@ -226,7 +226,7 @@ public class ShiftScheduleExcelParserBoundaryTests
             }
         });
 
-        var parsed = _parser.Parse("五行.xlsx", stream, out List<ShiftScheduleRowDto> rows,
+        int parsed = _parser.Parse("五行.xlsx", stream, out List<ShiftScheduleRowDto> rows,
             out List<ShiftScheduleIssueDto> issues);
 
         Assert.Equal(5, parsed);
@@ -246,9 +246,9 @@ public class ShiftScheduleExcelParserBoundaryTests
 
     private static MemoryStream BuildWorkbook(Action<IXLWorksheet> fill)
     {
-        var stream = new MemoryStream();
+        MemoryStream stream = new();
 
-        using (var workbook = new XLWorkbook())
+        using (XLWorkbook workbook = new())
         {
             IXLWorksheet worksheet = workbook.Worksheets.Add("排班表");
             fill(worksheet);

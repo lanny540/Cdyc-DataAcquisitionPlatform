@@ -18,19 +18,17 @@ public class PaperMachineSimulatorTests
     [Fact]
     public void Snapshot_Should_Be_Deterministic()
     {
-        var first = PaperMachineSimulator.Snapshot(Sample);
-        var second = PaperMachineSimulator.Snapshot(Sample);
+        PaperMachineSnapshot first = PaperMachineSimulator.Snapshot(Sample);
+        PaperMachineSnapshot second = PaperMachineSimulator.Snapshot(Sample);
 
         Assert.Equal(first.Stations.Count, second.Stations.Count);
 
-        for (var i = 0; i < first.Stations.Count; i++)
+        for (int i = 0; i < first.Stations.Count; i++)
         {
             Assert.Equal(first.Stations[i].Code, second.Stations[i].Code);
 
-            for (var m = 0; m < first.Stations[i].Metrics.Count; m++)
-            {
+            for (int m = 0; m < first.Stations[i].Metrics.Count; m++)
                 Assert.Equal(first.Stations[i].Metrics[m].DisplayValue, second.Stations[i].Metrics[m].DisplayValue);
-            }
         }
 
         Assert.Equal(
@@ -44,14 +42,14 @@ public class PaperMachineSimulatorTests
     [Fact]
     public void Snapshot_Should_Change_Between_Ticks()
     {
-        var next = Sample + PaperMachineSimulator.Tick;
+        DateTimeOffset next = Sample + PaperMachineSimulator.Tick;
 
-        var before = PaperMachineSimulator.Snapshot(Sample).Stations
+        string[] before = PaperMachineSimulator.Snapshot(Sample).Stations
             .SelectMany(station => station.Metrics)
             .Select(metric => metric.DisplayValue)
             .ToArray();
 
-        var after = PaperMachineSimulator.Snapshot(next).Stations
+        string[] after = PaperMachineSimulator.Snapshot(next).Stations
             .SelectMany(station => station.Metrics)
             .Select(metric => metric.DisplayValue)
             .ToArray();
@@ -66,7 +64,7 @@ public class PaperMachineSimulatorTests
     [Fact]
     public void Stations_Should_Follow_Process_Order()
     {
-        var snapshot = PaperMachineSimulator.Snapshot(Sample);
+        PaperMachineSnapshot snapshot = PaperMachineSimulator.Snapshot(Sample);
 
         Assert.Equal(
             ["FEED-01", "REF-01", "STK-01", "WET-01", "PRS-01", "DRY-01", "CLD-01", "REW-01"],
@@ -90,10 +88,10 @@ public class PaperMachineSimulatorTests
     public void Metrics_Should_Stay_In_Plausible_Range(string code, string label, double min, double max)
     {
         // 连续采样 2 小时（每 5 秒一次），确保慢波与噪声的极值都被覆盖。
-        for (var step = 0; step < 1440; step++)
+        for (int step = 0; step < 1440; step++)
         {
-            var snapshot = PaperMachineSimulator.Snapshot(Sample.AddSeconds(step * 5));
-            var metric = snapshot.Stations
+            PaperMachineSnapshot snapshot = PaperMachineSimulator.Snapshot(Sample.AddSeconds(step * 5));
+            TwinMetric metric = snapshot.Stations
                 .Single(station => station.Code == code)
                 .Metrics
                 .Single(item => item.Label == label);
@@ -109,21 +107,18 @@ public class PaperMachineSimulatorTests
     [Fact]
     public void Dewatering_Should_Match_Station_Metrics()
     {
-        var snapshot = PaperMachineSimulator.Snapshot(Sample);
+        PaperMachineSnapshot snapshot = PaperMachineSimulator.Snapshot(Sample);
 
         Assert.Equal(4, snapshot.Dewatering.Count);
         Assert.Equal(
             ["上网浓度", "出网部干度", "出压榨干度", "成纸干度"],
             snapshot.Dewatering.Select(metric => metric.Label));
 
-        var stationValues = snapshot.Stations
+        Dictionary<string, string> stationValues = snapshot.Stations
             .SelectMany(station => station.Metrics)
             .ToDictionary(metric => metric.Label, metric => metric.DisplayValue);
 
-        foreach (var point in snapshot.Dewatering)
-        {
-            Assert.Equal(stationValues[point.Label], point.DisplayValue);
-        }
+        foreach (TwinMetric point in snapshot.Dewatering) Assert.Equal(stationValues[point.Label], point.DisplayValue);
     }
 
     /// <summary>
@@ -132,9 +127,9 @@ public class PaperMachineSimulatorTests
     [Fact]
     public void Shift_Totals_Should_Keep_Break_Count_Zero()
     {
-        for (var step = 0; step < 120; step++)
+        for (int step = 0; step < 120; step++)
         {
-            var metric = PaperMachineSimulator.Snapshot(Sample.AddSeconds(step * 5)).ShiftTotals
+            TwinMetric metric = PaperMachineSimulator.Snapshot(Sample.AddSeconds(step * 5)).ShiftTotals
                 .Single(item => item.Label == "断纸");
 
             Assert.Equal("0", metric.DisplayValue);
@@ -147,7 +142,7 @@ public class PaperMachineSimulatorTests
     [Fact]
     public void Display_Value_Should_Use_Invariant_Decimal_Point()
     {
-        var metric = new TwinMetric("上网浓度", 0.82, 2, "%");
+        TwinMetric metric = new("上网浓度", 0.82, 2, "%");
 
         Assert.Equal("0.82", metric.DisplayValue);
     }

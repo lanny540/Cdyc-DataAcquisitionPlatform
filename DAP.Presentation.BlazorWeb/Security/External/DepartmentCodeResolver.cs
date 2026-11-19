@@ -19,16 +19,13 @@ public sealed class DepartmentCodeResolver(DataAcquisitionPlatformDbContext db)
     /// <returns>部门标识。</returns>
     public async Task<Guid?> ResolveAsync(string? externalCode, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(externalCode))
-        {
-            return null;
-        }
+        if (string.IsNullOrWhiteSpace(externalCode)) return null;
 
-        var code = externalCode.Trim();
+        string code = externalCode.Trim();
 
         return await db.Departments
             .Where(department => department.ExternalCode == code)
-            .Select(department => (Guid?)department.Id)
+            .Select(department => (Guid?) department.Id)
             .FirstOrDefaultAsync(cancellationToken);
     }
 }

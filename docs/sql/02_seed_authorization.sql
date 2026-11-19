@@ -32,12 +32,13 @@ BEGIN;
 --    短字符列容纳不下，菜单渲染改用代码常量。
 -- -----------------------------------------------------------------------------
 INSERT INTO business_domains
-    (id, code, name, icon, sort_order, is_system, is_enabled, visible_when_empty, created_at, updated_at)
-VALUES
-    ('91443ef3-e4e5-5bc7-9281-1423a3ceaefc', 'banknote-paper',    '钞纸',     NULL,  10, false, true, false, now(), now()),
-    ('872522d1-8c02-5b7a-b33c-ad07c327643b', 'banknote-printing', '印钞',     NULL,  20, false, true, false, now(), now()),
-    ('7c38960a-2a91-5eda-aa21-18aca849000a', 'energy',            '能源',     NULL,  30, false, true, false, now(), now()),
-    ('17daee05-644d-576c-83e2-741a391071c6', 'platform-admin',    '平台管理', NULL, 900, true,  true, false, now(), now())
+(id, code, name, icon, sort_order, is_system, is_enabled, visible_when_empty, created_at, updated_at)
+VALUES ('91443ef3-e4e5-5bc7-9281-1423a3ceaefc', 'banknote-paper', '钞纸', NULL, 10, false, true, false, now(), now()),
+       ('872522d1-8c02-5b7a-b33c-ad07c327643b', 'banknote-printing', '印钞', NULL, 20, false, true, false, now(),
+        now()),
+       ('7c38960a-2a91-5eda-aa21-18aca849000a', 'energy', '能源', NULL, 30, false, true, false, now(), now()),
+       ('17daee05-644d-576c-83e2-741a391071c6', 'platform-admin', '平台管理', NULL, 900, true, true, false, now(),
+        now())
 ON CONFLICT (code) DO NOTHING;
 
 -- -----------------------------------------------------------------------------
@@ -46,12 +47,12 @@ ON CONFLICT (code) DO NOTHING;
 -- -----------------------------------------------------------------------------
 INSERT INTO permissions
     (id, code, name, group_name, sort_order, created_at, updated_at)
-VALUES
-    ('65e52660-78a8-5b2b-9fa7-518bacb5a6ce', 'action.shift.manage',      '排班配置',       '班组管理', 10, now(), now()),
-    ('b37445fe-941b-5dc3-80ab-6e0dba252e8e', 'action.user.manage',       '用户管理',       '权限管理', 20, now(), now()),
-    ('c3341d12-bfd8-5f91-b572-1fb0e3c1bef5', 'action.domain.manage',     '域与页面管理',   '权限管理', 30, now(), now()),
-    ('9465487a-8ed9-51fe-85d4-eaad5e1fb1a9', 'action.department.manage', '部门与授权管理', '权限管理', 40, now(), now()),
-    ('a7471eaf-7465-517c-aedb-60383cde29be', 'action.system.manage',     '平台配置',       '平台运维', 50, now(), now())
+VALUES ('65e52660-78a8-5b2b-9fa7-518bacb5a6ce', 'action.shift.manage', '排班配置', '班组管理', 10, now(), now()),
+       ('b37445fe-941b-5dc3-80ab-6e0dba252e8e', 'action.user.manage', '用户管理', '权限管理', 20, now(), now()),
+       ('c3341d12-bfd8-5f91-b572-1fb0e3c1bef5', 'action.domain.manage', '域与页面管理', '权限管理', 30, now(), now()),
+       ('9465487a-8ed9-51fe-85d4-eaad5e1fb1a9', 'action.department.manage', '部门与授权管理', '权限管理', 40, now(),
+        now()),
+       ('a7471eaf-7465-517c-aedb-60383cde29be', 'action.system.manage', '平台配置', '平台运维', 50, now(), now())
 ON CONFLICT (code) DO NOTHING;
 
 -- -----------------------------------------------------------------------------
@@ -61,12 +62,11 @@ ON CONFLICT (code) DO NOTHING;
 --    备用通道，只在需要时打开开关，避免默认就多出一批能改人和改排班的账号。
 -- -----------------------------------------------------------------------------
 INSERT INTO roles
-    (id, code, name, page_level, is_builtin, is_enabled, sort_order, created_at, updated_at)
-VALUES
-    ('d1461b91-8579-5d19-9acc-a11755f12788', 'super-admin',      '超级管理员', 99, true, true,  10, now(), now()),
-    ('3579a343-4a9d-557d-a2eb-75688ee66fff', 'department-admin', '部门管理员',  2, true, false, 20, now(), now()),
-    ('87aecbd6-0e41-5661-8ed8-2d4c6e83b0c0', 'technician',       '技术人员',    2, true, true,  30, now(), now()),
-    ('6df810c3-b1f1-5a62-804a-78411fbeabbe', 'viewer',           '普通用户',    1, true, true,  40, now(), now())
+(id, code, name, page_level, is_builtin, is_enabled, sort_order, created_at, updated_at)
+VALUES ('d1461b91-8579-5d19-9acc-a11755f12788', 'super-admin', '超级管理员', 99, true, true, 10, now(), now()),
+       ('3579a343-4a9d-557d-a2eb-75688ee66fff', 'department-admin', '部门管理员', 2, true, false, 20, now(), now()),
+       ('87aecbd6-0e41-5661-8ed8-2d4c6e83b0c0', 'technician', '技术人员', 2, true, true, 30, now(), now()),
+       ('6df810c3-b1f1-5a62-804a-78411fbeabbe', 'viewer', '普通用户', 1, true, true, 40, now(), now())
 ON CONFLICT (code) DO NOTHING;
 
 -- -----------------------------------------------------------------------------
@@ -76,13 +76,11 @@ ON CONFLICT (code) DO NOTHING;
 -- -----------------------------------------------------------------------------
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
-FROM (VALUES
-        ('department-admin', 'action.user.manage'),
-        ('department-admin', 'action.shift.manage'),
-        ('technician',       'action.shift.manage')
-     ) AS mapping (role_code, permission_code)
-JOIN roles r ON r.code = mapping.role_code
-JOIN permissions p ON p.code = mapping.permission_code
+FROM (VALUES ('department-admin', 'action.user.manage'),
+             ('department-admin', 'action.shift.manage'),
+             ('technician', 'action.shift.manage')) AS mapping (role_code, permission_code)
+         JOIN roles r ON r.code = mapping.role_code
+         JOIN permissions p ON p.code = mapping.permission_code
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
 COMMIT;

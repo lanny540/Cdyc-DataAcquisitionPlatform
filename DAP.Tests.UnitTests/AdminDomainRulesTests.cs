@@ -40,13 +40,13 @@ public class AdminDomainRulesTests
     [Fact]
     public void System_Domain_Should_Not_Be_Deletable()
     {
-        Assert.NotNull(AdminDomainRules.DescribeDeleteViolation(pageCount: 0, isSystem: true));
+        Assert.NotNull(AdminDomainRules.DescribeDeleteViolation(0, true));
     }
 
     [Fact]
     public void Domain_With_Pages_Should_Not_Be_Deletable()
     {
-        var reason = AdminDomainRules.DescribeDeleteViolation(pageCount: 3, isSystem: false);
+        string? reason = AdminDomainRules.DescribeDeleteViolation(3, false);
 
         Assert.NotNull(reason);
         Assert.Contains("3", reason, StringComparison.Ordinal);
@@ -55,7 +55,7 @@ public class AdminDomainRulesTests
     [Fact]
     public void Empty_Business_Domain_Should_Be_Deletable()
     {
-        Assert.Null(AdminDomainRules.DescribeDeleteViolation(pageCount: 0, isSystem: false));
+        Assert.Null(AdminDomainRules.DescribeDeleteViolation(0, false));
     }
 
     [Theory]

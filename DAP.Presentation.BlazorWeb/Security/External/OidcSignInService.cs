@@ -1,14 +1,12 @@
 using DAP.Core.Domain.Entities;
 using DAP.Infrastructure.DataAccess.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace DAP.Presentation.BlazorWeb.Security.External;
 
 /// <summary>
 /// OIDC 登录时的建号与字段刷新（docs/AUTH_DESIGN.md 11.2「首次登录 JIT 建号」）。
-///
-/// 唯一键是 <c>sub</c> 而不是邮箱或用户名：邮箱会变，用户名可能被回收再分配给另一个人，
-/// 用它们做键迟早会把两个真实用户串成一个账号。
 /// </summary>
 public sealed class OidcSignInService(
     DataAcquisitionPlatformDbContext db,
@@ -29,12 +27,12 @@ public sealed class OidcSignInService(
         OidcUserProfile profile,
         CancellationToken cancellationToken = default)
     {
-        var providerKey = ProviderKey(provider);
+        string providerKey = ProviderKey(provider);
         DateTimeOffset now = timeProvider.GetUtcNow();
 
         Guid? userId = await db.ExternalIdentities
             .Where(identity => identity.Provider == providerKey && identity.ExternalId == profile.ExternalId)
-            .Select(identity => (Guid?)identity.UserId)
+            .Select(identity => (Guid?) identity.UserId)
             .FirstOrDefaultAsync(cancellationToken);
 
         Guid? departmentId = await departmentCodes.ResolveAsync(profile.DepartmentCode, cancellationToken);
@@ -44,15 +42,9 @@ public sealed class OidcSignInService(
             AppUser? existing = await db.AppUsers
                 .FirstOrDefaultAsync(user => user.Id == existingUserId, cancellationToken);
 
-            if (existing is null)
-            {
-                return new OidcProvisionResult(false, null, "账号已不存在，请联系管理员。");
-            }
+            if (existing is null) return new OidcProvisionResult(false, null, "账号已不存在，请联系管理员。");
 
-            if (!existing.IsEnabled)
-            {
-                return new OidcProvisionResult(false, null, "该账号已停用，请联系管理员。");
-            }
+            if (!existing.IsEnabled) return new OidcProvisionResult(false, null, "该账号已停用，请联系管理员。");
 
             // 姓名与邮箱跟随 IdP；部门只在映射到时更新，映射不到保留原归属。
             if (!string.IsNullOrWhiteSpace(profile.DisplayName)
@@ -81,7 +73,7 @@ public sealed class OidcSignInService(
             return new OidcProvisionResult(true, existing.Id, null);
         }
 
-        var userName = await EnsureUniqueUserNameAsync(profile.UserName, provider.Code, cancellationToken);
+        string userName = await EnsureUniqueUserNameAsync(profile.UserName, provider.Code, cancellationToken);
 
         AppUser created = new()
         {
@@ -115,16 +107,12 @@ public sealed class OidcSignInService(
             .FirstOrDefaultAsync(role => role.Code == provider.DefaultRoleCode, cancellationToken);
 
         if (defaultRole is {IsEnabled: true})
-        {
             db.UserRoles.Add(new UserRole {UserId = created.Id, RoleId = defaultRole.Id});
-        }
         else
-        {
             logger.LogWarning(
                 "OIDC 账号 {UserName} 建号时默认角色 {RoleCode} 不可用，该账号将看不到任何页面。",
                 userName,
                 provider.DefaultRoleCode);
-        }
 
         try
         {
@@ -135,17 +123,15 @@ public sealed class OidcSignInService(
             // 并发首登：两个标签页、或用户双击登录按钮，两段流程会同时为同一个 sub 建号，
             // 后到的一次撞唯一索引。这不是错误——对方已经建好了，取回既有账号即可，
             // 否则用户看到的是「统一登录失败」，重试一次又正常。
-            foreach (var entry in db.ChangeTracker.Entries()
+            foreach (EntityEntry entry in db.ChangeTracker.Entries()
                          .Where(item => item.State == EntityState.Added)
                          .ToList())
-            {
                 entry.State = EntityState.Detached;
-            }
 
             Guid? concurrentUserId = await db.ExternalIdentities
                 .AsNoTracking()
                 .Where(identity => identity.Provider == providerKey && identity.ExternalId == profile.ExternalId)
-                .Select(identity => (Guid?)identity.UserId)
+                .Select(identity => (Guid?) identity.UserId)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (concurrentUserId is { } id)
@@ -191,10 +177,7 @@ public sealed class OidcSignInService(
             .FirstOrDefaultAsync(item => item.Provider == providerKey && item.ExternalId == externalId,
                 cancellationToken);
 
-        if (identity is null)
-        {
-            return;
-        }
+        if (identity is null) return;
 
         identity.LastSyncedAt = now;
         identity.UpdatedAt = now;
@@ -205,17 +188,17 @@ public sealed class OidcSignInService(
         string providerCode,
         CancellationToken cancellationToken)
     {
-        var stem = string.IsNullOrWhiteSpace(baseName) ? $"oidc-{providerCode}" : baseName.Trim();
-        var candidate = Truncate(stem, 100);
+        string stem = string.IsNullOrWhiteSpace(baseName) ? $"oidc-{providerCode}" : baseName.Trim();
+        string candidate = Truncate(stem, 100);
 
         // 与本地账号同名时不并号：并号等于把一个外部身份挂到别人的账号上。
         // 首选用「账号-提供方」后缀，可预期；仍冲突时再加序号。
-        var suffix = 1;
+        int suffix = 1;
 
         while (await db.AppUsers.AnyAsync(user => user.UserName == candidate, cancellationToken))
         {
             suffix++;
-            var tail = suffix == 2 ? $"-{providerCode}" : $"-{providerCode}{suffix}";
+            string tail = suffix == 2 ? $"-{providerCode}" : $"-{providerCode}{suffix}";
             candidate = Truncate(stem, 100 - tail.Length) + tail;
         }
 
@@ -224,10 +207,7 @@ public sealed class OidcSignInService(
 
     private static string Truncate(string value, int maxLength)
     {
-        if (maxLength <= 0)
-        {
-            return value;
-        }
+        if (maxLength <= 0) return value;
 
         return value.Length <= maxLength ? value : value[..maxLength];
     }

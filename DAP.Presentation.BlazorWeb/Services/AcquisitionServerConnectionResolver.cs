@@ -69,17 +69,17 @@ public sealed record ServerConnectionSettings(
 
     private string GetValue(string key)
     {
-        return Configuration.TryGetValue(key, out var value) ? value?.Trim() ?? string.Empty : string.Empty;
+        return Configuration.TryGetValue(key, out string? value) ? value?.Trim() ?? string.Empty : string.Empty;
     }
 
     private bool? GetBoolean(string key)
     {
-        return bool.TryParse(GetValue(key), out var parsed) ? parsed : null;
+        return bool.TryParse(GetValue(key), out bool parsed) ? parsed : null;
     }
 
     private int? GetInteger(string key)
     {
-        return int.TryParse(GetValue(key), out var parsed) && parsed > 0 ? parsed : null;
+        return int.TryParse(GetValue(key), out int parsed) && parsed > 0 ? parsed : null;
     }
 }
 
@@ -98,14 +98,12 @@ public sealed class AcquisitionServerConnectionResolver(
         ServerConnection? connection = null;
 
         if (serverConnectionId.HasValue)
-        {
             connection = await dbContext.ServerConnections
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
                     item => item.Id == serverConnectionId.Value &&
                             item.AcquisitionType == serverType,
                     cancellationToken);
-        }
 
         connection ??= await dbContext.ServerConnections
             .AsNoTracking()
@@ -135,13 +133,9 @@ public sealed class AcquisitionServerConnectionResolver(
 
         // 凭据在库里是密文：发给上游之前必须还原，否则拿一段 dp:v1:... 去换 token，
         // 现象是「配置看起来都对、上游一直 401」。
-        foreach (var key in configuration.Keys.ToArray())
-        {
+        foreach (string key in configuration.Keys.ToArray())
             if (AcquisitionServerCatalog.IsServerSecret(connection.AcquisitionType, key))
-            {
                 configuration[key] = secretProtector.Unprotect(configuration[key]);
-            }
-        }
 
         // 接口路径等可选字段缺失时，套用类型目录登记的默认值，避免运行期拼接出错误地址。
         Dictionary<string, string> merged =
@@ -157,14 +151,11 @@ public sealed class AcquisitionServerConnectionResolver(
 
     private static Dictionary<string, string> ParseConfiguration(string json)
     {
-        if (string.IsNullOrWhiteSpace(json))
-        {
-            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        }
+        if (string.IsNullOrWhiteSpace(json)) return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         try
         {
-            var parsed =
+            Dictionary<string, JsonElement>? parsed =
                 JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
 
             return parsed?.ToDictionary(

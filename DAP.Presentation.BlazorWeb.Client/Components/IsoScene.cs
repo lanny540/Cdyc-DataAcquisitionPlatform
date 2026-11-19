@@ -87,8 +87,8 @@ public sealed class IsoScene
     public static ScenePoint Project(double x, double y, double z)
     {
         return new ScenePoint(
-            OriginX + ((x + (y * DepthX)) * Scale),
-            OriginY - ((z + (y * DepthY)) * Scale));
+            OriginX + (x + y * DepthX) * Scale,
+            OriginY - (z + y * DepthY) * Scale);
     }
 
     /// <summary>
@@ -175,24 +175,24 @@ public sealed class IsoScene
         // 筒身必须是一整块：28 个相邻多边形各自抗锯齿，接缝会漏出底色，
         // 深色柱体上会显出一排竖向亮线。这里按角度取「上半椭圆 + 下半椭圆」拼成闭合剪影，
         // 不靠坐标过滤，避免舍入后端点错位、底边出现锯齿。
-        var half = CircleSegments / 2;
-        var outline = new List<ScenePoint>((half + 1) * 2);
+        int half = CircleSegments / 2;
+        List<ScenePoint> outline = new((half + 1) * 2);
 
-        for (var i = 0; i <= half; i++)
+        for (int i = 0; i <= half; i++)
         {
-            var angle = Math.PI - (Math.PI * i / half);
+            double angle = Math.PI - Math.PI * i / half;
             outline.Add(Project(
-                cx + (radius * Math.Cos(angle)),
-                cy + (radius * Math.Sin(angle)),
+                cx + radius * Math.Cos(angle),
+                cy + radius * Math.Sin(angle),
                 z1));
         }
 
-        for (var i = 0; i <= half; i++)
+        for (int i = 0; i <= half; i++)
         {
-            var angle = -Math.PI * i / half;
+            double angle = -Math.PI * i / half;
             outline.Add(Project(
-                cx + (radius * Math.Cos(angle)),
-                cy + (radius * Math.Sin(angle)),
+                cx + radius * Math.Cos(angle),
+                cy + radius * Math.Sin(angle),
                 z0));
         }
 
@@ -225,17 +225,17 @@ public sealed class IsoScene
         string stageCss,
         bool deferCap = false)
     {
-        var nearCenter = Project(cx, y0, cz);
-        var farCenter = Project(cx, y1, cz);
+        ScenePoint nearCenter = Project(cx, y0, cz);
+        ScenePoint farCenter = Project(cx, y1, cz);
 
         // 投影后圆是正圆（x、z 同比例），两个端面只差一个平移量。
-        var radiusPx = radius * Scale;
-        var offsetX = farCenter.X - nearCenter.X;
-        var offsetY = farCenter.Y - nearCenter.Y;
+        double radiusPx = radius * Scale;
+        double offsetX = farCenter.X - nearCenter.X;
+        double offsetY = farCenter.Y - nearCenter.Y;
 
         // 两个等大圆的外公切线平行于圆心连线，切点半径与之垂直：
         // 令（cosθ, −sinθ）·（offsetX, offsetY）= 0，得 θ = atan2(offsetX, offsetY)。
-        var tangent = Math.Atan2(offsetX, offsetY);
+        double tangent = Math.Atan2(offsetX, offsetY);
 
         AddEllipse(farCenter.X, farCenter.Y, radiusPx, $"iso-cyl-back {stageCss}");
 
@@ -248,20 +248,16 @@ public sealed class IsoScene
             ],
             $"iso-cyl-side {stageCss}");
 
-        var cap = new SceneEllipse(
+        SceneEllipse cap = new(
             Format(nearCenter.X),
             Format(nearCenter.Y),
             Format(radiusPx),
             $"iso-cyl-cap {stageCss}");
 
         if (deferCap)
-        {
             _deferred.Add(cap);
-        }
         else
-        {
             _shapes.Add(cap);
-        }
     }
 
     /// <summary>
@@ -283,7 +279,7 @@ public sealed class IsoScene
     /// <param name="cssClass">样式类。</param>
     public void AddRing(double cx, double cz, double radius, double y, string cssClass)
     {
-        var center = Project(cx, y, cz);
+        ScenePoint center = Project(cx, y, cz);
         AddEllipse(center.X, center.Y, radius * Scale, cssClass);
     }
 
@@ -309,12 +305,12 @@ public sealed class IsoScene
 
     private static (double X, double Y)[] BuildRing(double cx, double cy, double radius)
     {
-        var ring = new (double X, double Y)[CircleSegments];
+        (double X, double Y)[] ring = new (double X, double Y)[CircleSegments];
 
-        for (var i = 0; i < CircleSegments; i++)
+        for (int i = 0; i < CircleSegments; i++)
         {
-            var angle = Math.Tau * i / CircleSegments;
-            ring[i] = (cx + (radius * Math.Cos(angle)), cy + (radius * Math.Sin(angle)));
+            double angle = Math.Tau * i / CircleSegments;
+            ring[i] = (cx + radius * Math.Cos(angle), cy + radius * Math.Sin(angle));
         }
 
         return ring;
@@ -323,8 +319,8 @@ public sealed class IsoScene
     private static ScenePoint PointAt(ScenePoint center, double radius, double angle)
     {
         return new ScenePoint(
-            center.X + (radius * Math.Cos(angle)),
-            center.Y - (radius * Math.Sin(angle)));
+            center.X + radius * Math.Cos(angle),
+            center.Y - radius * Math.Sin(angle));
     }
 
     private void AddPolygon(IReadOnlyList<ScenePoint> points, string cssClass)

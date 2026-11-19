@@ -66,6 +66,77 @@ public class HistoryApiProxyServiceTests
         Assert.Contains("\"tagName\":\"tag003\"", response.PayloadJson, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task GetRawDataAsync_ShouldReturnTimeSeriesSamples_InMockResponse()
+    {
+        HistoryApiProxyService service = CreateService();
+
+        HistoryApiQueryResponse response = await service.GetRawDataAsync(
+            new HistoryRawDataQueryRequest(
+                "tag900",
+                DateTimeOffset.UtcNow.AddHours(-1),
+                DateTimeOffset.UtcNow,
+                0,
+                100),
+            new HistoryApiConnectionOptions("http://10.9.3.54:8080", UseMockResponses: true));
+
+        // 原始数据 Mock 应返回一条标签三个时间点的采样序列。
+        Assert.True(response.Success);
+        Assert.Contains("\"tagName\":\"tag900\"", response.PayloadJson, StringComparison.Ordinal);
+        Assert.Equal(3, CountOccurrences(response.PayloadJson, "\"tagName\""));
+    }
+
+    [Fact]
+    public async Task GetRawDataAsync_ShouldSplitMultipleTagNames_InMockResponse()
+    {
+        HistoryApiProxyService service = CreateService();
+
+        HistoryApiQueryResponse response = await service.GetRawDataAsync(
+            new HistoryRawDataQueryRequest(
+                "tag001,tag002",
+                DateTimeOffset.UtcNow.AddHours(-1),
+                DateTimeOffset.UtcNow,
+                0,
+                100),
+            new HistoryApiConnectionOptions("http://10.9.3.54:8080", UseMockResponses: true));
+
+        // 每个标签各三条采样，共 6 个样本。
+        Assert.True(response.Success);
+        Assert.Equal(6, CountOccurrences(response.PayloadJson, "\"tagName\""));
+    }
+
+    [Fact]
+    public async Task GetCurrentValueAsync_IgnoreCertificateErrors_FailsGracefully_OnUnreachableServer()
+    {
+        // 自签名证书场景会换用放行所有证书的客户端；目标指向本地拒绝端口，
+        // 应返回结构化失败而不是抛异常。
+        HistoryApiProxyService service = CreateService();
+
+        HistoryApiQueryResponse response = await service.GetCurrentValueAsync(
+            new HistoryCurrentValueQueryRequest("tag001"),
+            new HistoryApiConnectionOptions(
+                "http://127.0.0.1:1",
+                "admin",
+                "Pa55word",
+                IgnoreServerCertificateErrors: true));
+
+        Assert.False(response.Success);
+        Assert.Contains("无法连接到采集服务器", response.ErrorMessage, StringComparison.Ordinal);
+    }
+
+    private static int CountOccurrences(string text, string pattern)
+    {
+        int count = 0;
+        int index = 0;
+        while ((index = text.IndexOf(pattern, index, StringComparison.Ordinal)) >= 0)
+        {
+            count++;
+            index += pattern.Length;
+        }
+
+        return count;
+    }
+
     private static HistoryApiProxyService CreateService(
         HistoryApiConnectionOptions? connectionOptions = null)
     {

@@ -64,26 +64,22 @@ public sealed partial class EnergyComparisonPageViewModel : AutoRefreshPageViewM
     /// <summary>
     /// 当前统计粒度。
     /// </summary>
-    [ObservableProperty]
-    private GranularityOption? _selectedGranularity;
+    [ObservableProperty] private GranularityOption? _selectedGranularity;
 
     /// <summary>
     /// 参考日期。
     /// </summary>
-    [ObservableProperty]
-    private DateTime? _selectedDate = DateTime.Today;
+    [ObservableProperty] private DateTime? _selectedDate = DateTime.Today;
 
     /// <summary>
     /// 是否有数据。
     /// </summary>
-    [ObservableProperty]
-    private bool _hasData;
+    [ObservableProperty] private bool _hasData;
 
     /// <summary>
     /// 统计口径文案。
     /// </summary>
-    [ObservableProperty]
-    private string _rangeText = string.Empty;
+    [ObservableProperty] private string _rangeText = string.Empty;
 
     /// <summary>
     /// 概览卡。
@@ -103,36 +99,29 @@ public sealed partial class EnergyComparisonPageViewModel : AutoRefreshPageViewM
     /// <summary>
     /// 第一列指标名。
     /// </summary>
-    [ObservableProperty]
-    private string _column1 = "指标 1";
+    [ObservableProperty] private string _column1 = "指标 1";
 
     /// <summary>
     /// 第二列指标名。
     /// </summary>
-    [ObservableProperty]
-    private string _column2 = "指标 2";
+    [ObservableProperty] private string _column2 = "指标 2";
 
     /// <summary>
     /// 第三列指标名。
     /// </summary>
-    [ObservableProperty]
-    private string _column3 = "指标 3";
+    [ObservableProperty] private string _column3 = "指标 3";
 
     /// <summary>
     /// 第四列指标名。
     /// </summary>
-    [ObservableProperty]
-    private string _column4 = "指标 4";
+    [ObservableProperty] private string _column4 = "指标 4";
 
     /// <summary>
     /// 粒度变化后重新查询。
     /// </summary>
     partial void OnSelectedGranularityChanged(GranularityOption? value)
     {
-        if (value is not null)
-        {
-            _ = ReloadAsync();
-        }
+        if (value is not null) _ = ReloadAsync();
     }
 
     /// <summary>
@@ -140,10 +129,7 @@ public sealed partial class EnergyComparisonPageViewModel : AutoRefreshPageViewM
     /// </summary>
     partial void OnSelectedDateChanged(DateTime? value)
     {
-        if (value is not null)
-        {
-            _ = ReloadAsync();
-        }
+        if (value is not null) _ = ReloadAsync();
     }
 
     /// <inheritdoc />
@@ -173,14 +159,11 @@ public sealed partial class EnergyComparisonPageViewModel : AutoRefreshPageViewM
         MetricCharts.Clear();
         TeamRows.Clear();
 
-        if (teams.Length == 0)
-        {
-            return;
-        }
+        if (teams.Length == 0) return;
 
         TeamEnergyComparisonDto highest = teams.MaxBy(team => team.TotalConsumption)!;
         TeamEnergyComparisonDto lowest = teams.MinBy(team => team.TotalConsumption)!;
-        var spread = highest.TotalConsumption - lowest.TotalConsumption;
+        decimal spread = highest.TotalConsumption - lowest.TotalConsumption;
 
         SummaryCards.Add(new MetricCardModel("参与对比班组", teams.Length.ToString(), RangeText,
             NavIcons.Account, Palette.Brush("DapWarningBrush"), Palette.Brush("DapWarningStrongBrush"),
@@ -197,7 +180,7 @@ public sealed partial class EnergyComparisonPageViewModel : AutoRefreshPageViewM
             NavIcons.Bolt, Palette.Brush("DapInfoBrush"), Palette.Brush("DapInfoStrongBrush"),
             Palette.Brush("DapInfoSoftBrush"), Palette.Brush("DapSurfaceBrush")));
 
-        for (var index = 0; index < metrics.Length && index < 4; index++)
+        for (int index = 0; index < metrics.Length && index < 4; index++)
         {
             EnergyMetricDescriptorDto metric = metrics[index];
 
@@ -222,7 +205,7 @@ public sealed partial class EnergyComparisonPageViewModel : AutoRefreshPageViewM
 
         foreach (TeamEnergyComparisonDto team in teams.OrderByDescending(team => team.TotalConsumption))
         {
-            var badge = "";
+            string badge = "";
             IBrush badgeAccent = Palette.Brush("DapTextSecondaryBrush");
 
             if (team.TeamCode == highest.TeamCode)
@@ -255,10 +238,7 @@ public sealed partial class EnergyComparisonPageViewModel : AutoRefreshPageViewM
     /// </summary>
     private static string TeamValue(TeamEnergyComparisonDto team, EnergyMetricDescriptorDto? metric)
     {
-        if (metric is null)
-        {
-            return "--";
-        }
+        if (metric is null) return "--";
 
         EnergyMetricValueDto? value =
             team.MetricValues.FirstOrDefault(item => item.MetricCode == metric.MetricCode);

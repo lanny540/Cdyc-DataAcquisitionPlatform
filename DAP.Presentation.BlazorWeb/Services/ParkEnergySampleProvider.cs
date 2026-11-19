@@ -24,7 +24,7 @@ public static class ParkEnergySampleProvider
     /// <returns>示例快照，数据状态为 sample。</returns>
     public static ParkEnergyOverviewDto Create(string period, ParkEnergyPeriod range, TimeSpan offset)
     {
-        var isYear = string.Equals(period, "year", StringComparison.Ordinal);
+        bool isYear = string.Equals(period, "year", StringComparison.Ordinal);
 
         IReadOnlyList<ParkEnergyKpiDto> kpis = isYear
             ?
@@ -56,7 +56,7 @@ public static class ParkEnergySampleProvider
                 new ParkEnergyShareDto("水", "8.3 tce", 0.018m, "1.8%")
             ];
 
-IReadOnlyList<ParkEnergyShareDto> secondary = isYear
+        IReadOnlyList<ParkEnergyShareDto> secondary = isYear
             ?
             [
                 new ParkEnergyShareDto("空调制冷量", "176 万 kWh", null, "系数待配置"),
@@ -68,7 +68,7 @@ IReadOnlyList<ParkEnergyShareDto> secondary = isYear
                 new ParkEnergyShareDto("压缩空气", "9.0 万 kWh", null, "系数待配置")
             ];
 
-IReadOnlyList<ParkEnergyOrgShareDto> orgs = isYear
+        IReadOnlyList<ParkEnergyOrgShareDto> orgs = isYear
             ?
             [
                 new ParkEnergyOrgShareDto("钞纸车间", "2,308 tce", 0.421m, 2.8m),

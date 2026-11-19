@@ -98,20 +98,14 @@ public sealed class ConnectionDiagnosticsService(
                 .FirstOrDefaultAsync(item => item.Id == request.ServerConnectionId.Value, cancellationToken)
             : null;
 
-        var acquisitionType = boundServer?.AcquisitionType.Trim() ?? request.AcquisitionType.Trim();
-        var address = boundServer?.Address.Trim() ?? request.ConnectionAddress.Trim();
+        string acquisitionType = boundServer?.AcquisitionType.Trim() ?? request.AcquisitionType.Trim();
+        string address = boundServer?.Address.Trim() ?? request.ConnectionAddress.Trim();
 
         ManagedDataConnectionTestResultDto? validationResult = ValidateConnectionTestRequest(acquisitionType, address);
-        if (validationResult is not null)
-        {
-            return validationResult;
-        }
+        if (validationResult is not null) return validationResult;
 
         validationResult = ValidateModbusConnectionTestRequest(request, acquisitionType, address);
-        if (validationResult is not null)
-        {
-            return validationResult;
-        }
+        if (validationResult is not null) return validationResult;
 
         // 节点测试沿用服务器的凭据与接口路径配置，只需提供节点自身的采集信息。
         Dictionary<string, string> serverConfiguration = boundServer is null
@@ -119,7 +113,7 @@ public sealed class ConnectionDiagnosticsService(
             : ParseJsonDictionary(boundServer.ConfigurationJson);
 
         Dictionary<string, string> nodeConfiguration = ParseJsonDictionary(request.ConfigurationJson);
-        var requestPath = nodeConfiguration.GetValueOrDefault("apiPath");
+        string? requestPath = nodeConfiguration.GetValueOrDefault("apiPath");
 
         AcquisitionServerProbeResultDto probeResult = await probeService.ProbeAsync(
             acquisitionType,
@@ -149,7 +143,6 @@ public sealed class ConnectionDiagnosticsService(
         CancellationToken cancellationToken)
     {
         if (!server.IsConfigured)
-        {
             return server with
             {
                 IsChecking = false,
@@ -157,10 +150,8 @@ public sealed class ConnectionDiagnosticsService(
                 CheckedAt = DateTimeOffset.UtcNow,
                 ErrorMessage = "数据库中的连接地址为空。"
             };
-        }
 
         if (IsSerialAddress(server.AcquisitionType, server.Address))
-        {
             return server with
             {
                 IsChecking = false,
@@ -168,10 +159,9 @@ public sealed class ConnectionDiagnosticsService(
                 CheckedAt = DateTimeOffset.UtcNow,
                 ErrorMessage = "不支持串口自动探测。"
             };
-        }
 
         ConnectionProbeResult probeResult = await ProbeAddressAsync(server.Address, cancellationToken);
-        var statusMessage = BuildStatusMessage(server, probeResult.Success);
+        string statusMessage = BuildStatusMessage(server, probeResult.Success);
 
         return server with
         {
@@ -198,12 +188,12 @@ public sealed class ConnectionDiagnosticsService(
         int relatedDefinitionCount)
     {
         Dictionary<string, string> configuration = ParseJsonDictionary(connection.ConfigurationJson);
-        var address = NormalizeAddress(connection.Address);
-        var isConfigured = !string.IsNullOrWhiteSpace(address);
-        var useMockResponses =
+        string address = NormalizeAddress(connection.Address);
+        bool isConfigured = !string.IsNullOrWhiteSpace(address);
+        bool useMockResponses =
             IsEnabledConfigurationValue(configuration, "useMockResponses") ||
             IsEnabledConfigurationValue(configuration, "useMock");
-        var credentialsConfigured = HasCredentials(configuration);
+        bool credentialsConfigured = HasCredentials(configuration);
 
         return new ServerConnectionStatusDto(
             CreateServerKey(connection.AcquisitionType, address),
@@ -223,17 +213,15 @@ public sealed class ConnectionDiagnosticsService(
 
     private async Task<ConnectionProbeResult> ProbeAddressAsync(string address, CancellationToken cancellationToken)
     {
-        if (!TryResolveEndpoint(address, out var host, out var port, out var normalizedAddress, out var errorMessage))
-        {
-            return CreateProbeFailureResult(normalizedAddress, errorMessage);
-        }
+        if (!TryResolveEndpoint(address, out string host, out int port, out string normalizedAddress,
+                out string? errorMessage)) return CreateProbeFailureResult(normalizedAddress, errorMessage);
 
-        using var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        using CancellationTokenSource linkedSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         linkedSource.CancelAfter(TimeSpan.FromSeconds(DefaultRequestTimeoutSeconds));
 
         try
         {
-            using var tcpClient = new TcpClient();
+            using TcpClient tcpClient = new();
             await tcpClient.ConnectAsync(host, port, linkedSource.Token);
             return new ConnectionProbeResult(
                 true,
@@ -286,17 +274,11 @@ public sealed class ConnectionDiagnosticsService(
         string acquisitionType,
         string address)
     {
-        if (!string.Equals(acquisitionType, "Modbus", StringComparison.OrdinalIgnoreCase))
-        {
-            return null;
-        }
+        if (!string.Equals(acquisitionType, "Modbus", StringComparison.OrdinalIgnoreCase)) return null;
 
         Dictionary<string, string> configuration = ParseJsonDictionary(request.ConfigurationJson);
-        var variant = GetValueOrDefault(configuration, "protocolVariant", "RTU");
-        if (!string.Equals(variant, "RTU", StringComparison.OrdinalIgnoreCase))
-        {
-            return null;
-        }
+        string variant = GetValueOrDefault(configuration, "protocolVariant", "RTU");
+        if (!string.Equals(variant, "RTU", StringComparison.OrdinalIgnoreCase)) return null;
 
         return new ManagedDataConnectionTestResultDto(
             acquisitionType,
@@ -309,7 +291,7 @@ public sealed class ConnectionDiagnosticsService(
 
     private static string BuildStatusMessage(ServerConnectionStatusDto server, bool isReachable)
     {
-        var statusMessage = isReachable
+        string statusMessage = isReachable
             ? "服务器网络可达。"
             : "服务器当前不可达或开发环境无法访问。";
 
@@ -336,8 +318,8 @@ public sealed class ConnectionDiagnosticsService(
 
     private static string CreateServerKey(string acquisitionType, string address)
     {
-        var payload = $"{acquisitionType.Trim().ToUpperInvariant()}|{address.Trim().ToUpperInvariant()}";
-        var hashBytes = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(payload));
+        string payload = $"{acquisitionType.Trim().ToUpperInvariant()}|{address.Trim().ToUpperInvariant()}";
+        byte[] hashBytes = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(payload));
         return Convert.ToHexString(hashBytes[..8]).ToLowerInvariant();
     }
 
@@ -352,14 +334,14 @@ public sealed class ConnectionDiagnosticsService(
 
     private static bool IsEnabledConfigurationValue(IReadOnlyDictionary<string, string> configuration, string key)
     {
-        return configuration.TryGetValue(key, out var value) &&
-               bool.TryParse(value, out var enabled) &&
+        return configuration.TryGetValue(key, out string? value) &&
+               bool.TryParse(value, out bool enabled) &&
                enabled;
     }
 
     private static bool HasValue(IReadOnlyDictionary<string, string> configuration, string key)
     {
-        return configuration.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value);
+        return configuration.TryGetValue(key, out string? value) && !string.IsNullOrWhiteSpace(value);
     }
 
     private static ConnectionProbeResult CreateProbeFailureResult(string normalizedAddress, string? errorMessage)
@@ -405,9 +387,9 @@ public sealed class ConnectionDiagnosticsService(
             return true;
         }
 
-        var segments =
+        string[] segments =
             normalizedAddress.Split(':', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-        if (segments.Length == 2 && int.TryParse(segments[1], out var parsedPort))
+        if (segments.Length == 2 && int.TryParse(segments[1], out int parsedPort))
         {
             host = segments[0];
             port = parsedPort;
@@ -432,14 +414,11 @@ public sealed class ConnectionDiagnosticsService(
 
     private static Dictionary<string, string> ParseJsonDictionary(string json)
     {
-        if (string.IsNullOrWhiteSpace(json))
-        {
-            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        }
+        if (string.IsNullOrWhiteSpace(json)) return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         try
         {
-            var rawDictionary =
+            Dictionary<string, JsonElement>? rawDictionary =
                 JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
 
             return rawDictionary?.ToDictionary(
@@ -457,7 +436,7 @@ public sealed class ConnectionDiagnosticsService(
 
     private static string GetValueOrDefault(IReadOnlyDictionary<string, string> dictionary, string key, string fallback)
     {
-        return dictionary.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value)
+        return dictionary.TryGetValue(key, out string? value) && !string.IsNullOrWhiteSpace(value)
             ? value
             : fallback;
     }

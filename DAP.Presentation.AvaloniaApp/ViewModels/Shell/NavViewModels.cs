@@ -49,8 +49,7 @@ public sealed partial class NavItemViewModel : ObservableObject
     /// <summary>
     /// 是否为当前页面。
     /// </summary>
-    [ObservableProperty]
-    private bool _isSelected;
+    [ObservableProperty] private bool _isSelected;
 
     /// <summary>
     /// 图标前景色：激活项用 primary 亮蓝（与 Web 端激活态一致），
@@ -58,10 +57,13 @@ public sealed partial class NavItemViewModel : ObservableObject
     /// </summary>
     public IBrush IconBrush => IsSelected
         ? Palette.Brush("DapPrimaryStrongBrush")
-        : Palette.Brush("Dap" + Char.ToUpperInvariant(Source.Accent[0]) + Source.Accent.Substring(1) + "StrongBrush");
+        : Palette.Brush("Dap" + char.ToUpperInvariant(Source.Accent[0]) + Source.Accent.Substring(1) + "StrongBrush");
 
     /// <inheritdoc />
-    partial void OnIsSelectedChanged(bool value) => OnPropertyChanged(nameof(IconBrush));
+    partial void OnIsSelectedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IconBrush));
+    }
 
     /// <summary>
     /// 选中命令。
@@ -153,8 +155,7 @@ public sealed partial class NavModuleViewModel : ObservableObject
     /// <summary>
     /// 是否为当前模块。
     /// </summary>
-    [ObservableProperty]
-    private bool _isSelected;
+    [ObservableProperty] private bool _isSelected;
 
     /// <summary>
     /// 选中命令。

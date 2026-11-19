@@ -1151,6 +1151,10 @@ namespace DAP.Infrastructure.DataAccess.Persistence.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("data_category");
 
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Department")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -1207,7 +1211,8 @@ namespace DAP.Infrastructure.DataAccess.Persistence.Migrations
 
                     b.HasIndex("Code")
                         .IsUnique()
-                        .HasDatabaseName("ux_managed_data_definitions_code");
+                        .HasDatabaseName("ux_managed_data_definitions_code")
+                        .HasFilter("deleted_at IS NULL");
 
                     b.HasIndex("ServerConnectionId")
                         .HasDatabaseName("ix_managed_data_definitions_server_connection_id");

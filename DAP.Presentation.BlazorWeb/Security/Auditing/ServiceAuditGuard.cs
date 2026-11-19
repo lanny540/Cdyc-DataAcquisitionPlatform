@@ -27,6 +27,7 @@ internal static class ServiceAuditGuard
     /// <param name="succeededSelector">从返回值判断业务是否成功；null 视为成功。</param>
     /// <param name="detailFactory">从返回值构造审计明细；null 不记明细。</param>
     /// <param name="cancellationToken">取消令牌。</param>
+    /// <param name="callerUserContext">当前请求或电路中的用户上下文。</param>
     /// <returns>业务操作返回值。</returns>
     public static async Task<T> ExecuteAsync<T>(
         IServiceScopeFactory scopeFactory,
@@ -38,12 +39,14 @@ internal static class ServiceAuditGuard
         Func<CurrentUser, Task<T>> operation,
         Func<T, bool>? succeededSelector = null,
         Func<T, object?>? detailFactory = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        ICurrentUserContext? callerUserContext = null)
     {
         using IServiceScope scope = scopeFactory.CreateScope();
 
-        var userContext = scope.ServiceProvider.GetRequiredService<ICurrentUserContext>();
-        var writer = scope.ServiceProvider.GetRequiredService<AuditLogWriter>();
+        ICurrentUserContext userContext =
+            callerUserContext ?? scope.ServiceProvider.GetRequiredService<ICurrentUserContext>();
+        AuditLogWriter writer = scope.ServiceProvider.GetRequiredService<AuditLogWriter>();
 
         CurrentUser? user = await userContext.GetUserAsync(cancellationToken);
 
@@ -60,9 +63,10 @@ internal static class ServiceAuditGuard
         // 电路建立后不再重新认证——不查库的话，被停用的人可以在已打开的页面里继续改数据。
         if (user.UserId is { } userId)
         {
-            var db = scope.ServiceProvider.GetRequiredService<DataAcquisitionPlatformDbContext>();
+            DataAcquisitionPlatformDbContext db =
+                scope.ServiceProvider.GetRequiredService<DataAcquisitionPlatformDbContext>();
 
-            var stillEnabled = await db.AppUsers
+            bool stillEnabled = await db.AppUsers
                 .AsNoTracking()
                 .AnyAsync(item => item.Id == userId && item.IsEnabled, cancellationToken);
 
@@ -85,7 +89,7 @@ internal static class ServiceAuditGuard
         {
             T result = await operation(user);
 
-            var succeeded = succeededSelector?.Invoke(result) ?? true;
+            bool succeeded = succeededSelector?.Invoke(result) ?? true;
 
             await writer.RecordAsync(user, actionCode, targetType, targetId, targetName, succeeded,
                 detailFactory?.Invoke(result), cancellationToken);
@@ -99,7 +103,7 @@ internal static class ServiceAuditGuard
         catch (Exception ex)
         {
             // 异常细节写审计（仅超管可查），长度截断避免异常堆栈撑爆列。
-            var reason = ex.Message.Length > 500 ? ex.Message[..500] : ex.Message;
+            string reason = ex.Message.Length > 500 ? ex.Message[..500] : ex.Message;
 
             await writer.RecordAsync(user, actionCode, targetType, targetId, targetName, false,
                 new {reason, errorType = ex.GetType().Name}, cancellationToken);

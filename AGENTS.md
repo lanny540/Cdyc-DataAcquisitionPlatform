@@ -12,21 +12,20 @@
 
 项目采用 **Material Design 3** 七色封闭体系，禁止新增色相：
 
-| 角色 | Base | 变量前缀 |
-|---|---|---|
-| Primary | `#0B4FC4` | `--md-primary` / `DapPrimary*` |
+| 角色      | Base      | 变量前缀                           |
+|-----------|-----------|------------------------------------|
+| Primary   | `#0B4FC4` | `--md-primary` / `DapPrimary*`     |
 | Secondary | `#33475C` | `--md-secondary` / `DapSecondary*` |
-| Tertiary | `#7B2F9E` | `--md-tertiary` / `DapTertiary*` |
-| Success | `#0D7A3C` | `--md-success` / `DapSuccess*` |
-| Warning | `#B15600` | `--md-warning` / `DapWarning*` |
-| Error | `#B32318` | `--md-error` / `DapError*` |
-| Info | `#0F6FBD` | `--md-info` / `DapInfo*` |
+| Tertiary  | `#7B2F9E` | `--md-tertiary` / `DapTertiary*`   |
+| Success   | `#0D7A3C` | `--md-success` / `DapSuccess*`     |
+| Warning   | `#B15600` | `--md-warning` / `DapWarning*`     |
+| Error     | `#B32318` | `--md-error` / `DapError*`         |
+| Info      | `#0F6FBD` | `--md-info` / `DapInfo*`           |
 
 > 上表为速查值，**一切以 `app.css` 的 `:root` 与 `docs/DESIGN_SYSTEM.md` 1.2 节为准**；
 > 三级深度（Base / Soft / Tint）的完整色值见设计规范。
 
-语义映射：在线/成功=绿、离线/失败/删除=红、停用/检测中=琥珀、提示=信息蓝、主操作=蓝。
-**禁用灰色表达业务状态。**
+语义映射：在线/成功=绿、离线/失败/删除=红、停用/检测中=琥珀、提示=信息蓝、主操作=蓝。 **禁用灰色表达业务状态。**
 
 **全站采用深色主题**（Web `IsDarkMode="true"` + 桌面 `RequestedThemeVariant="Dark"`），
 底色层级遵循 M3 dark「越浮越亮」：页面底 → 卡片表面 → 区块容器逐级提亮。
@@ -34,12 +33,12 @@
 **改色板必须核验四条底线**（由守卫测试 `Palette_Should_Meet_Contrast_Baselines` 强制，
 参照表面从 app.css 的 `--platform-surface` 读取）：
 
-| 约束 | 阈值 |
-|---|---|
-| 白字 / base | ≥ 4.5:1（WCAG AA）|
-| tint / 卡片表面 | ≥ 1.20:1（底纹要肉眼可辨）|
-| soft / 卡片表面 | ≥ 1.25:1（统计卡底色要跳脱）|
-| strong / 容器底 | ≥ 4.5:1（卡片数字要可读；深色下 strong 是亮色强调文字）|
+| 约束            | 阈值                                                    |
+|-----------------|---------------------------------------------------------|
+| 白字 / base     | ≥ 4.5:1（WCAG AA）                                      |
+| tint / 卡片表面 | ≥ 1.20:1（底纹要肉眼可辨）                              |
+| soft / 卡片表面 | ≥ 1.25:1（统计卡底色要跳脱）                            |
+| strong / 容器底 | ≥ 4.5:1（卡片数字要可读；深色下 strong 是亮色强调文字） |
 
 底色**必须整块铺满**，不要用 `linear-gradient(tint → surface)` 把颜色稀释回表面色——
 那样卡片九成面积仍是表面色，等于没上色。层次靠卡内的表格/图表底板区分。
@@ -63,7 +62,8 @@
 <MudPaper Class="platform-stat-card platform-stat-card--tinted platform-accent-success pa-4">
 ```
 
-可用类：`platform-accent-primary` / `-secondary` / `-tertiary` / `-success` / `-warning` / `-error` / `-info` / `-neutral`。
+可用类：`platform-accent-primary` / `-secondary` / `-tertiary` / `-success` / `-warning` / `-error` / `-info` /
+`-neutral`。
 
 **不得为具体色相新增 CSS 规则。** 这些类的内部实现只注入 `--card-accent*` 变量，其余样式统一读取变量。
 
@@ -73,19 +73,19 @@
 
 ### 5. 复用既有结构，不手搓
 
-| 场景 | 必须用 |
-|---|---|
-| 页面根 | `<MudStack Class="platform-page-shell" Spacing="2">` |
-| 页面头部 | `platform-page-hero` + accent |
-| 统计卡 | `platform-stat-card--tinted` + `platform-stat-header`（中性卡底，色相由左色条/图标底块/标签行承载）；**全宽头条 KPI 用 `--filled`（soft 全幅，全页最多一两张）**|
-| 区块卡/面板 | `platform-section-card--tinted` / `platform-panel--tinted`（中性卡底 + 左侧 4px 色条）|
-| 表格 | `platform-data-table` |
-| 空状态 | `platform-empty-state` + `platform-empty-icon` |
-| 抽屉 | `platform-sheet` + `platform-sheet-section`（各分区不同 accent） |
-| 对话框 | `Common/PlatformDialogs.cs`（禁止内联声明 `DialogOptions`） |
-| 代码面板 | `platform-code-panel` / `platform-code-heading` / `platform-code-content` |
-| 图表 | `platform-chart-panel` + `platform-chart-frame`（系列色随卡片 accent，见下）|
-| 月历 | `platform-calendar` + `platform-calendar-cell`（MudBlazor 9.12 无独立日历组件） |
+| 场景        | 必须用                                                                                                                                                           |
+|-------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 页面根      | `<MudStack Class="platform-page-shell" Spacing="2">`                                                                                                             |
+| 页面头部    | `platform-page-hero` + accent                                                                                                                                    |
+| 统计卡      | `platform-stat-card--tinted` + `platform-stat-header`（中性卡底，色相由左色条/图标底块/标签行承载）；**全宽头条 KPI 用 `--filled`（soft 全幅，全页最多一两张）** |
+| 区块卡/面板 | `platform-section-card--tinted` / `platform-panel--tinted`（中性卡底 + 左侧 4px 色条）                                                                           |
+| 表格        | `platform-data-table`                                                                                                                                            |
+| 空状态      | `platform-empty-state` + `platform-empty-icon`                                                                                                                   |
+| 抽屉        | `platform-sheet` + `platform-sheet-section`（各分区不同 accent）                                                                                                 |
+| 对话框      | `Common/PlatformDialogs.cs`（禁止内联声明 `DialogOptions`）                                                                                                      |
+| 代码面板    | `platform-code-panel` / `platform-code-heading` / `platform-code-content`                                                                                        |
+| 图表        | `platform-chart-panel` + `platform-chart-frame`（系列色随卡片 accent，见下）                                                                                     |
+| 月历        | `platform-calendar` + `platform-calendar-cell`（MudBlazor 9.12 无独立日历组件）                                                                                  |
 
 > 类名必须写完整：`platform-stat-card--tinted`、`platform-section-card--tinted`、
 > `platform-panel--tinted`。历史上曾把双连字符前缀截断成 `--tinted`——那不是任何已定义的
@@ -172,11 +172,11 @@ MudChart 把系列色硬编码为 Material 默认蓝（`#2979FF`）。`app.css` 
 
 `DAP.Clients` 是 Web 与桌面端唯一的接口入口，**新增接口只加在这里**：
 
-| 文件 | 职责 |
-|---|---|
-| `IPlatformApiClient.cs` / `PlatformApiClient.cs` | 业务契约与 HTTP 实现（`/api/*`） |
-| `IPlatformAuthClient.cs` / `PlatformAuthClient.cs` | 登录、当前用户、登出、改密（302 + `Location` 表达结果） |
-| `PlatformHttpResponse.cs` | 统一错误文案：401/403/404/429/5xx 翻成中文，非 JSON 响应不回显原文 |
+| 文件                                               | 职责                                                               |
+|----------------------------------------------------|--------------------------------------------------------------------|
+| `IPlatformApiClient.cs` / `PlatformApiClient.cs`   | 业务契约与 HTTP 实现（`/api/*`）                                   |
+| `IPlatformAuthClient.cs` / `PlatformAuthClient.cs` | 登录、当前用户、登出、改密（302 + `Location` 表达结果）            |
+| `PlatformHttpResponse.cs`                          | 统一错误文案：401/403/404/429/5xx 翻成中文，非 JSON 响应不回显原文 |
 
 约定：
 

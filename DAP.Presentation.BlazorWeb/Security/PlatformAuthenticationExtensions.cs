@@ -40,13 +40,13 @@ public static class PlatformAuthenticationExtensions
             configuration.GetSection($"{PlatformAuthOptions.SectionName}:Cookie").Get<CookieSessionOptions>()
             ?? new CookieSessionOptions();
 
-        var slidingHours = Math.Max(1, cookieOptions.SlidingHours);
-        var absoluteHours = Math.Max(slidingHours, cookieOptions.AbsoluteHours);
+        int slidingHours = Math.Max(1, cookieOptions.SlidingHours);
+        int absoluteHours = Math.Max(slidingHours, cookieOptions.AbsoluteHours);
 
         // 生产强制 Secure：SameAsRequest 的语义是「请求是 https 才加 Secure」，
         // 一旦有人把站点直接以 http 暴露（内网图省事很常见），会话 Cookie 就会明文过网，
         // 抓包即可复用会话。Development 保留 SameAsRequest，否则本机 http 调试登不进去。
-        var requireSecureCookie = cookieOptions.RequireHttps && !environment.IsDevelopment();
+        bool requireSecureCookie = cookieOptions.RequireHttps && !environment.IsDevelopment();
 
         BoardOptions boardOptions =
             configuration.GetSection($"{PlatformAuthOptions.SectionName}:Board").Get<BoardOptions>()
@@ -91,7 +91,7 @@ public static class PlatformAuthenticationExtensions
                     // 用它判定等于永远不会到期。
                     OnValidatePrincipal = async context =>
                     {
-                        var issuedAt = PlatformClaimsFactory.ReadIssuedAt(context.Principal);
+                        DateTimeOffset? issuedAt = PlatformClaimsFactory.ReadIssuedAt(context.Principal);
 
                         // 车间只读会话（docs/AUTH_DESIGN.md 6.6 硬约束 5）：
                         // 绑定签发 IP，不一致立即作废——Cookie 被复制到别的机器也用不了；
@@ -99,13 +99,13 @@ public static class PlatformAuthenticationExtensions
                         // 固定到期后由白名单 IP 重新签发，现场无感。
                         if (PlatformClaimsFactory.IsBoardTerminal(context.Principal))
                         {
-                            var issuedIp = context.Principal?.FindFirst(
+                            string? issuedIp = context.Principal?.FindFirst(
                                 AuthorizationCatalog.PlatformClaimTypes.BoardIssuedIp)?.Value;
-                            var remoteIp = context.HttpContext.Connection.RemoteIpAddress?.ToString();
+                            string? remoteIp = context.HttpContext.Connection.RemoteIpAddress?.ToString();
 
-                            var boardExpired = issuedAt is null
-                                               || DateTimeOffset.UtcNow - issuedAt.Value
-                                               > TimeSpan.FromHours(Math.Max(1, boardOptions.SessionHours));
+                            bool boardExpired = issuedAt is null
+                                                || DateTimeOffset.UtcNow - issuedAt.Value
+                                                > TimeSpan.FromHours(Math.Max(1, boardOptions.SessionHours));
 
                             if (!string.Equals(issuedIp, remoteIp, StringComparison.Ordinal) || boardExpired)
                             {
@@ -117,7 +117,8 @@ public static class PlatformAuthenticationExtensions
                             return;
                         }
 
-                        if (issuedAt is null || DateTimeOffset.UtcNow - issuedAt.Value > TimeSpan.FromHours(absoluteHours))
+                        if (issuedAt is null ||
+                            DateTimeOffset.UtcNow - issuedAt.Value > TimeSpan.FromHours(absoluteHours))
                         {
                             context.RejectPrincipal();
                             await context.HttpContext.SignOutAsync(
@@ -127,12 +128,12 @@ public static class PlatformAuthenticationExtensions
 
                         // 安全戳比对：停用账号、管理员重置密码后，旧会话必须立刻作废，
                         // 而不是继续用到绝对过期。车间只读会话在上面已经 return，不走这里。
-                        var userIdValue = context.Principal?.FindFirst(
+                        string? userIdValue = context.Principal?.FindFirst(
                             AuthorizationCatalog.PlatformClaimTypes.UserId)?.Value;
-                        var stamp = context.Principal?.FindFirst(
+                        string? stamp = context.Principal?.FindFirst(
                             AuthorizationCatalog.PlatformClaimTypes.SecurityStamp)?.Value;
 
-                        if (!Guid.TryParse(userIdValue, out var userId))
+                        if (!Guid.TryParse(userIdValue, out Guid userId))
                         {
                             context.RejectPrincipal();
                             await context.HttpContext.SignOutAsync(
@@ -140,10 +141,10 @@ public static class PlatformAuthenticationExtensions
                             return;
                         }
 
-                        var validator = context.HttpContext.RequestServices
+                        UserSessionValidator validator = context.HttpContext.RequestServices
                             .GetRequiredService<UserSessionValidator>();
 
-                        var stillValid = await validator.IsSessionValidAsync(
+                        bool stillValid = await validator.IsSessionValidAsync(
                             userId, stamp, context.HttpContext.RequestAborted);
 
                         if (!stillValid)
@@ -244,7 +245,7 @@ public static class PlatformAuthenticationExtensions
             // 页面归属判定：只判页面请求，API 由端点策略拦截（域 + 等级 + 权限点）。
             if (!context.Request.Path.StartsWithSegments("/api"))
             {
-                var denied = await IsPageAccessDeniedAsync(app, context);
+                bool denied = await IsPageAccessDeniedAsync(app, context);
 
                 if (denied)
                 {
@@ -268,24 +269,19 @@ public static class PlatformAuthenticationExtensions
         NavItem? sharedPage = NavigationCatalog.ResolveSharedPage(context.Request.Path);
 
         if (sharedPage is not null)
-        {
             return (sharedPage.RequiresPermission
                     && !PlatformClaimsFactory.HasPermission(context.User, sharedPage.RequiredPermission!))
                    || PlatformClaimsFactory.ReadPageLevel(context.User) < sharedPage.AccessLevel;
-        }
 
         // 中间件无法构造注入，从根容器开 scope 取解析器；判定走 60 秒缓存，开销可控。
-        using var scope = app.ApplicationServices.CreateScope();
-        var resolver = scope.ServiceProvider.GetRequiredService<PageAccessResolver>();
+        using IServiceScope scope = app.ApplicationServices.CreateScope();
+        PageAccessResolver resolver = scope.ServiceProvider.GetRequiredService<PageAccessResolver>();
 
         PageAccessRequirement? requirement = await resolver.ResolveAsync(
             context.Request.Path.Value ?? string.Empty,
             context.RequestAborted);
 
-        if (requirement is null)
-        {
-            return false;
-        }
+        if (requirement is null) return false;
 
         return !PlatformClaimsFactory.CanAccessDomain(context.User, requirement.DomainCode)
                || PlatformClaimsFactory.ReadPageLevel(context.User) < requirement.AccessLevel;
@@ -300,24 +296,15 @@ public static class PlatformAuthenticationExtensions
     /// <returns>签发成功时 true，请求以只读会话继续。</returns>
     private static async Task<bool> TryIssueBoardSessionAsync(IApplicationBuilder app, HttpContext context)
     {
-        var options = app.ApplicationServices.GetRequiredService<IOptions<PlatformAuthOptions>>().Value.Board;
+        BoardOptions options = app.ApplicationServices.GetRequiredService<IOptions<PlatformAuthOptions>>().Value.Board;
 
-        if (!options.Enabled || options.IpWhitelist.Length == 0)
-        {
-            return false;
-        }
+        if (!options.Enabled || options.IpWhitelist.Length == 0) return false;
 
         IPAddress? remoteIp = context.Connection.RemoteIpAddress;
 
-        if (remoteIp is null)
-        {
-            return false;
-        }
+        if (remoteIp is null) return false;
 
-        if (!options.IpWhitelist.Any(entry => BoardIpWhitelist.IsMatch(remoteIp, entry)))
-        {
-            return false;
-        }
+        if (!options.IpWhitelist.Any(entry => BoardIpWhitelist.IsMatch(remoteIp, entry))) return false;
 
         // 直连 Kestrel 时 RemoteIpAddress 即真实对端地址。一旦前面加了反向代理，
         // 必须配置 ForwardedHeaders 且只信已知代理，否则伪造请求头即可获得只读会话。
@@ -336,7 +323,7 @@ public static class PlatformAuthenticationExtensions
                 now.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture))
         ], CookieAuthenticationDefaults.AuthenticationScheme);
 
-        var principal = new ClaimsPrincipal(identity);
+        ClaimsPrincipal principal = new(identity);
 
         await context.SignInAsync(
             CookieAuthenticationDefaults.AuthenticationScheme,
@@ -350,7 +337,7 @@ public static class PlatformAuthenticationExtensions
 
         context.User = principal;
 
-        var logger = app.ApplicationServices.GetRequiredService<ILoggerFactory>()
+        ILogger logger = app.ApplicationServices.GetRequiredService<ILoggerFactory>()
             .CreateLogger("BoardTerminal");
         logger.LogInformation(
             "车间只读终端会话签发：IP={Ip}，User-Agent={UserAgent}，有效期 {Hours} 小时（固定，不滑动）。",
@@ -370,7 +357,7 @@ public static class PlatformAuthenticationExtensions
             return;
         }
 
-        var returnUrl = $"{context.Request.Path}{context.Request.QueryString}";
+        string returnUrl = $"{context.Request.Path}{context.Request.QueryString}";
         context.Response.Redirect($"/login?returnUrl={Uri.EscapeDataString(returnUrl)}");
     }
 
@@ -392,34 +379,23 @@ public static class PlatformAuthenticationExtensions
     /// <returns>免登录时返回 true。</returns>
     private static bool IsExemptPath(PathString path)
     {
-        if (!path.HasValue)
-        {
-            return false;
-        }
+        if (!path.HasValue) return false;
 
-        var value = path.Value!;
+        string value = path.Value!;
 
         // /_blazor、/_framework、/_content：Blazor 电路、WASM 运行时与静态资源包。
-        if (value.StartsWith("/_", StringComparison.Ordinal))
-        {
-            return true;
-        }
+        if (value.StartsWith("/_", StringComparison.Ordinal)) return true;
 
         // 静态资源按扩展名白名单放行。
         // 不写「带扩展名即放行」：那样将来新增 /api/export.json、/reports/xxx.xlsx 这类端点
         // 会被静默当成静态资源，登录闸门与页面归属判定一起失效，而且不会有任何报错。
-        var extension = Path.GetExtension(value);
+        string extension = Path.GetExtension(value);
 
-        if (extension.Length > 1 && IsStaticAssetExtension(extension))
-        {
-            return true;
-        }
+        if (extension.Length > 1 && IsStaticAssetExtension(extension)) return true;
 
         if (value.StartsWith("/api/auth", StringComparison.OrdinalIgnoreCase)
             || value.StartsWith("/health", StringComparison.OrdinalIgnoreCase))
-        {
             return true;
-        }
 
         return value.Equals("/login", StringComparison.OrdinalIgnoreCase)
                || value.Equals("/login/", StringComparison.OrdinalIgnoreCase);

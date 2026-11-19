@@ -31,7 +31,7 @@ public static class CollectionDataEndpoints
                 {
                     // 上限 500：不夹取时 ?limit=99999999 等于一次拉全表，
                     // 既压数据库也压浏览器（这块数据只用于概览与最近值）。
-                    var effectiveLimit = Math.Clamp(limit ?? 20, 1, MaxQueryLimit);
+                    int effectiveLimit = Math.Clamp(limit ?? 20, 1, MaxQueryLimit);
 
                     IReadOnlyCollection<CollectionDataRecordDto> records =
                         await platformService.GetCollectionDataAsync(effectiveLimit, cancellationToken);
@@ -45,10 +45,7 @@ public static class CollectionDataEndpoints
                     CancellationToken cancellationToken) =>
                 {
                     IResult? validationError = ValidateIngestCollectionDataRequest(request);
-                    if (validationError is not null)
-                    {
-                        return validationError;
-                    }
+                    if (validationError is not null) return validationError;
 
                     CollectionDataRecordDto savedRecord =
                         await platformService.IngestCollectionDataAsync(request, cancellationToken);
@@ -67,12 +64,10 @@ public static class CollectionDataEndpoints
     {
         if (string.IsNullOrWhiteSpace(request.CollectionPointCode) ||
             string.IsNullOrWhiteSpace(request.MetricName))
-        {
             return Results.ValidationProblem(new Dictionary<string, string[]>
             {
                 ["CollectionData"] = ["采集点编码和指标名称不能为空。"]
             });
-        }
 
         return null;
     }

@@ -98,10 +98,7 @@ public partial class ManagedDataDefinitionEditor : ComponentBase, IAsyncDisposab
     /// </summary>
     protected override async Task OnParametersSetAsync()
     {
-        if (!Visible)
-        {
-            return;
-        }
+        if (!Visible) return;
 
         _definitionId = DefinitionId;
         await LoadCatalogAsync();
@@ -112,15 +109,10 @@ public partial class ManagedDataDefinitionEditor : ComponentBase, IAsyncDisposab
     {
         try
         {
-            if (_servers.Count == 0)
-            {
-                _servers.AddRange(await PlatformApiClient.GetAcquisitionServersAsync());
-            }
+            if (_servers.Count == 0) _servers.AddRange(await PlatformApiClient.GetAcquisitionServersAsync());
 
             if (_serverTypes.Count == 0)
-            {
                 _serverTypes.AddRange(await PlatformApiClient.GetAcquisitionServerTypesAsync());
-            }
         }
         catch (Exception ex)
         {
@@ -148,10 +140,7 @@ public partial class ManagedDataDefinitionEditor : ComponentBase, IAsyncDisposab
     {
         ResetFields();
 
-        if (!_definitionId.HasValue)
-        {
-            return;
-        }
+        if (!_definitionId.HasValue) return;
 
         try
         {
@@ -195,7 +184,7 @@ public partial class ManagedDataDefinitionEditor : ComponentBase, IAsyncDisposab
 
     private string GetNodeConfigValue(string key)
     {
-        return _nodeConfiguration.TryGetValue(key, out var value) ? value : string.Empty;
+        return _nodeConfiguration.TryGetValue(key, out string? value) ? value : string.Empty;
     }
 
     private void SetNodeConfigValue(string key, string value)
@@ -211,12 +200,8 @@ public partial class ManagedDataDefinitionEditor : ComponentBase, IAsyncDisposab
 
         // 切换服务器时套用该类型的节点字段默认值。
         foreach (AcquisitionServerFieldDescriptor field in CurrentNodeFields)
-        {
             if (!string.IsNullOrWhiteSpace(field.DefaultValue))
-            {
                 _nodeConfiguration[field.Key] = field.DefaultValue;
-            }
-        }
     }
 
     private void AddBusinessTagRow()
@@ -267,10 +252,7 @@ public partial class ManagedDataDefinitionEditor : ComponentBase, IAsyncDisposab
     private async Task SaveAsync()
     {
         ManagedDataDefinitionUpsertRequest? request = BuildCurrentRequest();
-        if (request is null)
-        {
-            return;
-        }
+        if (request is null) return;
 
         _isSaving = true;
 
@@ -295,10 +277,7 @@ public partial class ManagedDataDefinitionEditor : ComponentBase, IAsyncDisposab
     private async Task TestConnectionAsync()
     {
         ManagedDataDefinitionUpsertRequest? request = BuildCurrentRequest();
-        if (request is null)
-        {
-            return;
-        }
+        if (request is null) return;
 
         _isTestingConnection = true;
         _validationMessage = null;
@@ -400,10 +379,7 @@ public partial class ManagedDataDefinitionEditor : ComponentBase, IAsyncDisposab
 
         foreach (EditableKeyValueRow row in rows)
         {
-            if (string.IsNullOrWhiteSpace(row.Key) || string.IsNullOrWhiteSpace(row.Value))
-            {
-                continue;
-            }
+            if (string.IsNullOrWhiteSpace(row.Key) || string.IsNullOrWhiteSpace(row.Value)) continue;
 
             dictionary[row.Key.Trim()] = row.Value.Trim();
         }
@@ -418,10 +394,7 @@ public partial class ManagedDataDefinitionEditor : ComponentBase, IAsyncDisposab
 
         foreach (KeyValuePair<string, string> item in source)
         {
-            if (string.IsNullOrWhiteSpace(item.Key) || string.IsNullOrWhiteSpace(item.Value))
-            {
-                continue;
-            }
+            if (string.IsNullOrWhiteSpace(item.Key) || string.IsNullOrWhiteSpace(item.Value)) continue;
 
             dictionary[item.Key.Trim()] = item.Value.Trim();
         }
@@ -435,10 +408,7 @@ public partial class ManagedDataDefinitionEditor : ComponentBase, IAsyncDisposab
 
         foreach (KeyValuePair<string, string> item in items)
         {
-            if (string.IsNullOrWhiteSpace(item.Key) || string.IsNullOrWhiteSpace(item.Value))
-            {
-                continue;
-            }
+            if (string.IsNullOrWhiteSpace(item.Key) || string.IsNullOrWhiteSpace(item.Value)) continue;
 
             dictionary[item.Key.Trim()] = item.Value.Trim();
         }
@@ -450,14 +420,11 @@ public partial class ManagedDataDefinitionEditor : ComponentBase, IAsyncDisposab
 
     private static Dictionary<string, string> ParseJsonDictionary(string json)
     {
-        if (string.IsNullOrWhiteSpace(json))
-        {
-            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        }
+        if (string.IsNullOrWhiteSpace(json)) return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         try
         {
-            var rawDictionary =
+            Dictionary<string, JsonElement>? rawDictionary =
                 JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
 
             return rawDictionary?.ToDictionary(

@@ -56,7 +56,7 @@ public class ShiftRotationValidatorTests
     [Fact]
     public void Validate_Should_Fail_When_Team_Has_Two_Rows_On_Same_Day()
     {
-        var date = new DateOnly(2026, 10, 20);
+        DateOnly date = new(2026, 10, 20);
         ShiftScheduleRowDto duplicate =
             new(date, "TEAM-甲", "甲班", "中班", new TimeOnly(8, 0), new TimeOnly(16, 0), false, 8d);
 
@@ -95,7 +95,7 @@ public class ShiftRotationValidatorTests
     public void GroupByDate_Should_Separate_Duty_And_Rest_Teams()
     {
         // 首日由甲班轮休，构造数据时 restIndex 从 0 开始。
-        var date = new DateOnly(2026, 10, 20);
+        DateOnly date = new(2026, 10, 20);
 
         IReadOnlyCollection<DailyShiftScheduleDto> calendar =
             ShiftRotationValidator.GroupByDate(BuildFourDaySchedule());
@@ -127,33 +127,33 @@ public class ShiftRotationValidatorTests
     private static ShiftScheduleRowDto[] BuildFourDaySchedule()
     {
         List<ShiftScheduleRowDto> rows = [];
-        var start = new DateOnly(2026, 10, 20);
+        DateOnly start = new(2026, 10, 20);
 
         string[] teamNames = ["甲班", "乙班", "丙班", "丁班"];
-        var shifts = new (TimeOnly Start, TimeOnly End, string Name)[]
+        (TimeOnly Start, TimeOnly End, string Name)[] shifts = new (TimeOnly Start, TimeOnly End, string Name)[]
         {
             (new TimeOnly(0, 0), new TimeOnly(8, 0), "夜班"),
             (new TimeOnly(8, 0), new TimeOnly(16, 0), "早班"),
             (new TimeOnly(16, 0), new TimeOnly(0, 0), "中班")
         };
 
-        for (var dayOffset = 0; dayOffset < 4; dayOffset++)
+        for (int dayOffset = 0; dayOffset < 4; dayOffset++)
         {
             DateOnly date = start.AddDays(dayOffset);
-            var restingIndex = dayOffset % 4;
+            int restingIndex = dayOffset % 4;
 
             // 每天只有 3 个班次，当日在岗班组依次占用这三个槽位。
-            for (var dutyIndex = 0; dutyIndex < 3; dutyIndex++)
+            for (int dutyIndex = 0; dutyIndex < 3; dutyIndex++)
             {
-                var teamIndex = dutyIndex < restingIndex ? dutyIndex : dutyIndex + 1;
-                var teamName = teamNames[teamIndex];
+                int teamIndex = dutyIndex < restingIndex ? dutyIndex : dutyIndex + 1;
+                string teamName = teamNames[teamIndex];
                 (TimeOnly Start, TimeOnly End, string Name) shift = shifts[dutyIndex];
 
                 rows.Add(new ShiftScheduleRowDto(date, TeamCode(teamName), teamName, shift.Name,
                     shift.Start, shift.End, false, 8d));
             }
 
-            var restingName = teamNames[restingIndex];
+            string restingName = teamNames[restingIndex];
             rows.Add(new ShiftScheduleRowDto(date, TeamCode(restingName), restingName, "休息",
                 TimeOnly.MinValue, TimeOnly.MinValue, true, 0d));
         }

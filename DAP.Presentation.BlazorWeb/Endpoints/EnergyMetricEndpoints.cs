@@ -1,3 +1,4 @@
+using DAP.Core.Domain.Services;
 using DAP.Core.Shared.Contracts;
 using DAP.Presentation.BlazorWeb.Services;
 using DAP.Presentation.BlazorWeb.Security;
@@ -29,6 +30,15 @@ public static class EnergyMetricEndpoints
                     return Results.Ok(metrics);
                 })
             .WithName("GetEnergyMetrics");
+
+        group.MapGet(
+                "/teams",
+                async (IShiftSchedulingService service, CancellationToken cancellationToken) =>
+                {
+                    ShiftScheduleStatusDto status = await service.GetStatusAsync(cancellationToken);
+                    return Results.Ok(status.Teams);
+                })
+            .WithName("GetEnergyTeams");
 
         group.MapGet(
                 "/dashboard",

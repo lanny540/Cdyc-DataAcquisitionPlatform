@@ -29,7 +29,7 @@
                 <MudSelect T="string" Label="班组视图" Value="_selectedTeamCode" ValueChanged="OnTeamChangedAsync"
                            Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width: 180px;">
                     <MudSelectItem T="string" Value="@AllTeamsValue">全部班组</MudSelectItem>
-                    @foreach (var team in _teams)
+                    @foreach (ShiftTeamDto team in _teams)
                     {
                         <MudSelectItem T="string" Value="@team.TeamCode">@team.TeamName</MudSelectItem>
                     }
@@ -103,11 +103,11 @@
                     else
                     {
                         <div class="platform-calendar platform-accent-info">
-                            @foreach (var weekday in WeekdayLabels)
+                            @foreach (string weekday in WeekdayLabels)
                             {
                                 <div class="platform-calendar-weekday">@weekday</div>
                             }
-                            @foreach (var cell in _cells)
+                            @foreach (CalendarCell cell in _cells)
                             {
                                 <button type="button"
                                         class="@BuildCellClass(cell)"
@@ -136,7 +136,7 @@
                                     @if (cell.DutyShifts.Count > 0)
                                     {
                                         <div class="platform-calendar-shifts">
-                                            @foreach (var shift in cell.DutyShifts.Take(MaxShiftPreview))
+                                            @foreach (ShiftScheduleRowDto shift in cell.DutyShifts.Take(MaxShiftPreview))
                                             {
                                                 <div class="platform-calendar-shift">
                                                     <span class="platform-calendar-shift-name">@shift.TeamName</span>

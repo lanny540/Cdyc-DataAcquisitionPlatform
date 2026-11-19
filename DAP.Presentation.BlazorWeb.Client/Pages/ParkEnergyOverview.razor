@@ -100,7 +100,7 @@
         {
             <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined"
                       Icon="@Icons.Material.Filled.Info">
-                @foreach (var warning in _overview.Warnings)
+                @foreach (string warning in _overview.Warnings)
                 {
                     <div>@warning</div>
                 }
@@ -108,7 +108,7 @@
         }
 
         <MudGrid Spacing="3">
-            @foreach (var kpi in _overview!.Kpis)
+            @foreach (ParkEnergyKpiDto kpi in _overview!.Kpis)
             {
                 <MudItem xs="12" sm="6" lg="3">
                     <MudPaper Class="platform-stat-card platform-stat-card--tinted platform-accent-secondary pa-4"
@@ -177,15 +177,16 @@
                             </span>
                             <MudStack Spacing="0">
                                 <MudText Typo="Typo.h6" Class="platform-card-title">一次能源构成</MudText>
-                                <MudText Typo="Typo.body2" Class="platform-card-description">按折标煤口径计算占比</MudText>
+                                <MudText Typo="Typo.body2" Class="platform-card-description">按折标煤口径计算占比
+                                </MudText>
                             </MudStack>
                         </MudStack>
 
                         <div class="park-share-list">
-                            @for (var index = 0; index < _overview.PrimaryShares.Count; index++)
+                            @for (int index = 0; index < _overview.PrimaryShares.Count; index++)
                             {
-                                var slice = _overview.PrimaryShares[index];
-                                var level = Math.Min(index + 1, 3);
+                                ParkEnergyShareDto slice = _overview.PrimaryShares[index];
+                                int level = Math.Min(index + 1, 3);
 
                                 <div class="park-share-row">
                                     <div class="park-share-head">
@@ -225,7 +226,7 @@
                             }
                             else
                             {
-                                @foreach (var slice in _overview.SecondaryShares)
+                                @foreach (ParkEnergyShareDto slice in _overview.SecondaryShares)
                                 {
                                     <div class="park-share-note-row">
                                         <span>@slice.Name</span>
@@ -269,7 +270,7 @@
             else
             {
                 <div class="park-org-list">
-                    @foreach (var row in _overview.OrgRows)
+                    @foreach (ParkEnergyOrgShareDto row in _overview.OrgRows)
                     {
                         <div class="park-org-row">
                             <span class="park-org-name">@row.Name</span>
@@ -279,7 +280,8 @@
                             </div>
                             <span class="park-org-value">@row.DisplayValue</span>
                             <span class="park-org-share">@($"{row.Share * 100:0.#}%")</span>
-                            <span class="park-org-delta @(row.DeltaPercent is null ? "park-org-delta--flat" : row.DeltaPercent > 0 ? "park-org-delta--bad" : "park-org-delta--good")">
+                            <span
+                                class="park-org-delta @(row.DeltaPercent is null ? "park-org-delta--flat" : row.DeltaPercent > 0 ? "park-org-delta--bad" : "park-org-delta--good")">
                                 @FormatDelta(row.DeltaPercent)
                             </span>
                         </div>

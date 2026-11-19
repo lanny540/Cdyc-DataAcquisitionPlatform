@@ -26,7 +26,7 @@ public sealed class PlatformAuthorizationPolicyProvider(
     {
         if (policyName.StartsWith(AuthorizationCatalog.PolicyNames.DomainPrefix, StringComparison.Ordinal))
         {
-            var domainCode = policyName[AuthorizationCatalog.PolicyNames.DomainPrefix.Length..];
+            string domainCode = policyName[AuthorizationCatalog.PolicyNames.DomainPrefix.Length..];
 
             return Task.FromResult<AuthorizationPolicy?>(new AuthorizationPolicyBuilder()
                 .RequireAssertion(context => PlatformClaimsFactory.CanAccessDomain(context.User, domainCode))
@@ -34,32 +34,32 @@ public sealed class PlatformAuthorizationPolicyProvider(
         }
 
         if (policyName == AuthorizationCatalog.PolicyNames.Configure)
-        {
             return Task.FromResult<AuthorizationPolicy?>(new AuthorizationPolicyBuilder()
                 .RequireAssertion(context => PlatformClaimsFactory.CanConfigure(context.User))
                 .Build());
-        }
 
         if (policyName == AuthorizationCatalog.PolicyNames.PlatformAdmin)
-        {
             return Task.FromResult<AuthorizationPolicy?>(new AuthorizationPolicyBuilder()
                 .RequireAssertion(context => PlatformClaimsFactory.IsSuperAdmin(context.User))
                 .Build());
-        }
 
         if (policyName.StartsWith(AuthorizationCatalog.PolicyNames.PermissionPrefix, StringComparison.Ordinal))
-        {
             return Task.FromResult<AuthorizationPolicy?>(new AuthorizationPolicyBuilder()
                 .RequireAssertion(context => PlatformClaimsFactory.HasPermission(context.User, policyName))
                 .Build());
-        }
 
         return _fallback.GetPolicyAsync(policyName);
     }
 
     /// <inheritdoc />
-    public Task<AuthorizationPolicy> GetDefaultPolicyAsync() => _fallback.GetDefaultPolicyAsync();
+    public Task<AuthorizationPolicy> GetDefaultPolicyAsync()
+    {
+        return _fallback.GetDefaultPolicyAsync();
+    }
 
     /// <inheritdoc />
-    public Task<AuthorizationPolicy?> GetFallbackPolicyAsync() => _fallback.GetFallbackPolicyAsync();
+    public Task<AuthorizationPolicy?> GetFallbackPolicyAsync()
+    {
+        return _fallback.GetFallbackPolicyAsync();
+    }
 }

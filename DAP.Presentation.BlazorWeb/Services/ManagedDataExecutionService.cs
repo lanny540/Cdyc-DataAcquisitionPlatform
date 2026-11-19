@@ -47,7 +47,6 @@ public sealed class ManagedDataExecutionService(
     {
         ManagedDataDefinition definition = await GetDefinitionAsync(id, cancellationToken);
         if (!definition.IsEnabled)
-        {
             return CreateFailureResult(
                 definition,
                 "Collect",
@@ -55,7 +54,6 @@ public sealed class ManagedDataExecutionService(
                 definition.ConnectionAddress,
                 "{}",
                 "当前数据定义已停用，无法执行采集入库。");
-        }
 
         return await ExecuteReadAsync(definition, "Collect", true, cancellationToken);
     }
@@ -118,7 +116,7 @@ public sealed class ManagedDataExecutionService(
         CancellationToken cancellationToken)
     {
         Dictionary<string, string> configuration = ParseConfiguration(definition.ConfigurationJson);
-        var queryMode = GetValueOrDefault(configuration, "queryMode", "CurrentValue");
+        string queryMode = GetValueOrDefault(configuration, "queryMode", "CurrentValue");
         HistoryApiConnectionOptions connectionOptions =
             await ResolveHistorianConnectionOptionsAsync(definition, cancellationToken);
 
@@ -144,7 +142,6 @@ public sealed class ManagedDataExecutionService(
         };
 
         if (!response.Success)
-        {
             return CreateFailureResult(
                 definition,
                 executionMode,
@@ -152,11 +149,9 @@ public sealed class ManagedDataExecutionService(
                 response.RequestUrl,
                 response.PayloadJson,
                 response.ErrorMessage ?? "上游接口调用失败。");
-        }
 
         ParsedHistorianValue? sample = TryExtractHistorianValue(response.PayloadJson, definition.Identifier);
         if (sample is null)
-        {
             return CreateFailureResult(
                 definition,
                 executionMode,
@@ -164,10 +159,9 @@ public sealed class ManagedDataExecutionService(
                 response.RequestUrl,
                 response.PayloadJson,
                 "已成功调用上游接口，但未能从返回结果中解析出数值样本。");
-        }
 
         CollectionDataRecordDto? savedRecord = null;
-        var statusMessage = $"调试读取成功，解析出数值 {sample.Value.ToString(CultureInfo.InvariantCulture)}。";
+        string statusMessage = $"调试读取成功，解析出数值 {sample.Value.ToString(CultureInfo.InvariantCulture)}。";
 
         if (persistRecord)
         {
@@ -225,10 +219,7 @@ public sealed class ManagedDataExecutionService(
             connectionOptions,
             cancellationToken);
 
-        if (currentResponse.Success)
-        {
-            return currentResponse;
-        }
+        if (currentResponse.Success) return currentResponse;
 
         return await historyApiProxyService.GetRawDataAsync(
             new HistoryRawDataQueryRequest(
@@ -255,13 +246,11 @@ public sealed class ManagedDataExecutionService(
     private static Dictionary<string, string> ParseConfiguration(string configurationJson)
     {
         if (string.IsNullOrWhiteSpace(configurationJson))
-        {
             return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        }
 
         try
         {
-            var rawDictionary =
+            Dictionary<string, JsonElement>? rawDictionary =
                 JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(configurationJson);
 
             return rawDictionary?.ToDictionary(
@@ -279,10 +268,7 @@ public sealed class ManagedDataExecutionService(
 
     private static ParsedHistorianValue? TryExtractHistorianValue(string payloadJson, string expectedIdentifier)
     {
-        if (string.IsNullOrWhiteSpace(payloadJson))
-        {
-            return null;
-        }
+        if (string.IsNullOrWhiteSpace(payloadJson)) return null;
 
         using JsonDocument document = JsonDocument.Parse(payloadJson);
         return TryExtractHistorianValue(document.RootElement, expectedIdentifier);
@@ -302,10 +288,7 @@ public sealed class ManagedDataExecutionService(
         JsonElement element,
         string expectedIdentifier)
     {
-        if (TryCreateSampleFromObject(element, expectedIdentifier, out ParsedHistorianValue? sample))
-        {
-            return sample;
-        }
+        if (TryCreateSampleFromObject(element, expectedIdentifier, out ParsedHistorianValue? sample)) return sample;
 
         return TryExtractHistorianValueFromChildren(
             element.EnumerateObject().Select(static property => property.Value),
@@ -319,10 +302,7 @@ public sealed class ManagedDataExecutionService(
         foreach (JsonElement child in elements)
         {
             ParsedHistorianValue? nested = TryExtractHistorianValue(child, expectedIdentifier);
-            if (nested is not null)
-            {
-                return nested;
-            }
+            if (nested is not null) return nested;
         }
 
         return null;
@@ -335,20 +315,14 @@ public sealed class ManagedDataExecutionService(
     {
         sample = null;
 
-        if (!IdentifierMatches(element, expectedIdentifier))
-        {
-            return false;
-        }
+        if (!IdentifierMatches(element, expectedIdentifier)) return false;
 
-        var value = TryGetDecimalProperty(element, "value")
-                    ?? TryGetDecimalProperty(element, "currentValue")
-                    ?? TryGetDecimalProperty(element, "Value")
-                    ?? TryGetDecimalProperty(element, "CurrentValue");
+        decimal? value = TryGetDecimalProperty(element, "value")
+                         ?? TryGetDecimalProperty(element, "currentValue")
+                         ?? TryGetDecimalProperty(element, "Value")
+                         ?? TryGetDecimalProperty(element, "CurrentValue");
 
-        if (value is null)
-        {
-            return false;
-        }
+        if (value is null) return false;
 
         DateTimeOffset? sampledAt =
             TryGetDateTimeOffsetProperty(element, "timestamp")
@@ -366,54 +340,38 @@ public sealed class ManagedDataExecutionService(
     {
         string[] candidateKeys = ["tagName", "tagname", "name", "Name", "TagName"];
 
-        foreach (var key in candidateKeys)
-        {
-            if (TryGetStringProperty(element, key, out var value) &&
+        foreach (string key in candidateKeys)
+            if (TryGetStringProperty(element, key, out string? value) &&
                 !string.IsNullOrWhiteSpace(value) &&
                 !string.IsNullOrWhiteSpace(expectedIdentifier) &&
                 !value.Equals(expectedIdentifier, StringComparison.OrdinalIgnoreCase))
-            {
                 return false;
-            }
-        }
 
         return true;
     }
 
     private static decimal? TryGetDecimalProperty(JsonElement element, string propertyName)
     {
-        if (!element.TryGetProperty(propertyName, out JsonElement property))
-        {
-            return null;
-        }
+        if (!element.TryGetProperty(propertyName, out JsonElement property)) return null;
 
-        if (property.ValueKind == JsonValueKind.Number && property.TryGetDecimal(out var number))
-        {
-            return number;
-        }
+        if (property.ValueKind == JsonValueKind.Number && property.TryGetDecimal(out decimal number)) return number;
 
         if (property.ValueKind == JsonValueKind.String &&
-            decimal.TryParse(property.GetString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var stringValue))
-        {
+            decimal.TryParse(property.GetString(), NumberStyles.Any, CultureInfo.InvariantCulture,
+                out decimal stringValue))
             return stringValue;
-        }
 
         return null;
     }
 
     private static DateTimeOffset? TryGetDateTimeOffsetProperty(JsonElement element, string propertyName)
     {
-        if (!element.TryGetProperty(propertyName, out JsonElement property))
-        {
-            return null;
-        }
+        if (!element.TryGetProperty(propertyName, out JsonElement property)) return null;
 
         if (property.ValueKind == JsonValueKind.String &&
             DateTimeOffset.TryParse(property.GetString(), CultureInfo.InvariantCulture,
                 DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out DateTimeOffset parsed))
-        {
             return parsed;
-        }
 
         return null;
     }
@@ -423,9 +381,7 @@ public sealed class ManagedDataExecutionService(
         value = null;
         if (!element.TryGetProperty(propertyName, out JsonElement property) ||
             property.ValueKind != JsonValueKind.String)
-        {
             return false;
-        }
 
         value = property.GetString();
         return true;
@@ -433,7 +389,7 @@ public sealed class ManagedDataExecutionService(
 
     private static string GetValueOrDefault(IReadOnlyDictionary<string, string> dictionary, string key, string fallback)
     {
-        return dictionary.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value)
+        return dictionary.TryGetValue(key, out string? value) && !string.IsNullOrWhiteSpace(value)
             ? value
             : fallback;
     }
@@ -446,10 +402,8 @@ public sealed class ManagedDataExecutionService(
             definition.ServerConnectionId, AcquisitionServerCatalog.Historian, cancellationToken);
 
         if (settings is null)
-        {
             throw new InvalidOperationException(
                 "未在采集服务器配置中找到可用的 GE Historian 服务器，请先在采集服务器页面新增并启用。");
-        }
 
         return settings.ToHistorianOptions();
     }

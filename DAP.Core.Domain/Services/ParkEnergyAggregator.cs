@@ -12,16 +12,20 @@ public sealed record ParkEnergyPeriod(DateOnly Start, DateOnly EndInclusive)
     /// </summary>
     /// <param name="offset">园区所在时区相对 UTC 的偏移。</param>
     /// <returns>起点时刻。</returns>
-    public DateTimeOffset StartInstant(TimeSpan offset) =>
-        new(Start.ToDateTime(TimeOnly.MinValue), offset);
+    public DateTimeOffset StartInstant(TimeSpan offset)
+    {
+        return new DateTimeOffset(Start.ToDateTime(TimeOnly.MinValue), offset);
+    }
 
     /// <summary>
     /// 取得期间终点时刻（不含），即结束日的次日零点。
     /// </summary>
     /// <param name="offset">园区所在时区相对 UTC 的偏移。</param>
     /// <returns>终点时刻。</returns>
-    public DateTimeOffset EndInstant(TimeSpan offset) =>
-        new(EndInclusive.AddDays(1).ToDateTime(TimeOnly.MinValue), offset);
+    public DateTimeOffset EndInstant(TimeSpan offset)
+    {
+        return new DateTimeOffset(EndInclusive.AddDays(1).ToDateTime(TimeOnly.MinValue), offset);
+    }
 }
 
 /// <summary>
@@ -42,6 +46,7 @@ public sealed record ParkEnergyPeriod(DateOnly Start, DateOnly EndInclusive)
 /// <param name="Ratio">倍率。</param>
 /// <param name="OrgUnitId">所属组织节点标识。</param>
 /// <param name="OrgUnitName">所属组织节点名称。</param>
+/// <param name="ParentMeterId">上级计量点标识。</param>
 public sealed record ParkEnergyMeterInput(
     Guid Id,
     string Code,
@@ -54,7 +59,8 @@ public sealed record ParkEnergyMeterInput(
     bool IsCumulative,
     decimal Ratio,
     Guid OrgUnitId,
-    string OrgUnitName);
+    string OrgUnitName,
+    Guid? ParentMeterId = null);
 
 /// <summary>
 /// 参与聚合的一条读数。
@@ -157,11 +163,11 @@ public static class ParkEnergyAggregator
         ArgumentNullException.ThrowIfNull(meters);
         ArgumentNullException.ThrowIfNull(readings);
 
-        var start = period.StartInstant(offset);
-        var end = period.EndInstant(offset);
+        DateTimeOffset start = period.StartInstant(offset);
+        DateTimeOffset end = period.EndInstant(offset);
 
-        var warnings = new List<string>();
-        var byMeter = readings
+        List<string> warnings = new();
+        Dictionary<Guid, ParkEnergyReadingInput[]> byMeter = readings
             .GroupBy(reading => reading.MeterId)
             .ToDictionary(group => group.Key, group => group.OrderBy(reading => reading.ReadAt).ToArray());
 
@@ -169,80 +175,119 @@ public static class ParkEnergyAggregator
             ? null
             : readings.Max(reading => reading.ReadAt).ToOffset(offset);
 
-        var mediumTotals = new Dictionary<string, MediumAccumulator>(StringComparer.Ordinal);
-        var orgTotals = new Dictionary<Guid, OrgAccumulator>();
-        var hasReadings = false;
-        var shortMeters = new List<string>();
+        Dictionary<string, MediumAccumulator> mediumTotals = new(StringComparer.Ordinal);
+        Dictionary<Guid, OrgAccumulator> orgTotals = new();
+        HashSet<Guid> meterIds = meters.Select(meter => meter.Id).ToHashSet();
+        bool hasReadings = readings.Any(reading =>
+            meterIds.Contains(reading.MeterId) && reading.ReadAt >= start && reading.ReadAt < end);
+        List<string> shortMeters = new();
 
-        foreach (var meter in meters)
+        HashSet<Guid> invalidMeters = FindInvalidMeterRelationships(meters);
+        if (invalidMeters.Count > 0) warnings.Add($"有 {invalidMeters.Count} 个计量点的总分表关系存在循环或介质不一致，已排除相关计量树，请检查台账。");
+
+        ParkEnergyMeterInput[] validMeters = meters.Where(meter => !invalidMeters.Contains(meter.Id)).ToArray();
+        Dictionary<Guid, ParkEnergyMeterInput> meterMap = validMeters.ToDictionary(meter => meter.Id);
+        Dictionary<Guid, ParkEnergyMeterInput[]> children = validMeters
+            .Where(meter => meter.ParentMeterId.HasValue && meterMap.ContainsKey(meter.ParentMeterId.Value))
+            .GroupBy(meter => meter.ParentMeterId!.Value)
+            .ToDictionary(group => group.Key, group => group.ToArray());
+        Dictionary<Guid, decimal> quantities = new();
+
+        foreach (ParkEnergyMeterInput meter in validMeters)
         {
-            if (!byMeter.TryGetValue(meter.Id, out var series) || series.Length == 0)
+            if (!byMeter.TryGetValue(meter.Id, out ParkEnergyReadingInput[]? series) || series.Length == 0) continue;
+
+            decimal? quantity = ResolveQuantity(meter, series, start, end, shortMeters, warnings);
+            if (quantity is null) continue;
+
+            quantities[meter.Id] = quantity.Value;
+        }
+
+        foreach (ParkEnergyMeterInput meter in validMeters.Where(meter =>
+                     !meter.ParentMeterId.HasValue || !meterMap.ContainsKey(meter.ParentMeterId.Value)))
+        {
+            if (!quantities.TryGetValue(meter.Id, out decimal quantity))
             {
+                if (children.ContainsKey(meter.Id)) warnings.Add($"{meter.Name}总表读数不足，所属分表未计入园区总量。");
+
                 continue;
             }
 
-            if (series.Any(reading => reading.ReadAt >= start && reading.ReadAt < end))
-            {
-                hasReadings = true;
-            }
-
-            var quantity = ResolveQuantity(meter, series, start, end, shortMeters, warnings);
-            if (quantity is null)
-            {
-                continue;
-            }
-
-            var coal = meter.CoalFactor is { } factor
-                ? quantity.Value * factor / 1000m
-                : (decimal?)null;
-
-            if (!mediumTotals.TryGetValue(meter.MediumCode, out var medium))
+            decimal? coal = meter.CoalFactor is { } factor ? quantity * factor / 1000m : (decimal?) null;
+            if (!mediumTotals.TryGetValue(meter.MediumCode, out MediumAccumulator? medium))
             {
                 medium = new MediumAccumulator(
                     meter.MediumCode, meter.MediumName, meter.Unit, meter.IsPrimaryEnergy);
                 mediumTotals[meter.MediumCode] = medium;
             }
 
-            medium.Add(quantity.Value, coal);
+            medium.Add(quantity, coal);
+        }
 
-            if (!orgTotals.TryGetValue(meter.OrgUnitId, out var org))
+        foreach (ParkEnergyMeterInput meter in validMeters)
+        {
+            if (!quantities.TryGetValue(meter.Id, out decimal quantity)) continue;
+
+            if (children.TryGetValue(meter.Id, out ParkEnergyMeterInput[]? directChildren))
             {
-                org = new OrgAccumulator(meter.OrgUnitId, meter.OrgUnitName);
-                orgTotals[meter.OrgUnitId] = org;
+                if (directChildren.Any(child => !quantities.ContainsKey(child.Id)))
+                {
+                    warnings.Add($"{meter.Name}存在读数不足的分表，无法计算总分表差额。");
+                    continue;
+                }
+
+                decimal difference = quantity - directChildren.Sum(child => quantities[child.Id]);
+                if (difference < 0)
+                {
+                    warnings.Add($"{meter.Name}的分表用量超过总表，请检查计量数据。");
+                    continue;
+                }
+
+                AddOrg(Guid.Empty, "损耗", difference, meter);
+            }
+            else
+            {
+                AddOrg(meter.OrgUnitId, meter.OrgUnitName, quantity, meter);
+            }
+        }
+
+        void AddOrg(Guid id, string name, decimal quantity, ParkEnergyMeterInput meter)
+        {
+            if (!orgTotals.TryGetValue(id, out OrgAccumulator? org))
+            {
+                org = new OrgAccumulator(id, name);
+                orgTotals[id] = org;
             }
 
-            org.Add(quantity.Value, coal);
+            decimal? coal = meter.CoalFactor is { } factor ? quantity * factor / 1000m : (decimal?) null;
+            org.Add(quantity, coal);
         }
 
         if (shortMeters.Count > 0)
-        {
             warnings.Add(
                 $"{string.Join("、", shortMeters.Take(3))}{(shortMeters.Count > 3 ? $" 等 {shortMeters.Count} 块表" : string.Empty)}"
                 + "在统计期间内读数不足两条且无期间前基线，用量无法计算，未计入汇总。");
-        }
 
-        var mediums = mediumTotals.Values
+        ParkEnergyMediumUsage[] mediums = mediumTotals.Values
             .Select(accumulator => accumulator.ToUsage())
             .OrderByDescending(usage => usage.CoalEquivalentTce ?? -1m)
             .ThenBy(usage => usage.Code, StringComparer.Ordinal)
             .ToArray();
 
-        var totalTce = mediums
+        decimal totalTce = mediums
             .Where(usage => usage.IsPrimaryEnergy && usage.CoalEquivalentTce.HasValue)
             .Sum(usage => usage.CoalEquivalentTce!.Value);
 
-        var missingFactor = mediums
+        string[] missingFactor = mediums
             .Where(usage => usage.IsPrimaryEnergy && usage.CoalEquivalentTce is null)
             .Select(usage => usage.Name)
             .ToArray();
 
         if (missingFactor.Length > 0)
-        {
             warnings.Add(
                 $"{string.Join("、", missingFactor)}尚未配置折标煤系数，未计入综合能耗；请在介质字典中按实际焓值补齐。");
-        }
 
-        var orgs = orgTotals.Values
+        ParkEnergyOrgUsage[] orgs = orgTotals.Values
             .Select(accumulator => accumulator.ToUsage())
             .OrderByDescending(usage => usage.CoalEquivalentTce ?? -1m)
             .ThenBy(usage => usage.OrgUnitName, StringComparer.Ordinal)
@@ -271,38 +316,39 @@ public static class ParkEnergyAggregator
         ArgumentNullException.ThrowIfNull(meters);
         ArgumentNullException.ThrowIfNull(readings);
 
-        var dayStart = new DateTimeOffset(day.ToDateTime(TimeOnly.MinValue), offset);
-        var dayEnd = dayStart.AddDays(1);
+        DateTimeOffset dayStart = new(day.ToDateTime(TimeOnly.MinValue), offset);
+        DateTimeOffset dayEnd = dayStart.AddDays(1);
 
-        var buckets = new double[24];
-        var touched = new bool[24];
+        double[] buckets = new double[24];
+        bool[] touched = new bool[24];
 
-        var electricMeters = meters
+        HashSet<Guid> invalidMeters = FindInvalidMeterRelationships(meters);
+        Dictionary<Guid, ParkEnergyMeterInput> electricMeters = meters
+            .Where(meter => !invalidMeters.Contains(meter.Id))
             .Where(meter => string.Equals(meter.MediumCode, "ELEC", StringComparison.Ordinal))
             .ToDictionary(meter => meter.Id);
+        HashSet<Guid> rootMeters = electricMeters.Values
+            .Where(meter => !meter.ParentMeterId.HasValue || !electricMeters.ContainsKey(meter.ParentMeterId.Value))
+            .Select(meter => meter.Id)
+            .ToHashSet();
 
-        foreach (var group in readings.GroupBy(reading => reading.MeterId))
+        foreach (IGrouping<Guid, ParkEnergyReadingInput> group in readings.GroupBy(reading => reading.MeterId))
         {
-            if (!electricMeters.TryGetValue(group.Key, out var meter))
+            if (!rootMeters.Contains(group.Key) ||
+                !electricMeters.TryGetValue(group.Key, out ParkEnergyMeterInput? meter)) continue;
+
+            ParkEnergyReadingInput[] series = group.OrderBy(reading => reading.ReadAt).ToArray();
+
+            for (int index = 1; index < series.Length; index++)
             {
-                continue;
-            }
+                ParkEnergyReadingInput previous = series[index - 1];
+                ParkEnergyReadingInput current = series[index];
 
-            var series = group.OrderBy(reading => reading.ReadAt).ToArray();
-
-            for (var index = 1; index < series.Length; index++)
-            {
-                var previous = series[index - 1];
-                var current = series[index];
-
-                var delta = meter.IsCumulative
+                decimal delta = meter.IsCumulative
                     ? (current.Value - previous.Value) * meter.Ratio
                     : current.Value * meter.Ratio;
 
-                if (delta <= 0)
-                {
-                    continue;
-                }
+                if (delta <= 0) continue;
 
                 Distribute(delta, previous.ReadAt, current.ReadAt, dayStart, dayEnd, offset, buckets, touched);
             }
@@ -310,24 +356,19 @@ public static class ParkEnergyAggregator
             // 非累计表的首条读数没有前一条可以定区间，按「截至该时刻的 1 小时」摊。
             if (!meter.IsCumulative && series.Length > 0)
             {
-                var first = series[0];
-                var delta = first.Value * meter.Ratio;
+                ParkEnergyReadingInput first = series[0];
+                decimal delta = first.Value * meter.Ratio;
                 if (delta > 0)
-                {
-                    Distribute(delta, first.ReadAt.AddHours(-1), first.ReadAt, dayStart, dayEnd, offset, buckets, touched);
-                }
+                    Distribute(delta, first.ReadAt.AddHours(-1), first.ReadAt, dayStart, dayEnd, offset, buckets,
+                        touched);
             }
         }
 
-        var result = new decimal?[24];
-        for (var hour = 0; hour < 24; hour++)
-        {
+        decimal?[] result = new decimal?[24];
+        for (int hour = 0; hour < 24; hour++)
             if (touched[hour])
-            {
                 // 该小时的电量除以 1 小时，即为该小时的平均功率。
-                result[hour] = Math.Round((decimal)buckets[hour], 1);
-            }
-        }
+                result[hour] = Math.Round((decimal) buckets[hour], 1);
 
         return result;
     }
@@ -343,21 +384,17 @@ public static class ParkEnergyAggregator
         List<string> shortMeters,
         List<string> warnings)
     {
-        var inPeriod = series.Where(reading => reading.ReadAt >= start && reading.ReadAt < end).ToArray();
+        ParkEnergyReadingInput[] inPeriod =
+            series.Where(reading => reading.ReadAt >= start && reading.ReadAt < end).ToArray();
+
+        if (inPeriod.Length == 0) return null;
 
         if (!meter.IsCumulative)
-        {
             // 非累计表约定：读数本身即本区间用量，直接累加，不做差分。
             return inPeriod.Sum(reading => reading.Value) * meter.Ratio;
-        }
 
-        if (inPeriod.Length == 0)
-        {
-            return null;
-        }
-
-        var baseline = series.LastOrDefault(reading => reading.ReadAt < start);
-        var measured = inPeriod;
+        ParkEnergyReadingInput? baseline = series.LastOrDefault(reading => reading.ReadAt < start);
+        ParkEnergyReadingInput[] measured = inPeriod;
 
         if (baseline is null)
         {
@@ -371,8 +408,8 @@ public static class ParkEnergyAggregator
             measured = inPeriod[1..];
         }
 
-        var last = measured.Length > 0 ? measured[^1] : baseline;
-        var delta = (last.Value - baseline.Value) * meter.Ratio;
+        ParkEnergyReadingInput last = measured.Length > 0 ? measured[^1] : baseline;
+        decimal delta = (last.Value - baseline.Value) * meter.Ratio;
 
         if (delta < 0)
         {
@@ -383,6 +420,58 @@ public static class ParkEnergyAggregator
         }
 
         return delta;
+    }
+
+    private static HashSet<Guid> FindInvalidMeterRelationships(IReadOnlyCollection<ParkEnergyMeterInput> meters)
+    {
+        Dictionary<Guid, ParkEnergyMeterInput> byId = meters.ToDictionary(meter => meter.Id);
+        HashSet<Guid> invalid = new();
+        foreach (ParkEnergyMeterInput meter in meters)
+        {
+            HashSet<Guid> path = new();
+            ParkEnergyMeterInput current = meter;
+            while (true)
+            {
+                if (!path.Add(current.Id))
+                {
+                    invalid.UnionWith(path);
+                    break;
+                }
+
+                if (current.ParentMeterId is not { } parentId ||
+                    !byId.TryGetValue(parentId, out ParkEnergyMeterInput? parent)) break;
+
+                if (!string.Equals(current.MediumCode, parent.MediumCode, StringComparison.Ordinal))
+                {
+                    path.Add(parent.Id);
+                    invalid.UnionWith(path);
+                    break;
+                }
+
+                current = parent;
+            }
+        }
+
+        foreach (ParkEnergyMeterInput meter in meters)
+        {
+            HashSet<Guid> visited = new();
+            ParkEnergyMeterInput current = meter;
+            while (visited.Add(current.Id))
+            {
+                if (invalid.Contains(current.Id))
+                {
+                    invalid.UnionWith(visited);
+                    break;
+                }
+
+                if (current.ParentMeterId is not { } parentId ||
+                    !byId.TryGetValue(parentId, out ParkEnergyMeterInput? parent)) break;
+
+                current = parent;
+            }
+        }
+
+        return invalid;
     }
 
     /// <summary>
@@ -398,34 +487,28 @@ public static class ParkEnergyAggregator
         double[] buckets,
         bool[] touched)
     {
-        var segmentStart = from > dayStart ? from : dayStart;
-        var segmentEnd = to < dayEnd ? to : dayEnd;
-        var totalSeconds = (to - from).TotalSeconds;
+        DateTimeOffset segmentStart = from > dayStart ? from : dayStart;
+        DateTimeOffset segmentEnd = to < dayEnd ? to : dayEnd;
+        double totalSeconds = (to - from).TotalSeconds;
 
-        if (totalSeconds <= 0 || segmentEnd <= segmentStart)
-        {
-            return;
-        }
+        if (totalSeconds <= 0 || segmentEnd <= segmentStart) return;
 
-        var remaining = (double)value;
+        double remaining = (double) value * ((segmentEnd - segmentStart).TotalSeconds / totalSeconds);
 
         while (segmentStart < segmentEnd)
         {
-            var hourIndex = (int)(segmentStart.ToOffset(offset) - dayStart).TotalHours;
-            if (hourIndex is < 0 or > 23)
-            {
-                break;
-            }
+            int hourIndex = (int) (segmentStart.ToOffset(offset) - dayStart).TotalHours;
+            if (hourIndex is < 0 or > 23) break;
 
-            var hourEnd = dayStart.AddHours(hourIndex + 1);
-            var sliceEnd = segmentEnd < hourEnd ? segmentEnd : hourEnd;
+            DateTimeOffset hourEnd = dayStart.AddHours(hourIndex + 1);
+            DateTimeOffset sliceEnd = segmentEnd < hourEnd ? segmentEnd : hourEnd;
 
             // 每片按「原始总量 × 本片时长占比」计算。用递减的 remaining 再乘比例会
             // 得到几何衰减的分配（4 小时段变成 4000/3000/2250/6750），曲线锯齿状；
             // 最后一片取余量，保证合计与总量严格相等。
-            var portion = sliceEnd >= segmentEnd
+            double portion = sliceEnd >= segmentEnd
                 ? remaining
-                : (double)value * ((sliceEnd - segmentStart).TotalSeconds / totalSeconds);
+                : (double) value * ((sliceEnd - segmentStart).TotalSeconds / totalSeconds);
 
             buckets[hourIndex] += portion;
             touched[hourIndex] = true;
@@ -444,14 +527,15 @@ public static class ParkEnergyAggregator
         {
             _quantity += quantity;
             _meters++;
-            if (coal.HasValue)
-            {
-                _coal = (_coal ?? 0m) + coal.Value;
-            }
+            if (coal.HasValue) _coal = (_coal ?? 0m) + coal.Value;
         }
 
-        public ParkEnergyMediumUsage ToUsage() =>
-            new(code, name, unit, Math.Round(_quantity, 4), _coal is null ? null : Math.Round(_coal.Value, 4), isPrimary, _meters);
+        public ParkEnergyMediumUsage ToUsage()
+        {
+            return new ParkEnergyMediumUsage(code, name, unit, Math.Round(_quantity, 4),
+                _coal is null ? null : Math.Round(_coal.Value, 4),
+                isPrimary, _meters);
+        }
     }
 
     private sealed class OrgAccumulator(Guid id, string name)
@@ -462,13 +546,13 @@ public static class ParkEnergyAggregator
         public void Add(decimal quantity, decimal? coal)
         {
             _quantity += quantity;
-            if (coal.HasValue)
-            {
-                _coal = (_coal ?? 0m) + coal.Value;
-            }
+            if (coal.HasValue) _coal = (_coal ?? 0m) + coal.Value;
         }
 
-        public ParkEnergyOrgUsage ToUsage() =>
-            new(id, name, _coal is null ? null : Math.Round(_coal.Value, 4), Math.Round(_quantity, 2));
+        public ParkEnergyOrgUsage ToUsage()
+        {
+            return new ParkEnergyOrgUsage(id, name, _coal is null ? null : Math.Round(_coal.Value, 4),
+                Math.Round(_quantity, 2));
+        }
     }
 }

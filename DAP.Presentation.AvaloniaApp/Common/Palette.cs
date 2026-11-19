@@ -24,9 +24,7 @@ public static class Palette
         if (Application.Current is { } app
             && app.TryFindResource(key, ThemeVariant.Light, out object? value)
             && value is IBrush brush)
-        {
             return brush;
-        }
 
         return Brushes.Transparent;
     }

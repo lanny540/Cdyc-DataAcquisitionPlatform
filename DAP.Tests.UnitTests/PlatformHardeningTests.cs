@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using DAP.Core.Shared.Catalog;
 using DAP.Core.Shared.Contracts;
 using DAP.Presentation.BlazorWeb.Security;
@@ -93,7 +94,7 @@ public class PlatformHardeningTests
             false,
             true);
 
-        var principal = PlatformClaimsFactory.CreatePrincipal(board, DateTimeOffset.UtcNow);
+        ClaimsPrincipal principal = PlatformClaimsFactory.CreatePrincipal(board, DateTimeOffset.UtcNow);
 
         Assert.True(PlatformClaimsFactory.IsBoardTerminal(principal));
         Assert.False(PlatformClaimsFactory.IsSuperAdmin(principal));
@@ -105,9 +106,9 @@ public class PlatformHardeningTests
     [Fact]
     public void Secret_Protector_Should_Round_Trip_And_Tolerate_Legacy_Plaintext()
     {
-        var protector = new PlatformSecretProtector(new EphemeralDataProtectionProvider());
+        PlatformSecretProtector protector = new(new EphemeralDataProtectionProvider());
 
-        var cipher = protector.Protect("Pa55word");
+        string cipher = protector.Protect("Pa55word");
 
         Assert.True(PlatformSecretProtector.IsProtected(cipher));
         Assert.NotEqual("Pa55word", cipher);
@@ -126,10 +127,10 @@ public class PlatformHardeningTests
     [Fact]
     public void Secret_Protector_Should_Degrade_Instead_Of_Throwing_On_Foreign_Key()
     {
-        var writer = new PlatformSecretProtector(new EphemeralDataProtectionProvider());
-        var reader = new PlatformSecretProtector(new EphemeralDataProtectionProvider());
+        PlatformSecretProtector writer = new(new EphemeralDataProtectionProvider());
+        PlatformSecretProtector reader = new(new EphemeralDataProtectionProvider());
 
-        var cipher = writer.Protect("Pa55word");
+        string cipher = writer.Protect("Pa55word");
 
         // 换了密钥环：解不开就当作「未配置密码」，而不是把密文当密码发给上游。
         Assert.Equal(string.Empty, reader.Unprotect(cipher));
@@ -138,9 +139,9 @@ public class PlatformHardeningTests
     [Fact]
     public void Advisory_Lock_Key_Should_Be_Stable_And_Distinct()
     {
-        var first = PlatformAdvisoryLock.ComputeKey("directory-sync");
-        var second = PlatformAdvisoryLock.ComputeKey("directory-sync");
-        var other = PlatformAdvisoryLock.ComputeKey("audit-retention");
+        long first = PlatformAdvisoryLock.ComputeKey("directory-sync");
+        long second = PlatformAdvisoryLock.ComputeKey("directory-sync");
+        long other = PlatformAdvisoryLock.ComputeKey("audit-retention");
 
         // 稳定：不能用 string.GetHashCode（每进程随机种子），否则重启后锁名就变了。
         Assert.Equal(first, second);
@@ -164,7 +165,7 @@ public class PlatformHardeningTests
     [InlineData("\tTAB")]
     public void Csv_Field_Should_Neutralize_Formula_Injection(string payload)
     {
-        var escaped = CsvField.Escape(payload);
+        string escaped = CsvField.Escape(payload);
 
         // 必须以单引号开头：Excel 才会当成字面量而不是公式。
         Assert.StartsWith("'", escaped, StringComparison.Ordinal);

@@ -49,10 +49,10 @@ public static class DomainPageReconciler
         HashSet<string> seenPageKeys = new(StringComparer.Ordinal);
         Dictionary<string, int> sortOrderByDomain = new(StringComparer.Ordinal);
 
-        var created = 0;
-        var updated = 0;
-        var kept = 0;
-        var skipped = 0;
+        int created = 0;
+        int updated = 0;
+        int kept = 0;
+        int skipped = 0;
 
         foreach (NavPageDescriptor descriptor in NavigationCatalog.Pages)
         {
@@ -68,12 +68,12 @@ public static class DomainPageReconciler
                 continue;
             }
 
-            var sortOrder = sortOrderByDomain.TryGetValue(item.DomainCode, out var currentOrder)
+            int sortOrder = sortOrderByDomain.TryGetValue(item.DomainCode, out int currentOrder)
                 ? currentOrder
                 : 0;
             sortOrderByDomain[item.DomainCode] = sortOrder + 1;
 
-            var isNew = false;
+            bool isNew = false;
 
             if (!pages.TryGetValue(item.PageKey, out DomainPage? page))
             {
@@ -98,7 +98,7 @@ public static class DomainPageReconciler
                 // 一旦管理员动过这一行的任何一个开关，整行就变成 override；若连路由也一并冻结，
                 // 开发者日后改名路由时菜单会永久指向旧地址，表现为点菜单进 404，
                 // 而库里看起来「配置齐全」。这里只刷新代码独占的两个字段。
-                var routeChanged = !string.Equals(page.Route, item.Href, StringComparison.Ordinal);
+                bool routeChanged = !string.Equals(page.Route, item.Href, StringComparison.Ordinal);
 
                 if (routeChanged)
                 {
@@ -136,23 +136,16 @@ public static class DomainPageReconciler
             page.UpdatedAt = now;
 
             if (isNew)
-            {
                 created++;
-            }
             else
-            {
                 updated++;
-            }
         }
 
-        var orphaned = 0;
+        int orphaned = 0;
 
         foreach (DomainPage page in pages.Values)
         {
-            if (seenPageKeys.Contains(page.PageKey) || page.IsOrphaned)
-            {
-                continue;
-            }
+            if (seenPageKeys.Contains(page.PageKey) || page.IsOrphaned) continue;
 
             // 代码里已不存在：标记下线而不是删除，后台以「已下线」列出由管理员处理。
             page.IsOrphaned = true;

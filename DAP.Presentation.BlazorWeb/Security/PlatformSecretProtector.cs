@@ -45,10 +45,7 @@ public sealed class PlatformSecretProtector
     /// <returns>密文或原值。</returns>
     public string Protect(string? value)
     {
-        if (string.IsNullOrEmpty(value) || IsProtected(value))
-        {
-            return value ?? string.Empty;
-        }
+        if (string.IsNullOrEmpty(value) || IsProtected(value)) return value ?? string.Empty;
 
         return Prefix + _protector.Protect(value);
     }
@@ -60,15 +57,9 @@ public sealed class PlatformSecretProtector
     /// <returns>明文；解不开时返回空串。</returns>
     public string Unprotect(string? value)
     {
-        if (string.IsNullOrEmpty(value))
-        {
-            return string.Empty;
-        }
+        if (string.IsNullOrEmpty(value)) return string.Empty;
 
-        if (!IsProtected(value))
-        {
-            return value;
-        }
+        if (!IsProtected(value)) return value;
 
         try
         {

@@ -19,14 +19,15 @@
     }
     else
     {
-        @foreach (var group in Domain.Groups)
+        @foreach (NavigationGroupDto group in Domain.Groups)
         {
             @if (!string.IsNullOrEmpty(group.Title))
             {
                 <div class="platform-nav-section">@group.Title</div>
             }
+
             <MudNavMenu>
-                @foreach (var entry in group.Pages)
+                @foreach (NavigationPageDto entry in group.Pages)
                 {
                     <NavMenuItem Page="@entry"/>
                 }
@@ -36,9 +37,11 @@
 </div>
 
 @code {
+
     /// <summary>
     /// 当前顶栏选中的职能域。
     /// </summary>
-    [Parameter, EditorRequired]
+    [Parameter][EditorRequired]
     public NavigationDomainDto Domain { get; set; } = null!;
+
 }

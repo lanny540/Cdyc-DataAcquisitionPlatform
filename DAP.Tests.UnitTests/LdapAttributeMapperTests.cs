@@ -28,7 +28,7 @@ public class LdapAttributeMapperTests
     [Fact]
     public void Build_User_Filter_Should_Escape_Wildcard()
     {
-        var filter = LdapFilter.BuildUserFilter("(sAMAccountName={0})", "*");
+        string filter = LdapFilter.BuildUserFilter("(sAMAccountName={0})", "*");
 
         Assert.Equal(@"(sAMAccountName=\2a)", filter);
     }
@@ -36,7 +36,7 @@ public class LdapAttributeMapperTests
     [Fact]
     public void Build_User_Filter_Should_Keep_Template_Scaffolding()
     {
-        var filter = LdapFilter.BuildUserFilter("(&(objectClass=user)(sAMAccountName={0}))", "zhang3");
+        string filter = LdapFilter.BuildUserFilter("(&(objectClass=user)(sAMAccountName={0}))", "zhang3");
 
         Assert.Equal("(&(objectClass=user)(sAMAccountName=zhang3))", filter);
     }
@@ -90,7 +90,7 @@ public class LdapAttributeMapperTests
     [Fact]
     public void Map_Should_Return_Null_Without_Any_Identity()
     {
-        FakeEntry entry = new FakeEntry("CN=x,DC=example,DC=com");
+        FakeEntry entry = new("CN=x,DC=example,DC=com");
 
         Assert.Null(LdapAttributeMapper.Map(entry, new LdapOptions()));
     }
@@ -127,7 +127,7 @@ public class LdapAttributeMapperTests
         FakeEntry entry = new FakeEntry("CN=张三,OU=抄纸一车间,OU=生产部,DC=example,DC=com")
             .With("sAMAccountName", "zhang3");
 
-        LdapOptions options = new() { DepartmentOuLevel = 1 };
+        LdapOptions options = new() {DepartmentOuLevel = 1};
 
         Assert.Equal("抄纸一车间", LdapAttributeMapper.Map(entry, options)!.DepartmentExternalCode);
 
@@ -144,7 +144,7 @@ public class LdapAttributeMapperTests
 
         Assert.Equal(
             "设备动力部",
-            LdapAttributeMapper.Map(entry, new LdapOptions { DepartmentOuLevel = 1 })!.DepartmentExternalCode);
+            LdapAttributeMapper.Map(entry, new LdapOptions {DepartmentOuLevel = 1})!.DepartmentExternalCode);
     }
 
     [Fact]
@@ -198,14 +198,11 @@ public class LdapAttributeMapperTests
 
         public string? GetString(string attributeName)
         {
-            if (!_attributes.TryGetValue(attributeName, out object? value))
-            {
-                return null;
-            }
+            if (!_attributes.TryGetValue(attributeName, out object? value)) return null;
 
             return value switch
             {
-                string[] { Length: > 0 } values => values[0],
+                string[] {Length: > 0} values => values[0],
                 byte[] bytes => LdapAttributeMapper.ToHexString(bytes),
                 _ => null
             };

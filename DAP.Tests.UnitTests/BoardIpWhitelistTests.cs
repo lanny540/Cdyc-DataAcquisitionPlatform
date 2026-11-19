@@ -27,7 +27,7 @@ public sealed class BoardIpWhitelistTests
     [InlineData("192.168.1.10/40", "192.168.1.10", false)]
     public void IsMatch_Should_Resolve_Cidr_Entries(string entry, string remote, bool expected)
     {
-        var actual = BoardIpWhitelist.IsMatch(IPAddress.Parse(remote), entry);
+        bool actual = BoardIpWhitelist.IsMatch(IPAddress.Parse(remote), entry);
 
         Assert.Equal(expected, actual);
     }
@@ -43,7 +43,7 @@ public sealed class BoardIpWhitelistTests
     [InlineData("not-an-ip", true)]
     public void IsWideScope_Should_Flag_Entries_Wider_Than_Slash24(string entry, bool expected)
     {
-        var actual = BoardIpWhitelist.IsWideScope(entry);
+        bool actual = BoardIpWhitelist.IsWideScope(entry);
 
         Assert.Equal(expected, actual);
     }

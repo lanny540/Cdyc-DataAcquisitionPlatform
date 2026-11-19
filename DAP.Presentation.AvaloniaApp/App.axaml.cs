@@ -27,12 +27,10 @@ public partial class App : Application
         _serviceProvider = ConfigureServices();
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-        {
             desktop.MainWindow = new MainWindow
             {
                 DataContext = _serviceProvider.GetRequiredService<MainWindowViewModel>()
             };
-        }
 
         base.OnFrameworkInitializationCompleted();
     }
@@ -51,7 +49,7 @@ public partial class App : Application
             .AddJsonFile("appsettings.json", false, false)
             .Build();
 
-        var services = new ServiceCollection();
+        ServiceCollection services = new();
         services.AddSingleton<IConfiguration>(configuration);
         services.Configure<ApiOptions>(configuration.GetSection(ApiOptions.SectionName));
 

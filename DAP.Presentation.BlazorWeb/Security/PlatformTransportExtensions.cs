@@ -32,10 +32,7 @@ public static class PlatformTransportExtensions
             configuration.GetSection(SectionName).Get<ForwardedHeadersSettings>()
             ?? new ForwardedHeadersSettings();
 
-        if (!settings.Enabled || settings.KnownProxies.Length == 0)
-        {
-            return app;
-        }
+        if (!settings.Enabled || settings.KnownProxies.Length == 0) return app;
 
         ForwardedHeadersOptions options = new()
         {
@@ -43,18 +40,12 @@ public static class PlatformTransportExtensions
             ForwardLimit = Math.Max(1, settings.ForwardLimit)
         };
 
-        // 先清空默认信任（含 loopback 与私有网段），只保留配置里点名的代理：
-        // 默认值在「代理与本机同机」时方便，但会让同机的任何进程都能伪造来源。
         options.KnownIPNetworks.Clear();
         options.KnownProxies.Clear();
 
-        foreach (var entry in settings.KnownProxies)
-        {
+        foreach (string entry in settings.KnownProxies)
             if (System.Net.IPAddress.TryParse(entry, out System.Net.IPAddress? address))
-            {
                 options.KnownProxies.Add(address);
-            }
-        }
 
         return app.UseForwardedHeaders(options);
     }
@@ -79,17 +70,13 @@ public static class PlatformTransportExtensions
         if (!environment.IsDevelopment())
         {
             if (cookieOptions.RequireHttps)
-            {
                 warnings.Add((LogLevel.Information,
                     "会话 Cookie 已强制 Secure：请确认前端通过 HTTPS 访问（可由 Kestrel 或反向代理终止 TLS）。"
                     + "若直接以明文 HTTP 访问，浏览器不会回传会话 Cookie，表现为「登录成功后又回到登录页」。"));
-            }
             else
-            {
                 warnings.Add((LogLevel.Warning,
                     "已关闭 HTTPS 强制（Auth:Cookie:RequireHttps=false）：会话 Cookie 将随明文 HTTP 传输，"
                     + "任何能抓包的人都能直接复用会话。仅在物理隔离的内网短期使用。"));
-            }
         }
 
         ForwardedHeadersSettings forwardedHeaders =
@@ -97,11 +84,9 @@ public static class PlatformTransportExtensions
             ?? new ForwardedHeadersSettings();
 
         if (forwardedHeaders.Enabled && forwardedHeaders.KnownProxies.Length == 0)
-        {
             warnings.Add((LogLevel.Warning,
                 $"{SectionName}:Enabled 为 true 但没有配置 KnownProxies，转发头还原已停用。"
                 + "此时所有请求的客户端地址都是代理地址，车间 IP 白名单与登录限流会失效。"));
-        }
 
         return warnings;
     }

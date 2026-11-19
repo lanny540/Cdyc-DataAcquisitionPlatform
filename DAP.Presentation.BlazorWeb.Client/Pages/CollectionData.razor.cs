@@ -80,7 +80,7 @@ public partial class CollectionData
     /// </summary>
     private Task LoadAsync()
     {
-        return LoadInternalAsync(silent: false);
+        return LoadInternalAsync(false);
     }
 
     /// <summary>
@@ -88,17 +88,14 @@ public partial class CollectionData
     /// </summary>
     private Task RefreshSilentlyAsync()
     {
-        return LoadInternalAsync(silent: true);
+        return LoadInternalAsync(true);
     }
 
     /// <param name="silent">true 表示定时触发的静默刷新。</param>
     private async Task LoadInternalAsync(bool silent)
     {
         // 首载未结束时定时器可能已经跑到第一拍：两个请求并行会互相覆盖结果。
-        if (silent && (_isLoading || _isRefreshing))
-        {
-            return;
-        }
+        if (silent && (_isLoading || _isRefreshing)) return;
 
         if (silent)
         {
@@ -131,21 +128,14 @@ public partial class CollectionData
                 : $"采集记录加载失败：{UserFacingErrors.Describe(ex)}";
             _messageSeverity = silent ? Severity.Warning : Severity.Error;
 
-            if (!silent)
-            {
-                _records = [];
-            }
+            if (!silent) _records = [];
         }
         finally
         {
             if (silent)
-            {
                 _isRefreshing = false;
-            }
             else
-            {
                 _isLoading = false;
-            }
         }
     }
 

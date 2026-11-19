@@ -15,23 +15,14 @@ public static class CsvField
     /// <returns>可直接拼进 CSV 的字符串。</returns>
     public static string Escape(string? value)
     {
-        if (string.IsNullOrEmpty(value))
-        {
-            return string.Empty;
-        }
+        if (string.IsNullOrEmpty(value)) return string.Empty;
 
         // 以 = + - @ 或制表符、回车开头的值会被 Excel 当成公式执行
         // （`=cmd|'/c calc'!A0` 这类）。前缀单引号是 Excel 认可的字面量标记：
         // 界面上不显示，但能阻止求值。
-        if (value[0] is '=' or '+' or '-' or '@' or '\t' or '\r')
-        {
-            value = $"'{value}";
-        }
+        if (value[0] is '=' or '+' or '-' or '@' or '\t' or '\r') value = $"'{value}";
 
-        if (value.IndexOfAny([',', '"', '\r', '\n']) < 0)
-        {
-            return value;
-        }
+        if (value.IndexOfAny([',', '"', '\r', '\n']) < 0) return value;
 
         return $"\"{value.Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
     }

@@ -11,7 +11,7 @@
         </div>
 
         <dl class="twin-kpis">
-            @foreach (var metric in _snapshot.KeyMetrics)
+            @foreach (TwinMetric metric in _snapshot.KeyMetrics)
             {
                 <div class="twin-kpi">
                     <dt>@metric.Label</dt>
@@ -30,7 +30,7 @@
         <svg class="scene-svg" viewBox="0 0 1200 460" preserveAspectRatio="xMidYMid meet"
              role="img" aria-label="钞纸机车间轴测示意：备浆、湿部、干部三段设备与纸幅走向">
             <g class="scene-model">
-                @foreach (var shape in Scene)
+                @foreach (SceneShape shape in Scene)
                 {
                     switch (shape)
                     {
@@ -50,7 +50,7 @@
 
             @* 引线先画，标注框后画，引线不会压住文字。 *@
             <g class="scene-leaders" aria-hidden="true">
-                @foreach (var tag in Tags)
+                @foreach (SceneTag tag in Tags)
                 {
                     <polyline points="@tag.LeaderPoints" class="scene-leader @tag.StageCss"/>
                     <circle cx="@tag.AnchorX" cy="@tag.AnchorY" r="3.2"
@@ -59,22 +59,25 @@
             </g>
 
             <g class="scene-tags">
-                @foreach (var tag in Tags)
+                @foreach (SceneTag tag in Tags)
                 {
                     <g class="@tag.StageCss">
                         <rect x="@tag.BoxX" y="@tag.BoxY" width="124" height="40" rx="7"
                               class="scene-tag-box"/>
                         <SvgText X="@tag.NameX" Y="@tag.LineOneY" CssClass="scene-tag-name">@tag.Name</SvgText>
-                        <SvgText X="@tag.CodeX" Y="@tag.LineOneY" Anchor="end" CssClass="scene-tag-code">@tag.Code</SvgText>
-                        <SvgText X="@tag.MetricX" Y="@tag.LineTwoY" CssClass="scene-tag-label">@tag.MetricLabel</SvgText>
-                        <SvgText X="@tag.ValueX" Y="@tag.LineTwoY" Anchor="end" CssClass="scene-tag-value">@tag.ValueText</SvgText>
+                        <SvgText X="@tag.CodeX" Y="@tag.LineOneY" Anchor="end"
+                                 CssClass="scene-tag-code">@tag.Code</SvgText>
+                        <SvgText X="@tag.MetricX" Y="@tag.LineTwoY"
+                                 CssClass="scene-tag-label">@tag.MetricLabel</SvgText>
+                        <SvgText X="@tag.ValueX" Y="@tag.LineTwoY" Anchor="end"
+                                 CssClass="scene-tag-value">@tag.ValueText</SvgText>
                     </g>
                 }
             </g>
 
             @* 页脚标尺：与地坪上的分区色块一一对应 *@
             <g class="scene-rulers" aria-hidden="true">
-                @foreach (var ruler in StageRulers)
+                @foreach (StageRuler ruler in StageRulers)
                 {
                     <line x1="@ruler.X1Text" y1="386" x2="@ruler.X2Text" y2="386"
                           class="scene-stage-rule @ruler.CssClass"/>
@@ -94,7 +97,7 @@
     <footer class="twin-foot">
         <div class="twin-totals">
             <span class="twin-foot-label">本班累计</span>
-            @foreach (var metric in _snapshot.ShiftTotals)
+            @foreach (TwinMetric metric in _snapshot.ShiftTotals)
             {
                 <div class="twin-total">
                     <span>@metric.Label</span>

@@ -17,8 +17,7 @@ namespace DAP.Presentation.BlazorWeb.Client.Pages;
 /// </summary>
 public partial class EnergyMeters
 {
-    [Inject]
-    private IPlatformApiClient PlatformApiClient { get; set; } = null!;
+    [Inject] private IPlatformApiClient PlatformApiClient { get; set; } = null!;
 
     private IReadOnlyList<EnergyMeterDto> _meters = [];
     private EnergyDictionaryDto? _dictionary;
@@ -124,10 +123,7 @@ public partial class EnergyMeters
 
     private async Task SaveAsync()
     {
-        if (_isSaving)
-        {
-            return;
-        }
+        if (_isSaving) return;
 
         if (string.IsNullOrWhiteSpace(_editorCode))
         {
@@ -151,7 +147,7 @@ public partial class EnergyMeters
 
         try
         {
-            var request = new EnergyMeterUpsertRequest(
+            EnergyMeterUpsertRequest request = new(
                 _editingId,
                 _editorCode.Trim(),
                 _editorName.Trim(),
@@ -190,10 +186,7 @@ public partial class EnergyMeters
 
     private async Task DeleteAsync()
     {
-        if (_pendingDelete is not { } meter)
-        {
-            return;
-        }
+        if (_pendingDelete is not { } meter) return;
 
         _isConfirmOpen = false;
 
@@ -216,7 +209,10 @@ public partial class EnergyMeters
         }
     }
 
-    private void ClearMessage() => _message = null;
+    private void ClearMessage()
+    {
+        _message = null;
+    }
 
     /// <summary>
     /// 介质系数草稿。编辑时不直接改字典对象：一旦改了但又没保存，
@@ -225,7 +221,7 @@ public partial class EnergyMeters
     private void BuildFactorRows()
     {
         _factorRows = (_dictionary?.Media ?? [])
-            .Select(medium => new MediumFactorRow { Medium = medium, CoalFactor = medium.CoalFactor })
+            .Select(medium => new MediumFactorRow {Medium = medium, CoalFactor = medium.CoalFactor})
             .ToList();
     }
 
@@ -254,7 +250,7 @@ public partial class EnergyMeters
 
     private void OpenOrgCreateRoot()
     {
-        var park = _dictionary?.OrgUnits.FirstOrDefault(unit => unit.Level == "park");
+        EnergyOrgUnitDto? park = _dictionary?.OrgUnits.FirstOrDefault(unit => unit.Level == "park");
         if (park is null)
         {
             _message = "尚未初始化园区节点，无法新增部门。";
@@ -278,17 +274,14 @@ public partial class EnergyMeters
     {
         get
         {
-            var parent = _dictionary?.OrgUnits.FirstOrDefault(unit => unit.Id == _orgParentId);
+            EnergyOrgUnitDto? parent = _dictionary?.OrgUnits.FirstOrDefault(unit => unit.Id == _orgParentId);
             return parent is null ? "—" : $"{parent.Name}（{parent.Code}）";
         }
     }
 
     private async Task SaveOrgUnitAsync()
     {
-        if (_isSaving)
-        {
-            return;
-        }
+        if (_isSaving) return;
 
         _isSaving = true;
 
@@ -326,31 +319,40 @@ public partial class EnergyMeters
     /// 组织节点的缩进。内联样式走方法返回字符串——写在属性里的嵌套插值
     /// 在 Razor 中不一定求值，会原样输出到页面上。
     /// </summary>
-    private static string IndentStyle(int depth) => $"width: {Math.Max(depth, 0) * 18}px";
+    private static string IndentStyle(int depth)
+    {
+        return $"width: {Math.Max(depth, 0) * 18}px";
+    }
 
     private static string MediumLabel(EnergyMediumDto medium)
     {
-        var suffix = medium.IsPrimaryEnergy
+        string suffix = medium.IsPrimaryEnergy
             ? medium.CoalFactor is { } factor ? $"折标 {factor:0.####}" : "未配置折标"
             : "不计入综合能耗";
 
         return $"{medium.Name}（{medium.Unit}）· {suffix}";
     }
 
-    private static string LevelLabel(string level) => level switch
+    private static string LevelLabel(string level)
     {
-        "park" => "园区",
-        "department" => "部门",
-        "process" => "工序",
-        _ => level
-    };
+        return level switch
+        {
+            "park" => "园区",
+            "department" => "部门",
+            "process" => "工序",
+            _ => level
+        };
+    }
 
-    private static Color LevelColor(string level) => level switch
+    private static Color LevelColor(string level)
     {
-        "park" => Color.Secondary,
-        "department" => Color.Info,
-        _ => Color.Default
-    };
+        return level switch
+        {
+            "park" => Color.Secondary,
+            "department" => Color.Info,
+            _ => Color.Default
+        };
+    }
 
     /// <summary>
     /// 介质系数编辑行。
@@ -364,8 +366,13 @@ public partial class EnergyMeters
         public decimal? CoalFactor { get; set; }
     }
 
-    private string OrgLabel(EnergyOrgUnitDto unit) =>
-        new string('　', unit.Depth) + unit.Name;
+    private string OrgLabel(EnergyOrgUnitDto unit)
+    {
+        return new string('　', unit.Depth) + unit.Name;
+    }
 
-    private static Color StatusColor(bool enabled) => enabled ? Color.Success : Color.Warning;
+    private static Color StatusColor(bool enabled)
+    {
+        return enabled ? Color.Success : Color.Warning;
+    }
 }

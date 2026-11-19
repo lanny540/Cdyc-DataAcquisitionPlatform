@@ -62,10 +62,13 @@ from collections import defaultdict
 
 # 依赖 DbContext、宿主或仅做参数转发的代码，单元测试跑不到，单独归类。
 # 这些类型的类名在项目中唯一，按类型名过滤不会误伤其他代码。
+# PostgreSqlShiftSchedulingService：仅做快照表的 Dapper 读写（SELECT/INSERT/DELETE），
+# 解析与校验逻辑全部委托给 InMemoryShiftSchedulingService（核心逻辑组），自身无独立分支。
 PERSISTENCE_TYPES = {
     'AcquisitionServerConnectionResolver', 'AcquisitionServerService',
     'ConnectionDiagnosticsService', 'ManagedDataExecutionService',
     'ManagedDataCollectionScheduler', 'PlatformPresentationServiceCollectionExtensions',
+    'PostgreSqlShiftSchedulingService',
 }
 
 # 注意：ServerConnectionSettings 含真实的配置解析逻辑，属于核心逻辑，不要归入仓储层。

@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DAP.Clients;
+using DAP.Core.Shared.Contracts;
 using DAP.Presentation.AvaloniaApp.Services;
 
 namespace DAP.Presentation.AvaloniaApp.ViewModels.Shell;
@@ -35,32 +36,27 @@ public sealed partial class LoginViewModel : ViewModelBase
     /// <summary>
     /// 账号。
     /// </summary>
-    [ObservableProperty]
-    private string _userName = string.Empty;
+    [ObservableProperty] private string _userName = string.Empty;
 
     /// <summary>
     /// 密码。
     /// </summary>
-    [ObservableProperty]
-    private string _password = string.Empty;
+    [ObservableProperty] private string _password = string.Empty;
 
     /// <summary>
     /// 新密码（强制改密时使用）。
     /// </summary>
-    [ObservableProperty]
-    private string _newPassword = string.Empty;
+    [ObservableProperty] private string _newPassword = string.Empty;
 
     /// <summary>
     /// 确认新密码。
     /// </summary>
-    [ObservableProperty]
-    private string _confirmPassword = string.Empty;
+    [ObservableProperty] private string _confirmPassword = string.Empty;
 
     /// <summary>
     /// 是否正在提交。
     /// </summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsNotBusy))]
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(IsNotBusy))]
     private bool _isBusy;
 
     /// <summary>
@@ -71,8 +67,7 @@ public sealed partial class LoginViewModel : ViewModelBase
     /// <summary>
     /// 提示信息。
     /// </summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasMessage))]
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(HasMessage))]
     private string? _message;
 
     /// <summary>
@@ -83,8 +78,7 @@ public sealed partial class LoginViewModel : ViewModelBase
     /// <summary>
     /// 是否处于改密阶段（服务端要求首次登录改密）。
     /// </summary>
-    [ObservableProperty]
-    private bool _needsPasswordChange;
+    [ObservableProperty] private bool _needsPasswordChange;
 
     /// <summary>
     /// 登录命令。
@@ -106,10 +100,7 @@ public sealed partial class LoginViewModel : ViewModelBase
     /// </summary>
     private async Task LoginAsync()
     {
-        if (IsBusy)
-        {
-            return;
-        }
+        if (IsBusy) return;
 
         if (string.IsNullOrWhiteSpace(UserName) || string.IsNullOrWhiteSpace(Password))
         {
@@ -154,10 +145,7 @@ public sealed partial class LoginViewModel : ViewModelBase
     /// </summary>
     private async Task ChangePasswordAsync()
     {
-        if (IsBusy)
-        {
-            return;
-        }
+        if (IsBusy) return;
 
         if (string.IsNullOrWhiteSpace(NewPassword))
         {
@@ -176,7 +164,7 @@ public sealed partial class LoginViewModel : ViewModelBase
 
         try
         {
-            var result = await _session.ChangePasswordAsync(Password, NewPassword, ConfirmPassword);
+            AuthOperationResultDto result = await _session.ChangePasswordAsync(Password, NewPassword, ConfirmPassword);
 
             if (!result.Succeeded)
             {

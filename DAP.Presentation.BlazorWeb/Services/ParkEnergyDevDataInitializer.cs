@@ -97,17 +97,17 @@ public sealed class ParkEnergyDevDataInitializer(
     private static readonly MeterPlan[] MeterPlans =
     [
         new("ELEC-PAPER", "钞纸车间总电表", "ELEC", "DEPT-PAPER", "PROD", "PROCESS", true, 42_000m, 1_286_400m, 0,
-            "钞纸生产线主进线，小时级抄见") { Hourly = true },
+            "钞纸生产线主进线，小时级抄见") {Hourly = true},
         new("ELEC-PRINT", "印钞车间总电表", "ELEC", "DEPT-PRINT", "PROD", "PROCESS", true, 33_000m, 986_200m, 2,
-            "印钞生产线主进线，小时级抄见") { Hourly = true },
+            "印钞生产线主进线，小时级抄见") {Hourly = true},
         new("ELEC-POWER", "动力车间总电表", "ELEC", "DEPT-POWER", "AUX", "POWER", true, 18_000m, 542_800m, 4,
-            "锅炉房与空压站动力用电") { Hourly = true },
+            "锅炉房与空压站动力用电") {Hourly = true},
         new("ELEC-ADMIN", "行政后勤总电表", "ELEC", "DEPT-ADMIN", "OFFICE", "HVAC", true, 4_200m, 128_600m, 1,
-            "办公楼空调用电为主") { Hourly = true },
+            "办公楼空调用电为主") {Hourly = true},
         new("ELEC-PUBLIC", "公共设施总电表", "ELEC", "DEPT-PUBLIC", "PUBLIC", "LIGHTING", true, 5_800m, 173_900m, 3,
-            "园区道路与景观照明") { Hourly = true },
+            "园区道路与景观照明") {Hourly = true},
         new("ELEC-SECURITY", "安防监控电表", "ELEC", "DEPT-SECURITY", "SECURITY", "IT", true, 510m, 21_400m, 0,
-            "门禁、监控与机房弱电") { Hourly = true },
+            "门禁、监控与机房弱电") {Hourly = true},
         new("STEAM-PAPER", "钞纸车间蒸汽表", "STEAM", "DEPT-PAPER", "PROD", "PROCESS", true, 24m, 8_240m, 0,
             "烘干工艺用汽"),
         new("STEAM-PRINT", "印钞车间蒸汽表", "STEAM", "DEPT-PRINT", "PROD", "PROCESS", true, 14m, 5_180m, 0,
@@ -123,10 +123,7 @@ public sealed class ParkEnergyDevDataInitializer(
     /// <inheritdoc />
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        if (!ShouldSeed())
-        {
-            return;
-        }
+        if (!ShouldSeed()) return;
 
         try
         {
@@ -140,13 +137,19 @@ public sealed class ParkEnergyDevDataInitializer(
     }
 
     /// <inheritdoc />
-    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
+    }
 
     /// <summary>
     /// 是否执行种子。Development 默认执行，可用 Energy:SeedDevData=false 关闭；
     /// 其他环境默认不执行，避免测试数据混进正式库。
     /// </summary>
-    private bool ShouldSeed() => configuration.GetValue<bool?>("Energy:SeedDevData") ?? environment.IsDevelopment();
+    private bool ShouldSeed()
+    {
+        return configuration.GetValue<bool?>("Energy:SeedDevData") ?? environment.IsDevelopment();
+    }
 
     private async Task SeedAsync(CancellationToken cancellationToken)
     {
@@ -176,34 +179,34 @@ public sealed class ParkEnergyDevDataInitializer(
         Dictionary<string, Guid> systems = await db.EnergySystems.AsNoTracking()
             .ToDictionaryAsync(item => item.Code, item => item.Id, StringComparer.OrdinalIgnoreCase, cancellationToken);
 
-        var now = DateTimeOffset.UtcNow;
+        DateTimeOffset now = DateTimeOffset.UtcNow;
 
         await EnsureSteamFactorAsync(db, now, cancellationToken);
 
         Dictionary<string, Guid> orgs = await EnsureOrgUnitsAsync(db, park, now, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
 
-        var offset = TimeSpan.FromHours(configuration.GetValue("Energy:UtcOffsetHours", 8d));
+        TimeSpan offset = TimeSpan.FromHours(configuration.GetValue("Energy:UtcOffsetHours", 8d));
         DateTimeOffset localNow = DateTimeOffset.UtcNow.ToOffset(offset);
-        var today = DateOnly.FromDateTime(localNow.DateTime);
-        var lastHour = localNow.Hour;
+        DateOnly today = DateOnly.FromDateTime(localNow.DateTime);
+        int lastHour = localNow.Hour;
 
-        var meters = new List<(EnergyMeter Meter, MeterPlan Plan)>();
-        var skipped = new List<string>();
+        List<(EnergyMeter Meter, MeterPlan Plan)> meters = new();
+        List<string> skipped = new();
 
         foreach (MeterPlan plan in MeterPlans)
         {
-            if (!media.TryGetValue(plan.MediumCode, out var mediumId) ||
-                !usages.TryGetValue(plan.UsageCode, out var usageId) ||
-                !systems.TryGetValue(plan.SystemCode, out var systemId) ||
-                !orgs.TryGetValue(plan.OrgCode, out var orgId))
+            if (!media.TryGetValue(plan.MediumCode, out Guid mediumId) ||
+                !usages.TryGetValue(plan.UsageCode, out Guid usageId) ||
+                !systems.TryGetValue(plan.SystemCode, out Guid systemId) ||
+                !orgs.TryGetValue(plan.OrgCode, out Guid orgId))
             {
                 // 字典被停用或改编码时不硬凑：少一块表比挂错维度好排查。
                 skipped.Add(plan.Code);
                 continue;
             }
 
-            var meter = new EnergyMeter
+            EnergyMeter meter = new()
             {
                 Id = Guid.NewGuid(),
                 Code = plan.Code,
@@ -235,8 +238,8 @@ public sealed class ParkEnergyDevDataInitializer(
 
         await db.SaveChangesAsync(cancellationToken);
 
-        var readingCount = 0;
-        foreach (var (meter, plan) in meters)
+        int readingCount = 0;
+        foreach ((EnergyMeter meter, MeterPlan plan) in meters)
         {
             List<EnergyReading> readings = BuildReadings(meter.Id, plan, today, lastHour, offset, now);
             db.EnergyReadings.AddRange(readings);
@@ -252,10 +255,7 @@ public sealed class ParkEnergyDevDataInitializer(
             today.AddDays(-(SeedDays - 1)),
             localNow);
 
-        if (skipped.Count > 0)
-        {
-            logger.LogWarning("以下计量点因字典缺失未建立：{Codes}", string.Join("、", skipped));
-        }
+        if (skipped.Count > 0) logger.LogWarning("以下计量点因字典缺失未建立：{Codes}", string.Join("、", skipped));
     }
 
     /// <summary>
@@ -273,10 +273,7 @@ public sealed class ParkEnergyDevDataInitializer(
         EnergyMedium? steam = await db.EnergyMedia
             .FirstOrDefaultAsync(item => item.Code == "STEAM", cancellationToken);
 
-        if (steam is null || steam.CoalFactor is not null)
-        {
-            return;
-        }
+        if (steam is null || steam.CoalFactor is not null) return;
 
         steam.CoalFactor = SteamPlaceholderFactor;
         steam.UpdatedAt = now;
@@ -289,31 +286,22 @@ public sealed class ParkEnergyDevDataInitializer(
         CancellationToken cancellationToken)
     {
         var existing = await db.EnergyOrgUnits.AsNoTracking()
-            .Select(unit => new { unit.Code, unit.Id })
+            .Select(unit => new {unit.Code, unit.Id})
             .ToListAsync(cancellationToken);
 
-        var map = new Dictionary<string, Guid>(StringComparer.Ordinal);
-        foreach (var item in existing)
-        {
-            map[item.Code] = item.Id;
-        }
+        Dictionary<string, Guid> map = new(StringComparer.Ordinal);
+        foreach (var item in existing) map[item.Code] = item.Id;
 
         // 园区根节点的编码可能被现场改过，按层级兜底登记，避免子节点挂不上。
         map[park.Code] = park.Id;
 
-        foreach (var seed in OrgPlan)
+        foreach ((string Code, string Name, string Level, string ParentCode, int SortOrder) seed in OrgPlan)
         {
-            if (map.ContainsKey(seed.Code))
-            {
-                continue;
-            }
+            if (map.ContainsKey(seed.Code)) continue;
 
-            if (!map.TryGetValue(seed.ParentCode, out var parentId))
-            {
-                continue;
-            }
+            if (!map.TryGetValue(seed.ParentCode, out Guid parentId)) continue;
 
-            var id = Guid.NewGuid();
+            Guid id = Guid.NewGuid();
             db.EnergyOrgUnits.Add(new EnergyOrgUnit
             {
                 Id = id,
@@ -348,9 +336,9 @@ public sealed class ParkEnergyDevDataInitializer(
         TimeSpan offset,
         DateTimeOffset createdAt)
     {
-        var readings = new List<EnergyReading>();
-        var firstDay = today.AddDays(-(SeedDays - 1));
-        var hourlyFrom = today.AddDays(-(HourlyDays - 1));
+        List<EnergyReading> readings = new();
+        DateOnly firstDay = today.AddDays(-(SeedDays - 1));
+        DateOnly hourlyFrom = today.AddDays(-(HourlyDays - 1));
 
         // 电表推进到今天当前整点：这样负荷曲线有当天的数据，而不是永远停在昨天。
         // 其余介质按日抄见，最后一条停在今天零点——当天还没抄表，本来就不该有数。
@@ -358,25 +346,22 @@ public sealed class ParkEnergyDevDataInitializer(
             ? new DateTimeOffset(today.ToDateTime(new TimeOnly(lastHour, 0)), offset)
             : new DateTimeOffset(today.ToDateTime(TimeOnly.MinValue), offset);
 
-        var cursor = new DateTimeOffset(firstDay.ToDateTime(TimeOnly.MinValue), offset);
-        var value = plan.StartReading;
+        DateTimeOffset cursor = new(firstDay.ToDateTime(TimeOnly.MinValue), offset);
+        decimal value = plan.StartReading;
 
         while (cursor < last)
         {
             DateTimeOffset local = cursor.ToOffset(offset);
-            var date = DateOnly.FromDateTime(local.DateTime);
-            var hourly = plan.Hourly && date >= hourlyFrom;
+            DateOnly date = DateOnly.FromDateTime(local.DateTime);
+            bool hourly = plan.Hourly && date >= hourlyFrom;
 
             DateTimeOffset next = cursor.Add(hourly ? TimeSpan.FromHours(1) : TimeSpan.FromDays(1));
-            if (next > last)
-            {
-                next = last;
-            }
+            if (next > last) next = last;
 
-            var dayTotal = plan.DailyUsage * DayFactor(StableSeed(plan.Code), date, firstDay.Year);
-            var quantity = hourly
+            decimal dayTotal = plan.DailyUsage * DayFactor(StableSeed(plan.Code), date, firstDay.Year);
+            decimal quantity = hourly
                 ? dayTotal * HourWeights[(local.Hour + plan.Phase) % 24] / HourWeightSum
-                : dayTotal * (decimal)(next - cursor).TotalDays;
+                : dayTotal * (decimal) (next - cursor).TotalDays;
 
             if (plan.IsCumulative)
             {
@@ -424,8 +409,8 @@ public sealed class ParkEnergyDevDataInitializer(
     /// </summary>
     private static decimal DayFactor(int seed, DateOnly date, int baseYear)
     {
-        var weekend = date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday ? 0.86m : 1m;
-        var trend = 1m + (date.Year - baseYear) * 0.018m;
+        decimal weekend = date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday ? 0.86m : 1m;
+        decimal trend = 1m + (date.Year - baseYear) * 0.018m;
         return weekend * trend * (0.92m + Jitter(seed, date.DayNumber) * 0.16m);
     }
 
@@ -436,7 +421,7 @@ public sealed class ParkEnergyDevDataInitializer(
     {
         unchecked
         {
-            var hash = ((uint)seed * 16_777_619u) ^ ((uint)salt * 2_654_435_761u);
+            uint hash = ((uint) seed * 16_777_619u) ^ ((uint) salt * 2_654_435_761u);
             hash ^= hash >> 13;
             hash *= 16_777_619u;
             hash ^= hash >> 17;
@@ -453,14 +438,14 @@ public sealed class ParkEnergyDevDataInitializer(
     {
         unchecked
         {
-            var hash = 2_166_136_261u;
-            foreach (var ch in code)
+            uint hash = 2_166_136_261u;
+            foreach (char ch in code)
             {
                 hash ^= ch;
                 hash *= 16_777_619u;
             }
 
-            return (int)(hash & 0x7FFF_FFFF);
+            return (int) (hash & 0x7FFF_FFFF);
         }
     }
 

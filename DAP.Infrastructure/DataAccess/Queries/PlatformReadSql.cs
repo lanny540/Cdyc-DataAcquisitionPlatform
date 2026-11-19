@@ -51,6 +51,7 @@ public static class PlatformReadSql
             s.display_name AS "ServerName"
         FROM managed_data_definitions d
         LEFT JOIN server_connections s ON s.id = d.server_connection_id
+        WHERE d.deleted_at IS NULL
         ORDER BY d.acquisition_type, d.code;
         """;
 
@@ -80,7 +81,7 @@ public static class PlatformReadSql
             s.display_name AS "ServerName"
         FROM managed_data_definitions d
         LEFT JOIN server_connections s ON s.id = d.server_connection_id
-        WHERE d.id = @Id;
+        WHERE d.id = @Id AND d.deleted_at IS NULL;
         """;
 
     /// <summary>

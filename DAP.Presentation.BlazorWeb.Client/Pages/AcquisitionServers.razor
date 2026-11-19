@@ -111,7 +111,7 @@
             <MudItem xs="12" md="4" lg="3">
                 <MudSelect T="string" Margin="Margin.Dense" Label="服务器类型" Variant="Variant.Outlined"
                            @bind-Value="_typeFilter">
-                    @foreach (var item in TypeFilterOptions)
+                    @foreach (string item in TypeFilterOptions)
                     {
                         <MudSelectItem T="string" Value="@item">@item</MudSelectItem>
                     }
@@ -373,7 +373,7 @@
                                     <MudSelect T="string" Margin="Margin.Dense" Label="服务器类型"
                                                Variant="Variant.Outlined" Value="@_serverType"
                                                ValueChanged="OnServerTypeChanged">
-                                        @foreach (var item in _serverTypes)
+                                        @foreach (AcquisitionServerTypeDescriptor item in _serverTypes)
                                         {
                                             <MudSelectItem T="string" Value="@item.ServerType">
                                                 @item.DisplayName
@@ -432,7 +432,7 @@
                                     </MudChip>
                                 </MudStack>
 
-                                @foreach (var field in CurrentType.ServerFields)
+                                @foreach (AcquisitionServerFieldDescriptor field in CurrentType.ServerFields)
                                 {
                                     <div class="acquisition-server-field">
                                         @RenderConfigField(field)
@@ -475,7 +475,7 @@
              {
                  <MudSwitch T="bool" Color="Color.Primary"
                             Label="@GetFieldLabel(field)"
-                            Value="@(bool.TryParse(GetConfigValue(field.Key), out var flag) && flag)"
+                            Value="@(bool.TryParse(GetConfigValue(field.Key), out bool flag) && flag)"
                             ValueChanged="@(newValue => SetConfigValue(field.Key, newValue.ToString()))"/>
              }
              else if (field.FieldType == AcquisitionServerFieldTypes.Select)
@@ -484,7 +484,7 @@
                             Variant="Variant.Outlined" HelperText="@field.HelperText"
                             Value="@GetConfigValue(field.Key)"
                             ValueChanged="@(newValue => SetConfigValue(field.Key, newValue ?? string.Empty))">
-                     @foreach (var option in field.Options ?? Array.Empty<string>())
+                     @foreach (string option in field.Options ?? Array.Empty<string>())
                      {
                          <MudSelectItem T="string" Value="@option">@option</MudSelectItem>
                      }

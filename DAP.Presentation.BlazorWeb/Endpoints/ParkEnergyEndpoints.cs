@@ -68,7 +68,7 @@ public static class ParkEnergyEndpoints
                     }
                     catch (ArgumentException ex)
                     {
-                        return Results.BadRequest(new { message = ex.Message });
+                        return Results.BadRequest(new {message = ex.Message});
                     }
                 })
             // 台账维护属于配置类操作，要求页面等级 ≥ 2，而不是能源域可见即可。
@@ -81,12 +81,12 @@ public static class ParkEnergyEndpoints
                 {
                     try
                     {
-                        var deleted = await service.DeleteMeterAsync(id, cancellationToken);
+                        bool deleted = await service.DeleteMeterAsync(id, cancellationToken);
                         return deleted ? Results.NoContent() : Results.NotFound();
                     }
                     catch (InvalidOperationException ex)
                     {
-                        return Results.BadRequest(new { message = ex.Message });
+                        return Results.BadRequest(new {message = ex.Message});
                     }
                 })
             .RequireAuthorization(AuthorizationCatalog.PolicyNames.Configure)
@@ -104,7 +104,7 @@ public static class ParkEnergyEndpoints
                     }
                     catch (ArgumentException ex)
                     {
-                        return Results.BadRequest(new { message = ex.Message });
+                        return Results.BadRequest(new {message = ex.Message});
                     }
                 })
             .RequireAuthorization(AuthorizationCatalog.PolicyNames.Configure)
@@ -123,7 +123,7 @@ public static class ParkEnergyEndpoints
                     }
                     catch (ArgumentException ex)
                     {
-                        return Results.BadRequest(new { message = ex.Message });
+                        return Results.BadRequest(new {message = ex.Message});
                     }
                 })
             .RequireAuthorization(AuthorizationCatalog.PolicyNames.Configure)
@@ -134,10 +134,7 @@ public static class ParkEnergyEndpoints
                 async (IngestEnergyReadingsRequest request, IParkEnergyQueryService service,
                     CancellationToken cancellationToken) =>
                 {
-                    if (request.Readings.Count == 0)
-                    {
-                        return Results.BadRequest(new { message = "读数列表为空。" });
-                    }
+                    if (request.Readings.Count == 0) return Results.BadRequest(new {message = "读数列表为空。"});
 
                     try
                     {
@@ -147,7 +144,7 @@ public static class ParkEnergyEndpoints
                     }
                     catch (ArgumentException ex)
                     {
-                        return Results.BadRequest(new { message = ex.Message });
+                        return Results.BadRequest(new {message = ex.Message});
                     }
                 })
             // 写读数等于直接改报表：只要求能源域可见时，任何查看者都能伪造计量值，

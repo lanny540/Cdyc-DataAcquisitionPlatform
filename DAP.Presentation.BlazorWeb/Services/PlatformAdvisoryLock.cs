@@ -10,8 +10,12 @@ namespace DAP.Presentation.BlazorWeb.Services;
 /// 部署两台实例时，两台会在同一分钟一起做全量同步：唯一索引冲突、审计记录翻倍、
 /// updated_at 反复抖动；审计清理则是两台同时删同一批行。用数据库自己的锁最省事——
 /// 不需要额外的中间件，进程崩溃时连接断开、锁自动释放，不会留下死锁。
+///
+/// 注意：本类不 sealed、<see cref="TryAcquireAsync"/> 为 virtual——目录同步服务
+/// 直接依赖本类做跨实例互斥，单元测试需要用「总是拿不到锁 / 直接放行」的替身
+/// 验证调度行为，不能真的去连 PostgreSQL。
 /// </summary>
-public sealed class PlatformAdvisoryLock(
+public class PlatformAdvisoryLock(
     PostgreSqlConnectionSettings settings,
     ILogger<PlatformAdvisoryLock> logger)
 {
@@ -26,11 +30,11 @@ public sealed class PlatformAdvisoryLock(
     /// <param name="name">锁名，如 directory-sync、audit-retention。</param>
     /// <param name="cancellationToken">取消令牌。</param>
     /// <returns>成功时返回释放句柄；失败返回 null。</returns>
-    public async Task<IAsyncDisposable?> TryAcquireAsync(
+    public virtual async Task<IAsyncDisposable?> TryAcquireAsync(
         string name,
         CancellationToken cancellationToken = default)
     {
-        var key = ComputeKey(name);
+        long key = ComputeKey(name);
 
         NpgsqlConnection connection = new(settings.ConnectionString);
 
@@ -43,7 +47,7 @@ public sealed class PlatformAdvisoryLock(
 
             command.Parameters.AddWithValue("key", key);
 
-            var acquired = await command.ExecuteScalarAsync(cancellationToken) is true;
+            bool acquired = await command.ExecuteScalarAsync(cancellationToken) is true;
 
             if (!acquired)
             {
@@ -71,15 +75,15 @@ public sealed class PlatformAdvisoryLock(
         const ulong offsetBasis = 14695981039346656037;
         const ulong prime = 1099511628211;
 
-        var hash = offsetBasis;
+        ulong hash = offsetBasis;
 
-        foreach (var item in Encoding.UTF8.GetBytes($"{KeyPrefix}:{name}"))
+        foreach (byte item in Encoding.UTF8.GetBytes($"{KeyPrefix}:{name}"))
         {
             hash ^= item;
             hash *= prime;
         }
 
-        return unchecked((long)hash);
+        return unchecked((long) hash);
     }
 
     private sealed class Handle(
@@ -92,10 +96,7 @@ public sealed class PlatformAdvisoryLock(
 
         public async ValueTask DisposeAsync()
         {
-            if (_released)
-            {
-                return;
-            }
+            if (_released) return;
 
             _released = true;
 

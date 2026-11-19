@@ -235,7 +235,7 @@
         }
         catch (Exception ex)
         {
-            _errorMessage = $"服务端概览接口暂不可用：{ex.Message}";
+            _errorMessage = $"服务端概览接口暂不可用：{UserFacingErrors.Describe(ex)}";
         }
         finally
         {

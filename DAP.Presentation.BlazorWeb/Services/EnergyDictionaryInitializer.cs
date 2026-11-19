@@ -28,8 +28,8 @@ public sealed class EnergyDictionaryInitializer(
             DataAcquisitionPlatformDbContext db =
                 scope.ServiceProvider.GetRequiredService<DataAcquisitionPlatformDbContext>();
 
-            var now = DateTimeOffset.UtcNow;
-            var added = 0;
+            DateTimeOffset now = DateTimeOffset.UtcNow;
+            int added = 0;
 
             added += await EnsureMediaAsync(db, now, cancellationToken);
             added += await EnsureUsageTypesAsync(db, now, cancellationToken);
@@ -50,7 +50,10 @@ public sealed class EnergyDictionaryInitializer(
     }
 
     /// <inheritdoc />
-    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
+    }
 
     private static async Task<int> EnsureMediaAsync(
         DataAcquisitionPlatformDbContext db,
@@ -61,14 +64,11 @@ public sealed class EnergyDictionaryInitializer(
             .Select(item => item.Code)
             .ToHashSetAsync(StringComparer.OrdinalIgnoreCase, cancellationToken);
 
-        var added = 0;
+        int added = 0;
 
         foreach (EnergyMediumSeed seed in EnergyDictionaryCatalog.Media)
         {
-            if (existing.Contains(seed.Code))
-            {
-                continue;
-            }
+            if (existing.Contains(seed.Code)) continue;
 
             db.EnergyMedia.Add(new EnergyMedium
             {
@@ -99,14 +99,11 @@ public sealed class EnergyDictionaryInitializer(
             .Select(item => item.Code)
             .ToHashSetAsync(StringComparer.OrdinalIgnoreCase, cancellationToken);
 
-        var added = 0;
+        int added = 0;
 
         foreach (EnergyCategorySeed seed in EnergyDictionaryCatalog.UsageTypes)
         {
-            if (existing.Contains(seed.Code))
-            {
-                continue;
-            }
+            if (existing.Contains(seed.Code)) continue;
 
             db.EnergyUsageTypes.Add(new EnergyUsageType
             {
@@ -135,14 +132,11 @@ public sealed class EnergyDictionaryInitializer(
             .Select(item => item.Code)
             .ToHashSetAsync(StringComparer.OrdinalIgnoreCase, cancellationToken);
 
-        var added = 0;
+        int added = 0;
 
         foreach (EnergyCategorySeed seed in EnergyDictionaryCatalog.Systems)
         {
-            if (existing.Contains(seed.Code))
-            {
-                continue;
-            }
+            if (existing.Contains(seed.Code)) continue;
 
             db.EnergySystems.Add(new EnergySystemType
             {
@@ -170,13 +164,10 @@ public sealed class EnergyDictionaryInitializer(
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
-        var hasRoot = await db.EnergyOrgUnits
+        bool hasRoot = await db.EnergyOrgUnits
             .AnyAsync(item => item.Level == EnergyOrgUnit.ParkLevel, cancellationToken);
 
-        if (hasRoot)
-        {
-            return 0;
-        }
+        if (hasRoot) return 0;
 
         db.EnergyOrgUnits.Add(new EnergyOrgUnit
         {

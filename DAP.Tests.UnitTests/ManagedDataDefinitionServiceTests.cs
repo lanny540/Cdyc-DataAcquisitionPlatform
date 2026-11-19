@@ -11,7 +11,7 @@ public class ManagedDataDefinitionServiceTests
     [Fact]
     public async Task UpsertManagedDataDefinitionAsync_ShouldCreateNewDefinition()
     {
-        var service = new InMemoryDataAcquisitionPlatformService();
+        InMemoryDataAcquisitionPlatformService service = new();
 
         ManagedDataDefinitionDto result = await service.UpsertManagedDataDefinitionAsync(
             new ManagedDataDefinitionUpsertRequest(
@@ -39,7 +39,7 @@ public class ManagedDataDefinitionServiceTests
     [Fact]
     public async Task UpsertManagedDataDefinitionAsync_ShouldRenameExistingCollectionPoint()
     {
-        var service = new InMemoryDataAcquisitionPlatformService();
+        InMemoryDataAcquisitionPlatformService service = new();
 
         ManagedDataDefinitionDto savedDefinition = await service.UpsertManagedDataDefinitionAsync(
             new ManagedDataDefinitionUpsertRequest(
@@ -84,9 +84,9 @@ public class ManagedDataDefinitionServiceTests
     }
 
     [Fact]
-    public async Task DeleteManagedDataDefinitionAsync_ShouldRemoveSyncedCollectionPoint()
+    public async Task DeleteManagedDataDefinitionAsync_ShouldDisablePointAndPreserveHistory()
     {
-        var service = new InMemoryDataAcquisitionPlatformService();
+        InMemoryDataAcquisitionPlatformService service = new();
 
         ManagedDataDefinitionDto savedDefinition = await service.UpsertManagedDataDefinitionAsync(
             new ManagedDataDefinitionUpsertRequest(
@@ -106,10 +106,18 @@ public class ManagedDataDefinitionServiceTests
                 60,
                 true));
 
-        var deleted = await service.DeleteManagedDataDefinitionAsync(savedDefinition.Id);
+        CollectionDataRecordDto record = await service.IngestCollectionDataAsync(
+            new IngestCollectionDataRequest(
+                "HIS-DEL", "蒸汽流量", 12.5m, "t/h", DateTimeOffset.UtcNow));
+
+        bool deleted = await service.DeleteManagedDataDefinitionAsync(savedDefinition.Id);
         IReadOnlyCollection<CollectionPointDto> points = await service.GetCollectionPointsAsync();
+        IReadOnlyCollection<CollectionDataRecordDto> records = await service.GetCollectionDataAsync();
 
         Assert.True(deleted);
-        Assert.DoesNotContain(points, item => item.Code == "HIS-DEL");
+        Assert.Empty(await service.GetManagedDataDefinitionsAsync());
+        Assert.Contains(points, item =>
+            item.Code == "HIS-DEL" && !item.IsEnabled && item.CommunicationStatus == "停用");
+        Assert.Contains(records, item => item.Id == record.Id);
     }
 }

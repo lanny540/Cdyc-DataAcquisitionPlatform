@@ -115,6 +115,8 @@
                                                  Label="返回条数"
                                                  Variant="Variant.Outlined"
                                                  Min="1"
+                                                 Max="HistoryRawDataQueryRequest.MaxCount"
+                                                 HelperText="单次最多 10000 条，超出请分页查询"
                                                  @bind-Value="_rawCount"/>
                             </MudItem>
                         </MudGrid>

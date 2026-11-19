@@ -30,16 +30,16 @@ public static class AuthEndpoints
         // 三个处理器的首个参数是 HttpContext，写成方法组会被推断成 RequestDelegate，
         // 返回值（重定向）会被丢弃。显式转成 Delegate 走路由处理器重载。
         // 登录与改密要限流：两者都会跑密码哈希校验，是可被批量触发的高开销操作。
-        group.MapPost("/login", (Delegate)LoginAsync)
+        group.MapPost("/login", (Delegate) LoginAsync)
             .WithName("AuthLogin")
             .RequireRateLimiting(PlatformRateLimiting.CredentialPolicy)
             .DisableAntiforgery();
 
-        group.MapPost("/logout", (Delegate)LogoutAsync)
+        group.MapPost("/logout", (Delegate) LogoutAsync)
             .WithName("AuthLogout")
             .DisableAntiforgery();
 
-        group.MapPost("/change-password", (Delegate)ChangePasswordAsync)
+        group.MapPost("/change-password", (Delegate) ChangePasswordAsync)
             .WithName("AuthChangePassword")
             .RequireRateLimiting(PlatformRateLimiting.CredentialPolicy)
             .DisableAntiforgery();
@@ -85,18 +85,13 @@ public static class AuthEndpoints
             .FirstOrDefault(item => string.Equals(item.Code, code, StringComparison.OrdinalIgnoreCase));
 
         if (provider is null)
-        {
             return Results.Redirect(
                 $"/login?error={Uri.EscapeDataString("该统一登录方式未启用，请使用账号密码登录。")}");
-        }
 
         AuthenticationProperties properties = new();
-        var safeReturnUrl = PlatformReturnUrl.Resolve(returnUrl, "/");
+        string safeReturnUrl = PlatformReturnUrl.Resolve(returnUrl, "/");
 
-        if (!string.Equals(safeReturnUrl, "/", StringComparison.Ordinal))
-        {
-            properties.Items["returnUrl"] = safeReturnUrl;
-        }
+        if (!string.Equals(safeReturnUrl, "/", StringComparison.Ordinal)) properties.Items["returnUrl"] = safeReturnUrl;
 
         try
         {
@@ -111,10 +106,7 @@ public static class AuthEndpoints
             loggerFactory.CreateLogger("OidcChallenge").LogWarning(
                 exception, "发起统一登录失败：提供方 {Provider} 的元数据不可用。", provider.Code);
 
-            if (httpContext.Response.HasStarted)
-            {
-                throw;
-            }
+            if (httpContext.Response.HasStarted) throw;
 
             return Results.Redirect(
                 $"/login?error={Uri.EscapeDataString("统一登录服务暂时不可用，请稍后重试或改用账号密码登录。")}");
@@ -126,22 +118,19 @@ public static class AuthEndpoints
         PlatformAuthService authService,
         CancellationToken cancellationToken)
     {
-        if (!httpContext.Request.HasFormContentType)
-        {
-            return Results.BadRequest(new {message = "登录请求格式不正确。"});
-        }
+        if (!httpContext.Request.HasFormContentType) return Results.BadRequest(new {message = "登录请求格式不正确。"});
 
         IFormCollection form = await httpContext.Request.ReadFormAsync(cancellationToken);
-        var userName = form["userName"].ToString();
-        var password = form["password"].ToString();
-        var returnUrl = form["returnUrl"].ToString();
+        string userName = form["userName"].ToString();
+        string password = form["password"].ToString();
+        string returnUrl = form["returnUrl"].ToString();
 
         AuthSignInResult result = await authService.SignInAsync(userName, password, cancellationToken);
 
         if (!result.Succeeded || result.User is null)
         {
-            var message = Uri.EscapeDataString(result.ErrorMessage ?? "登录失败。");
-            var account = Uri.EscapeDataString(userName);
+            string message = Uri.EscapeDataString(result.ErrorMessage ?? "登录失败。");
+            string account = Uri.EscapeDataString(userName);
             return Results.Redirect($"/login?error={message}&userName={account}");
         }
 
@@ -152,10 +141,7 @@ public static class AuthEndpoints
             PlatformClaimsFactory.CreatePrincipal(user, DateTimeOffset.UtcNow, result.SecurityStamp),
             new AuthenticationProperties {IsPersistent = true});
 
-        if (user.MustChangePassword)
-        {
-            return Results.Redirect("/change-password");
-        }
+        if (user.MustChangePassword) return Results.Redirect("/change-password");
 
         return Results.Redirect(PlatformReturnUrl.Resolve(
             returnUrl,
@@ -175,32 +161,24 @@ public static class AuthEndpoints
     {
         Guid? userId = ReadUserId(httpContext.User);
 
-        if (userId is null)
-        {
-            return Results.Redirect("/login");
-        }
+        if (userId is null) return Results.Redirect("/login");
 
-        if (!httpContext.Request.HasFormContentType)
-        {
-            return Results.BadRequest(new {message = "改密请求格式不正确。"});
-        }
+        if (!httpContext.Request.HasFormContentType) return Results.BadRequest(new {message = "改密请求格式不正确。"});
 
         IFormCollection form = await httpContext.Request.ReadFormAsync(cancellationToken);
-        var currentPassword = form["currentPassword"].ToString();
-        var newPassword = form["newPassword"].ToString();
-        var confirmPassword = form["confirmPassword"].ToString();
+        string currentPassword = form["currentPassword"].ToString();
+        string newPassword = form["newPassword"].ToString();
+        string confirmPassword = form["confirmPassword"].ToString();
 
         if (!string.Equals(newPassword, confirmPassword, StringComparison.Ordinal))
-        {
             return Results.Redirect($"/change-password?error={Uri.EscapeDataString("两次输入的新密码不一致。")}");
-        }
 
         AuthOperationResultDto result =
             await authService.ChangePasswordAsync(userId.Value, currentPassword, newPassword, cancellationToken);
 
         if (!result.Succeeded)
         {
-            var message = Uri.EscapeDataString(result.ErrorMessage ?? "修改密码失败。");
+            string message = Uri.EscapeDataString(result.ErrorMessage ?? "修改密码失败。");
             return Results.Redirect($"/change-password?error={message}");
         }
 
@@ -236,7 +214,6 @@ public static class AuthEndpoints
         // 「第二次访问（WASM 缓存命中）」时就会整页失效。
         // Id 用 Guid.Empty 表示「不对应任何员工」：写操作的守卫据此拒绝归责到人。
         if (userId is null && PlatformClaimsFactory.IsBoardTerminal(principal))
-        {
             return Results.Ok(new AuthUserDto(
                 Guid.Empty,
                 "车间只读终端",
@@ -249,12 +226,8 @@ public static class AuthEndpoints
                 false,
                 false,
                 true));
-        }
 
-        if (userId is null)
-        {
-            return Results.Unauthorized();
-        }
+        if (userId is null) return Results.Unauthorized();
 
         AuthUserDto? user = await authService.GetUserAsync(userId.Value, cancellationToken);
 
@@ -264,12 +237,9 @@ public static class AuthEndpoints
 
     private static Guid? ReadUserId(ClaimsPrincipal principal)
     {
-        if (principal.Identity?.IsAuthenticated != true)
-        {
-            return null;
-        }
+        if (principal.Identity?.IsAuthenticated != true) return null;
 
-        var raw = principal.FindFirst(AuthorizationCatalog.PlatformClaimTypes.UserId)?.Value;
+        string? raw = principal.FindFirst(AuthorizationCatalog.PlatformClaimTypes.UserId)?.Value;
         return Guid.TryParse(raw, out Guid userId) ? userId : null;
     }
 }

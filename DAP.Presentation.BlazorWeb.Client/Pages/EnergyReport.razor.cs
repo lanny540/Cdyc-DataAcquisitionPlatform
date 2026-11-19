@@ -91,7 +91,7 @@ public partial class EnergyReport
     /// </summary>
     private Task LoadAsync()
     {
-        return LoadInternalAsync(silent: false);
+        return LoadInternalAsync(false);
     }
 
     /// <summary>
@@ -99,16 +99,13 @@ public partial class EnergyReport
     /// </summary>
     private Task RefreshSilentlyAsync()
     {
-        return LoadInternalAsync(silent: true);
+        return LoadInternalAsync(true);
     }
 
     /// <param name="silent">true 表示定时触发的静默刷新。</param>
     private async Task LoadInternalAsync(bool silent)
     {
-        if (silent && (_isLoading || _isRefreshing))
-        {
-            return;
-        }
+        if (silent && (_isLoading || _isRefreshing)) return;
 
         if (silent)
         {
@@ -124,17 +121,13 @@ public partial class EnergyReport
         {
             (DateOnly from, DateOnly to) = ResolveRange();
 
-            ShiftScheduleStatusDto status = await PlatformApiClient.GetShiftScheduleStatusAsync();
-            ShiftTeamDto[] teams = status.Teams.ToArray();
+            ShiftTeamDto[] teams = (await PlatformApiClient.GetEnergyTeamsAsync()).ToArray();
 
             if (teams.Length == 0)
             {
                 // 静默刷新时保留上一份报表：排班被清空是可解释的业务状态，
                 // 但定时器不该替用户把已经看过的数据抹掉。
-                if (!silent)
-                {
-                    ResetResult();
-                }
+                if (!silent) ResetResult();
 
                 _message = "尚未导入班组排班数据，无法生成报表。请先在「业务配置 → 排班时间管理」中导入排班表。";
                 _messageSeverity = Severity.Info;
@@ -152,10 +145,7 @@ public partial class EnergyReport
         }
         catch (Exception ex)
         {
-            if (!silent)
-            {
-                ResetResult();
-            }
+            if (!silent) ResetResult();
 
             _message = silent
                 ? $"自动刷新未成功，页面仍显示上次生成的报表：{UserFacingErrors.Describe(ex)}"
@@ -165,13 +155,9 @@ public partial class EnergyReport
         finally
         {
             if (silent)
-            {
                 _isRefreshing = false;
-            }
             else
-            {
                 _isLoading = false;
-            }
         }
     }
 

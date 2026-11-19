@@ -66,14 +66,20 @@ public sealed record LdapAuthenticationResult(bool Succeeded, string? ErrorMessa
     /// </summary>
     /// <param name="user">目录用户视图。</param>
     /// <returns>校验结果。</returns>
-    public static LdapAuthenticationResult Success(LdapDirectoryUser user) => new(true, null, user);
+    public static LdapAuthenticationResult Success(LdapDirectoryUser user)
+    {
+        return new LdapAuthenticationResult(true, null, user);
+    }
 
     /// <summary>
     /// 创建失败结果。
     /// </summary>
     /// <param name="message">中文失败原因。</param>
     /// <returns>校验结果。</returns>
-    public static LdapAuthenticationResult Failed(string message) => new(false, message, null);
+    public static LdapAuthenticationResult Failed(string message)
+    {
+        return new LdapAuthenticationResult(false, message, null);
+    }
 }
 
 /// <summary>

@@ -97,15 +97,12 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
     {
         get
         {
-            if (HistoryTrendRecords.Length < 2)
-            {
-                return "历史点位不足，暂无法计算波动趋势。";
-            }
+            if (HistoryTrendRecords.Length < 2) return "历史点位不足，暂无法计算波动趋势。";
 
             CollectionDataRecordDto latest = HistoryTrendRecords[^1];
             CollectionDataRecordDto previous = HistoryTrendRecords[^2];
-            var delta = latest.Value - previous.Value;
-            var unit = ResolveUnit(latest.Unit);
+            decimal delta = latest.Value - previous.Value;
+            string unit = ResolveUnit(latest.Unit);
 
             return delta switch
             {
@@ -120,14 +117,11 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
     {
         get
         {
-            if (HistoryTrendRecords.Length == 0)
-            {
-                return "--";
-            }
+            if (HistoryTrendRecords.Length == 0) return "--";
 
-            var min = HistoryTrendRecords.Min(item => item.Value);
-            var max = HistoryTrendRecords.Max(item => item.Value);
-            var unit = ResolveUnit(HistoryTrendRecords[^1].Unit);
+            decimal min = HistoryTrendRecords.Min(item => item.Value);
+            decimal max = HistoryTrendRecords.Max(item => item.Value);
+            string unit = ResolveUnit(HistoryTrendRecords[^1].Unit);
             return $"{min:0.###} - {max:0.###} {unit}".Trim();
         }
     }
@@ -152,16 +146,10 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
     {
         get
         {
-            if (_details is null || !_details.Definition.IsEnabled)
-            {
-                return 0;
-            }
+            if (_details is null || !_details.Definition.IsEnabled) return 0;
 
-            var interval = GetRefreshIntervalSeconds();
-            if (_isAutoRefreshing)
-            {
-                return 100;
-            }
+            int interval = GetRefreshIntervalSeconds();
+            if (_isAutoRefreshing) return 100;
 
             return Math.Clamp((interval - _secondsUntilNextRefresh) * 100d / interval, 0, 100);
         }
@@ -190,9 +178,7 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
             RestartAutoRefreshLoop();
 
             if (!skipLiveRefresh && _details.Definition.IsEnabled && !HasLiveCurrentSnapshot)
-            {
                 _ = RefreshCurrentValueInBackgroundAsync();
-            }
         }
         catch (Exception ex)
         {
@@ -209,10 +195,7 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
 
     private async Task ExecuteAsync(bool isCollect)
     {
-        if (_details is null)
-        {
-            return;
-        }
+        if (_details is null) return;
 
         _isExecuting = true;
         _message = null;
@@ -302,10 +285,7 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
 
     private async Task RefreshCurrentValueAsync(bool setStatusMessage, CancellationToken cancellationToken)
     {
-        if (_details is null || !_details.Definition.IsEnabled)
-        {
-            return;
-        }
+        if (_details is null || !_details.Definition.IsEnabled) return;
 
         _isAutoRefreshing = true;
 
@@ -400,10 +380,7 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
 
         DecrementRefreshCountdown();
 
-        if (!ShouldRefreshCurrentValue())
-        {
-            return;
-        }
+        if (!ShouldRefreshCurrentValue()) return;
 
         await RefreshCurrentValueAsync(false, cancellationToken);
         ResetCountdown();
@@ -416,10 +393,7 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
 
     private void DecrementRefreshCountdown()
     {
-        if (_secondsUntilNextRefresh > 0)
-        {
-            _secondsUntilNextRefresh--;
-        }
+        if (_secondsUntilNextRefresh > 0) _secondsUntilNextRefresh--;
     }
 
     private bool ShouldRefreshCurrentValue()
@@ -432,10 +406,7 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
 
     private void StopAutoRefreshLoop()
     {
-        if (_autoRefreshCts is null)
-        {
-            return;
-        }
+        if (_autoRefreshCts is null) return;
 
         _autoRefreshCts.Cancel();
         _autoRefreshCts.Dispose();
@@ -455,14 +426,11 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
 
     private static Dictionary<string, string> ParseJsonDictionary(string json)
     {
-        if (string.IsNullOrWhiteSpace(json))
-        {
-            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        }
+        if (string.IsNullOrWhiteSpace(json)) return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         try
         {
-            var rawDictionary =
+            Dictionary<string, JsonElement>? rawDictionary =
                 JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
 
             return rawDictionary?.ToDictionary(
@@ -480,19 +448,14 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
 
     private string[] BuildHistoryChartLabels()
     {
-        if (HistoryTrendRecords.Length == 0)
-        {
-            return [];
-        }
+        if (HistoryTrendRecords.Length == 0) return [];
 
         if (HistoryTrendRecords.Length <= 8)
-        {
             return HistoryTrendRecords
                 .Select(item => item.CollectedAt.ToLocalTime().ToString("HH:mm:ss"))
                 .ToArray();
-        }
 
-        var step = Math.Max(1, (int) Math.Ceiling((HistoryTrendRecords.Length - 1) / 9d));
+        int step = Math.Max(1, (int) Math.Ceiling((HistoryTrendRecords.Length - 1) / 9d));
 
         return HistoryTrendRecords
             .Select((item, index) => index == 0 || index == HistoryTrendRecords.Length - 1 || index % step == 0
@@ -503,10 +466,7 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
 
     private static string FormatInterval(int intervalSeconds)
     {
-        if (intervalSeconds >= 3600 && intervalSeconds % 3600 == 0)
-        {
-            return $"{intervalSeconds / 3600} 小时";
-        }
+        if (intervalSeconds >= 3600 && intervalSeconds % 3600 == 0) return $"{intervalSeconds / 3600} 小时";
 
         return intervalSeconds >= 60 && intervalSeconds % 60 == 0
             ? $"{intervalSeconds / 60} 分钟"
@@ -530,10 +490,7 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
 
     private static string FormatJson(string json)
     {
-        if (string.IsNullOrWhiteSpace(json))
-        {
-            return "{}";
-        }
+        if (string.IsNullOrWhiteSpace(json)) return "{}";
 
         try
         {
@@ -552,10 +509,7 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
     /// </summary>
     private static Color GetStatusColor(bool isEnabled, CollectionPointDto? collectionPoint)
     {
-        if (!isEnabled)
-        {
-            return Color.Warning;
-        }
+        if (!isEnabled) return Color.Warning;
 
         return collectionPoint?.CommunicationStatus == "在线" ? Color.Success : Color.Warning;
     }
@@ -565,7 +519,6 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
         StopAutoRefreshLoop();
 
         if (_autoRefreshTask is not null)
-        {
             try
             {
                 await _autoRefreshTask;
@@ -573,7 +526,6 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
             catch (OperationCanceledException)
             {
             }
-        }
 
         GC.SuppressFinalize(this);
     }

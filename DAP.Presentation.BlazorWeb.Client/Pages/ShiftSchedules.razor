@@ -182,7 +182,7 @@
             <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
                 <MudSelect T="string" Label="按班组筛选" Value="_teamFilter" ValueChanged="OnTeamFilterChangedAsync"
                            Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width: 180px;">
-                    @foreach (var team in _status?.Teams ?? [])
+                    @foreach (ShiftTeamDto team in _status?.Teams ?? [])
                     {
                         <MudSelectItem T="string" Value="@team.TeamCode">@team.TeamName</MudSelectItem>
                     }

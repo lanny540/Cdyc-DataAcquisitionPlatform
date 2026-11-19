@@ -35,9 +35,4 @@ public sealed class PostgreSqlManagedDataDefinitionRepository : IManagedDataDefi
     {
         return _dbContext.ManagedDataDefinitions.AddAsync(definition, cancellationToken).AsTask();
     }
-
-    public void Remove(ManagedDataDefinition definition)
-    {
-        _dbContext.ManagedDataDefinitions.Remove(definition);
-    }
 }

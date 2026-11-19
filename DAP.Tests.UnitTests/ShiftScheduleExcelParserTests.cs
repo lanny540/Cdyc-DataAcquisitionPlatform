@@ -196,9 +196,9 @@ public class ShiftScheduleExcelParserTests
 
     private static MemoryStream BuildWorkbook(Action<IXLWorksheet, System.Globalization.CultureInfo> fill)
     {
-        var stream = new MemoryStream();
+        MemoryStream stream = new();
 
-        using (var workbook = new XLWorkbook())
+        using (XLWorkbook workbook = new())
         {
             IXLWorksheet worksheet = workbook.Worksheets.Add("排班表");
             fill(worksheet, System.Globalization.CultureInfo.InvariantCulture);
@@ -224,9 +224,7 @@ public class ShiftScheduleExcelParserTests
     private static void WriteDay(IXLWorksheet worksheet, int row, string date, string team, int startHour, int endHour)
     {
         if (DateOnly.TryParse(date, out DateOnly parsed))
-        {
             worksheet.Cell(row, 1).Value = parsed.ToDateTime(new TimeOnly(0, 0));
-        }
 
         worksheet.Cell(row, 2).Value = team;
 

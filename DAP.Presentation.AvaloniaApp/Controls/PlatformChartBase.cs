@@ -112,7 +112,7 @@ public abstract class PlatformChartBase : Control
         IBrush brush,
         FontWeight weight = FontWeight.Normal)
     {
-        var formatted = new FormattedText(
+        FormattedText formatted = new(
             text,
             CultureInfo.CurrentCulture,
             FlowDirection.LeftToRight,
@@ -131,16 +131,13 @@ public abstract class PlatformChartBase : Control
     /// <returns>合适的轴上限，最小为 1。</returns>
     protected static double NiceCeiling(double max)
     {
-        if (max <= 0 || double.IsNaN(max) || double.IsInfinity(max))
-        {
-            return 1;
-        }
+        if (max <= 0 || double.IsNaN(max) || double.IsInfinity(max)) return 1;
 
-        var exponent = Math.Floor(Math.Log10(max));
-        var magnitude = Math.Pow(10, exponent);
-        var normalized = max / magnitude;
+        double exponent = Math.Floor(Math.Log10(max));
+        double magnitude = Math.Pow(10, exponent);
+        double normalized = max / magnitude;
 
-        var step = normalized switch
+        int step = normalized switch
         {
             <= 1 => 1,
             <= 2 => 2,

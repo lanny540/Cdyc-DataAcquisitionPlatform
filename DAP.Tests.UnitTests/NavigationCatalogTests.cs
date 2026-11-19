@@ -14,7 +14,7 @@ public class NavigationCatalogTests
     [Fact]
     public void Page_Keys_Should_Be_Unique_And_Non_Empty()
     {
-        var keys = NavigationCatalog.Pages.Select(page => page.Item.PageKey).ToList();
+        List<string> keys = NavigationCatalog.Pages.Select(page => page.Item.PageKey).ToList();
 
         Assert.All(keys, key => Assert.False(string.IsNullOrWhiteSpace(key)));
         Assert.Equal(keys.Count, keys.Distinct(StringComparer.Ordinal).Count());
@@ -23,10 +23,8 @@ public class NavigationCatalogTests
     [Fact]
     public void Page_Keys_Should_Be_Lowercase_Kebab()
     {
-        foreach (var pageKey in NavigationCatalog.Pages.Select(page => page.Item.PageKey))
-        {
+        foreach (string pageKey in NavigationCatalog.Pages.Select(page => page.Item.PageKey))
             Assert.Matches("^[a-z][a-z0-9-]*$", pageKey);
-        }
     }
 
     /// <summary>
@@ -36,11 +34,11 @@ public class NavigationCatalogTests
     [Fact]
     public void Page_Domains_Should_Be_Declared()
     {
-        var declared = AuthorizationCatalog.Domains
+        HashSet<string> declared = AuthorizationCatalog.Domains
             .Select(domain => domain.Code)
             .ToHashSet(StringComparer.Ordinal);
 
-        var offenders = NavigationCatalog.Pages
+        List<string> offenders = NavigationCatalog.Pages
             .Where(page => !declared.Contains(page.Item.DomainCode))
             .Select(page => $"{page.Item.Title} → {page.Item.DomainCode}")
             .ToList();
@@ -55,12 +53,11 @@ public class NavigationCatalogTests
     [Fact]
     public void Page_Access_Levels_Should_Be_View_Or_Configure()
     {
-        foreach (var page in NavigationCatalog.Pages)
-        {
+        foreach (NavPageDescriptor page in NavigationCatalog.Pages)
             Assert.True(
-                page.Item.AccessLevel is AuthorizationCatalog.ViewAccessLevel or AuthorizationCatalog.ConfigureAccessLevel,
+                page.Item.AccessLevel is AuthorizationCatalog.ViewAccessLevel
+                    or AuthorizationCatalog.ConfigureAccessLevel,
                 $"页面 {page.Item.Title} 的等级 {page.Item.AccessLevel} 不是 1 或 2");
-        }
     }
 
     /// <summary>
@@ -74,7 +71,7 @@ public class NavigationCatalogTests
     [InlineData("/managed-data-definitions")]
     public void Configuration_Pages_Should_Require_Configure_Level(string href)
     {
-        var page = NavigationCatalog.Pages.Single(item => item.Item.Href == href);
+        NavPageDescriptor page = NavigationCatalog.Pages.Single(item => item.Item.Href == href);
 
         Assert.True(page.Item.IsConfigurationPage, $"页面 {page.Item.Title} 应要求配置等级");
     }
@@ -89,7 +86,7 @@ public class NavigationCatalogTests
     [InlineData("/energy-report")]
     public void Energy_Pages_Should_Require_View_Level_Only(string href)
     {
-        var page = NavigationCatalog.Pages.Single(item => item.Item.Href == href);
+        NavPageDescriptor page = NavigationCatalog.Pages.Single(item => item.Item.Href == href);
 
         Assert.Equal(AuthorizationCatalog.ViewAccessLevel, page.Item.AccessLevel);
     }
@@ -97,7 +94,7 @@ public class NavigationCatalogTests
     [Fact]
     public void Every_Section_Should_Have_At_Least_One_Page()
     {
-        foreach (var section in NavigationCatalog.Sections)
+        foreach (NavSection section in NavigationCatalog.Sections)
         {
             Assert.NotEmpty(section.AllItems);
             Assert.False(string.IsNullOrWhiteSpace(section.LandingHref));
@@ -136,11 +133,11 @@ public class NavigationCatalogTests
     [Fact]
     public void Required_Permissions_Should_Be_Declared()
     {
-        var declared = AuthorizationCatalog.Permissions
+        HashSet<string> declared = AuthorizationCatalog.Permissions
             .Select(permission => permission.Code)
             .ToHashSet(StringComparer.Ordinal);
 
-        var offenders = NavigationCatalog.Pages
+        List<string> offenders = NavigationCatalog.Pages
             .Where(page => page.Item.RequiresPermission && !declared.Contains(page.Item.RequiredPermission!))
             .Select(page => $"{page.Item.Title} → {page.Item.RequiredPermission}")
             .ToList();
@@ -157,7 +154,7 @@ public class NavigationCatalogTests
     {
         Assert.NotEmpty(NavigationCatalog.SharedPages);
 
-        foreach (var page in NavigationCatalog.SharedPages)
+        foreach (NavItem page in NavigationCatalog.SharedPages)
         {
             Assert.True(page.RequiresPermission, $"共享页 {page.Title} 未声明权限点");
             Assert.True(page.IsConfigurationPage, $"共享页 {page.Title} 不是配置级页面");
@@ -171,7 +168,7 @@ public class NavigationCatalogTests
     [Fact]
     public void User_Management_Should_Be_Shared_With_User_Manage_Permission()
     {
-        var page = NavigationCatalog.Pages.Single(item => item.Item.Href == "/user-management").Item;
+        NavItem page = NavigationCatalog.Pages.Single(item => item.Item.Href == "/user-management").Item;
 
         Assert.True(page.IsShared);
         Assert.Equal(AuthorizationCatalog.UserManagePermission, page.RequiredPermission);
@@ -185,7 +182,7 @@ public class NavigationCatalogTests
     [Fact]
     public void System_Audit_Should_Require_System_Manage_Permission()
     {
-        var page = NavigationCatalog.Pages.Single(item => item.Item.Href == "/system-audit").Item;
+        NavItem page = NavigationCatalog.Pages.Single(item => item.Item.Href == "/system-audit").Item;
 
         Assert.False(page.IsShared);
         Assert.Equal(AuthorizationCatalog.SystemManagePermission, page.RequiredPermission);

@@ -63,7 +63,7 @@
                                            @bind-Value="_selectedServerId"
                                            @bind-Value:after="() => OnServerChanged(_selectedServerId)">
                                     <MudSelectItem T="Guid?" Value="@((Guid?) null)">请选择采集服务器</MudSelectItem>
-                                    @foreach (var server in _servers)
+                                    @foreach (AcquisitionServerDto server in _servers)
                                     {
                                         <MudSelectItem T="Guid?" Value="@server.Id">
                                             @($"{server.DisplayName}（{server.ServerTypeName}）")
@@ -154,7 +154,7 @@
                                 <MudDivider/>
                                 <MudText Typo="Typo.body1">该类型专属参数</MudText>
                                 <MudGrid Spacing="2">
-                                    @foreach (var field in CurrentNodeFields)
+                                    @foreach (AcquisitionServerFieldDescriptor field in CurrentNodeFields)
                                     {
                                         <MudItem xs="12" md="6">
                                             <MudTextField Margin="Margin.Dense"
@@ -189,7 +189,7 @@
                             }
                             else
                             {
-                                @foreach (var row in _extraConfigurationRows)
+                                @foreach (EditableKeyValueRow row in _extraConfigurationRows)
                                 {
                                     <MudGrid Spacing="2">
                                         <MudItem xs="12" md="5">
@@ -232,7 +232,7 @@
                         }
                         else
                         {
-                            @foreach (var row in _businessTagRows)
+                            @foreach (EditableKeyValueRow row in _businessTagRows)
                             {
                                 <MudGrid Spacing="2">
                                     <MudItem xs="12" md="5">

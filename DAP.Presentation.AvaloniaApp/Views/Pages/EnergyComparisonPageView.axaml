@@ -80,7 +80,7 @@
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <UniformGrid Columns="4" />
-                        <!-- 卡片数量固定，等分填满整行，避免固定宽在宽窗口下右侧留白 -->
+                            <!-- 卡片数量固定，等分填满整行，避免固定宽在宽窗口下右侧留白 -->
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
@@ -110,7 +110,7 @@
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <UniformGrid Columns="2" />
-                        <!-- 图表卡等分两列，随窗口宽度拉伸 -->
+                            <!-- 图表卡等分两列，随窗口宽度拉伸 -->
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
@@ -125,9 +125,9 @@
 
                                     <Border Classes="chart-frame">
                                         <controls:BarCompareChart Height="230"
-                                                                   Items="{Binding Items}"
-                                                                   Accent="{Binding AccentStrong}"
-                                                                   Unit="{Binding Unit}" />
+                                                                  Items="{Binding Items}"
+                                                                  Accent="{Binding AccentStrong}"
+                                                                  Unit="{Binding Unit}" />
                                     </Border>
 
                                     <TextBlock Classes="stat-supporting" Text="{Binding Legend}" />
@@ -150,15 +150,28 @@
                             <StackPanel>
                                 <Border Background="{DynamicResource DapPrimaryTintBrush}" Padding="12,8">
                                     <Grid ColumnDefinitions="150,*,*,*,*,110,80,90,60">
-                                        <TextBlock Classes="field-label" Foreground="{DynamicResource DapPrimaryStrongBrush}" Text="班组" />
-                                        <TextBlock Grid.Column="1" Classes="field-label" Foreground="{DynamicResource DapPrimaryStrongBrush}" Text="{Binding Column1}" />
-                                        <TextBlock Grid.Column="2" Classes="field-label" Foreground="{DynamicResource DapPrimaryStrongBrush}" Text="{Binding Column2}" />
-                                        <TextBlock Grid.Column="3" Classes="field-label" Foreground="{DynamicResource DapPrimaryStrongBrush}" Text="{Binding Column3}" />
-                                        <TextBlock Grid.Column="4" Classes="field-label" Foreground="{DynamicResource DapPrimaryStrongBrush}" Text="{Binding Column4}" />
-                                        <TextBlock Grid.Column="5" Classes="field-label" Foreground="{DynamicResource DapPrimaryStrongBrush}" Text="综合能耗" />
-                                        <TextBlock Grid.Column="6" Classes="field-label" Foreground="{DynamicResource DapPrimaryStrongBrush}" Text="班次" />
-                                        <TextBlock Grid.Column="7" Classes="field-label" Foreground="{DynamicResource DapPrimaryStrongBrush}" Text="累计工时" />
-                                        <TextBlock Grid.Column="8" Classes="field-label" Foreground="{DynamicResource DapPrimaryStrongBrush}" Text="标记" />
+                                        <TextBlock Classes="field-label"
+                                                   Foreground="{DynamicResource DapPrimaryStrongBrush}" Text="班组" />
+                                        <TextBlock Grid.Column="1" Classes="field-label"
+                                                   Foreground="{DynamicResource DapPrimaryStrongBrush}"
+                                                   Text="{Binding Column1}" />
+                                        <TextBlock Grid.Column="2" Classes="field-label"
+                                                   Foreground="{DynamicResource DapPrimaryStrongBrush}"
+                                                   Text="{Binding Column2}" />
+                                        <TextBlock Grid.Column="3" Classes="field-label"
+                                                   Foreground="{DynamicResource DapPrimaryStrongBrush}"
+                                                   Text="{Binding Column3}" />
+                                        <TextBlock Grid.Column="4" Classes="field-label"
+                                                   Foreground="{DynamicResource DapPrimaryStrongBrush}"
+                                                   Text="{Binding Column4}" />
+                                        <TextBlock Grid.Column="5" Classes="field-label"
+                                                   Foreground="{DynamicResource DapPrimaryStrongBrush}" Text="综合能耗" />
+                                        <TextBlock Grid.Column="6" Classes="field-label"
+                                                   Foreground="{DynamicResource DapPrimaryStrongBrush}" Text="班次" />
+                                        <TextBlock Grid.Column="7" Classes="field-label"
+                                                   Foreground="{DynamicResource DapPrimaryStrongBrush}" Text="累计工时" />
+                                        <TextBlock Grid.Column="8" Classes="field-label"
+                                                   Foreground="{DynamicResource DapPrimaryStrongBrush}" Text="标记" />
                                     </Grid>
                                 </Border>
 

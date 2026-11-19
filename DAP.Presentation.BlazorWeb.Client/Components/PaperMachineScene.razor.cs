@@ -47,7 +47,7 @@ public partial class PaperMachineScene : ComponentBase, IAsyncDisposable
     {
         get
         {
-            var stations = _snapshot.Stations.ToDictionary(station => station.Code);
+            Dictionary<string, TwinStation> stations = _snapshot.Stations.ToDictionary(station => station.Code);
 
             return TagSpecs
                 .Where(spec => stations.ContainsKey(spec.Code))
@@ -66,15 +66,11 @@ public partial class PaperMachineScene : ComponentBase, IAsyncDisposable
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        if (_loopCts is null)
-        {
-            return;
-        }
+        if (_loopCts is null) return;
 
         await _loopCts.CancelAsync();
 
         if (_loopTask is not null)
-        {
             try
             {
                 await _loopTask;
@@ -82,7 +78,6 @@ public partial class PaperMachineScene : ComponentBase, IAsyncDisposable
             catch (OperationCanceledException)
             {
             }
-        }
 
         _loopCts.Dispose();
         _loopCts = null;
@@ -118,7 +113,7 @@ public partial class PaperMachineScene : ComponentBase, IAsyncDisposable
     /// </summary>
     private static IReadOnlyList<SceneShape> BuildScene()
     {
-        var scene = new IsoScene();
+        IsoScene scene = new();
 
         const string Stock = "stage-stock";
         const string Wet = "stage-wet";
@@ -155,19 +150,15 @@ public partial class PaperMachineScene : ComponentBase, IAsyncDisposable
         scene.AddFloor(42.5, 77.5, 0.4, 29.6, "scene-zone stage-wet");
         scene.AddFloor(77.5, 119.6, 0.4, 29.6, "scene-zone stage-dry");
 
-        for (var x = 8.0; x < 120; x += 8)
-        {
+        for (double x = 8.0; x < 120; x += 8)
             scene.AddPolyline(
                 [IsoScene.Project(x, 0, 0), IsoScene.Project(x, 30, 0)],
                 "scene-grid");
-        }
 
-        for (var y = 6.0; y < 30; y += 6)
-        {
+        for (double y = 6.0; y < 30; y += 6)
             scene.AddPolyline(
                 [IsoScene.Project(0, y, 0), IsoScene.Project(120, y, 0)],
                 "scene-grid");
-        }
 
         // 地坪轮廓：一圈实线把画面框住，否则白底上的浅色地坪没有边界。
         scene.AddPolyline(
@@ -245,11 +236,11 @@ public partial class PaperMachineScene : ComponentBase, IAsyncDisposable
         scene.AddBox(76.0, 77.0, 4.2, 5.4, 0, 6.8, stage);
         scene.AddBox(67.0, 76.2, 5.0, 17.4, 0, 1.1, metal);
 
-        scene.AddCylinderAlongY(70.1, 2.9, 1.4, 8.0, 14.0, metal, deferCap: true);
-        scene.AddCylinderAlongY(73.1, 2.9, 1.4, 8.0, 14.0, metal, deferCap: true);
-        scene.AddCylinderAlongY(68.6, 5.8, 1.6, 8.0, 14.0, metal, deferCap: true);
-        scene.AddCylinderAlongY(71.6, 5.8, 1.6, 8.0, 14.0, metal, deferCap: true);
-        scene.AddCylinderAlongY(74.6, 5.8, 1.6, 8.0, 14.0, metal, deferCap: true);
+        scene.AddCylinderAlongY(70.1, 2.9, 1.4, 8.0, 14.0, metal, true);
+        scene.AddCylinderAlongY(73.1, 2.9, 1.4, 8.0, 14.0, metal, true);
+        scene.AddCylinderAlongY(68.6, 5.8, 1.6, 8.0, 14.0, metal, true);
+        scene.AddCylinderAlongY(71.6, 5.8, 1.6, 8.0, 14.0, metal, true);
+        scene.AddCylinderAlongY(74.6, 5.8, 1.6, 8.0, 14.0, metal, true);
         scene.FlushDeferredCaps();
     }
 
@@ -262,10 +253,8 @@ public partial class PaperMachineScene : ComponentBase, IAsyncDisposable
         scene.AddBox(97.8, 98.6, 18.2, 19.0, 0, 13.4, metal);
         scene.AddBox(97.8, 98.6, 3.9, 4.7, 0, 13.4, metal);
 
-        for (var index = 0; index < 4; index++)
-        {
-            scene.AddCylinderAlongY(80.6 + (index * 5.0), 6.8, 2.2, 8.0, 14.0, metal, deferCap: true);
-        }
+        for (int index = 0; index < 4; index++)
+            scene.AddCylinderAlongY(80.6 + index * 5.0, 6.8, 2.2, 8.0, 14.0, metal, true);
 
         scene.FlushDeferredCaps();
 
@@ -280,10 +269,8 @@ public partial class PaperMachineScene : ComponentBase, IAsyncDisposable
         scene.AddBox(101.6, 102.6, 4.4, 5.6, 0, 9.6, stage);
         scene.AddBox(106.4, 107.4, 4.4, 5.6, 0, 9.6, stage);
 
-        for (var index = 0; index < 4; index++)
-        {
-            scene.AddCylinderAlongY(104.4, 2.9 + (index * 1.8), 0.85, 8.0, 14.0, metal, deferCap: true);
-        }
+        for (int index = 0; index < 4; index++)
+            scene.AddCylinderAlongY(104.4, 2.9 + index * 1.8, 0.85, 8.0, 14.0, metal, true);
 
         scene.FlushDeferredCaps();
     }
@@ -332,7 +319,7 @@ public partial class PaperMachineScene : ComponentBase, IAsyncDisposable
             "scene-pipe");
 
         // 纸幅：唇口 → 网案 → 伏辊 → 压榨 → 烘缸 → 压光 → 卷取
-        var web = new (double X, double Y, double Z)[]
+        (double X, double Y, double Z)[] web = new (double X, double Y, double Z)[]
         {
             (45.6, 11.5, 11.2),
             (48.8, 11.5, 10.9),
@@ -376,9 +363,9 @@ public partial class PaperMachineScene : ComponentBase, IAsyncDisposable
 
         return anchors.Select((anchor, index) =>
         {
-            var point = IsoScene.Project(anchor.CenterX, 5, anchor.TopZ);
-            var tagX = Math.Clamp(point.X - (TagWidth / 2), 6, IsoScene.ViewWidth - 6 - TagWidth);
-            var tagY = index % 2 == 0 ? TagRowTop : TagRowBottom;
+            ScenePoint point = IsoScene.Project(anchor.CenterX, 5, anchor.TopZ);
+            double tagX = Math.Clamp(point.X - TagWidth / 2, 6, IsoScene.ViewWidth - 6 - TagWidth);
+            double tagY = index % 2 == 0 ? TagRowTop : TagRowBottom;
 
             return new TagSpec(anchor.Code, tagX, tagY, point.X, point.Y);
         }).ToArray();
@@ -423,8 +410,8 @@ public partial class PaperMachineScene : ComponentBase, IAsyncDisposable
     {
         public static SceneTag Create(TagSpec spec, TwinStation station)
         {
-            var metric = station.Metrics[0];
-            var value = $"{metric.DisplayValue} {metric.Unit}";
+            TwinMetric metric = station.Metrics[0];
+            string value = $"{metric.DisplayValue} {metric.Unit}";
 
             return new SceneTag(
                 station.Name,
@@ -439,7 +426,7 @@ public partial class PaperMachineScene : ComponentBase, IAsyncDisposable
                 Svg(spec.TagX + TagWidth - 10),
                 Svg(spec.TagY + 16),
                 Svg(spec.TagY + 32),
-                $"{Svg(spec.TagX + (TagWidth / 2))},{Svg(spec.TagY + TagHeight)} {Svg(spec.AnchorX)},{Svg(spec.AnchorY)}",
+                $"{Svg(spec.TagX + TagWidth / 2)},{Svg(spec.TagY + TagHeight)} {Svg(spec.AnchorX)},{Svg(spec.AnchorY)}",
                 Svg(spec.AnchorX),
                 Svg(spec.AnchorY),
                 station.Stage switch

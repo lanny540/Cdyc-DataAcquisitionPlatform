@@ -21,9 +21,4 @@ public interface IManagedDataDefinitionRepository
     /// 添加后台数据定义。
     /// </summary>
     Task AddAsync(ManagedDataDefinition definition, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// 删除后台数据定义。
-    /// </summary>
-    void Remove(ManagedDataDefinition definition);
 }

@@ -15,7 +15,7 @@ public partial class DomainConfig
 {
     protected override async Task OnInitializedAsync()
     {
-        await LoadAsync(clearMessage: false);
+        await LoadAsync(false);
     }
 
     /// <summary>
@@ -28,10 +28,7 @@ public partial class DomainConfig
     {
         _isLoading = true;
 
-        if (clearMessage)
-        {
-            _message = null;
-        }
+        if (clearMessage) _message = null;
 
         try
         {
@@ -54,12 +51,9 @@ public partial class DomainConfig
     /// </summary>
     private void RequestAccessLevelChangeAsync(AdminDomainPageDto page, int newLevel)
     {
-        if (newLevel == page.AccessLevel)
-        {
-            return;
-        }
+        if (newLevel == page.AccessLevel) return;
 
-        var direction = newLevel > page.AccessLevel ? "放开" : "收紧";
+        string direction = newLevel > page.AccessLevel ? "放开" : "收紧";
 
         OpenConfirm(
             "确认修改页面等级",
@@ -101,7 +95,7 @@ public partial class DomainConfig
                     await Api.ResetAdminDomainPageAsync(page.Id);
                     _message = $"已恢复「{page.Title}」的代码默认值。";
                     _messageSeverity = Severity.Success;
-                    await LoadAsync(clearMessage: false);
+                    await LoadAsync(false);
                 }
                 catch (Exception ex)
                 {
@@ -121,7 +115,7 @@ public partial class DomainConfig
             await Api.UpdateAdminDomainPageAsync(page.Id, request);
             _message = successMessage;
             _messageSeverity = Severity.Success;
-            await LoadAsync(clearMessage: false);
+            await LoadAsync(false);
         }
         catch (Exception ex)
         {
@@ -169,7 +163,7 @@ public partial class DomainConfig
 
         try
         {
-            var request = new AdminDomainUpsertRequest(
+            AdminDomainUpsertRequest request = new(
                 _editorDomainCode,
                 _editorDomainName,
                 _editorDomainSortOrder,
@@ -190,7 +184,7 @@ public partial class DomainConfig
 
             _messageSeverity = Severity.Success;
             _isDomainEditorOpen = false;
-            await LoadAsync(clearMessage: false);
+            await LoadAsync(false);
         }
         catch (Exception ex)
         {
@@ -215,7 +209,7 @@ public partial class DomainConfig
                     await Api.DeleteAdminDomainAsync(domain.Id);
                     _message = $"已删除域「{domain.Name}」。";
                     _messageSeverity = Severity.Success;
-                    await LoadAsync(clearMessage: false);
+                    await LoadAsync(false);
                 }
                 catch (Exception ex)
                 {
@@ -234,8 +228,9 @@ public partial class DomainConfig
         _editorPageGroupTitle = page.GroupTitle ?? string.Empty;
         _editorPageSortOrder = page.SortOrder;
         _editorPageDomainId = _domains
-            .FirstOrDefault(domain => string.Equals(domain.Code, page.DomainCode, StringComparison.Ordinal))?.Id
-            ?? Guid.Empty;
+                                  .FirstOrDefault(domain =>
+                                      string.Equals(domain.Code, page.DomainCode, StringComparison.Ordinal))?.Id
+                              ?? Guid.Empty;
         _isPageEditorOpen = true;
     }
 
@@ -265,17 +260,17 @@ public partial class DomainConfig
             // 只提交本对话框负责的字段：等级与启停有各自的即时开关，
             // 一起提交会把「打开对话框后另一个标签页改过的等级」覆盖回去。
             await Api.UpdateAdminDomainPageAsync(page.Id, new AdminDomainPageUpdateRequest(
-                AccessLevel: null,
-                DomainId: _editorPageDomainId == Guid.Empty ? null : _editorPageDomainId,
-                IsEnabled: null,
-                Title: _editorPageTitle,
-                GroupTitle: _editorPageGroupTitle,
-                SortOrder: _editorPageSortOrder));
+                null,
+                _editorPageDomainId == Guid.Empty ? null : _editorPageDomainId,
+                null,
+                _editorPageTitle,
+                _editorPageGroupTitle,
+                _editorPageSortOrder));
 
             _message = $"已更新「{_editorPageTitle.Trim()}」的页面配置。";
             _messageSeverity = Severity.Success;
             _isPageEditorOpen = false;
-            await LoadAsync(clearMessage: false);
+            await LoadAsync(false);
         }
         catch (Exception ex)
         {
@@ -300,7 +295,7 @@ public partial class DomainConfig
                     await Api.DeleteAdminDomainPageAsync(page.Id);
                     _message = $"已删除下线页面记录「{page.Title}」。";
                     _messageSeverity = Severity.Success;
-                    await LoadAsync(clearMessage: false);
+                    await LoadAsync(false);
                 }
                 catch (Exception ex)
                 {
@@ -327,12 +322,9 @@ public partial class DomainConfig
     private async Task AcceptConfirmAsync()
     {
         _isConfirmOpen = false;
-        var action = _pendingAction;
+        Func<Task>? action = _pendingAction;
         _pendingAction = null;
 
-        if (action is not null)
-        {
-            await action();
-        }
+        if (action is not null) await action();
     }
 }

@@ -15,11 +15,9 @@ app.Logger.LogInformation(
     app.Services.GetRequiredService<DataProtectionKeyLocation>().DirectoryPath);
 
 // 传输层提示：Secure Cookie 与反向代理配置错了，现象都很像「登录不上」，必须提前说清楚。
-foreach (var (level, message) in PlatformTransportExtensions.DescribeTransportWarnings(
+foreach ((LogLevel level, string message) in PlatformTransportExtensions.DescribeTransportWarnings(
              app.Configuration, app.Environment))
-{
     app.Logger.Log(level, "{Message}", message);
-}
 
 if (app.Environment.IsDevelopment())
 {

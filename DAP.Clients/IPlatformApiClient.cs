@@ -91,6 +91,16 @@ public interface IPlatformApiClient
 
     Task<ShiftScheduleStatusDto> GetShiftScheduleStatusAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// 查询能耗查看页使用的班组清单，不暴露排班导入元数据。
+    /// </summary>
+    Task<IReadOnlyList<ShiftTeamDto>> GetEnergyTeamsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 查询只读排班日历使用的班组清单。
+    /// </summary>
+    Task<IReadOnlyList<ShiftTeamDto>> GetShiftScheduleTeamsAsync(CancellationToken cancellationToken = default);
+
     Task<ShiftScheduleValidationDto> GetShiftScheduleValidationAsync(
         CancellationToken cancellationToken = default);
 

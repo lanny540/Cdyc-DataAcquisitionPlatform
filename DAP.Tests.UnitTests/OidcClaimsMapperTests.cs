@@ -19,7 +19,7 @@ public class OidcClaimsMapperTests
     [Fact]
     public void Map_Should_Read_Standard_Claims()
     {
-        var profile = OidcClaimsMapper.Map(
+        OidcUserProfile? profile = OidcClaimsMapper.Map(
             Claims(
                 ("sub", "abc-123"),
                 ("name", "张三"),
@@ -52,7 +52,7 @@ public class OidcClaimsMapperTests
     [Fact]
     public void User_Name_Should_Fall_Back_To_Email_Local_Part()
     {
-        var profile = OidcClaimsMapper.Map(
+        OidcUserProfile? profile = OidcClaimsMapper.Map(
             Claims(("sub", "abc"), ("email", "Li.Si@example.com")),
             new OidcProviderOptions());
 
@@ -62,7 +62,7 @@ public class OidcClaimsMapperTests
     [Fact]
     public void User_Name_Should_Fall_Back_To_Subject_Tail()
     {
-        var profile = OidcClaimsMapper.Map(Claims(("sub", "0123456789abcdef")), new OidcProviderOptions());
+        OidcUserProfile? profile = OidcClaimsMapper.Map(Claims(("sub", "0123456789abcdef")), new OidcProviderOptions());
 
         Assert.Equal("oidc-0123456789ab", profile!.UserName);
         Assert.Equal("oidc-0123456789ab", profile.DisplayName);
@@ -77,7 +77,7 @@ public class OidcClaimsMapperTests
             DepartmentPrefix = "APP-DEPT-"
         };
 
-        var profile = OidcClaimsMapper.Map(
+        OidcUserProfile? profile = OidcClaimsMapper.Map(
             Claims(("sub", "abc"), ("groups", "APP-DEPT-paper-1")),
             options);
 
@@ -87,15 +87,15 @@ public class OidcClaimsMapperTests
     [Fact]
     public void Department_Should_Try_Claims_In_Order()
     {
-        OidcProviderOptions options = new() { DepartmentClaims = ["department", "groups"] };
+        OidcProviderOptions options = new() {DepartmentClaims = ["department", "groups"]};
 
-        var profile = OidcClaimsMapper.Map(
+        OidcUserProfile? profile = OidcClaimsMapper.Map(
             Claims(("sub", "abc"), ("groups", "fallback")),
             options);
 
         Assert.Equal("fallback", profile!.DepartmentCode);
 
-        var preferred = OidcClaimsMapper.Map(
+        OidcUserProfile? preferred = OidcClaimsMapper.Map(
             Claims(("sub", "abc"), ("department", "primary"), ("groups", "fallback")),
             options);
 
@@ -111,7 +111,7 @@ public class OidcClaimsMapperTests
             DepartmentPrefix = "APP-DEPT-"
         };
 
-        var profile = OidcClaimsMapper.Map(Claims(("sub", "abc"), ("groups", "APP-DEPT-")), options);
+        OidcUserProfile? profile = OidcClaimsMapper.Map(Claims(("sub", "abc"), ("groups", "APP-DEPT-")), options);
 
         Assert.Null(profile!.DepartmentCode);
     }
@@ -129,7 +129,7 @@ public class OidcClaimsMapperTests
             DepartmentPrefix = "dept:"
         };
 
-        var profile = OidcClaimsMapper.Map(
+        OidcUserProfile? profile = OidcClaimsMapper.Map(
             Claims(("sub", "abc"), ("groups", "staff"), ("groups", "dept:PRINT2"), ("groups", "vpn")),
             options);
 
@@ -149,7 +149,7 @@ public class OidcClaimsMapperTests
             DepartmentPrefix = "dept:"
         };
 
-        var profile = OidcClaimsMapper.Map(
+        OidcUserProfile? profile = OidcClaimsMapper.Map(
             Claims(("sub", "abc"), ("groups", "staff"), ("groups", "vpn")),
             options);
 
@@ -162,9 +162,9 @@ public class OidcClaimsMapperTests
     [Fact]
     public void Multi_Valued_Department_Claim_Should_Use_First_Value_Without_Prefix()
     {
-        OidcProviderOptions options = new() { DepartmentClaims = ["groups"] };
+        OidcProviderOptions options = new() {DepartmentClaims = ["groups"]};
 
-        var profile = OidcClaimsMapper.Map(
+        OidcUserProfile? profile = OidcClaimsMapper.Map(
             Claims(("sub", "abc"), ("groups", "PAPER1"), ("groups", "PRINT2")),
             options);
 
@@ -181,7 +181,7 @@ public class OidcClaimsMapperTests
             UserNameClaim = "uid"
         };
 
-        var profile = OidcClaimsMapper.Map(
+        OidcUserProfile? profile = OidcClaimsMapper.Map(
             Claims(("sub", "abc"), ("cn", "李四"), ("mail", "li4@example.com"), ("uid", "Li4")),
             options);
 
@@ -193,7 +193,7 @@ public class OidcClaimsMapperTests
     [Fact]
     public void Derived_User_Name_Should_Be_Truncated()
     {
-        var longName = new string('a', 150);
+        string longName = new('a', 150);
 
         Assert.Equal(100, OidcClaimsMapper.DeriveUserName(longName, "abc").Length);
     }
@@ -201,7 +201,7 @@ public class OidcClaimsMapperTests
     [Fact]
     public void Callback_Path_Should_Stay_Under_Auth_Api()
     {
-        OidcProviderOptions options = new() { Code = "corp" };
+        OidcProviderOptions options = new() {Code = "corp"};
 
         Assert.Equal("/api/auth/oidc/corp/callback", options.CallbackPath);
         Assert.Equal("oidc-corp", options.SchemeName);
@@ -222,7 +222,7 @@ public class ExternalIdentityOptionsTests
     [Fact]
     public void Enabled_Ldap_Without_Host_Should_Fail()
     {
-        DAP.Presentation.BlazorWeb.Security.Directory.LdapOptions options = new() { Enabled = true };
+        DAP.Presentation.BlazorWeb.Security.Directory.LdapOptions options = new() {Enabled = true};
 
         IReadOnlyList<string> errors = options.Validate();
 
@@ -257,7 +257,7 @@ public class ExternalIdentityOptionsTests
             BindDn = "cn=svc,dc=example,dc=com",
             BindPassword = "secret",
             BaseDn = "dc=example,dc=com",
-            TransportSecurity = DAP.Presentation.BlazorWeb.Security.Directory.LdapTransportSecurity.None
+            TransportSecurity = Presentation.BlazorWeb.Security.Directory.LdapTransportSecurity.None
         };
 
         Assert.Contains(options.Validate(), error => error.Contains("明文"));
@@ -280,7 +280,7 @@ public class ExternalIdentityOptionsTests
             BindDn = "cn=svc,dc=example,dc=com",
             BindPassword = "secret",
             BaseDn = "dc=example,dc=com",
-            TransportSecurity = DAP.Presentation.BlazorWeb.Security.Directory.LdapTransportSecurity.None
+            TransportSecurity = Presentation.BlazorWeb.Security.Directory.LdapTransportSecurity.None
         };
 
         Assert.Empty(options.Validate());
@@ -295,7 +295,7 @@ public class ExternalIdentityOptionsTests
     [Fact]
     public void Enabled_Oidc_Without_Providers_Should_Fail()
     {
-        OidcOptions options = new() { Enabled = true };
+        OidcOptions options = new() {Enabled = true};
 
         Assert.Contains(options.Validate(), error => error.Contains("提供方"));
     }
@@ -328,7 +328,7 @@ public class ExternalIdentityOptionsTests
             ClientId = "dap"
         };
 
-        OidcOptions options = new() { Enabled = true, Providers = [provider, provider] };
+        OidcOptions options = new() {Enabled = true, Providers = [provider, provider]};
 
         Assert.Contains(options.Validate(), error => error.Contains("重复"));
     }

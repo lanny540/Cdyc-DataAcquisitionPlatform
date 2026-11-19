@@ -101,7 +101,8 @@ public partial class SystemAudit
 
     private void OpenDetail(AuditLogDto log)
     {
-        _detailTitle = $"{log.ActionCode} · {log.TargetName ?? log.TargetId ?? "—"} · {log.OccurredAt.ToLocalTime():yyyy-MM-dd HH:mm:ss}";
+        _detailTitle =
+            $"{log.ActionCode} · {log.TargetName ?? log.TargetId ?? "—"} · {log.OccurredAt.ToLocalTime():yyyy-MM-dd HH:mm:ss}";
         _detailContent = PrettyPrint(log.Detail);
         _isDetailOpen = true;
     }
@@ -112,10 +113,7 @@ public partial class SystemAudit
     /// </summary>
     private static string PrettyPrint(string? detail)
     {
-        if (string.IsNullOrWhiteSpace(detail))
-        {
-            return "（无变更明细）";
-        }
+        if (string.IsNullOrWhiteSpace(detail)) return "（无变更明细）";
 
         try
         {

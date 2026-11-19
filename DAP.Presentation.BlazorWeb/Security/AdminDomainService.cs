@@ -44,20 +44,22 @@ public sealed class AdminDomainService(
                 domain.IsSystem,
                 domain.IsEnabled,
                 domain.VisibleWhenEmpty,
-                [.. pages
-                    .Where(page => page.DomainId == domain.Id)
-                    .Select(page => new AdminDomainPageDto(
-                        page.Id,
-                        page.PageKey,
-                        page.Title,
-                        page.Route,
-                        page.GroupTitle,
-                        domain.Code,
-                        page.AccessLevel,
-                        page.SortOrder,
-                        page.IsEnabled,
-                        page.IsOrphaned,
-                        page.Source))]))
+                [
+                    .. pages
+                        .Where(page => page.DomainId == domain.Id)
+                        .Select(page => new AdminDomainPageDto(
+                            page.Id,
+                            page.PageKey,
+                            page.Title,
+                            page.Route,
+                            page.GroupTitle,
+                            domain.Code,
+                            page.AccessLevel,
+                            page.SortOrder,
+                            page.IsEnabled,
+                            page.IsOrphaned,
+                            page.Source))
+                ]))
             .ToList();
     }
 
@@ -74,24 +76,17 @@ public sealed class AdminDomainService(
         AdminDomainUpsertRequest request,
         CancellationToken cancellationToken = default)
     {
-        var code = AdminDomainRules.NormalizeCode(request.Code);
+        string code = AdminDomainRules.NormalizeCode(request.Code);
 
         if (!AdminDomainRules.IsValidCode(code))
-        {
             return new AuthOperationResultDto(false, "域编码只能用小写字母、数字与连字符，以字母开头，2–32 位。");
-        }
 
-        var name = (request.Name ?? string.Empty).Trim();
+        string name = (request.Name ?? string.Empty).Trim();
 
-        if (name.Length is < 1 or > 32)
-        {
-            return new AuthOperationResultDto(false, "域名称不能为空，且不超过 32 个字。");
-        }
+        if (name.Length is < 1 or > 32) return new AuthOperationResultDto(false, "域名称不能为空，且不超过 32 个字。");
 
         if (await db.BusinessDomains.AnyAsync(item => item.Code == code, cancellationToken))
-        {
             return new AuthOperationResultDto(false, $"域编码 {code} 已存在，请换一个。");
-        }
 
         CurrentUser? actor = await currentUser.GetUserAsync(cancellationToken);
         DateTimeOffset now = timeProvider.GetUtcNow();
@@ -113,7 +108,10 @@ public sealed class AdminDomainService(
         await db.SaveChangesAsync(cancellationToken);
 
         await audit.RecordAsync(actor, "domain.create", "domain", domain.Id.ToString(), domain.Name, true,
-            new {domain.Code, domain.Name, domain.SortOrder, domain.IsSystem, domain.IsEnabled, domain.VisibleWhenEmpty},
+            new
+            {
+                domain.Code, domain.Name, domain.SortOrder, domain.IsSystem, domain.IsEnabled, domain.VisibleWhenEmpty
+            },
             cancellationToken);
 
         return new AuthOperationResultDto(true, null);
@@ -134,17 +132,11 @@ public sealed class AdminDomainService(
         BusinessDomain? domain = await db.BusinessDomains
             .FirstOrDefaultAsync(item => item.Id == domainId, cancellationToken);
 
-        if (domain is null)
-        {
-            return new AuthOperationResultDto(false, "域不存在，请刷新后重试。");
-        }
+        if (domain is null) return new AuthOperationResultDto(false, "域不存在，请刷新后重试。");
 
-        var name = (request.Name ?? string.Empty).Trim();
+        string name = (request.Name ?? string.Empty).Trim();
 
-        if (name.Length is < 1 or > 32)
-        {
-            return new AuthOperationResultDto(false, "域名称不能为空，且不超过 32 个字。");
-        }
+        if (name.Length is < 1 or > 32) return new AuthOperationResultDto(false, "域名称不能为空，且不超过 32 个字。");
 
         var before = new
         {
@@ -155,7 +147,7 @@ public sealed class AdminDomainService(
             domain.IsSystem
         };
 
-        var changed = false;
+        bool changed = false;
 
         if (!string.Equals(domain.Name, name, StringComparison.Ordinal))
         {
@@ -187,10 +179,7 @@ public sealed class AdminDomainService(
             changed = true;
         }
 
-        if (!changed)
-        {
-            return new AuthOperationResultDto(true, null);
-        }
+        if (!changed) return new AuthOperationResultDto(true, null);
 
         CurrentUser? actor = await currentUser.GetUserAsync(cancellationToken);
         domain.UpdatedAt = timeProvider.GetUtcNow();
@@ -227,18 +216,13 @@ public sealed class AdminDomainService(
         BusinessDomain? domain = await db.BusinessDomains
             .FirstOrDefaultAsync(item => item.Id == domainId, cancellationToken);
 
-        if (domain is null)
-        {
-            return new AuthOperationResultDto(false, "域不存在，请刷新后重试。");
-        }
+        if (domain is null) return new AuthOperationResultDto(false, "域不存在，请刷新后重试。");
 
-        var pageCount = await db.DomainPages.CountAsync(
+        int pageCount = await db.DomainPages.CountAsync(
             item => item.DomainId == domainId, cancellationToken);
 
         if (AdminDomainRules.DescribeDeleteViolation(pageCount, domain.IsSystem) is { } reason)
-        {
             return new AuthOperationResultDto(false, reason);
-        }
 
         CurrentUser? actor = await currentUser.GetUserAsync(cancellationToken);
 
@@ -267,15 +251,9 @@ public sealed class AdminDomainService(
         DomainPage? page = await db.DomainPages
             .FirstOrDefaultAsync(item => item.Id == pageId, cancellationToken);
 
-        if (page is null)
-        {
-            return new AuthOperationResultDto(false, "页面不存在，请刷新后重试。");
-        }
+        if (page is null) return new AuthOperationResultDto(false, "页面不存在，请刷新后重试。");
 
-        if (!page.IsOrphaned)
-        {
-            return new AuthOperationResultDto(false, "代码中仍存在该页面，不能删除；如需隐藏请改用停用。");
-        }
+        if (!page.IsOrphaned) return new AuthOperationResultDto(false, "代码中仍存在该页面，不能删除；如需隐藏请改用停用。");
 
         CurrentUser? actor = await currentUser.GetUserAsync(cancellationToken);
 
@@ -304,31 +282,20 @@ public sealed class AdminDomainService(
         DomainPage? page = await db.DomainPages.FirstOrDefaultAsync(
             item => item.Id == pageId, cancellationToken);
 
-        if (page is null)
-        {
-            return new AuthOperationResultDto(false, "页面不存在，可能已被下线，请刷新后重试。");
-        }
+        if (page is null) return new AuthOperationResultDto(false, "页面不存在，可能已被下线，请刷新后重试。");
 
-        if (page.IsOrphaned)
-        {
-            return new AuthOperationResultDto(false, "该页面已在代码中下线，无法修改配置。");
-        }
+        if (page.IsOrphaned) return new AuthOperationResultDto(false, "该页面已在代码中下线，无法修改配置。");
 
         if (request.AccessLevel is { } level
             && level is not (AuthorizationCatalog.ViewAccessLevel or AuthorizationCatalog.ConfigureAccessLevel))
-        {
             return new AuthOperationResultDto(false, "页面等级只支持 1（查看）或 2（配置）。");
-        }
 
         if (request.DomainId is { } domainId)
         {
             BusinessDomain? domain = await db.BusinessDomains.FirstOrDefaultAsync(
                 item => item.Id == domainId, cancellationToken);
 
-            if (domain is null)
-            {
-                return new AuthOperationResultDto(false, "目标域不存在。");
-            }
+            if (domain is null) return new AuthOperationResultDto(false, "目标域不存在。");
         }
 
         CurrentUser? actor = await currentUser.GetUserAsync(cancellationToken);
@@ -344,7 +311,7 @@ public sealed class AdminDomainService(
             page.GroupTitle,
             page.SortOrder
         };
-        var changed = false;
+        bool changed = false;
 
         if (request.AccessLevel is { } newLevel && newLevel != page.AccessLevel)
         {
@@ -366,12 +333,9 @@ public sealed class AdminDomainService(
 
         if (request.Title is { } rawTitle)
         {
-            var title = rawTitle.Trim();
+            string title = rawTitle.Trim();
 
-            if (title.Length is < 1 or > 64)
-            {
-                return new AuthOperationResultDto(false, "页面名称不能为空，且不超过 64 个字。");
-            }
+            if (title.Length is < 1 or > 64) return new AuthOperationResultDto(false, "页面名称不能为空，且不超过 64 个字。");
 
             if (!string.Equals(page.Title, title, StringComparison.Ordinal))
             {
@@ -384,14 +348,11 @@ public sealed class AdminDomainService(
         // 否则清空分组标题这个操作永远发不出去。
         if (request.GroupTitle is { } rawGroupTitle)
         {
-            var groupTitle = rawGroupTitle.Trim();
+            string groupTitle = rawGroupTitle.Trim();
 
-            if (groupTitle.Length > 32)
-            {
-                return new AuthOperationResultDto(false, "分组标题不超过 32 个字。");
-            }
+            if (groupTitle.Length > 32) return new AuthOperationResultDto(false, "分组标题不超过 32 个字。");
 
-            var normalized = groupTitle.Length == 0 ? null : groupTitle;
+            string? normalized = groupTitle.Length == 0 ? null : groupTitle;
 
             if (!string.Equals(page.GroupTitle, normalized, StringComparison.Ordinal))
             {
@@ -406,10 +367,7 @@ public sealed class AdminDomainService(
             changed = true;
         }
 
-        if (!changed)
-        {
-            return new AuthOperationResultDto(true, null);
-        }
+        if (!changed) return new AuthOperationResultDto(true, null);
 
         page.Source = AuthorizationCatalog.PageSourceOverride;
         page.UpdatedAt = now;
@@ -447,10 +405,7 @@ public sealed class AdminDomainService(
         DomainPage? page = await db.DomainPages.FirstOrDefaultAsync(
             item => item.Id == pageId, cancellationToken);
 
-        if (page is null)
-        {
-            return new AuthOperationResultDto(false, "页面不存在，可能已被下线，请刷新后重试。");
-        }
+        if (page is null) return new AuthOperationResultDto(false, "页面不存在，可能已被下线，请刷新后重试。");
 
         CurrentUser? actor = await currentUser.GetUserAsync(cancellationToken);
 
@@ -514,22 +469,16 @@ public sealed class AdminDomainService(
         AdminDepartmentUpsertRequest request,
         CancellationToken cancellationToken = default)
     {
-        var validation = ValidateDepartment(request);
+        string? validation = ValidateDepartment(request);
 
-        if (validation is not null)
-        {
-            return new AuthOperationResultDto(false, validation);
-        }
+        if (validation is not null) return new AuthOperationResultDto(false, validation);
 
-        var code = request.Code.Trim();
+        string code = request.Code.Trim();
 
         bool exists = await db.Departments.AnyAsync(
             item => item.Code == code, cancellationToken);
 
-        if (exists)
-        {
-            return new AuthOperationResultDto(false, $"部门编码 {code} 已存在。");
-        }
+        if (exists) return new AuthOperationResultDto(false, $"部门编码 {code} 已存在。");
 
         CurrentUser? actor = await currentUser.GetUserAsync(cancellationToken);
         DateTimeOffset now = timeProvider.GetUtcNow();
@@ -568,22 +517,16 @@ public sealed class AdminDomainService(
         Department? department = await db.Departments.FirstOrDefaultAsync(
             item => item.Id == departmentId, cancellationToken);
 
-        if (department is null)
-        {
-            return new AuthOperationResultDto(false, "部门不存在，请刷新后重试。");
-        }
+        if (department is null) return new AuthOperationResultDto(false, "部门不存在，请刷新后重试。");
 
-        var validation = ValidateDepartment(request);
+        string? validation = ValidateDepartment(request);
 
-        if (validation is not null)
-        {
-            return new AuthOperationResultDto(false, validation);
-        }
+        if (validation is not null) return new AuthOperationResultDto(false, validation);
 
         CurrentUser? actor = await currentUser.GetUserAsync(cancellationToken);
 
         var before = new {department.Name, department.ExternalCode, department.IsEnabled};
-        var changed = false;
+        bool changed = false;
 
         if (!string.Equals(department.Name, request.Name.Trim(), StringComparison.Ordinal))
         {
@@ -591,7 +534,7 @@ public sealed class AdminDomainService(
             changed = true;
         }
 
-        var externalCode = string.IsNullOrWhiteSpace(request.ExternalCode) ? null : request.ExternalCode.Trim();
+        string? externalCode = string.IsNullOrWhiteSpace(request.ExternalCode) ? null : request.ExternalCode.Trim();
 
         if (!string.Equals(department.ExternalCode, externalCode, StringComparison.Ordinal))
         {
@@ -605,10 +548,7 @@ public sealed class AdminDomainService(
             changed = true;
         }
 
-        if (!changed)
-        {
-            return new AuthOperationResultDto(true, null);
-        }
+        if (!changed) return new AuthOperationResultDto(true, null);
 
         department.UpdatedAt = timeProvider.GetUtcNow();
         await db.SaveChangesAsync(cancellationToken);
@@ -634,25 +574,19 @@ public sealed class AdminDomainService(
         Department? department = await db.Departments.FirstOrDefaultAsync(
             item => item.Id == departmentId, cancellationToken);
 
-        if (department is null)
-        {
-            return new AuthOperationResultDto(false, "部门不存在，请刷新后重试。");
-        }
+        if (department is null) return new AuthOperationResultDto(false, "部门不存在，请刷新后重试。");
 
         List<BusinessDomain> businessDomains = await db.BusinessDomains
             .Where(domain => !domain.IsSystem)
             .ToListAsync(cancellationToken);
 
         // 系统域与不存在的域一律拒绝，而不是静默忽略——静默忽略会掩盖配置错误。
-        var invalid = request.DomainIds
+        List<Guid> invalid = request.DomainIds
             .Distinct()
             .Where(id => businessDomains.All(domain => domain.Id != id))
             .ToList();
 
-        if (invalid.Count > 0)
-        {
-            return new AuthOperationResultDto(false, "授权目标包含系统域或不存在的域。");
-        }
+        if (invalid.Count > 0) return new AuthOperationResultDto(false, "授权目标包含系统域或不存在的域。");
 
         CurrentUser? actor = await currentUser.GetUserAsync(cancellationToken);
         DateTimeOffset now = timeProvider.GetUtcNow();
@@ -661,18 +595,14 @@ public sealed class AdminDomainService(
             .Where(grant => grant.DepartmentId == departmentId)
             .ToListAsync(cancellationToken);
 
-        var before = existing.Select(grant => grant.DomainId).OrderBy(id => id).ToList();
-        var after = request.DomainIds.Distinct().OrderBy(id => id).ToList();
+        List<Guid> before = existing.Select(grant => grant.DomainId).OrderBy(id => id).ToList();
+        List<Guid> after = request.DomainIds.Distinct().OrderBy(id => id).ToList();
 
-        if (before.SequenceEqual(after))
-        {
-            return new AuthOperationResultDto(true, null);
-        }
+        if (before.SequenceEqual(after)) return new AuthOperationResultDto(true, null);
 
         db.DepartmentDomainGrants.RemoveRange(existing.Where(grant => !after.Contains(grant.DomainId)));
 
         foreach (Guid domainId in after.Where(id => existing.All(grant => grant.DomainId != id)))
-        {
             db.DepartmentDomainGrants.Add(new DepartmentDomainGrant
             {
                 DepartmentId = departmentId,
@@ -680,7 +610,6 @@ public sealed class AdminDomainService(
                 GrantedAt = now,
                 GrantedBy = actor?.UserId
             });
-        }
 
         await db.SaveChangesAsync(cancellationToken);
         await audit.RecordAsync(actor, "department.grants.update", "department", department.Id.ToString(),
@@ -692,15 +621,9 @@ public sealed class AdminDomainService(
 
     private static string? ValidateDepartment(AdminDepartmentUpsertRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Code))
-        {
-            return "请填写部门编码。";
-        }
+        if (string.IsNullOrWhiteSpace(request.Code)) return "请填写部门编码。";
 
-        if (string.IsNullOrWhiteSpace(request.Name))
-        {
-            return "请填写部门名称。";
-        }
+        if (string.IsNullOrWhiteSpace(request.Name)) return "请填写部门名称。";
 
         return null;
     }

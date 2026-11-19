@@ -131,17 +131,14 @@ public partial class ManagedDataDefinitions
 
     private async Task ConfirmDeleteAsync()
     {
-        if (_pendingDeleteDefinition is null)
-        {
-            return;
-        }
+        if (_pendingDeleteDefinition is null) return;
 
         ManagedDataDefinitionDto definition = _pendingDeleteDefinition;
         _isDeleting = true;
 
         try
         {
-            var deleted = await PlatformApiClient.DeleteManagedDataDefinitionAsync(definition.Id);
+            bool deleted = await PlatformApiClient.DeleteManagedDataDefinitionAsync(definition.Id);
             if (!deleted)
             {
                 SetMessage($"采集节点 {definition.Code} 不存在或已被删除。", Severity.Warning);
@@ -154,7 +151,7 @@ public partial class ManagedDataDefinitions
                 _isEditorOpen = false;
             }
 
-            SetMessage($"采集节点 {definition.Code} 已删除。", Severity.Success);
+            SetMessage($"采集节点 {definition.Code} 已归档，关联采集点已停用，历史记录已保留。", Severity.Success);
             await LoadAsync();
         }
         catch (Exception ex)
@@ -196,10 +193,7 @@ public partial class ManagedDataDefinitions
                 ? await PlatformApiClient.CollectManagedDataDefinitionAsync(definition.Id)
                 : await PlatformApiClient.DebugReadManagedDataDefinitionAsync(definition.Id);
 
-            if (isCollect && _lastExecutionResult.Success)
-            {
-                await LoadAsync();
-            }
+            if (isCollect && _lastExecutionResult.Success) await LoadAsync();
 
             SetMessage(
                 _lastExecutionResult.Success

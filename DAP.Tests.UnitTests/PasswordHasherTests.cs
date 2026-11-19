@@ -16,8 +16,8 @@ public class PasswordHasherTests
     [Fact]
     public void Hash_Should_Produce_Four_Part_Encoded_String()
     {
-        var encoded = PasswordHasher.Hash(Password);
-        var parts = encoded.Split('$');
+        string encoded = PasswordHasher.Hash(Password);
+        string[] parts = encoded.Split('$');
 
         Assert.Equal(4, parts.Length);
         Assert.Equal("PBKDF2-SHA256", parts[0]);
@@ -33,8 +33,8 @@ public class PasswordHasherTests
     [Fact]
     public void Hash_Should_Use_Random_Salt()
     {
-        var first = PasswordHasher.Hash(Password);
-        var second = PasswordHasher.Hash(Password);
+        string first = PasswordHasher.Hash(Password);
+        string second = PasswordHasher.Hash(Password);
 
         Assert.NotEqual(first, second);
         Assert.NotEqual(first.Split('$')[2], second.Split('$')[2]);
@@ -88,9 +88,10 @@ public class PasswordHasherTests
     public void Verify_Should_Honor_Iterations_From_Stored_Hash()
     {
         const int legacyIterations = 1_000;
-        var salt = RandomNumberGenerator.GetBytes(16);
-        var key = Rfc2898DeriveBytes.Pbkdf2(Password, salt, legacyIterations, HashAlgorithmName.SHA256, 32);
-        var legacy = $"PBKDF2-SHA256${legacyIterations}${Convert.ToBase64String(salt)}${Convert.ToBase64String(key)}";
+        byte[] salt = RandomNumberGenerator.GetBytes(16);
+        byte[] key = Rfc2898DeriveBytes.Pbkdf2(Password, salt, legacyIterations, HashAlgorithmName.SHA256, 32);
+        string legacy =
+            $"PBKDF2-SHA256${legacyIterations}${Convert.ToBase64String(salt)}${Convert.ToBase64String(key)}";
 
         Assert.True(PasswordHasher.Verify(Password, legacy));
         Assert.False(PasswordHasher.Verify("wrong-password", legacy));

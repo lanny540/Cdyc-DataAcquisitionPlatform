@@ -3,6 +3,7 @@ using DAP.Core.Shared.Catalog;
 using DAP.Infrastructure.DataAccess.Persistence;
 using DAP.Presentation.BlazorWeb.Security.External;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.Extensions.Options;
 
 namespace DAP.Presentation.BlazorWeb.Security.Directory;
@@ -38,7 +39,7 @@ public sealed class DirectoryAccountService(
         Guid? userId = await db.ExternalIdentities
             .Where(identity => identity.Provider == DirectorySyncService.LdapProvider
                                && identity.ExternalId == record.ExternalId)
-            .Select(identity => (Guid?)identity.UserId)
+            .Select(identity => (Guid?) identity.UserId)
             .FirstOrDefaultAsync(cancellationToken);
 
         AppUser? user = userId is null
@@ -51,12 +52,9 @@ public sealed class DirectoryAccountService(
 
         Guid? departmentId = await departmentCodes.ResolveAsync(record.DepartmentExternalCode, cancellationToken);
 
-        if (user is null)
-        {
-            return await CreateAsync(record, departmentId, now, cancellationToken);
-        }
+        if (user is null) return await CreateAsync(record, departmentId, now, cancellationToken);
 
-        var decision = DirectorySyncPlanner.Decide(record, Snapshot(user), departmentId);
+        DirectorySyncDecision decision = DirectorySyncPlanner.Decide(record, Snapshot(user), departmentId);
 
         if (decision.RequiresWrite)
         {
@@ -101,9 +99,9 @@ public sealed class DirectoryAccountService(
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
-        var userName = DirectoryUserFactory.DeriveUserName(record);
+        string userName = DirectoryUserFactory.DeriveUserName(record);
 
-        var occupied = await db.AppUsers.AnyAsync(item => item.UserName == userName, cancellationToken);
+        bool occupied = await db.AppUsers.AnyAsync(item => item.UserName == userName, cancellationToken);
 
         if (occupied)
         {
@@ -129,16 +127,12 @@ public sealed class DirectoryAccountService(
             .FirstOrDefaultAsync(role => role.Code == _options.Ldap.DefaultRoleCode, cancellationToken);
 
         if (defaultRole is {IsEnabled: true})
-        {
             db.UserRoles.Add(new UserRole {UserId = user.Id, RoleId = defaultRole.Id});
-        }
         else
-        {
             logger.LogWarning(
                 "域账号 {UserName} 建号时默认角色 {RoleCode} 不可用，该账号将看不到任何页面。",
                 user.UserName,
                 _options.Ldap.DefaultRoleCode);
-        }
 
         try
         {
@@ -177,18 +171,16 @@ public sealed class DirectoryAccountService(
         CancellationToken cancellationToken)
     {
         // 先把失败的 Added 实体摘掉，否则重查会把它们一起带出来，且再次保存仍会撞索引。
-        foreach (var entry in db.ChangeTracker.Entries()
+        foreach (EntityEntry entry in db.ChangeTracker.Entries()
                      .Where(item => item.State == EntityState.Added)
                      .ToList())
-        {
             entry.State = EntityState.Detached;
-        }
 
         Guid? userId = await db.ExternalIdentities
             .AsNoTracking()
             .Where(identity => identity.Provider == DirectorySyncService.LdapProvider
                                && identity.ExternalId == record.ExternalId)
-            .Select(identity => (Guid?)identity.UserId)
+            .Select(identity => (Guid?) identity.UserId)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (userId is { } id)
@@ -203,9 +195,9 @@ public sealed class DirectoryAccountService(
             return existing is null ? null : new DirectoryProvisionResult(true, existing, null);
         }
 
-        var userName = DirectoryUserFactory.DeriveUserName(record);
+        string userName = DirectoryUserFactory.DeriveUserName(record);
 
-        var nameTaken = await db.AppUsers
+        bool nameTaken = await db.AppUsers
             .AsNoTracking()
             .AnyAsync(item => item.UserName == userName, cancellationToken);
 
@@ -219,7 +211,7 @@ public sealed class DirectoryAccountService(
 
     private static DirectoryAccountSnapshot Snapshot(AppUser user)
     {
-        var isSuperAdmin = user.UserRoles.Any(link =>
+        bool isSuperAdmin = user.UserRoles.Any(link =>
             string.Equals(link.Role?.Code, AuthorizationCatalog.SuperAdminRole, StringComparison.Ordinal));
 
         return new DirectoryAccountSnapshot(

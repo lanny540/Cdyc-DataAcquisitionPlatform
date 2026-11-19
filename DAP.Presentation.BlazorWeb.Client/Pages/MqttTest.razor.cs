@@ -58,22 +58,13 @@ public partial class MqttTest
 
         try
         {
-            var configuration = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, string> configuration = new(StringComparer.OrdinalIgnoreCase);
 
-            if (!string.IsNullOrWhiteSpace(_clientId))
-            {
-                configuration["clientId"] = _clientId.Trim();
-            }
+            if (!string.IsNullOrWhiteSpace(_clientId)) configuration["clientId"] = _clientId.Trim();
 
-            if (!string.IsNullOrWhiteSpace(_username))
-            {
-                configuration["username"] = _username.Trim();
-            }
+            if (!string.IsNullOrWhiteSpace(_username)) configuration["username"] = _username.Trim();
 
-            if (!string.IsNullOrWhiteSpace(_password))
-            {
-                configuration["password"] = _password;
-            }
+            if (!string.IsNullOrWhiteSpace(_password)) configuration["password"] = _password;
 
             // 传 null 表示草稿测试：服务端按请求体直接发起探测，不落库。
             _result = await PlatformApiClient.TestAcquisitionServerAsync(

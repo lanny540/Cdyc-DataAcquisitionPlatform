@@ -38,7 +38,9 @@ public static class AdminEndpoints
                     CancellationToken cancellationToken) =>
                 {
                     AuthOperationResultDto result = await service.CreateDomainAsync(request, cancellationToken);
-                    return result.Succeeded ? Results.NoContent() : Results.BadRequest(new {message = result.ErrorMessage});
+                    return result.Succeeded
+                        ? Results.NoContent()
+                        : Results.BadRequest(new {message = result.ErrorMessage});
                 })
             .WithName("CreateAdminDomain");
 
@@ -49,7 +51,9 @@ public static class AdminEndpoints
                 {
                     AuthOperationResultDto result =
                         await service.UpdateDomainAsync(domainId, request, cancellationToken);
-                    return result.Succeeded ? Results.NoContent() : Results.BadRequest(new {message = result.ErrorMessage});
+                    return result.Succeeded
+                        ? Results.NoContent()
+                        : Results.BadRequest(new {message = result.ErrorMessage});
                 })
             .WithName("UpdateAdminDomain");
 
@@ -58,7 +62,9 @@ public static class AdminEndpoints
                 async (Guid domainId, AdminDomainService service, CancellationToken cancellationToken) =>
                 {
                     AuthOperationResultDto result = await service.DeleteDomainAsync(domainId, cancellationToken);
-                    return result.Succeeded ? Results.NoContent() : Results.BadRequest(new {message = result.ErrorMessage});
+                    return result.Succeeded
+                        ? Results.NoContent()
+                        : Results.BadRequest(new {message = result.ErrorMessage});
                 })
             .WithName("DeleteAdminDomain");
 
@@ -69,7 +75,9 @@ public static class AdminEndpoints
                 {
                     AuthOperationResultDto result =
                         await service.UpdateDomainPageAsync(pageId, request, cancellationToken);
-                    return result.Succeeded ? Results.NoContent() : Results.BadRequest(new {message = result.ErrorMessage});
+                    return result.Succeeded
+                        ? Results.NoContent()
+                        : Results.BadRequest(new {message = result.ErrorMessage});
                 })
             .WithName("UpdateAdminDomainPage");
 
@@ -78,7 +86,9 @@ public static class AdminEndpoints
                 async (Guid pageId, AdminDomainService service, CancellationToken cancellationToken) =>
                 {
                     AuthOperationResultDto result = await service.ResetDomainPageAsync(pageId, cancellationToken);
-                    return result.Succeeded ? Results.NoContent() : Results.BadRequest(new {message = result.ErrorMessage});
+                    return result.Succeeded
+                        ? Results.NoContent()
+                        : Results.BadRequest(new {message = result.ErrorMessage});
                 })
             .WithName("ResetAdminDomainPage");
 
@@ -88,7 +98,9 @@ public static class AdminEndpoints
                 async (Guid pageId, AdminDomainService service, CancellationToken cancellationToken) =>
                 {
                     AuthOperationResultDto result = await service.DeleteDomainPageAsync(pageId, cancellationToken);
-                    return result.Succeeded ? Results.NoContent() : Results.BadRequest(new {message = result.ErrorMessage});
+                    return result.Succeeded
+                        ? Results.NoContent()
+                        : Results.BadRequest(new {message = result.ErrorMessage});
                 })
             .WithName("DeleteAdminDomainPage");
 
@@ -108,7 +120,9 @@ public static class AdminEndpoints
                     CancellationToken cancellationToken) =>
                 {
                     AuthOperationResultDto result = await service.CreateDepartmentAsync(request, cancellationToken);
-                    return result.Succeeded ? Results.NoContent() : Results.BadRequest(new {message = result.ErrorMessage});
+                    return result.Succeeded
+                        ? Results.NoContent()
+                        : Results.BadRequest(new {message = result.ErrorMessage});
                 })
             .WithName("CreateAdminDepartment");
 
@@ -119,7 +133,9 @@ public static class AdminEndpoints
                 {
                     AuthOperationResultDto result =
                         await service.UpdateDepartmentAsync(departmentId, request, cancellationToken);
-                    return result.Succeeded ? Results.NoContent() : Results.BadRequest(new {message = result.ErrorMessage});
+                    return result.Succeeded
+                        ? Results.NoContent()
+                        : Results.BadRequest(new {message = result.ErrorMessage});
                 })
             .WithName("UpdateAdminDepartment");
 
@@ -130,7 +146,9 @@ public static class AdminEndpoints
                 {
                     AuthOperationResultDto result =
                         await service.UpdateDepartmentGrantsAsync(departmentId, request, cancellationToken);
-                    return result.Succeeded ? Results.NoContent() : Results.BadRequest(new {message = result.ErrorMessage});
+                    return result.Succeeded
+                        ? Results.NoContent()
+                        : Results.BadRequest(new {message = result.ErrorMessage});
                 })
             .WithName("UpdateAdminDepartmentGrants");
 
@@ -158,7 +176,9 @@ public static class AdminEndpoints
                     CancellationToken cancellationToken) =>
                 {
                     AuthOperationResultDto result = await service.CreateUserAsync(request, cancellationToken);
-                    return result.Succeeded ? Results.NoContent() : Results.BadRequest(new {message = result.ErrorMessage});
+                    return result.Succeeded
+                        ? Results.NoContent()
+                        : Results.BadRequest(new {message = result.ErrorMessage});
                 })
             .WithName("CreateAdminUser");
 
@@ -169,7 +189,9 @@ public static class AdminEndpoints
                 {
                     AuthOperationResultDto result =
                         await service.UpdateUserAsync(userId, request, cancellationToken);
-                    return result.Succeeded ? Results.NoContent() : Results.BadRequest(new {message = result.ErrorMessage});
+                    return result.Succeeded
+                        ? Results.NoContent()
+                        : Results.BadRequest(new {message = result.ErrorMessage});
                 })
             .WithName("UpdateAdminUser");
 
@@ -180,7 +202,9 @@ public static class AdminEndpoints
                 {
                     AuthOperationResultDto result =
                         await service.UpdateUserDepartmentAsync(userId, request, cancellationToken);
-                    return result.Succeeded ? Results.NoContent() : Results.BadRequest(new {message = result.ErrorMessage});
+                    return result.Succeeded
+                        ? Results.NoContent()
+                        : Results.BadRequest(new {message = result.ErrorMessage});
                 })
             .WithName("UpdateAdminUserDepartment");
 
@@ -191,7 +215,9 @@ public static class AdminEndpoints
                 {
                     AuthOperationResultDto result =
                         await service.UpdateUserRolesAsync(userId, request, cancellationToken);
-                    return result.Succeeded ? Results.NoContent() : Results.BadRequest(new {message = result.ErrorMessage});
+                    return result.Succeeded
+                        ? Results.NoContent()
+                        : Results.BadRequest(new {message = result.ErrorMessage});
                 })
             .WithName("UpdateAdminUserRoles");
 
@@ -202,7 +228,9 @@ public static class AdminEndpoints
                 {
                     AuthOperationResultDto result =
                         await service.ResetPasswordAsync(userId, request, cancellationToken);
-                    return result.Succeeded ? Results.NoContent() : Results.BadRequest(new {message = result.ErrorMessage});
+                    return result.Succeeded
+                        ? Results.NoContent()
+                        : Results.BadRequest(new {message = result.ErrorMessage});
                 })
             .WithName("ResetAdminUserPassword");
 
@@ -212,7 +240,9 @@ public static class AdminEndpoints
                     CancellationToken cancellationToken) =>
                 {
                     AuthOperationResultDto result = await service.SetUsersEnabledAsync(request, cancellationToken);
-                    return result.Succeeded ? Results.NoContent() : Results.BadRequest(new {message = result.ErrorMessage});
+                    return result.Succeeded
+                        ? Results.NoContent()
+                        : Results.BadRequest(new {message = result.ErrorMessage});
                 })
             .WithName("SetAdminUsersEnabled");
 
@@ -222,7 +252,9 @@ public static class AdminEndpoints
                     CancellationToken cancellationToken) =>
                 {
                     AuthOperationResultDto result = await service.HandoverSuperAdminAsync(request, cancellationToken);
-                    return result.Succeeded ? Results.NoContent() : Results.BadRequest(new {message = result.ErrorMessage});
+                    return result.Succeeded
+                        ? Results.NoContent()
+                        : Results.BadRequest(new {message = result.ErrorMessage});
                 })
             .WithName("HandoverSuperAdmin");
 
@@ -251,8 +283,8 @@ public static class AdminEndpoints
                 {
                     AuditLogFilter filter = new(from, to, userName, targetType, result);
 
-                    var csv = await service.ExportCsvAsync(filter, cancellationToken);
-                    var fileName = $"audit-{DateTimeOffset.Now:yyyyMMddHHmmss}.csv";
+                    string csv = await service.ExportCsvAsync(filter, cancellationToken);
+                    string fileName = $"audit-{DateTimeOffset.Now:yyyyMMddHHmmss}.csv";
 
                     return Results.File(
                         System.Text.Encoding.UTF8.GetBytes(csv),

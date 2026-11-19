@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using DAP.Clients;
 using DAP.Core.Domain.Services;
 using DAP.Core.Shared.Catalog;
@@ -31,10 +32,7 @@ public static class PlatformPresentationServiceCollectionExtensions
         IWebHostEnvironment environment)
     {
         services.AddRazorComponents()
-            .AddInteractiveServerComponents(options =>
-            {
-                options.DetailedErrors = environment.IsDevelopment();
-            })
+            .AddInteractiveServerComponents(options => { options.DetailedErrors = environment.IsDevelopment(); })
             .AddInteractiveWebAssemblyComponents();
 
         services.AddMudServices();
@@ -82,10 +80,7 @@ public static class PlatformPresentationServiceCollectionExtensions
             client.Timeout = TimeSpan.FromSeconds(Math.Max(runtimeOptions.DefaultRequestTimeoutSeconds, 5));
         });
 
-        services.AddHttpClient("AcquisitionServerProbe", client =>
-        {
-            client.Timeout = TimeSpan.FromSeconds(30);
-        });
+        services.AddHttpClient("AcquisitionServerProbe", client => { client.Timeout = TimeSpan.FromSeconds(30); });
 
         services.AddSingleton(_ =>
         {
@@ -98,13 +93,13 @@ public static class PlatformPresentationServiceCollectionExtensions
 
         services.AddSingleton(sp =>
         {
-            var settings = sp.GetRequiredService<PostgreSqlConnectionSettings>();
+            PostgreSqlConnectionSettings settings = sp.GetRequiredService<PostgreSqlConnectionSettings>();
             return new NpgsqlDataSourceBuilder(settings.ConnectionString).Build();
         });
 
         services.AddDbContext<DataAcquisitionPlatformDbContext>((serviceProvider, options) =>
         {
-            var settings = serviceProvider.GetRequiredService<PostgreSqlConnectionSettings>();
+            PostgreSqlConnectionSettings settings = serviceProvider.GetRequiredService<PostgreSqlConnectionSettings>();
             options.UseNpgsql(settings.ConnectionString);
         });
 
@@ -129,10 +124,10 @@ public static class PlatformPresentationServiceCollectionExtensions
         // 装饰器内部按请求开 scope 取操作者与审计管道，自身生命周期与被包装服务一致。
         services.AddScoped<Security.Auditing.ICurrentUserContext, Security.Auditing.PlatformCurrentUserContext>();
         services.AddScoped<Security.Auditing.AuditLogWriter>();
-        services.AddScoped<Security.AdminDomainService>();
-        services.AddScoped<Security.AdminUserService>();
-        services.AddScoped<Security.AdminAuditService>();
-        services.AddHostedService<Security.AuditRetentionService>();
+        services.AddScoped<AdminDomainService>();
+        services.AddScoped<AdminUserService>();
+        services.AddScoped<AdminAuditService>();
+        services.AddHostedService<AuditRetentionService>();
         services.AddScoped<IDataAcquisitionPlatformService>(sp => new Security.Auditing.AuditedDataAcquisitionService(
             sp.GetRequiredService<DataAcquisitionPlatformService>(),
             sp.GetRequiredService<IServiceScopeFactory>()));
@@ -140,16 +135,18 @@ public static class PlatformPresentationServiceCollectionExtensions
             sp.GetRequiredService<AcquisitionServerService>(),
             sp.GetRequiredService<IServiceScopeFactory>()));
 
-        // 排班表是全站共享的配置数据，必须单例：Scoped 会让导入结果随请求结束而丢失。
-        services.AddSingleton<InMemoryShiftSchedulingService>();
-        services.AddSingleton<IShiftSchedulingService>(sp => new Security.Auditing.AuditedShiftSchedulingService(
-            sp.GetRequiredService<InMemoryShiftSchedulingService>(),
-            sp.GetRequiredService<IServiceScopeFactory>()));
+        // 排班快照保存在 PostgreSQL，所有实例共享；装饰器从当前电路获取操作者。
+        services.AddScoped<PostgreSqlShiftSchedulingService>();
+        services.AddScoped<IShiftSchedulingService>(sp => new Security.Auditing.AuditedShiftSchedulingService(
+            sp.GetRequiredService<PostgreSqlShiftSchedulingService>(),
+            sp.GetRequiredService<IServiceScopeFactory>(),
+            sp.GetRequiredService<Security.Auditing.ICurrentUserContext>()));
         services.AddSingleton<TimeProvider>(TimeProvider.System);
         services.AddScoped<IEnergyMetricService, DeterministicEnergyMetricService>();
         // 园区能源：读表聚合与外部读数接入。口径集中在 ParkEnergyAggregator，
         // 页面、接口、报表三条路径共用同一份实现。
-        services.AddScoped<IParkEnergyQueryService, ParkEnergyQueryService>();
+        services.AddScoped<ParkEnergyQueryService>();
+        services.AddScoped<IParkEnergyQueryService, Security.Auditing.AuditedParkEnergyQueryService>();
         services.AddScoped<IPlatformApiClient, ServerPlatformApiClient>();
         services.AddHostedService<ManagedDataCollectionScheduler>();
 
@@ -162,7 +159,7 @@ public static class PlatformPresentationServiceCollectionExtensions
 /// 组件未提供时回退到 IHttpContextAccessor（仅静态 SSR 阶段有值）。
 /// </summary>
 internal sealed class ServerNavigationViewClient(
-    Security.NavigationViewService navigationViewService,
+    NavigationViewService navigationViewService,
     IHttpContextAccessor httpContextAccessor) : INavigationViewClient
 {
     /// <inheritdoc />
@@ -170,12 +167,9 @@ internal sealed class ServerNavigationViewClient(
         System.Security.Claims.ClaimsPrincipal? principal,
         CancellationToken cancellationToken = default)
     {
-        var user = principal ?? httpContextAccessor.HttpContext?.User;
+        ClaimsPrincipal? user = principal ?? httpContextAccessor.HttpContext?.User;
 
-        if (user?.Identity?.IsAuthenticated != true)
-        {
-            return null;
-        }
+        if (user?.Identity?.IsAuthenticated != true) return null;
 
         return await navigationViewService.BuildAsync(user, cancellationToken);
     }
@@ -191,7 +185,7 @@ internal static class ConnectionStringResolver
 {
     public static string GetPostgreSqlConnectionString(IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("PostgreSql");
+        string? connectionString = configuration.GetConnectionString("PostgreSql");
         return string.IsNullOrWhiteSpace(connectionString)
             ? throw new InvalidOperationException("未配置 PostgreSQL 连接字符串 ConnectionStrings:PostgreSql。")
             : connectionString;
@@ -211,11 +205,11 @@ internal sealed class ServerPlatformApiClient(
     IShiftSchedulingService shiftSchedulingService,
     IEnergyMetricService energyMetricService,
     IParkEnergyQueryService parkEnergyQueryService,
-    Security.AdminDomainService adminDomainService,
-    Security.AdminUserService adminUserService,
-    Security.AdminAuditService adminAuditService,
+    AdminDomainService adminDomainService,
+    AdminUserService adminUserService,
+    AdminAuditService adminAuditService,
     Security.Directory.DirectorySyncService directorySyncService,
-    Microsoft.Extensions.Options.IOptions<Security.PlatformAuthOptions> authOptions) : IPlatformApiClient
+    Microsoft.Extensions.Options.IOptions<PlatformAuthOptions> authOptions) : IPlatformApiClient
 {
     public Task<DashboardOverviewDto> GetDashboardOverviewAsync(CancellationToken cancellationToken = default)
     {
@@ -232,7 +226,8 @@ internal sealed class ServerPlatformApiClient(
         int limit = 100,
         CancellationToken cancellationToken = default)
     {
-        var records = await platformService.GetCollectionDataAsync(Math.Clamp(limit, 1, 500), cancellationToken);
+        IReadOnlyCollection<CollectionDataRecordDto> records =
+            await platformService.GetCollectionDataAsync(Math.Clamp(limit, 1, 500), cancellationToken);
         return records.ToList();
     }
 
@@ -364,13 +359,10 @@ internal sealed class ServerPlatformApiClient(
 
     public async Task<bool> DeleteAcquisitionServerAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var (succeeded, errorMessage) =
+        (bool succeeded, string? errorMessage) =
             await acquisitionServerService.DeleteServerAsync(id, cancellationToken);
 
-        if (!succeeded)
-        {
-            throw new InvalidOperationException(errorMessage ?? "删除采集服务器失败。");
-        }
+        if (!succeeded) throw new InvalidOperationException(errorMessage ?? "删除采集服务器失败。");
 
         return true;
     }
@@ -389,6 +381,24 @@ internal sealed class ServerPlatformApiClient(
         CancellationToken cancellationToken = default)
     {
         return shiftSchedulingService.GetStatusAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ShiftTeamDto>> GetEnergyTeamsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return await GetTeamsAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ShiftTeamDto>> GetShiftScheduleTeamsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return await GetTeamsAsync(cancellationToken);
+    }
+
+    private async Task<ShiftTeamDto[]> GetTeamsAsync(CancellationToken cancellationToken)
+    {
+        ShiftScheduleStatusDto status = await shiftSchedulingService.GetStatusAsync(cancellationToken);
+        return status.Teams.ToArray();
     }
 
     public async Task<ShiftScheduleValidationDto> GetShiftScheduleValidationAsync(
@@ -437,10 +447,7 @@ internal sealed class ServerPlatformApiClient(
 
         ShiftScheduleRowDto[] rows = calendar.SelectMany(item => item.Rows).ToArray();
 
-        if (rows.Length == 0)
-        {
-            return null;
-        }
+        if (rows.Length == 0) return null;
 
         return new TeamShiftScheduleDto(
             rows[0].TeamCode,
@@ -671,7 +678,7 @@ internal sealed class ServerPlatformApiClient(
         CancellationToken cancellationToken = default)
     {
         return adminAuditService.QueryAsync(
-            new Security.AuditLogFilter(from, to, userName, targetType, result, page, pageSize), cancellationToken);
+            new AuditLogFilter(from, to, userName, targetType, result, page, pageSize), cancellationToken);
     }
 
     public string BuildAuditExportUrl(
@@ -685,29 +692,18 @@ internal sealed class ServerPlatformApiClient(
         List<string> query = [];
 
         if (from is { } fromValue)
-        {
-            query.Add($"from={Uri.EscapeDataString(fromValue.ToString("O", System.Globalization.CultureInfo.InvariantCulture))}");
-        }
+            query.Add(
+                $"from={Uri.EscapeDataString(fromValue.ToString("O", System.Globalization.CultureInfo.InvariantCulture))}");
 
         if (to is { } toValue)
-        {
-            query.Add($"to={Uri.EscapeDataString(toValue.ToString("O", System.Globalization.CultureInfo.InvariantCulture))}");
-        }
+            query.Add(
+                $"to={Uri.EscapeDataString(toValue.ToString("O", System.Globalization.CultureInfo.InvariantCulture))}");
 
-        if (!string.IsNullOrWhiteSpace(userName))
-        {
-            query.Add($"userName={Uri.EscapeDataString(userName.Trim())}");
-        }
+        if (!string.IsNullOrWhiteSpace(userName)) query.Add($"userName={Uri.EscapeDataString(userName.Trim())}");
 
-        if (!string.IsNullOrWhiteSpace(targetType))
-        {
-            query.Add($"targetType={Uri.EscapeDataString(targetType.Trim())}");
-        }
+        if (!string.IsNullOrWhiteSpace(targetType)) query.Add($"targetType={Uri.EscapeDataString(targetType.Trim())}");
 
-        if (!string.IsNullOrWhiteSpace(result))
-        {
-            query.Add($"result={Uri.EscapeDataString(result.Trim())}");
-        }
+        if (!string.IsNullOrWhiteSpace(result)) query.Add($"result={Uri.EscapeDataString(result.Trim())}");
 
         return query.Count == 0
             ? "/api/audit-logs/export"
@@ -734,10 +730,7 @@ internal sealed class ServerPlatformApiClient(
         AuthOperationResultDto result =
             await directorySyncService.ResolveIssueAsync(issueId, null, cancellationToken);
 
-        if (!result.Succeeded)
-        {
-            throw new InvalidOperationException(result.ErrorMessage ?? "操作失败。");
-        }
+        if (!result.Succeeded) throw new InvalidOperationException(result.ErrorMessage ?? "操作失败。");
 
         return true;
     }
@@ -762,10 +755,7 @@ internal sealed class ServerPlatformApiClient(
     {
         AuthOperationResultDto result = await operation;
 
-        if (!result.Succeeded)
-        {
-            throw new InvalidOperationException(result.ErrorMessage ?? "操作失败。");
-        }
+        if (!result.Succeeded) throw new InvalidOperationException(result.ErrorMessage ?? "操作失败。");
 
         return true;
     }

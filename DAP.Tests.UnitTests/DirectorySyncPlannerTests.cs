@@ -48,7 +48,8 @@ public class DirectorySyncPlannerTests
     [Fact]
     public void Identical_Record_Should_Not_Write()
     {
-        DirectorySyncDecision decision = DirectorySyncPlanner.Decide(Record(), Local(departmentId: DepartmentA), DepartmentA);
+        DirectorySyncDecision decision =
+            DirectorySyncPlanner.Decide(Record(), Local(departmentId: DepartmentA), DepartmentA);
 
         Assert.Equal(DirectorySyncAction.Unchanged, decision.Action);
         Assert.False(decision.RequiresWrite);
@@ -59,7 +60,7 @@ public class DirectorySyncPlannerTests
     public void Changed_Display_Name_Should_Be_Updated()
     {
         DirectorySyncDecision decision =
-            DirectorySyncPlanner.Decide(Record(displayName: "张三（新）"), Local(departmentId: DepartmentA), DepartmentA);
+            DirectorySyncPlanner.Decide(Record("张三（新）"), Local(departmentId: DepartmentA), DepartmentA);
 
         Assert.Equal(DirectorySyncAction.Update, decision.Action);
         Assert.Equal("张三（新）", decision.DisplayName);
@@ -98,7 +99,8 @@ public class DirectorySyncPlannerTests
     [Fact]
     public void Changed_Department_Should_Be_Applied()
     {
-        DirectorySyncDecision decision = DirectorySyncPlanner.Decide(Record(), Local(departmentId: DepartmentA), DepartmentB);
+        DirectorySyncDecision decision =
+            DirectorySyncPlanner.Decide(Record(), Local(departmentId: DepartmentA), DepartmentB);
 
         Assert.Equal(DirectorySyncAction.Update, decision.Action);
         Assert.Equal(DepartmentB, decision.DepartmentId);
@@ -169,8 +171,8 @@ public class DirectorySyncPlannerTests
     public void Manually_Disabled_Account_Should_Still_Sync_Other_Fields()
     {
         DirectorySyncDecision decision = DirectorySyncPlanner.Decide(
-            Record(displayName: "张三（新）"),
-            Local(displayName: "张三", isEnabled: false, departmentId: DepartmentA,
+            Record("张三（新）"),
+            Local("张三", isEnabled: false, departmentId: DepartmentA,
                 disabledSource: UserDisableSources.Manual),
             DepartmentA);
 
@@ -221,8 +223,8 @@ public class DirectorySyncPlannerTests
     public void Multiple_Changes_Should_Be_Reported_Together()
     {
         DirectorySyncDecision decision = DirectorySyncPlanner.Decide(
-            Record(displayName: "张三（新）", email: "new@example.com"),
-            Local(displayName: "张三", email: "old@example.com", departmentId: DepartmentA),
+            Record("张三（新）", "new@example.com"),
+            Local("张三", "old@example.com", DepartmentA),
             DepartmentB);
 
         Assert.Equal(DirectorySyncAction.Update, decision.Action);

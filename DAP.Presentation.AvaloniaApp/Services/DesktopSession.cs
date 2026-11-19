@@ -25,12 +25,12 @@ public sealed partial class DesktopSession : ObservableObject
     public DesktopSession(IOptions<ApiOptions> options)
     {
         ApiOptions apiOptions = options.Value;
-        var baseUri = new Uri(apiOptions.BaseUrl);
+        Uri baseUri = new(apiOptions.BaseUrl);
 
         ServerAddress = baseUri.GetLeftPart(UriPartial.Authority);
 
-        var cookies = new CookieContainer();
-        var handler = new HttpClientHandler
+        CookieContainer cookies = new();
+        HttpClientHandler handler = new()
         {
             CookieContainer = cookies,
             UseCookies = true,
@@ -91,12 +91,9 @@ public sealed partial class DesktopSession : ObservableObject
     {
         get
         {
-            if (CurrentUser is null)
-            {
-                return "请先登录";
-            }
+            if (CurrentUser is null) return "请先登录";
 
-            var roles = CurrentUser.Roles.Count == 0 ? "普通用户" : string.Join(" / ", CurrentUser.Roles);
+            string roles = CurrentUser.Roles.Count == 0 ? "普通用户" : string.Join(" / ", CurrentUser.Roles);
             return string.IsNullOrWhiteSpace(CurrentUser.DepartmentName)
                 ? roles
                 : $"{CurrentUser.DepartmentName} · {roles}";
@@ -142,17 +139,11 @@ public sealed partial class DesktopSession : ObservableObject
     {
         PlatformSignInResult result = await _authClient.SignInAsync(userName, password, cancellationToken);
 
-        if (!result.Succeeded)
-        {
-            return result;
-        }
+        if (!result.Succeeded) return result;
 
         AuthUserDto? user = await _authClient.GetCurrentUserAsync(cancellationToken);
 
-        if (user is null)
-        {
-            return PlatformSignInResult.Failure("登录成功但未能读取会话，请重试。");
-        }
+        if (user is null) return PlatformSignInResult.Failure("登录成功但未能读取会话，请重试。");
 
         CurrentUser = user;
         return PlatformSignInResult.Success;
@@ -175,10 +166,7 @@ public sealed partial class DesktopSession : ObservableObject
         AuthOperationResultDto result =
             await _authClient.ChangePasswordAsync(currentPassword, newPassword, confirmPassword, cancellationToken);
 
-        if (result.Succeeded)
-        {
-            CurrentUser = await _authClient.GetCurrentUserAsync(cancellationToken);
-        }
+        if (result.Succeeded) CurrentUser = await _authClient.GetCurrentUserAsync(cancellationToken);
 
         return result;
     }

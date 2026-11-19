@@ -15,7 +15,7 @@ public class EnergyMetricServiceTests
 
     private static DeterministicEnergyMetricService CreateService(params ShiftScheduleRowDto[] rows)
     {
-        var shiftService = new InMemoryShiftSchedulingService();
+        InMemoryShiftSchedulingService shiftService = new();
         return new DeterministicEnergyMetricService(shiftService, new FixedTimeProvider(Today));
     }
 
@@ -87,11 +87,9 @@ public class EnergyMetricServiceTests
 
         // 最高与最低必须是真实存在的两个班组（数据多于 1 个班组时）。
         if (comparison.Teams.Count > 1)
-        {
             Assert.NotEqual(
                 comparison.Teams.Max(item => item.TotalConsumption),
                 comparison.Teams.Min(item => item.TotalConsumption));
-        }
     }
 
     [Fact]
@@ -117,7 +115,7 @@ public class EnergyMetricServiceTests
         Assert.Equal(4, history.Trends.Count);
 
         // 明细行数应等于「趋势序列数 × 桶数」。
-        var expectedRows = history.Trends.Sum(trend => trend.Points.Count);
+        int expectedRows = history.Trends.Sum(trend => trend.Points.Count);
         Assert.Equal(expectedRows, history.DetailRows.Count);
     }
 
@@ -125,7 +123,7 @@ public class EnergyMetricServiceTests
     public async Task GetHistoryAsync_Should_Not_Distort_Totals_When_Bucketing()
     {
         DeterministicEnergyMetricService service = CreateService();
-        var team = "TEAM-甲";
+        string team = "TEAM-甲";
 
         EnergyHistoryDto fine = await service.GetHistoryAsync(team, "day", Today.AddDays(-6), Today);
         EnergyHistoryDto longRange =

@@ -83,7 +83,10 @@ public static class AuthorizationCatalog
         /// </summary>
         /// <param name="domainCode">域编码。</param>
         /// <returns>策略名。</returns>
-        public static string Domain(string domainCode) => $"{DomainPrefix}{domainCode}";
+        public static string Domain(string domainCode)
+        {
+            return $"{DomainPrefix}{domainCode}";
+        }
     }
 
     /// <summary>

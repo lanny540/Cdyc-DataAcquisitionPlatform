@@ -103,7 +103,7 @@ public sealed class DeterministicEnergyMetricService(
         CancellationToken cancellationToken = default)
     {
         DateOnly today = DateOnly.FromDateTime(timeProvider.GetLocalNow().DateTime);
-        var days = Math.Clamp(trendDays, 1, 60);
+        int days = Math.Clamp(trendDays, 1, 60);
 
         IReadOnlyCollection<ShiftScheduleRowDto> scheduleRows =
             await shiftSchedulingService.GetAllRowsAsync(cancellationToken);
@@ -111,7 +111,6 @@ public sealed class DeterministicEnergyMetricService(
         ShiftTeamDto[] teams = ResolveTeams(scheduleRows);
 
         if (teams.Length == 0)
-        {
             // 尚未导入排班表时使用默认四班组，保证页面可用。
             teams =
             [
@@ -120,12 +119,11 @@ public sealed class DeterministicEnergyMetricService(
                 new ShiftTeamDto("TEAM-丙", "丙班"),
                 new ShiftTeamDto("TEAM-丁", "丁班")
             ];
-        }
 
         // 显式指定班组时按指定班组展示；未指定时才严格解析当前在岗班组。
         // 严格解析（docs/AUTH_DESIGN.md 6.6）：不命中就不给默认值——当天轮休、排班未导入
         // 都不能靠取模"猜"一个班组，车间终端会把默认值当成在岗事实。
-        var requestedTeam = !string.IsNullOrWhiteSpace(teamCode);
+        bool requestedTeam = !string.IsNullOrWhiteSpace(teamCode);
 
         ShiftTeamDto current;
         string resolution;
@@ -133,13 +131,14 @@ public sealed class DeterministicEnergyMetricService(
         if (requestedTeam)
         {
             current = teams.FirstOrDefault(team =>
-                         string.Equals(team.TeamCode, teamCode, StringComparison.OrdinalIgnoreCase))
-                     ?? new ShiftTeamDto(teamCode!, ResolveTeamName(teamCode!));
+                          string.Equals(team.TeamCode, teamCode, StringComparison.OrdinalIgnoreCase))
+                      ?? new ShiftTeamDto(teamCode!, ResolveTeamName(teamCode!));
             resolution = "manual";
         }
         else
         {
-            ShiftTeamDto? onDuty = TryResolveOnDutyTeam(teams, today, timeProvider.GetLocalNow().TimeOfDay, scheduleRows);
+            ShiftTeamDto? onDuty =
+                TryResolveOnDutyTeam(teams, today, timeProvider.GetLocalNow().TimeOfDay, scheduleRows);
 
             if (onDuty is not null)
             {
@@ -172,7 +171,7 @@ public sealed class DeterministicEnergyMetricService(
             .ToArray();
 
         // 综合能耗按各指标折算为标准煤系数后求和，便于跨指标比较。
-        var total = MetricCatalog
+        decimal total = MetricCatalog
             .Select((metric, index) => ToDecimal(ComputeDailyValue(current.TeamCode, metric.MetricCode, today)) *
                                        Coefficient(index))
             .Sum();
@@ -202,31 +201,24 @@ public sealed class DeterministicEnergyMetricService(
         DateOnly rangeEnd,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(teamCode))
-        {
-            teamCode = "TEAM-甲";
-        }
+        if (string.IsNullOrWhiteSpace(teamCode)) teamCode = "TEAM-甲";
 
-        (DateOnly start, DateOnly end, var normalized) = NormalizeRange(granularity, rangeStart, rangeEnd);
+        (DateOnly start, DateOnly end, string normalized) = NormalizeRange(granularity, rangeStart, rangeEnd);
 
         EnergyTrendDto[] trends = BuildTrends(new ShiftTeamDto(teamCode, ResolveTeamName(teamCode)), start, end);
 
         List<EnergyMetricValueDto> detailRows = [];
         foreach (EnergyTrendDto trend in trends)
-        {
-            foreach (EnergyTrendPointDto point in trend.Points)
-            {
-                detailRows.Add(new EnergyMetricValueDto(
-                    teamCode,
-                    ResolveTeamName(teamCode),
-                    trend.MetricCode,
-                    trend.MetricName,
-                    trend.Unit,
-                    point.BucketStart,
-                    point.BucketStart,
-                    point.Value));
-            }
-        }
+        foreach (EnergyTrendPointDto point in trend.Points)
+            detailRows.Add(new EnergyMetricValueDto(
+                teamCode,
+                ResolveTeamName(teamCode),
+                trend.MetricCode,
+                trend.MetricName,
+                trend.Unit,
+                point.BucketStart,
+                point.BucketStart,
+                point.Value));
 
         return Task.FromResult(new EnergyHistoryDto(
             teamCode,
@@ -251,7 +243,6 @@ public sealed class DeterministicEnergyMetricService(
         ShiftTeamDto[] teams = ResolveTeams(scheduleRows);
 
         if (teams.Length == 0)
-        {
             teams =
             [
                 new ShiftTeamDto("TEAM-甲", "甲班"),
@@ -259,10 +250,9 @@ public sealed class DeterministicEnergyMetricService(
                 new ShiftTeamDto("TEAM-丙", "丙班"),
                 new ShiftTeamDto("TEAM-丁", "丁班")
             ];
-        }
 
-        (DateOnly start, DateOnly end, var normalized) = NormalizeRange(granularity, referenceDate, referenceDate);
-        var label = ResolveBucketLabel(normalized, start, end);
+        (DateOnly start, DateOnly end, string normalized) = NormalizeRange(granularity, referenceDate, referenceDate);
+        string label = ResolveBucketLabel(normalized, start, end);
 
         TeamEnergyComparisonDto[] comparisons = teams
             .Select(team => BuildComparison(team, start, end, scheduleRows))
@@ -280,11 +270,9 @@ public sealed class DeterministicEnergyMetricService(
         EnergyMetricValueDto[] metricValues = MetricCatalog
             .Select((metric, index) =>
             {
-                var sum = 0m;
+                decimal sum = 0m;
                 for (DateOnly day = start; day <= end; day = day.AddDays(1))
-                {
                     sum += ToDecimal(ComputeDailyValue(team.TeamCode, metric.MetricCode, day));
-                }
 
                 return new EnergyMetricValueDto(
                     team.TeamCode,
@@ -298,7 +286,7 @@ public sealed class DeterministicEnergyMetricService(
             })
             .ToArray();
 
-        var total = MetricCatalog
+        decimal total = MetricCatalog
             .Select((metric, index) =>
                 ToDecimal(ComputeMetricRangeSum(team.TeamCode, metric.MetricCode, start, end)) * Coefficient(index))
             .Sum();
@@ -310,7 +298,7 @@ public sealed class DeterministicEnergyMetricService(
                 item.WorkDate <= end)
             .ToArray();
 
-        var shiftCount = teamRows.Count(item => !item.IsRestDay);
+        int shiftCount = teamRows.Count(item => !item.IsRestDay);
 
         return new TeamEnergyComparisonDto(
             team.TeamCode,
@@ -324,29 +312,24 @@ public sealed class DeterministicEnergyMetricService(
     private static EnergyTrendDto[] BuildTrends(ShiftTeamDto team, DateOnly start, DateOnly end)
     {
         List<DateOnly> buckets = EnumerateBuckets(start, end).ToList();
-        var bucketLength = ResolveBucketLength(start, end);
-        var points = new Dictionary<string, List<EnergyTrendPointDto>>(StringComparer.Ordinal);
+        int bucketLength = ResolveBucketLength(start, end);
+        Dictionary<string, List<EnergyTrendPointDto>> points = new(StringComparer.Ordinal);
 
-        foreach (EnergyMetricDescriptorDto metric in MetricCatalog)
-        {
-            points[metric.MetricCode] = [];
-        }
+        foreach (EnergyMetricDescriptorDto metric in MetricCatalog) points[metric.MetricCode] = [];
 
         foreach (DateOnly bucket in buckets)
+        foreach (EnergyMetricDescriptorDto metric in MetricCatalog)
         {
-            foreach (EnergyMetricDescriptorDto metric in MetricCatalog)
-            {
-                var value = ComputeBucketValue(team.TeamCode, metric.MetricCode, bucket, bucketLength, end);
-                points[metric.MetricCode]
-                    .Add(new EnergyTrendPointDto(bucket, FormatBucketLabel(bucket, start, end), ToDecimal(value)));
-            }
+            double value = ComputeBucketValue(team.TeamCode, metric.MetricCode, bucket, bucketLength, end);
+            points[metric.MetricCode]
+                .Add(new EnergyTrendPointDto(bucket, FormatBucketLabel(bucket, start, end), ToDecimal(value)));
         }
 
         return MetricCatalog.Select((metric, index) =>
         {
             List<EnergyTrendPointDto> series = points[metric.MetricCode];
-            var total = series.Sum(item => item.Value);
-            var average = series.Count == 0 ? 0m : Math.Round(total / series.Count, 2);
+            decimal total = series.Sum(item => item.Value);
+            decimal average = series.Count == 0 ? 0m : Math.Round(total / series.Count, 2);
             EnergyTrendPointDto? peak = series.OrderByDescending(item => item.Value).FirstOrDefault();
 
             return new EnergyTrendDto(
@@ -364,22 +347,16 @@ public sealed class DeterministicEnergyMetricService(
 
     private static string ResolveTrendDirection(IReadOnlyCollection<EnergyTrendPointDto> series)
     {
-        if (series.Count < 2)
-        {
-            return "flat";
-        }
+        if (series.Count < 2) return "flat";
 
-        var half = series.Count / 2;
-        var firstHalf = series.Take(half).Average(item => item.Value);
-        var secondHalf = series.Skip(half).Average(item => item.Value);
+        int half = series.Count / 2;
+        decimal firstHalf = series.Take(half).Average(item => item.Value);
+        decimal secondHalf = series.Skip(half).Average(item => item.Value);
 
-        var delta = secondHalf - firstHalf;
-        var threshold = Math.Max(1m, Math.Abs(firstHalf) * 0.02m);
+        decimal delta = secondHalf - firstHalf;
+        decimal threshold = Math.Max(1m, Math.Abs(firstHalf) * 0.02m);
 
-        if (delta > threshold)
-        {
-            return "up";
-        }
+        if (delta > threshold) return "up";
 
         return delta < -threshold ? "down" : "flat";
     }
@@ -389,19 +366,16 @@ public sealed class DeterministicEnergyMetricService(
     /// </summary>
     private static double ComputeDailyValue(string teamCode, string metricCode, DateOnly day)
     {
-        var index = Array.FindIndex(MetricCatalog, metric => metric.MetricCode == metricCode);
-        if (index < 0)
-        {
-            index = 0;
-        }
+        int index = Array.FindIndex(MetricCatalog, metric => metric.MetricCode == metricCode);
+        if (index < 0) index = 0;
 
-        var (baseValue, amplitude) = MetricProfiles[index];
+        (double baseValue, double amplitude) = MetricProfiles[index];
 
         // 由班组、日期、指标共同派生的确定性噪声：不同组合形态各异，同一组合永远一致。
-        var noise = (DeriveNoise(teamCode, metricCode, day) * 2d) - 1d;
-        var dailyWave = Math.Sin((day.DayNumber * 0.7) + index) * amplitude * 0.25;
+        double noise = DeriveNoise(teamCode, metricCode, day) * 2d - 1d;
+        double dailyWave = Math.Sin(day.DayNumber * 0.7 + index) * amplitude * 0.25;
 
-        return Math.Round(baseValue + dailyWave + (noise * amplitude), 2);
+        return Math.Round(baseValue + dailyWave + noise * amplitude, 2);
     }
 
     /// <summary>
@@ -410,17 +384,11 @@ public sealed class DeterministicEnergyMetricService(
     /// </summary>
     private static double DeriveNoise(string teamCode, string metricCode, DateOnly day)
     {
-        var hash = 14695981039346656037UL;
+        ulong hash = 14695981039346656037UL;
 
-        foreach (var ch in teamCode)
-        {
-            hash = (hash ^ ch) * 1099511628211UL;
-        }
+        foreach (char ch in teamCode) hash = (hash ^ ch) * 1099511628211UL;
 
-        foreach (var ch in metricCode)
-        {
-            hash = (hash ^ ch) * 1099511628211UL;
-        }
+        foreach (char ch in metricCode) hash = (hash ^ ch) * 1099511628211UL;
 
         hash ^= (ulong) day.DayNumber * 2654435761UL;
 
@@ -444,35 +412,28 @@ public sealed class DeterministicEnergyMetricService(
     {
         // 末桶不足一整桶宽时截断到区间末尾。
         DateOnly bucketEnd = bucket.AddDays(bucketLength - 1);
-        if (bucketEnd > rangeEnd)
-        {
-            bucketEnd = rangeEnd;
-        }
+        if (bucketEnd > rangeEnd) bucketEnd = rangeEnd;
 
-        var sum = 0d;
+        double sum = 0d;
         for (DateOnly day = bucket; day <= bucketEnd; day = day.AddDays(1))
-        {
             sum += ComputeDailyValue(teamCode, metricCode, day);
-        }
 
         return Math.Round(sum, 2);
     }
 
     private static double ComputeMetricRangeSum(string teamCode, string metricCode, DateOnly start, DateOnly end)
     {
-        var sum = 0d;
+        double sum = 0d;
         for (DateOnly day = start; day <= end; day = day.AddDays(1))
-        {
             sum += ComputeDailyValue(teamCode, metricCode, day);
-        }
 
         return sum;
     }
 
     private static DateOnly ResolveBucketEnd(DateOnly bucket, DateOnly rangeStart, DateOnly rangeEnd)
     {
-        var spanDays = rangeEnd.DayNumber - rangeStart.DayNumber;
-        var bucketLength = spanDays <= 30 ? 1 : spanDays <= 120 ? 7 : 30;
+        int spanDays = rangeEnd.DayNumber - rangeStart.DayNumber;
+        int bucketLength = spanDays <= 30 ? 1 : spanDays <= 120 ? 7 : 30;
 
         DateOnly candidate = bucket.AddDays(bucketLength - 1);
         return candidate > rangeEnd ? rangeEnd : candidate;
@@ -480,7 +441,7 @@ public sealed class DeterministicEnergyMetricService(
 
     private static IEnumerable<DateOnly> EnumerateBuckets(DateOnly start, DateOnly end)
     {
-        var spanDays = end.DayNumber - start.DayNumber + 1;
+        int spanDays = end.DayNumber - start.DayNumber + 1;
 
         if (spanDays <= 0)
         {
@@ -488,7 +449,7 @@ public sealed class DeterministicEnergyMetricService(
             yield break;
         }
 
-        var bucketLength = ResolveBucketLength(start, end);
+        int bucketLength = ResolveBucketLength(start, end);
         DateOnly cursor = start;
 
         // 按步长整齐分桶：每个桶覆盖连续 bucketLength 天，桶内求和。
@@ -499,10 +460,7 @@ public sealed class DeterministicEnergyMetricService(
             yield return cursor;
 
             DateOnly next = cursor.AddDays(bucketLength);
-            if (next <= cursor)
-            {
-                yield break;
-            }
+            if (next <= cursor) yield break;
 
             cursor = next;
         }
@@ -514,19 +472,16 @@ public sealed class DeterministicEnergyMetricService(
     /// </summary>
     private static int ResolveBucketLength(DateOnly start, DateOnly end)
     {
-        var spanDays = end.DayNumber - start.DayNumber + 1;
+        int spanDays = end.DayNumber - start.DayNumber + 1;
 
-        if (spanDays <= MaxBucketCount)
-        {
-            return 1;
-        }
+        if (spanDays <= MaxBucketCount) return 1;
 
         return Math.Max(1, (int) Math.Ceiling(spanDays / (double) MaxBucketCount));
     }
 
     private static string FormatBucketLabel(DateOnly bucket, DateOnly rangeStart, DateOnly rangeEnd)
     {
-        var spanDays = rangeEnd.DayNumber - rangeStart.DayNumber + 1;
+        int spanDays = rangeEnd.DayNumber - rangeStart.DayNumber + 1;
 
         return spanDays switch
         {
@@ -552,7 +507,7 @@ public sealed class DeterministicEnergyMetricService(
         DateOnly rangeStart,
         DateOnly rangeEnd)
     {
-        var normalized = granularity.ToLowerInvariant() switch
+        string normalized = granularity.ToLowerInvariant() switch
         {
             "week" => "week",
             "month" => "month",
@@ -562,10 +517,7 @@ public sealed class DeterministicEnergyMetricService(
         DateOnly start = rangeStart;
         DateOnly end = rangeEnd;
 
-        if (end < start)
-        {
-            (start, end) = (end, start);
-        }
+        if (end < start) (start, end) = (end, start);
 
         return normalized switch
         {
@@ -613,10 +565,7 @@ public sealed class DeterministicEnergyMetricService(
             now.Ticks < item.StartTime.Ticks +
             (long) Math.Round(item.DurationHours * TimeSpan.TicksPerHour));
 
-        if (currentRow is null)
-        {
-            return null;
-        }
+        if (currentRow is null) return null;
 
         return teams.FirstOrDefault(team =>
                    string.Equals(team.TeamCode, currentRow.TeamCode, StringComparison.OrdinalIgnoreCase))
@@ -629,7 +578,7 @@ public sealed class DeterministicEnergyMetricService(
     /// </summary>
     private static string ResolveTeamName(string teamCode)
     {
-        var name = teamCode.StartsWith("TEAM-", StringComparison.OrdinalIgnoreCase)
+        string name = teamCode.StartsWith("TEAM-", StringComparison.OrdinalIgnoreCase)
             ? teamCode[5..]
             : teamCode;
 

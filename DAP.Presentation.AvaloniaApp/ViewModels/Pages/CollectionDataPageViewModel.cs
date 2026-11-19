@@ -43,13 +43,13 @@ public sealed partial class CollectionDataPageViewModel : PageViewModelBase
         LimitOptions = new ObservableCollection<int>([50, 100, 200, 500]);
         RefreshIntervalOptions = new ObservableCollection<RefreshIntervalOption>(
         [
-            new(30, "30 秒"),
-            new(60, "1 分钟"),
-            new(180, "3 分钟"),
-            new(300, "5 分钟")
+            new RefreshIntervalOption(30, "30 秒"),
+            new RefreshIntervalOption(60, "1 分钟"),
+            new RefreshIntervalOption(180, "3 分钟"),
+            new RefreshIntervalOption(300, "5 分钟")
         ]);
 
-        _autoRefreshTimer = new DispatcherTimer { Interval = DefaultRefreshInterval };
+        _autoRefreshTimer = new DispatcherTimer {Interval = DefaultRefreshInterval};
         _autoRefreshTimer.Tick += OnAutoRefreshTick;
 
         // 在下拉项与定时器都就绪后再落默认值，避免变更回调里访问未初始化的字段。
@@ -82,21 +82,18 @@ public sealed partial class CollectionDataPageViewModel : PageViewModelBase
     /// <summary>
     /// 当前刷新频率。
     /// </summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(AutoRefreshHint))]
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(AutoRefreshHint))]
     private RefreshIntervalOption? _selectedRefreshInterval;
 
     /// <summary>
     /// 返回条数。
     /// </summary>
-    [ObservableProperty]
-    private int _limit = 100;
+    [ObservableProperty] private int _limit = 100;
 
     /// <summary>
     /// 是否自动刷新。
     /// </summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(AutoRefreshHint))]
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(AutoRefreshHint))]
     private bool _autoRefreshEnabled = true;
 
     /// <summary>
@@ -109,14 +106,12 @@ public sealed partial class CollectionDataPageViewModel : PageViewModelBase
     /// <summary>
     /// 是否有数据。
     /// </summary>
-    [ObservableProperty]
-    private bool _hasData;
+    [ObservableProperty] private bool _hasData;
 
     /// <summary>
     /// 汇总文案。
     /// </summary>
-    [ObservableProperty]
-    private string _summaryText = string.Empty;
+    [ObservableProperty] private string _summaryText = string.Empty;
 
     /// <summary>
     /// 记录行。
@@ -129,14 +124,10 @@ public sealed partial class CollectionDataPageViewModel : PageViewModelBase
         _isActive = true;
 
         if (!IsLoaded)
-        {
             await EnsureLoadedAsync();
-        }
         else if (!IsFreshWithin(ReactivationFreshnessWindow))
-        {
             // 超出新鲜窗口才重拉：快速来回切页时复用现有数据，避免把切页变成请求风暴。
             await ReloadAsync();
-        }
 
         UpdateTimerState();
     }
@@ -169,10 +160,7 @@ public sealed partial class CollectionDataPageViewModel : PageViewModelBase
     /// </summary>
     partial void OnSelectedRefreshIntervalChanged(RefreshIntervalOption? value)
     {
-        if (value is null)
-        {
-            return;
-        }
+        if (value is null) return;
 
         _autoRefreshTimer.Interval = value.Interval;
         RestartCountdown();
@@ -224,10 +212,7 @@ public sealed partial class CollectionDataPageViewModel : PageViewModelBase
     /// </summary>
     private void RestartCountdown()
     {
-        if (!_autoRefreshTimer.IsEnabled)
-        {
-            return;
-        }
+        if (!_autoRefreshTimer.IsEnabled) return;
 
         _autoRefreshTimer.Stop();
         _autoRefreshTimer.Start();
@@ -235,10 +220,7 @@ public sealed partial class CollectionDataPageViewModel : PageViewModelBase
 
     private void OnAutoRefreshTick(object? sender, EventArgs e)
     {
-        if (!_isActive || IsLoading)
-        {
-            return;
-        }
+        if (!_isActive || IsLoading) return;
 
         _ = ReloadAsync();
     }

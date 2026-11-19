@@ -47,7 +47,7 @@ public sealed class ShiftScheduleExcelParser
             return 0;
         }
 
-        using var workbook = new XLWorkbook(stream);
+        using XLWorkbook workbook = new(stream);
         IXLWorksheet worksheet = workbook.Worksheets.FirstOrDefault()
                                  ?? throw new ShiftScheduleFormatException("Excel 中没有可用的工作表。");
 
@@ -57,15 +57,13 @@ public sealed class ShiftScheduleExcelParser
             return 0;
         }
 
-        var lastRow = Math.Min(usedRange.LastRow().RowNumber(), MaxScanRows);
+        int lastRow = Math.Min(usedRange.LastRow().RowNumber(), MaxScanRows);
 
         if (usedRange.LastRow().RowNumber() > MaxScanRows)
-        {
             parseIssues.Add(new ShiftScheduleIssueDto(
                 0, $"数据行超过 {MaxScanRows} 行，仅解析前 {MaxScanRows} 行。", "warning"));
-        }
 
-        var headerRow = FindHeaderRow(usedRange, lastRow, out HeaderColumns columns, out var headerProblem);
+        int headerRow = FindHeaderRow(usedRange, lastRow, out HeaderColumns columns, out string headerProblem);
 
         if (!string.IsNullOrEmpty(headerProblem))
         {
@@ -73,12 +71,10 @@ public sealed class ShiftScheduleExcelParser
             return 0;
         }
 
-        var teams = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, string> teams = new(StringComparer.OrdinalIgnoreCase);
 
-        for (var rowNumber = headerRow + 1; rowNumber <= lastRow; rowNumber++)
-        {
+        for (int rowNumber = headerRow + 1; rowNumber <= lastRow; rowNumber++)
             ParseRow(worksheet, rowNumber, columns, teams, rows, parseIssues);
-        }
 
         return rows.Count;
     }
@@ -92,22 +88,19 @@ public sealed class ShiftScheduleExcelParser
         columns = new HeaderColumns(0, 0, 0, 0);
         headerProblem = string.Empty;
 
-        var firstColumn = usedRange.FirstColumn().ColumnNumber();
-        var lastColumn = usedRange.LastColumn().ColumnNumber();
-        var firstRow = usedRange.FirstRow().RowNumber();
+        int firstColumn = usedRange.FirstColumn().ColumnNumber();
+        int lastColumn = usedRange.LastColumn().ColumnNumber();
+        int firstRow = usedRange.FirstRow().RowNumber();
 
         // 表头前可能置换成两行说明文字，最多向下探测 5 行。
-        for (var row = firstRow; row <= Math.Min(lastRow, firstRow + 4); row++)
+        for (int row = firstRow; row <= Math.Min(lastRow, firstRow + 4); row++)
         {
             HeaderColumns candidate = new(0, 0, 0, 0);
 
-            for (var column = firstColumn; column <= lastColumn; column++)
+            for (int column = firstColumn; column <= lastColumn; column++)
             {
-                var text = NormalizeHeaderText(usedRange.Cell(row, column).GetString());
-                if (text.Length == 0)
-                {
-                    continue;
-                }
+                string text = NormalizeHeaderText(usedRange.Cell(row, column).GetString());
+                if (text.Length == 0) continue;
 
                 candidate.DateColumn = MatchColumn(candidate.DateColumn, column, text, WorkDateKeywords);
                 candidate.TeamColumn = MatchColumn(candidate.TeamColumn, column, text, TeamKeywords);
@@ -138,31 +131,21 @@ public sealed class ShiftScheduleExcelParser
     /// </summary>
     private static string NormalizeHeaderText(string raw)
     {
-        if (string.IsNullOrWhiteSpace(raw))
-        {
-            return string.Empty;
-        }
+        if (string.IsNullOrWhiteSpace(raw)) return string.Empty;
 
         Span<char> buffer = raw.Length <= 128 ? stackalloc char[raw.Length] : new char[raw.Length];
-        var length = 0;
+        int length = 0;
 
-        foreach (var ch in raw)
-        {
+        foreach (char ch in raw)
             if (!char.IsWhiteSpace(ch) && ch != '　')
-            {
                 buffer[length++] = ch;
-            }
-        }
 
         return new string(buffer[..length]);
     }
 
     private static int MatchColumn(int current, int column, string text, string[] keywords)
     {
-        if (current > 0)
-        {
-            return current;
-        }
+        if (current > 0) return current;
 
         return keywords.Any(keyword => text.Contains(keyword, StringComparison.OrdinalIgnoreCase)) ? column : 0;
     }
@@ -197,10 +180,7 @@ public sealed class ShiftScheduleExcelParser
         IXLCell endCell = worksheet.Cell(rowNumber, columns.EndColumn);
 
         // 整行为空时视为 Excel 中的空行，直接跳过而不是报错。
-        if (dateCell.IsEmpty() && teamCell.IsEmpty() && startCell.IsEmpty() && endCell.IsEmpty())
-        {
-            return;
-        }
+        if (dateCell.IsEmpty() && teamCell.IsEmpty() && startCell.IsEmpty() && endCell.IsEmpty()) return;
 
         if (!TryReadDate(dateCell, out DateOnly workDate))
         {
@@ -209,14 +189,14 @@ public sealed class ShiftScheduleExcelParser
             return;
         }
 
-        var teamName = teamCell.GetFormattedString().Trim();
+        string teamName = teamCell.GetFormattedString().Trim();
         if (teamName.Length == 0)
         {
             issues.Add(new ShiftScheduleIssueDto(rowNumber, "班组名称为空。", "error"));
             return;
         }
 
-        var teamCode = NormalizeTeamCode(teamName);
+        string teamCode = NormalizeTeamCode(teamName);
         teams.TryAdd(teamCode, teamName);
 
         if (IsRestRow(teamName, startCell, endCell))
@@ -242,12 +222,9 @@ public sealed class ShiftScheduleExcelParser
         }
 
         // 允许把跨天的班次写成 16:00 - 次日 00:00，这里统一折算为 24 小时内的时刻。
-        if (endTime < startTime)
-        {
-            endTime = new TimeOnly(0, 0);
-        }
+        if (endTime < startTime) endTime = new TimeOnly(0, 0);
 
-        var durationHours = Math.Round((endTime - startTime).TotalHours, 2);
+        double durationHours = Math.Round((endTime - startTime).TotalHours, 2);
         if (durationHours <= 0)
         {
             durationHours = 24d;
@@ -279,17 +256,17 @@ public sealed class ShiftScheduleExcelParser
     /// </summary>
     public static string NormalizeTeamCode(string teamName)
     {
-        var trimmed = teamName.Trim();
+        string trimmed = teamName.Trim();
 
         // 「甲班」与「甲」都应得到 TEAM-甲，便于现场两种写法都能对上。
-        var shortName = trimmed.EndsWith('班') ? trimmed[..^1] : trimmed;
+        string shortName = trimmed.EndsWith('班') ? trimmed[..^1] : trimmed;
 
         return $"TEAM-{shortName.ToUpperInvariant()}";
     }
 
     private static string ResolveShiftName(TimeOnly startTime)
     {
-        var hour = startTime.Hour;
+        int hour = startTime.Hour;
 
         return hour switch
         {
@@ -323,11 +300,8 @@ public sealed class ShiftScheduleExcelParser
             return true;
         }
 
-        var text = cell.GetFormattedString().Trim();
-        if (text.Length == 0)
-        {
-            return false;
-        }
+        string text = cell.GetFormattedString().Trim();
+        if (text.Length == 0) return false;
 
         string[] formats =
         [
@@ -371,7 +345,7 @@ public sealed class ShiftScheduleExcelParser
         }
 
         // Excel 内部用小数表示一天中的时间比例，这里换算成小时分钟。
-        if (cell.TryGetValue<double>(out var fraction) && fraction is > 0 and <= 1)
+        if (cell.TryGetValue<double>(out double fraction) && fraction is > 0 and <= 1)
         {
             // 序列号 1 表示 24:00，即跨天班次的结束时刻，等价于次日 00:00
             if (fraction >= 1d)
@@ -380,16 +354,13 @@ public sealed class ShiftScheduleExcelParser
                 return true;
             }
 
-            var totalMinutes = (int) Math.Round(fraction * 24 * 60, MidpointRounding.AwayFromZero);
+            int totalMinutes = (int) Math.Round(fraction * 24 * 60, MidpointRounding.AwayFromZero);
             value = TimeOnly.FromTimeSpan(TimeSpan.FromMinutes(totalMinutes % (24 * 60)));
             return true;
         }
 
-        var text = cell.GetFormattedString().Trim();
-        if (text.Length == 0)
-        {
-            return false;
-        }
+        string text = cell.GetFormattedString().Trim();
+        if (text.Length == 0) return false;
 
         // 「24:00」是现场最常见的误填，Excel 会把它存成序列号 1.0（走上面的分支）；
         // 而当它以文本形式保留时，这里显式归一化为 00:00，避免直接报错打断整个导入。

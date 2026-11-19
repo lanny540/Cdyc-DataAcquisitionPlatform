@@ -27,19 +27,13 @@ public static class HistoryApiEndpoints
                     IHistoryApiProxyService historyApiProxyService, CancellationToken cancellationToken) =>
                 {
                     IResult? validationError = ValidateCurrentValueRequest(request);
-                    if (validationError is not null)
-                    {
-                        return validationError;
-                    }
+                    if (validationError is not null) return validationError;
 
                     ServerConnectionSettings? settings =
                         await resolver.ResolveAsync(request.ServerConnectionId, AcquisitionServerCatalog.Historian,
                             cancellationToken);
 
-                    if (settings is null)
-                    {
-                        return ServerNotConfigured();
-                    }
+                    if (settings is null) return ServerNotConfigured();
 
                     HistoryApiQueryResponse response = await historyApiProxyService.GetCurrentValueAsync(
                         request, settings.ToHistorianOptions(), cancellationToken);
@@ -53,20 +47,18 @@ public static class HistoryApiEndpoints
                 async (HistoryRawDataQueryRequest request, IAcquisitionServerConnectionResolver resolver,
                     IHistoryApiProxyService historyApiProxyService, CancellationToken cancellationToken) =>
                 {
-                    IResult? validationError = ValidateRawDataRequest(request);
-                    if (validationError is not null)
-                    {
-                        return validationError;
-                    }
+                    string? validationMessage = request.Validate();
+                    if (validationMessage is not null)
+                        return Results.ValidationProblem(new Dictionary<string, string[]>
+                        {
+                            ["HistoryApi"] = [validationMessage]
+                        });
 
                     ServerConnectionSettings? settings =
                         await resolver.ResolveAsync(request.ServerConnectionId, AcquisitionServerCatalog.Historian,
                             cancellationToken);
 
-                    if (settings is null)
-                    {
-                        return ServerNotConfigured();
-                    }
+                    if (settings is null) return ServerNotConfigured();
 
                     HistoryApiQueryResponse response = await historyApiProxyService.GetRawDataAsync(
                         request, settings.ToHistorianOptions(), cancellationToken);
@@ -89,42 +81,12 @@ public static class HistoryApiEndpoints
     private static IResult? ValidateCurrentValueRequest(HistoryCurrentValueQueryRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.TagNames))
-        {
             return Results.ValidationProblem(new Dictionary<string, string[]>
             {
                 ["HistoryApi"] = ["标签名称不能为空。"]
             });
-        }
 
         return null;
     }
 
-    private static IResult? ValidateRawDataRequest(HistoryRawDataQueryRequest request)
-    {
-        if (string.IsNullOrWhiteSpace(request.TagName))
-        {
-            return Results.ValidationProblem(new Dictionary<string, string[]>
-            {
-                ["HistoryApi"] = ["标签名称不能为空。"]
-            });
-        }
-
-        if (request.EndTime <= request.StartTime)
-        {
-            return Results.ValidationProblem(new Dictionary<string, string[]>
-            {
-                ["HistoryApi"] = ["结束时间必须晚于开始时间。"]
-            });
-        }
-
-        if (request.StartIndex < 0 || request.Count <= 0)
-        {
-            return Results.ValidationProblem(new Dictionary<string, string[]>
-            {
-                ["HistoryApi"] = ["起始偏移量不能小于 0，返回条数必须大于 0。"]
-            });
-        }
-
-        return null;
-    }
 }

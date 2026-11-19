@@ -14,14 +14,11 @@ public class AuthorizationCatalogTests
     [Fact]
     public void Domain_Codes_Should_Be_Unique_And_Lowercase_Kebab()
     {
-        var codes = AuthorizationCatalog.Domains.Select(domain => domain.Code).ToList();
+        List<string> codes = AuthorizationCatalog.Domains.Select(domain => domain.Code).ToList();
 
         Assert.Equal(codes.Count, codes.Distinct(StringComparer.Ordinal).Count());
 
-        foreach (var code in codes)
-        {
-            Assert.Matches("^[a-z][a-z0-9-]*$", code);
-        }
+        foreach (string code in codes) Assert.Matches("^[a-z][a-z0-9-]*$", code);
     }
 
     /// <summary>
@@ -31,7 +28,7 @@ public class AuthorizationCatalogTests
     [Fact]
     public void Exactly_One_System_Domain_Should_Exist_And_Sort_Last()
     {
-        var systemDomains = AuthorizationCatalog.Domains.Where(domain => domain.IsSystem).ToList();
+        List<BuiltInDomain> systemDomains = AuthorizationCatalog.Domains.Where(domain => domain.IsSystem).ToList();
 
         Assert.Single(systemDomains);
         Assert.Equal(AuthorizationCatalog.PlatformDomain, systemDomains[0].Code);
@@ -46,7 +43,8 @@ public class AuthorizationCatalogTests
     [Fact]
     public void Reserved_Domains_Should_Be_Present()
     {
-        var codes = AuthorizationCatalog.Domains.Select(domain => domain.Code).ToHashSet(StringComparer.Ordinal);
+        HashSet<string> codes = AuthorizationCatalog.Domains.Select(domain => domain.Code)
+            .ToHashSet(StringComparer.Ordinal);
 
         Assert.Contains(AuthorizationCatalog.BanknotePaperDomain, codes);
         Assert.Contains(AuthorizationCatalog.BanknotePrintingDomain, codes);
@@ -56,7 +54,7 @@ public class AuthorizationCatalogTests
     [Fact]
     public void Role_Codes_Should_Be_Unique()
     {
-        var codes = AuthorizationCatalog.Roles.Select(role => role.Code).ToList();
+        List<string> codes = AuthorizationCatalog.Roles.Select(role => role.Code).ToList();
 
         Assert.Equal(codes.Count, codes.Distinct(StringComparer.Ordinal).Count());
         Assert.Contains(AuthorizationCatalog.SuperAdminRole, codes);
@@ -69,7 +67,7 @@ public class AuthorizationCatalogTests
     [Fact]
     public void Only_SuperAdmin_Role_Should_Use_SuperAdmin_Page_Level()
     {
-        var roles = AuthorizationCatalog.Roles
+        List<BuiltInRole> roles = AuthorizationCatalog.Roles
             .Where(role => role.PageLevel >= AuthorizationCatalog.SuperAdminPageLevel)
             .ToList();
 
@@ -83,7 +81,8 @@ public class AuthorizationCatalogTests
     [Fact]
     public void Department_Admin_Should_Be_Disabled_By_Default()
     {
-        var role = AuthorizationCatalog.Roles.Single(item => item.Code == AuthorizationCatalog.DepartmentAdminRole);
+        BuiltInRole role =
+            AuthorizationCatalog.Roles.Single(item => item.Code == AuthorizationCatalog.DepartmentAdminRole);
 
         Assert.False(role.IsEnabled);
         Assert.True(role.IsBuiltin);
@@ -92,12 +91,11 @@ public class AuthorizationCatalogTests
     [Fact]
     public void Page_Levels_Should_Be_View_Or_Configure()
     {
-        foreach (var role in AuthorizationCatalog.Roles.Where(role => role.Code != AuthorizationCatalog.SuperAdminRole))
-        {
+        foreach (BuiltInRole role in AuthorizationCatalog.Roles.Where(role =>
+                     role.Code != AuthorizationCatalog.SuperAdminRole))
             Assert.True(
                 role.PageLevel is AuthorizationCatalog.ViewAccessLevel or AuthorizationCatalog.ConfigureAccessLevel,
                 $"角色 {role.Code} 的页面等级 {role.PageLevel} 不在 1/2 之内");
-        }
     }
 
     /// <summary>
@@ -107,14 +105,11 @@ public class AuthorizationCatalogTests
     [Fact]
     public void Permission_Codes_Should_Be_Unique_And_Action_Scoped()
     {
-        var codes = AuthorizationCatalog.Permissions.Select(permission => permission.Code).ToList();
+        List<string> codes = AuthorizationCatalog.Permissions.Select(permission => permission.Code).ToList();
 
         Assert.Equal(codes.Count, codes.Distinct(StringComparer.Ordinal).Count());
 
-        foreach (var code in codes)
-        {
-            Assert.StartsWith("action.", code, StringComparison.Ordinal);
-        }
+        foreach (string code in codes) Assert.StartsWith("action.", code, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -123,11 +118,11 @@ public class AuthorizationCatalogTests
     [Fact]
     public void Role_Permissions_Should_Reference_Declared_Permissions()
     {
-        var declared = AuthorizationCatalog.Permissions
+        HashSet<string> declared = AuthorizationCatalog.Permissions
             .Select(permission => permission.Code)
             .ToHashSet(StringComparer.Ordinal);
 
-        var offenders = AuthorizationCatalog.Roles
+        List<string> offenders = AuthorizationCatalog.Roles
             .SelectMany(role => role.PermissionCodes.Select(code => (role.Code, Code: code)))
             .Where(pair => !declared.Contains(pair.Code))
             .Select(pair => $"{pair.Code}（角色 {pair.Code}）")
@@ -142,7 +137,7 @@ public class AuthorizationCatalogTests
     [Fact]
     public void Viewer_Role_Should_Not_Carry_Write_Permissions()
     {
-        var viewer = AuthorizationCatalog.Roles.Single(role => role.Code == AuthorizationCatalog.ViewerRole);
+        BuiltInRole viewer = AuthorizationCatalog.Roles.Single(role => role.Code == AuthorizationCatalog.ViewerRole);
 
         Assert.Empty(viewer.PermissionCodes);
         Assert.Equal(AuthorizationCatalog.ViewAccessLevel, viewer.PageLevel);
@@ -154,7 +149,8 @@ public class AuthorizationCatalogTests
     [Fact]
     public void Technician_Role_Should_Allow_Shift_Management()
     {
-        var technician = AuthorizationCatalog.Roles.Single(role => role.Code == AuthorizationCatalog.TechnicianRole);
+        BuiltInRole technician =
+            AuthorizationCatalog.Roles.Single(role => role.Code == AuthorizationCatalog.TechnicianRole);
 
         Assert.Equal(AuthorizationCatalog.ConfigureAccessLevel, technician.PageLevel);
         Assert.Contains(AuthorizationCatalog.ShiftManagePermission, technician.PermissionCodes);

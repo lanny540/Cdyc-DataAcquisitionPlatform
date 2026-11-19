@@ -1,8 +1,5 @@
 @inherits LayoutComponentBase
 
-@* 登录与改密页的极简外壳：没有顶栏、抽屉与菜单。
-   未登录时若仍渲染主框架，用户会看到一个点不动的导航，误以为是故障。 *@
-@* 登录页同样固定深色：未登录时看到的配色必须与登录后一致。 *@
 <MudThemeProvider Theme="_theme" IsDarkMode="true"/>
 <MudPopoverProvider/>
 <MudSnackbarProvider/>
@@ -22,8 +19,10 @@
 </div>
 
 @code {
+
     /// <summary>
     /// 与主框架共用同一份色板，避免两处各写一套导致配色漂移。
     /// </summary>
     private readonly MudTheme _theme = PlatformTheme.Create();
+
 }

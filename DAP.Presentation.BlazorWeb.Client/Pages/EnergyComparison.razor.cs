@@ -100,7 +100,7 @@ public partial class EnergyComparison
     /// </summary>
     private Task LoadAsync()
     {
-        return LoadInternalAsync(silent: false);
+        return LoadInternalAsync(false);
     }
 
     /// <summary>
@@ -108,16 +108,13 @@ public partial class EnergyComparison
     /// </summary>
     private Task RefreshSilentlyAsync()
     {
-        return LoadInternalAsync(silent: true);
+        return LoadInternalAsync(true);
     }
 
     /// <param name="silent">true 表示定时触发的静默刷新。</param>
     private async Task LoadInternalAsync(bool silent)
     {
-        if (silent && (_isLoading || _isRefreshing))
-        {
-            return;
-        }
+        if (silent && (_isLoading || _isRefreshing)) return;
 
         if (silent)
         {
@@ -154,21 +151,14 @@ public partial class EnergyComparison
                 : $"班组对比加载失败：{UserFacingErrors.Describe(ex)}";
             _messageSeverity = silent ? Severity.Warning : Severity.Error;
 
-            if (!silent)
-            {
-                _comparison = null;
-            }
+            if (!silent) _comparison = null;
         }
         finally
         {
             if (silent)
-            {
                 _isRefreshing = false;
-            }
             else
-            {
                 _isLoading = false;
-            }
         }
     }
 
@@ -196,12 +186,9 @@ public partial class EnergyComparison
     /// </summary>
     private List<ChartSeries<double>> BuildTeamSeries(string metricCode)
     {
-        if (_comparison is null)
-        {
-            return [];
-        }
+        if (_comparison is null) return [];
 
-        var metricName = Metrics
+        string metricName = Metrics
             .FirstOrDefault(metric => metric.MetricCode == metricCode)?.MetricName ?? metricCode;
 
         return

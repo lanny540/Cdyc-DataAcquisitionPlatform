@@ -96,10 +96,10 @@
     else
     {
         <MudGrid Spacing="3">
-            @for (var i = 0; i < SummaryCards.Length; i++)
+            @for (int i = 0; i < SummaryCards.Length; i++)
             {
-                var card = SummaryCards[i];
-                var cardIndex = i;
+                SummaryCard card = SummaryCards[i];
+                int cardIndex = i;
 
                 <MudItem xs="12" sm="6" lg="3">
                     <MudPaper
@@ -138,7 +138,7 @@
                       Class="platform-data-table">
                 <HeaderContent>
                     <MudTh>班组</MudTh>
-                    @foreach (var metric in _metrics)
+                    @foreach (EnergyMetricDescriptorDto metric in _metrics)
                     {
                         <MudTh>@($"{metric.MetricName}（{metric.Unit}）")</MudTh>
                     }
@@ -148,7 +148,7 @@
                     <MudTd DataLabel="班组">
                         <MudText Typo="Typo.body2" Class="platform-table-primary">@context.TeamName</MudText>
                     </MudTd>
-                    @for (var i = 0; i < context.Values.Length; i++)
+                    @for (int i = 0; i < context.Values.Length; i++)
                     {
                         <MudTd DataLabel="指标">
                             <MudText Typo="Typo.body2">@FormatNullable(context.Values[i])</MudText>
@@ -160,7 +160,7 @@
                 </RowTemplate>
                 <FooterContent>
                     <MudTd>合计</MudTd>
-                    @foreach (var total in _metricTotals)
+                    @foreach (decimal total in _metricTotals)
                     {
                         <MudTd DataLabel="合计">
                             <MudText Typo="Typo.body2" Class="platform-table-primary">@FormatValue(total)</MudText>

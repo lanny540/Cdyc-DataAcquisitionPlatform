@@ -111,7 +111,7 @@ public static class AcquisitionServerEndpoints
         group.MapDelete("/{id:guid}", async (Guid id, IAcquisitionServerService service,
                 CancellationToken cancellationToken) =>
             {
-                var (succeeded, errorMessage) =
+                (bool succeeded, string? errorMessage) =
                     await service.DeleteServerAsync(id, cancellationToken);
 
                 return succeeded

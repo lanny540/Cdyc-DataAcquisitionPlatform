@@ -19,15 +19,11 @@ public static class LdapFilter
     /// <returns>转义后的值。</returns>
     public static string Escape(string? value)
     {
-        if (string.IsNullOrEmpty(value))
-        {
-            return string.Empty;
-        }
+        if (string.IsNullOrEmpty(value)) return string.Empty;
 
         StringBuilder builder = new(value.Length);
 
-        foreach (var character in value)
-        {
+        foreach (char character in value)
             switch (character)
             {
                 case '\\':
@@ -49,7 +45,6 @@ public static class LdapFilter
                     builder.Append(character);
                     break;
             }
-        }
 
         return builder.ToString();
     }
@@ -82,20 +77,13 @@ public static class LdapAttributeMapper
     /// <returns>OU 名称；解析不到时返回 null。</returns>
     public static string? ResolveOuName(string? distinguishedName, int level)
     {
-        if (level < 1 || string.IsNullOrWhiteSpace(distinguishedName))
-        {
-            return null;
-        }
+        if (level < 1 || string.IsNullOrWhiteSpace(distinguishedName)) return null;
 
         List<string> ous = [];
 
-        foreach (var part in SplitDn(distinguishedName))
-        {
+        foreach (string part in SplitDn(distinguishedName))
             if (part.StartsWith("OU=", StringComparison.OrdinalIgnoreCase))
-            {
                 ous.Add(part[3..]);
-            }
-        }
 
         return ous.Count >= level ? ous[level - 1] : null;
     }
@@ -111,9 +99,9 @@ public static class LdapAttributeMapper
         List<string> parts = [];
         StringBuilder current = new();
 
-        for (var index = 0; index < distinguishedName.Length; index++)
+        for (int index = 0; index < distinguishedName.Length; index++)
         {
-            var character = distinguishedName[index];
+            char character = distinguishedName[index];
 
             if (character == '\\' && index + 1 < distinguishedName.Length)
             {
@@ -133,10 +121,7 @@ public static class LdapAttributeMapper
             current.Append(character);
         }
 
-        if (current.Length > 0)
-        {
-            parts.Add(current.ToString().Trim());
-        }
+        if (current.Length > 0) parts.Add(current.ToString().Trim());
 
         return parts;
     }
@@ -160,36 +145,25 @@ public static class LdapAttributeMapper
     /// <returns>用户视图；连登录账号都取不到时返回 null。</returns>
     public static LdapDirectoryUser? Map(ILdapEntry entry, LdapOptions options)
     {
-        var userName = NormalizeUserName(entry.GetString(options.LoginAttribute));
+        string userName = NormalizeUserName(entry.GetString(options.LoginAttribute));
 
-        var externalId = ReadExternalId(entry, options);
+        string externalId = ReadExternalId(entry, options);
 
-        if (externalId.Length == 0)
-        {
-            externalId = userName;
-        }
+        if (externalId.Length == 0) externalId = userName;
 
-        if (externalId.Length == 0)
-        {
-            return null;
-        }
+        if (externalId.Length == 0) return null;
 
-        var displayName = entry.GetString(options.DisplayNameAttribute)?.Trim();
+        string? displayName = entry.GetString(options.DisplayNameAttribute)?.Trim();
 
-        if (string.IsNullOrWhiteSpace(displayName))
-        {
-            displayName = userName.Length > 0 ? userName : externalId;
-        }
+        if (string.IsNullOrWhiteSpace(displayName)) displayName = userName.Length > 0 ? userName : externalId;
 
-        var department = entry.GetString(options.DepartmentAttribute)?.Trim();
+        string? department = entry.GetString(options.DepartmentAttribute)?.Trim();
 
         if (string.IsNullOrWhiteSpace(department))
-        {
             department = ResolveOuName(entry.DistinguishedName, options.DepartmentOuLevel);
-        }
 
-        var email = entry.GetString(options.MailAttribute)?.Trim();
-        var employeeNo = entry.GetString(options.EmployeeNoAttribute)?.Trim();
+        string? email = entry.GetString(options.MailAttribute)?.Trim();
+        string? employeeNo = entry.GetString(options.EmployeeNoAttribute)?.Trim();
 
         return new LdapDirectoryUser(
             externalId,
@@ -214,38 +188,26 @@ public static class LdapAttributeMapper
 
     private static string ReadExternalId(ILdapEntry entry, LdapOptions options)
     {
-        var raw = entry.GetString(options.UniqueIdAttribute)?.Trim();
+        string? raw = entry.GetString(options.UniqueIdAttribute)?.Trim();
 
-        if (!string.IsNullOrWhiteSpace(raw))
-        {
-            return raw;
-        }
+        if (!string.IsNullOrWhiteSpace(raw)) return raw;
 
-        var bytes = entry.GetBytes(options.UniqueIdAttribute);
+        byte[]? bytes = entry.GetBytes(options.UniqueIdAttribute);
 
-        return bytes is { Length: > 0 } ? ToHexString(bytes) : string.Empty;
+        return bytes is {Length: > 0} ? ToHexString(bytes) : string.Empty;
     }
 
     private static bool ReadEnabled(ILdapEntry entry, LdapOptions options)
     {
-        if (string.IsNullOrWhiteSpace(options.DisabledFlagAttribute))
-        {
-            return true;
-        }
+        if (string.IsNullOrWhiteSpace(options.DisabledFlagAttribute)) return true;
 
-        var raw = entry.GetString(options.DisabledFlagAttribute);
+        string? raw = entry.GetString(options.DisabledFlagAttribute);
 
         // 属性缺失（OpenLDAP 没有 userAccountControl）时不能当成停用：
         // 那会让整个目录的账号在第一次同步后全部失效。
-        if (string.IsNullOrWhiteSpace(raw))
-        {
-            return true;
-        }
+        if (string.IsNullOrWhiteSpace(raw)) return true;
 
-        if (!int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var flags))
-        {
-            return true;
-        }
+        if (!int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out int flags)) return true;
 
         return (flags & options.DisabledFlagMask) == 0;
     }

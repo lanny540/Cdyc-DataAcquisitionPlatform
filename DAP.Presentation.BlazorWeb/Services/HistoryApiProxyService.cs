@@ -59,9 +59,9 @@ public sealed class HistoryApiProxyService(
         HistoryApiConnectionOptions connectionOptions,
         CancellationToken cancellationToken = default)
     {
-        var trimmedTagNames = request.TagNames.Trim();
-        var currentValuePath = ResolvePath(connectionOptions.CurrentValuePath, "currentValuePath");
-        var requestUri = $"{NormalizePath(currentValuePath)}?tagNames={Uri.EscapeDataString(trimmedTagNames)}";
+        string trimmedTagNames = request.TagNames.Trim();
+        string currentValuePath = ResolvePath(connectionOptions.CurrentValuePath, "currentValuePath");
+        string requestUri = $"{NormalizePath(currentValuePath)}?tagNames={Uri.EscapeDataString(trimmedTagNames)}";
 
         return SendAuthorizedGetAsync(
             "最新值",
@@ -76,9 +76,9 @@ public sealed class HistoryApiProxyService(
         HistoryApiConnectionOptions connectionOptions,
         CancellationToken cancellationToken = default)
     {
-        var tagName = request.TagName.Trim();
-        var rawDataPath = ResolvePath(connectionOptions.RawDataPathPrefix, "rawDataPathPrefix");
-        var requestUri =
+        string tagName = request.TagName.Trim();
+        string rawDataPath = ResolvePath(connectionOptions.RawDataPathPrefix, "rawDataPathPrefix");
+        string requestUri =
             $"{NormalizePath(rawDataPath)}/{Uri.EscapeDataString(tagName)}/{FormatUtcTimestamp(request.StartTime)}/{FormatUtcTimestamp(request.EndTime)}/{request.StartIndex}/{request.Count}";
 
         return SendAuthorizedGetAsync(
@@ -96,16 +96,14 @@ public sealed class HistoryApiProxyService(
         string requestedTagNames,
         CancellationToken cancellationToken)
     {
-        var resolvedBaseAddress = connectionOptions.BaseAddress?.Trim() ?? string.Empty;
-        var useMockResponses = connectionOptions.UseMockResponses ?? _runtimeOptions.UseMockResponses;
+        string resolvedBaseAddress = connectionOptions.BaseAddress?.Trim() ?? string.Empty;
+        bool useMockResponses = connectionOptions.UseMockResponses ?? _runtimeOptions.UseMockResponses;
 
-        if (useMockResponses)
-        {
-            return CreateMockResponse(queryType, requestUri, resolvedBaseAddress, requestedTagNames);
-        }
+        if (useMockResponses) return CreateMockResponse(queryType, requestUri, resolvedBaseAddress, requestedTagNames);
 
         // 提到 try 之外，便于 catch 区分「自身超时」与「调用方取消」。
-        using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        using CancellationTokenSource
+            timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutSource.CancelAfter(TimeSpan.FromSeconds(
             Math.Max(connectionOptions.RequestTimeoutSeconds ?? _runtimeOptions.DefaultRequestTimeoutSeconds,
                 MinimumTimeoutSeconds)));
@@ -116,17 +114,17 @@ public sealed class HistoryApiProxyService(
 
             using HttpClient client = CreateClient(resolvedBaseAddress, connectionOptions);
 
-            var accessToken = await GetAccessTokenAsync(
+            string accessToken = await GetAccessTokenAsync(
                 client,
                 resolvedBaseAddress,
                 connectionOptions,
                 timeoutSource.Token);
 
-            using var requestMessage = new HttpRequestMessage(HttpMethod.Get, requestUri);
+            using HttpRequestMessage requestMessage = new(HttpMethod.Get, requestUri);
             requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
             using HttpResponseMessage response = await client.SendAsync(requestMessage, timeoutSource.Token);
-            var payload = await response.Content.ReadAsStringAsync(cancellationToken);
+            string payload = await response.Content.ReadAsStringAsync(cancellationToken);
 
             return new HistoryApiQueryResponse(
                 response.IsSuccessStatusCode,
@@ -219,23 +217,23 @@ public sealed class HistoryApiProxyService(
         string requestedTagNames)
     {
         DateTimeOffset now = DateTimeOffset.UtcNow;
-        var currentValue = 12.10m + (now.Second % 17 * 0.07m);
-        var midValue = currentValue - 0.11m;
-        var earlyValue = currentValue - 0.24m;
-        var requestedTags = ResolveRequestedTags(requestedTagNames);
+        decimal currentValue = 12.10m + now.Second % 17 * 0.07m;
+        decimal midValue = currentValue - 0.11m;
+        decimal earlyValue = currentValue - 0.24m;
+        string[] requestedTags = ResolveRequestedTags(requestedTagNames);
         MockHistorySample[] payloadSamples = queryType == "时间段原始数据"
             ? requestedTags
                 .SelectMany(tagName => CreateRawMockSamples(tagName, now, earlyValue, midValue, currentValue))
                 .ToArray()
             : requestedTags.Select((tagName, index) => new MockHistorySample(
                     tagName,
-                    currentValue + (index * 0.03m),
+                    currentValue + index * 0.03m,
                     now.ToString("O", CultureInfo.InvariantCulture)))
                 .ToArray();
 
-        var payload = JsonSerializer.Serialize(payloadSamples);
+        string payload = JsonSerializer.Serialize(payloadSamples);
 
-        var requestTarget = string.IsNullOrWhiteSpace(resolvedBaseAddress)
+        string requestTarget = string.IsNullOrWhiteSpace(resolvedBaseAddress)
             ? $"mock://history-api{requestUri}"
             : new Uri(new Uri(AppendTrailingSlash(resolvedBaseAddress)), requestUri).ToString();
 
@@ -251,7 +249,7 @@ public sealed class HistoryApiProxyService(
 
     private static string[] ResolveRequestedTags(string requestedTagNames)
     {
-        var tags = requestedTagNames
+        string[] tags = requestedTagNames
             .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
             .Where(static tag => !string.IsNullOrWhiteSpace(tag))
             .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -290,19 +288,17 @@ public sealed class HistoryApiProxyService(
         HistoryApiConnectionOptions connectionOptions,
         CancellationToken cancellationToken)
     {
-        var clientId = connectionOptions.ClientId?.Trim() ?? string.Empty;
-        var tokenCacheKey = $"{TokenCacheKey}:{resolvedBaseAddress}:{clientId}";
+        string clientId = connectionOptions.ClientId?.Trim() ?? string.Empty;
+        string tokenCacheKey = $"{TokenCacheKey}:{resolvedBaseAddress}:{clientId}";
 
         if (memoryCache.TryGetValue<HistoryApiTokenCacheEntry>(tokenCacheKey,
                 out HistoryApiTokenCacheEntry? cachedEntry) &&
             cachedEntry is not null &&
             cachedEntry.ExpiresAt > DateTimeOffset.UtcNow.AddMinutes(1))
-        {
             return cachedEntry.AccessToken;
-        }
 
-        var oauthTokenPath = ResolvePath(connectionOptions.OAuthTokenPath, "oauthTokenPath");
-        using var request = new HttpRequestMessage(HttpMethod.Post, NormalizePath(oauthTokenPath))
+        string oauthTokenPath = ResolvePath(connectionOptions.OAuthTokenPath, "oauthTokenPath");
+        using HttpRequestMessage request = new(HttpMethod.Post, NormalizePath(oauthTokenPath))
         {
             Content = new FormUrlEncodedContent(
             [
@@ -316,7 +312,7 @@ public sealed class HistoryApiProxyService(
                 System.Text.Encoding.UTF8.GetBytes($"{clientId}:{connectionOptions.ClientSecret?.Trim()}")));
 
         using HttpResponseMessage response = await client.SendAsync(request, cancellationToken);
-        var payload = await response.Content.ReadAsStringAsync(cancellationToken);
+        string payload = await response.Content.ReadAsStringAsync(cancellationToken);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -331,16 +327,14 @@ public sealed class HistoryApiProxyService(
                 $"获取 OAuth Token 失败，上游返回 {(int) response.StatusCode} {response.ReasonPhrase}。");
         }
 
-        var tokenResponse =
+        HistoryApiTokenResponse? tokenResponse =
             JsonSerializer.Deserialize<HistoryApiTokenResponse>(payload);
 
         if (tokenResponse is null || string.IsNullOrWhiteSpace(tokenResponse.AccessToken))
-        {
             throw new InvalidOperationException("获取 OAuth Token 失败，服务端未返回有效的 access_token。");
-        }
 
         DateTimeOffset expiresAt = DateTimeOffset.UtcNow.AddSeconds(Math.Max(tokenResponse.ExpiresIn - 60, 60));
-        var cacheEntry = new HistoryApiTokenCacheEntry(tokenResponse.AccessToken, expiresAt);
+        HistoryApiTokenCacheEntry cacheEntry = new(tokenResponse.AccessToken, expiresAt);
         memoryCache.Set(tokenCacheKey, cacheEntry, expiresAt);
 
         return tokenResponse.AccessToken;
@@ -349,15 +343,11 @@ public sealed class HistoryApiProxyService(
     private static void ValidateConfiguration(string resolvedBaseAddress, HistoryApiConnectionOptions connectionOptions)
     {
         if (string.IsNullOrWhiteSpace(resolvedBaseAddress))
-        {
             throw new InvalidOperationException("采集服务器未配置基础地址，请在采集服务器配置页面填写后再测试。");
-        }
 
         if (string.IsNullOrWhiteSpace(connectionOptions.ClientId) ||
             string.IsNullOrWhiteSpace(connectionOptions.ClientSecret))
-        {
             throw new InvalidOperationException("采集服务器未配置 ClientId 或 ClientSecret，请在采集服务器配置页面填写后再测试。");
-        }
     }
 
     private HttpClient CreateClient(string resolvedBaseAddress, HistoryApiConnectionOptions connectionOptions)
@@ -365,13 +355,13 @@ public sealed class HistoryApiProxyService(
         if (connectionOptions.IgnoreServerCertificateErrors == true)
         {
             // 自签名证书场景：改用允许无效证书的处理器重新创建客户端。
-            var handler = new HttpClientHandler
+            HttpClientHandler handler = new()
             {
                 ServerCertificateCustomValidationCallback =
                     HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
             };
 
-            var lenientClient = new HttpClient(handler)
+            HttpClient lenientClient = new(handler)
             {
                 BaseAddress = new Uri(AppendTrailingSlash(resolvedBaseAddress)),
                 Timeout = Timeout.InfiniteTimeSpan
@@ -410,10 +400,7 @@ public sealed class HistoryApiProxyService(
 
     private static string NormalizePath(string path)
     {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            return "/";
-        }
+        if (string.IsNullOrWhiteSpace(path)) return "/";
 
         return path.StartsWith("/", StringComparison.Ordinal) ? path : $"/{path}";
     }

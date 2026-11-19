@@ -31,13 +31,13 @@ public abstract partial class AutoRefreshPageViewModelBase : PageViewModelBase
     {
         RefreshIntervalOptions = new ObservableCollection<RefreshIntervalOption>(
         [
-            new(30, "30 秒"),
-            new(60, "1 分钟"),
-            new(180, "3 分钟"),
-            new(300, "5 分钟")
+            new RefreshIntervalOption(30, "30 秒"),
+            new RefreshIntervalOption(60, "1 分钟"),
+            new RefreshIntervalOption(180, "3 分钟"),
+            new RefreshIntervalOption(300, "5 分钟")
         ]);
 
-        _autoRefreshTimer = new DispatcherTimer { Interval = DefaultRefreshInterval };
+        _autoRefreshTimer = new DispatcherTimer {Interval = DefaultRefreshInterval};
         _autoRefreshTimer.Tick += OnAutoRefreshTick;
 
         // 在下拉项与定时器都就绪后再落默认值，避免变更回调里访问未初始化的字段。
@@ -53,16 +53,14 @@ public abstract partial class AutoRefreshPageViewModelBase : PageViewModelBase
     /// <summary>
     /// 当前刷新频率。
     /// </summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(AutoRefreshHint))]
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(AutoRefreshHint))]
     private RefreshIntervalOption? _selectedRefreshInterval;
 
     /// <summary>
     /// 是否自动刷新。默认关闭：能耗页常驻时不该无条件持续打接口，
     /// 需要看板常驻的用户自己打开（与 Web 端能耗页同一取舍）。
     /// </summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(AutoRefreshHint))]
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(AutoRefreshHint))]
     private bool _autoRefreshEnabled;
 
     /// <summary>
@@ -118,10 +116,7 @@ public abstract partial class AutoRefreshPageViewModelBase : PageViewModelBase
     /// </summary>
     partial void OnSelectedRefreshIntervalChanged(RefreshIntervalOption? value)
     {
-        if (value is null)
-        {
-            return;
-        }
+        if (value is null) return;
 
         _autoRefreshTimer.Interval = value.Interval;
         RestartCountdown();
@@ -146,10 +141,7 @@ public abstract partial class AutoRefreshPageViewModelBase : PageViewModelBase
     /// </summary>
     private void RestartCountdown()
     {
-        if (!_autoRefreshTimer.IsEnabled)
-        {
-            return;
-        }
+        if (!_autoRefreshTimer.IsEnabled) return;
 
         _autoRefreshTimer.Stop();
         _autoRefreshTimer.Start();
@@ -157,10 +149,7 @@ public abstract partial class AutoRefreshPageViewModelBase : PageViewModelBase
 
     private void OnAutoRefreshTick(object? sender, EventArgs e)
     {
-        if (!_isActive || IsLoading)
-        {
-            return;
-        }
+        if (!_isActive || IsLoading) return;
 
         _ = ReloadAsync();
     }

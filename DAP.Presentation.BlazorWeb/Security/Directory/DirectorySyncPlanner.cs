@@ -102,7 +102,6 @@ public static class DirectorySyncPlanner
         Guid? mappedDepartmentId)
     {
         if (local is null)
-        {
             return new DirectorySyncDecision(
                 DirectorySyncAction.Create,
                 record.DisplayName,
@@ -110,11 +109,10 @@ public static class DirectorySyncPlanner
                 mappedDepartmentId,
                 record.IsEnabled,
                 ["created"]);
-        }
 
         List<string> changed = [];
 
-        var displayName = local.DisplayName;
+        string displayName = local.DisplayName;
 
         if (!string.IsNullOrWhiteSpace(record.DisplayName)
             && !string.Equals(record.DisplayName, local.DisplayName, StringComparison.Ordinal))
@@ -123,7 +121,7 @@ public static class DirectorySyncPlanner
             changed.Add("display_name");
         }
 
-        var email = local.Email;
+        string? email = local.Email;
 
         if (!string.IsNullOrWhiteSpace(record.Email)
             && !string.Equals(record.Email, local.Email, StringComparison.OrdinalIgnoreCase))
@@ -132,7 +130,7 @@ public static class DirectorySyncPlanner
             changed.Add("email");
         }
 
-        var departmentId = local.DepartmentId;
+        Guid? departmentId = local.DepartmentId;
 
         // 匹配不到部门时保留原归属：目录里部门字段写错一次就把人踢出所有业务域，代价太大。
         if (mappedDepartmentId is { } mapped && mapped != local.DepartmentId)
@@ -141,8 +139,8 @@ public static class DirectorySyncPlanner
             changed.Add("department_id");
         }
 
-        var isEnabled = local.IsEnabled;
-        var keptManualDisable = false;
+        bool isEnabled = local.IsEnabled;
+        bool keptManualDisable = false;
 
         if (!record.IsEnabled && local.IsEnabled && !local.IsSuperAdmin)
         {
@@ -166,13 +164,14 @@ public static class DirectorySyncPlanner
             }
         }
 
-        var action = changed.Count == 0
+        DirectorySyncAction action = changed.Count == 0
             ? DirectorySyncAction.Unchanged
             : isEnabled == false && local.IsEnabled
                 ? DirectorySyncAction.Disable
                 : DirectorySyncAction.Update;
 
-        return new DirectorySyncDecision(action, displayName, email, departmentId, isEnabled, changed, keptManualDisable);
+        return new DirectorySyncDecision(action, displayName, email, departmentId, isEnabled, changed,
+            keptManualDisable);
     }
 }
 
@@ -189,11 +188,11 @@ public static class DirectoryUserFactory
     /// <returns>账号名。</returns>
     public static string DeriveUserName(LdapDirectoryUser record)
     {
-        var candidate = LdapAttributeMapper.NormalizeUserName(record.UserName);
+        string candidate = LdapAttributeMapper.NormalizeUserName(record.UserName);
 
         if (candidate.Length == 0)
         {
-            var tail = record.ExternalId.Length > 12 ? record.ExternalId[..12] : record.ExternalId;
+            string tail = record.ExternalId.Length > 12 ? record.ExternalId[..12] : record.ExternalId;
             candidate = $"ldap-{tail}".ToLowerInvariant();
         }
 

@@ -74,30 +74,23 @@ public partial class DepartmentGrants
 
     private bool IsGranted(AdminDepartmentDto department, (Guid Id, string Name) domain)
     {
-        if (_pendingGrants.TryGetValue(department.Id, out var pending))
-        {
-            return pending.Contains(domain.Id);
-        }
+        if (_pendingGrants.TryGetValue(department.Id, out HashSet<Guid>? pending)) return pending.Contains(domain.Id);
 
         return department.GrantedDomainIds.Contains(domain.Id);
     }
 
     private void ToggleGrant(AdminDepartmentDto department, (Guid Id, string Name) domain, bool granted)
     {
-        if (!_pendingGrants.TryGetValue(department.Id, out var pending))
+        if (!_pendingGrants.TryGetValue(department.Id, out HashSet<Guid>? pending))
         {
             pending = [.. department.GrantedDomainIds];
             _pendingGrants[department.Id] = pending;
         }
 
         if (granted)
-        {
             pending.Add(domain.Id);
-        }
         else
-        {
             pending.Remove(domain.Id);
-        }
     }
 
     /// <summary>
@@ -106,21 +99,15 @@ public partial class DepartmentGrants
     private bool? UnsavedGrants(AdminDepartmentDto department)
     {
         // 返回值只用于按钮禁用判定：有差异返回 false（启用），无差异返回 null（禁用）。
-        if (!_pendingGrants.TryGetValue(department.Id, out var pending))
-        {
-            return null;
-        }
+        if (!_pendingGrants.TryGetValue(department.Id, out HashSet<Guid>? pending)) return null;
 
-        var current = department.GrantedDomainIds.ToHashSet();
+        HashSet<Guid> current = department.GrantedDomainIds.ToHashSet();
         return pending.SetEquals(current) ? null : false;
     }
 
     private async Task SaveGrantsAsync(AdminDepartmentDto department)
     {
-        if (!_pendingGrants.TryGetValue(department.Id, out var pending))
-        {
-            return;
-        }
+        if (!_pendingGrants.TryGetValue(department.Id, out HashSet<Guid>? pending)) return;
 
         try
         {
@@ -173,7 +160,7 @@ public partial class DepartmentGrants
 
         try
         {
-            var request = new AdminDepartmentUpsertRequest(
+            AdminDepartmentUpsertRequest request = new(
                 _editorCode.Trim(),
                 _editorName.Trim(),
                 string.IsNullOrWhiteSpace(_editorExternalCode) ? null : _editorExternalCode.Trim(),

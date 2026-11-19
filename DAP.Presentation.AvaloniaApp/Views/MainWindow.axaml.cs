@@ -31,15 +31,12 @@ public partial class MainWindow : UrsaWindow
     {
         Screen? screen = Screens.ScreenFromWindow(this) ?? Screens.Primary;
 
-        if (screen is null)
-        {
-            return;
-        }
+        if (screen is null) return;
 
         PixelRect workingArea = screen.WorkingArea;
 
-        var width = Math.Min(PreferredWidth, Math.Max(MinimumWidth, workingArea.Width - 80));
-        var height = Math.Min(PreferredHeight, Math.Max(MinimumHeight, workingArea.Height - 80));
+        double width = Math.Min(PreferredWidth, Math.Max(MinimumWidth, workingArea.Width - 80));
+        double height = Math.Min(PreferredHeight, Math.Max(MinimumHeight, workingArea.Height - 80));
 
         Width = width;
         Height = height;
@@ -50,5 +47,4 @@ public partial class MainWindow : UrsaWindow
             workingArea.X + Math.Max(0, (workingArea.Width - (int) width) / 2),
             workingArea.Y + Math.Max(0, (workingArea.Height - (int) height) / 2));
     }
-
 }

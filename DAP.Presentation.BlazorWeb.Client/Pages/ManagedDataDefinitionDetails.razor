@@ -381,7 +381,7 @@
                                 else
                                 {
                                     <MudStack Spacing="1">
-                                        @foreach (var item in BusinessTagItems)
+                                        @foreach (KeyValuePair<string, string> item in BusinessTagItems)
                                         {
                                             <div class="node-details-drawer-card">
                                                 <MudText Typo="Typo.caption"
@@ -404,7 +404,7 @@
                                 else
                                 {
                                     <MudStack Spacing="1">
-                                        @foreach (var item in ConfigurationItems)
+                                        @foreach (KeyValuePair<string, string> item in ConfigurationItems)
                                         {
                                             <div class="node-details-drawer-card">
                                                 <MudText Typo="Typo.caption"
