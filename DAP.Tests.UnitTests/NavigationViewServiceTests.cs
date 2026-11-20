@@ -23,7 +23,7 @@ public class NavigationViewServiceTests
     /// <summary>超管主体：域与页面等级均短路。</summary>
     private static ClaimsPrincipal SuperAdmin()
     {
-        return Principal([], AuthorizationCatalog.SuperAdminPageLevel, [], isSuperAdmin: true);
+        return Principal([], AuthorizationCatalog.SuperAdminPageLevel, [], true);
     }
 
     /// <summary>普通用户主体。</summary>
@@ -42,8 +42,8 @@ public class NavigationViewServiceTests
             domains,
             pageLevel,
             permissions,
-            MustChangePassword: false,
-            IsSuperAdmin: isSuperAdmin);
+            false,
+            isSuperAdmin);
 
         return PlatformClaimsFactory.CreatePrincipal(user, SeedTime);
     }
@@ -104,7 +104,7 @@ public class NavigationViewServiceTests
     {
         using SqliteTestDatabase database = new();
         BusinessDomain alpha = Domain("alpha", "甲域", 10);
-        BusinessDomain system = Domain("sys", "系统域", 20, isSystem: true);
+        BusinessDomain system = Domain("sys", "系统域", 20, true);
         BusinessDomain empty = Domain("empty", "空域", 30);
         BusinessDomain disabled = Domain("off", "停用域", 5, isEnabled: false);
         Seed(database, [alpha, system, empty, disabled],
@@ -129,7 +129,7 @@ public class NavigationViewServiceTests
         using SqliteTestDatabase database = new();
         BusinessDomain alpha = Domain("alpha", "甲域", 10);
         BusinessDomain beta = Domain("beta", "乙域", 20);
-        BusinessDomain system = Domain("sys", "系统域", 30, isSystem: true);
+        BusinessDomain system = Domain("sys", "系统域", 30, true);
         Seed(database, [alpha, beta, system],
             [Page(alpha.Id, "p1", "页面一", 10), Page(beta.Id, "p2", "页面二", 10)]);
 
@@ -145,8 +145,8 @@ public class NavigationViewServiceTests
     {
         using SqliteTestDatabase database = new();
         BusinessDomain beta = Domain("beta", "乙域", 10);
-        DomainPage view = Page(beta.Id, "view", "查看页", 10, accessLevel: 1);
-        DomainPage config = Page(beta.Id, "config", "配置页", 20, accessLevel: 2);
+        DomainPage view = Page(beta.Id, "view", "查看页", 10, 1);
+        DomainPage config = Page(beta.Id, "config", "配置页", 20, 2);
         Seed(database, [beta], [view, config]);
 
         NavigationViewService service = new(HostingFakes.CreateScopeFactory(database));
@@ -262,8 +262,8 @@ public class NavigationViewServiceTests
         NavigationDto navigation = await service.BuildAsync(
             Principal([], 2, [AuthorizationCatalog.UserManagePermission]));
 
-        NavigationDomainDto? shared = navigation.Domains.SingleOrDefault(
-            domain => domain.Code == NavigationViewService.SharedDomainCode);
+        NavigationDomainDto? shared =
+            navigation.Domains.SingleOrDefault(domain => domain.Code == NavigationViewService.SharedDomainCode);
 
         Assert.NotNull(shared);
         Assert.Equal("权限管理", shared.Name);

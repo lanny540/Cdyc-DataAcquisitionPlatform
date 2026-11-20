@@ -98,12 +98,14 @@ public sealed class AcquisitionServerConnectionResolver(
         ServerConnection? connection = null;
 
         if (serverConnectionId.HasValue)
+        {
             connection = await dbContext.ServerConnections
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
                     item => item.Id == serverConnectionId.Value &&
                             item.AcquisitionType == serverType,
                     cancellationToken);
+        }
 
         connection ??= await dbContext.ServerConnections
             .AsNoTracking()
@@ -134,8 +136,12 @@ public sealed class AcquisitionServerConnectionResolver(
         // 凭据在库里是密文：发给上游之前必须还原，否则拿一段 dp:v1:... 去换 token，
         // 现象是「配置看起来都对、上游一直 401」。
         foreach (string key in configuration.Keys.ToArray())
+        {
             if (AcquisitionServerCatalog.IsServerSecret(connection.AcquisitionType, key))
+            {
                 configuration[key] = secretProtector.Unprotect(configuration[key]);
+            }
+        }
 
         // 接口路径等可选字段缺失时，套用类型目录登记的默认值，避免运行期拼接出错误地址。
         Dictionary<string, string> merged =
@@ -151,7 +157,10 @@ public sealed class AcquisitionServerConnectionResolver(
 
     private static Dictionary<string, string> ParseConfiguration(string json)
     {
-        if (string.IsNullOrWhiteSpace(json)) return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
 
         try
         {

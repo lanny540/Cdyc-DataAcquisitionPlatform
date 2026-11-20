@@ -1,5 +1,4 @@
 using DAP.Core.Shared.Contracts;
-using DAP.Presentation.BlazorWeb.Client.Services;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
@@ -114,7 +113,10 @@ public partial class EnergyComparison
     /// <param name="silent">true 表示定时触发的静默刷新。</param>
     private async Task LoadInternalAsync(bool silent)
     {
-        if (silent && (_isLoading || _isRefreshing)) return;
+        if (silent && (_isLoading || _isRefreshing))
+        {
+            return;
+        }
 
         if (silent)
         {
@@ -151,14 +153,21 @@ public partial class EnergyComparison
                 : $"班组对比加载失败：{UserFacingErrors.Describe(ex)}";
             _messageSeverity = silent ? Severity.Warning : Severity.Error;
 
-            if (!silent) _comparison = null;
+            if (!silent)
+            {
+                _comparison = null;
+            }
         }
         finally
         {
             if (silent)
+            {
                 _isRefreshing = false;
+            }
             else
+            {
                 _isLoading = false;
+            }
         }
     }
 
@@ -186,7 +195,10 @@ public partial class EnergyComparison
     /// </summary>
     private List<ChartSeries<double>> BuildTeamSeries(string metricCode)
     {
-        if (_comparison is null) return [];
+        if (_comparison is null)
+        {
+            return [];
+        }
 
         string metricName = Metrics
             .FirstOrDefault(metric => metric.MetricCode == metricCode)?.MetricName ?? metricCode;
@@ -197,7 +209,7 @@ public partial class EnergyComparison
             {
                 Name = metricName,
                 Data = Teams
-                    .Select(team => (double) (team.MetricValues
+                    .Select(team => (double)(team.MetricValues
                         .FirstOrDefault(item => item.MetricCode == metricCode)
                         ?.Value ?? 0m))
                     .ToArray()

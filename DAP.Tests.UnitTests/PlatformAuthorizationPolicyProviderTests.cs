@@ -31,7 +31,7 @@ public class PlatformAuthorizationPolicyProviderTests
         AuthUserDto user = new(
             Guid.NewGuid(), "tester", "测试用户", null, ["viewer"],
             domains, pageLevel, permissions,
-            MustChangePassword: false, IsSuperAdmin: isSuperAdmin);
+            false, isSuperAdmin);
 
         return PlatformClaimsFactory.CreatePrincipal(user, IssuedAt);
     }
@@ -77,7 +77,7 @@ public class PlatformAuthorizationPolicyProviderTests
     [Fact]
     public async Task 域策略_超管恒为true_无需域claim()
     {
-        ClaimsPrincipal superAdmin = CreatePrincipal([], 1, [], isSuperAdmin: true);
+        ClaimsPrincipal superAdmin = CreatePrincipal([], 1, [], true);
 
         bool result = await EvaluateAsync(
             await Provider.GetPolicyAsync($"Domain:{AuthorizationCatalog.PlatformDomain}"),
@@ -114,7 +114,7 @@ public class PlatformAuthorizationPolicyProviderTests
     [Fact]
     public async Task 平台管理策略_仅超管通过()
     {
-        ClaimsPrincipal superAdmin = CreatePrincipal([], 1, [], isSuperAdmin: true);
+        ClaimsPrincipal superAdmin = CreatePrincipal([], 1, [], true);
         ClaimsPrincipal viewer = CreatePrincipal(
             [AuthorizationCatalog.EnergyDomain], AuthorizationCatalog.SuperAdminPageLevel, []);
 
@@ -145,7 +145,7 @@ public class PlatformAuthorizationPolicyProviderTests
     [Fact]
     public async Task 权限点策略_超管恒为true()
     {
-        ClaimsPrincipal superAdmin = CreatePrincipal([], 1, [], isSuperAdmin: true);
+        ClaimsPrincipal superAdmin = CreatePrincipal([], 1, [], true);
 
         bool result = await EvaluateAsync(
             await Provider.GetPolicyAsync(AuthorizationCatalog.ShiftManagePermission), superAdmin);

@@ -41,7 +41,7 @@ public static class PlatformSameOriginGuard
             }
 
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
-            await context.Response.WriteAsJsonAsync(new {message = "请求来源与本站不一致，已拒绝执行。"});
+            await context.Response.WriteAsJsonAsync(new { message = "请求来源与本站不一致，已拒绝执行。" });
         });
     }
 
@@ -60,11 +60,16 @@ public static class PlatformSameOriginGuard
         if (HttpMethods.IsGet(request.Method)
             || HttpMethods.IsHead(request.Method)
             || HttpMethods.IsOptions(request.Method))
+        {
             return false;
+        }
 
         string path = request.Path.Value ?? string.Empty;
 
-        if (ExemptPrefixes.Any(prefix => path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))) return false;
+        if (ExemptPrefixes.Any(prefix => path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
+        {
+            return false;
+        }
 
         return path.StartsWith("/api", StringComparison.OrdinalIgnoreCase);
     }
@@ -83,7 +88,10 @@ public static class PlatformSameOriginGuard
     {
         string origin = request.Headers.Origin.ToString();
 
-        if (!string.IsNullOrEmpty(origin)) return MatchesHost(origin, request);
+        if (!string.IsNullOrEmpty(origin))
+        {
+            return MatchesHost(origin, request);
+        }
 
         string referer = request.Headers.Referer.ToString();
 
@@ -92,7 +100,10 @@ public static class PlatformSameOriginGuard
 
     private static bool MatchesHost(string value, HttpRequest request)
     {
-        if (!Uri.TryCreate(value, UriKind.Absolute, out Uri? uri)) return false;
+        if (!Uri.TryCreate(value, UriKind.Absolute, out Uri? uri))
+        {
+            return false;
+        }
 
         return string.Equals(uri.Host, request.Host.Host, StringComparison.OrdinalIgnoreCase)
                && (request.Host.Port is null || uri.Port == request.Host.Port);

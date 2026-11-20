@@ -33,7 +33,10 @@ public class PlatformRateLimitingTests
         context.Response.Body = new MemoryStream();
         context.Request.Path = path;
         context.Request.Method = "POST";
-        if (contentType is not null) context.Request.ContentType = contentType;
+        if (contentType is not null)
+        {
+            context.Request.ContentType = contentType;
+        }
 
         OnRejectedContext rejected = new() { HttpContext = context, Lease = null! };
         await options.OnRejected(rejected, CancellationToken.None);

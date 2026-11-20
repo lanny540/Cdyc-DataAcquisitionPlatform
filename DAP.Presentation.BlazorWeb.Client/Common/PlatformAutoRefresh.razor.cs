@@ -130,9 +130,15 @@ public partial class PlatformAutoRefresh : ComponentBase, IAsyncDisposable
             {
                 await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
 
-                if (!Enabled) continue;
+                if (!Enabled)
+                {
+                    continue;
+                }
 
-                if (_secondsRemaining > 0) _secondsRemaining--;
+                if (_secondsRemaining > 0)
+                {
+                    _secondsRemaining--;
+                }
 
                 if (_secondsRemaining == 0 && !IsBusy)
                 {
@@ -193,11 +199,15 @@ public partial class PlatformAutoRefresh : ComponentBase, IAsyncDisposable
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        if (_loopCts is null) return;
+        if (_loopCts is null)
+        {
+            return;
+        }
 
         await _loopCts.CancelAsync();
 
         if (_loopTask is not null)
+        {
             try
             {
                 await _loopTask;
@@ -205,6 +215,7 @@ public partial class PlatformAutoRefresh : ComponentBase, IAsyncDisposable
             catch (OperationCanceledException)
             {
             }
+        }
 
         _loopCts.Dispose();
         _loopCts = null;

@@ -55,7 +55,10 @@ public sealed class BarCompareChart : PlatformChartBase
     {
         Rect bounds = new(Bounds.Size);
 
-        if (bounds.Width < 80 || bounds.Height < 60) return;
+        if (bounds.Width < 80 || bounds.Height < 60)
+        {
+            return;
+        }
 
         const double leftAxis = 54;
         const double bottomAxis = 28;
@@ -76,17 +79,17 @@ public sealed class BarCompareChart : PlatformChartBase
             return;
         }
 
-        double max = NiceCeiling(items.Max(item => (double) item.Value));
+        double max = NiceCeiling(items.Max(item => (double)item.Value));
         IBrush accent = EffectiveAccent;
-        Pen gridPen = new(EffectiveGrid, 1) {DashStyle = new DashStyle([3, 4], 0)};
+        Pen gridPen = new(EffectiveGrid, 1) { DashStyle = new DashStyle([3, 4], 0) };
         Pen axisPen = new(EffectiveGrid, 1);
 
         const int ticks = 4;
 
         for (int index = 0; index <= ticks; index++)
         {
-            double ratio = index / (double) ticks;
-            double y = plot.Bottom - plot.Height * ratio;
+            double ratio = index / (double)ticks;
+            double y = plot.Bottom - (plot.Height * ratio);
 
             context.DrawLine(index == 0 ? axisPen : gridPen, new Point(plot.Left, y),
                 new Point(plot.Right, y));
@@ -94,21 +97,24 @@ public sealed class BarCompareChart : PlatformChartBase
             string label = FormatAxisValue(max * ratio);
             Size size = Measure(label, 11);
 
-            DrawText(context, label, new Point(plot.Left - size.Width - 8, y - size.Height / 2), 11,
+            DrawText(context, label, new Point(plot.Left - size.Width - 8, y - (size.Height / 2)), 11,
                 EffectiveLabel);
         }
 
-        if (!string.IsNullOrWhiteSpace(Unit)) DrawText(context, Unit!, new Point(6, 0), 11, EffectiveLabel);
+        if (!string.IsNullOrWhiteSpace(Unit))
+        {
+            DrawText(context, Unit!, new Point(6, 0), 11, EffectiveLabel);
+        }
 
         double slot = plot.Width / items.Length;
         double barWidth = Math.Min(56, Math.Max(14, slot * 0.5));
 
         for (int index = 0; index < items.Length; index++)
         {
-            double value = (double) items[index].Value;
+            double value = (double)items[index].Value;
             double height = Math.Max(value > 0 ? 2 : 0, plot.Height * (value / max));
-            double centerX = plot.Left + slot * index + slot / 2;
-            Rect bar = new(centerX - barWidth / 2, plot.Bottom - height, barWidth, height);
+            double centerX = plot.Left + (slot * index) + (slot / 2);
+            Rect bar = new(centerX - (barWidth / 2), plot.Bottom - height, barWidth, height);
 
             context.DrawRectangle(accent, null, bar, 4, 4, default);
 
@@ -116,11 +122,11 @@ public sealed class BarCompareChart : PlatformChartBase
             Size valueSize = Measure(valueText, 11);
 
             DrawText(context, valueText,
-                new Point(centerX - valueSize.Width / 2, bar.Y - valueSize.Height - 4), 11, EffectiveLabel,
+                new Point(centerX - (valueSize.Width / 2), bar.Y - valueSize.Height - 4), 11, EffectiveLabel,
                 FontWeight.SemiBold);
 
             Size labelSize = Measure(items[index].Label, 11);
-            double labelX = Math.Clamp(centerX - labelSize.Width / 2, plot.Left, plot.Right - labelSize.Width);
+            double labelX = Math.Clamp(centerX - (labelSize.Width / 2), plot.Left, plot.Right - labelSize.Width);
 
             DrawText(context, items[index].Label, new Point(labelX, plot.Bottom + 7), 11, EffectiveLabel);
         }

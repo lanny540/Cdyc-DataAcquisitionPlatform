@@ -16,9 +16,15 @@ public sealed class ParkEnergySampleProviderTests
 {
     private static readonly TimeSpan Offset = TimeSpan.FromHours(8);
 
-    private static ParkEnergyPeriod MonthRange() => new(new DateOnly(2026, 11, 1), new DateOnly(2026, 11, 19));
+    private static ParkEnergyPeriod MonthRange()
+    {
+        return new ParkEnergyPeriod(new DateOnly(2026, 11, 1), new DateOnly(2026, 11, 19));
+    }
 
-    private static ParkEnergyPeriod YearRange() => new(new DateOnly(2026, 1, 1), new DateOnly(2026, 11, 19));
+    private static ParkEnergyPeriod YearRange()
+    {
+        return new ParkEnergyPeriod(new DateOnly(2026, 1, 1), new DateOnly(2026, 11, 19));
+    }
 
     [Fact]
     public void Create_Month_Should_Mark_Sample_Status_And_Echo_Period()
@@ -68,7 +74,7 @@ public sealed class ParkEnergySampleProviderTests
         foreach (ParkEnergyOverviewDto sample in new[]
                  {
                      ParkEnergySampleProvider.Create("month", MonthRange(), Offset),
-                     ParkEnergySampleProvider.Create("year", YearRange(), Offset),
+                     ParkEnergySampleProvider.Create("year", YearRange(), Offset)
                  })
         {
             Assert.Equal(24, sample.LoadPoints.Count);
@@ -84,7 +90,7 @@ public sealed class ParkEnergySampleProviderTests
         ParkEnergyOverviewDto month = ParkEnergySampleProvider.Create("month", MonthRange(), Offset);
         ParkEnergyOverviewDto year = ParkEnergySampleProvider.Create("year", YearRange(), Offset);
 
-        foreach (ParkEnergyOverviewDto sample in new[] {month, year})
+        foreach (ParkEnergyOverviewDto sample in new[] { month, year })
         {
             decimal primarySum = sample.PrimaryShares.Sum(share => share.Share ?? 0m);
             Assert.InRange(primarySum, 0.99m, 1.01m);

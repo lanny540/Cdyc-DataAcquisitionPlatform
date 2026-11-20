@@ -80,9 +80,15 @@ public sealed class AuthDataInitializerTests
     {
         return new Role
         {
-            Id = Guid.NewGuid(), Code = code, Name = code, PageLevel = 1,
-            IsBuiltin = true, IsEnabled = enabled, SortOrder = 10,
-            CreatedAt = Now, UpdatedAt = Now
+            Id = Guid.NewGuid(),
+            Code = code,
+            Name = code,
+            PageLevel = 1,
+            IsBuiltin = true,
+            IsEnabled = enabled,
+            SortOrder = 10,
+            CreatedAt = Now,
+            UpdatedAt = Now
         };
     }
 
@@ -185,8 +191,8 @@ public sealed class AuthDataInitializerTests
             database, new PlatformAuthOptions(), HostingFakes.CreateDevelopmentEnvironment());
 
         // 空库 + 未配置 BootstrapAdmin：否则首次上线将无人能登录。
-        InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => initializer.StartAsync(CancellationToken.None));
+        InvalidOperationException exception =
+            await Assert.ThrowsAsync<InvalidOperationException>(() => initializer.StartAsync(CancellationToken.None));
         Assert.Contains("超级管理员", exception.Message);
     }
 
@@ -210,8 +216,8 @@ public sealed class AuthDataInitializerTests
         AuthDataInitializer initializer = CreateInitializer(
             database, OptionsWithBootstrap(), HostingFakes.CreateDevelopmentEnvironment());
 
-        InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => initializer.StartAsync(CancellationToken.None));
+        InvalidOperationException exception =
+            await Assert.ThrowsAsync<InvalidOperationException>(() => initializer.StartAsync(CancellationToken.None));
         Assert.Contains("存在 2 个启用状态的超级管理员", exception.Message);
     }
 
@@ -248,7 +254,7 @@ public sealed class AuthDataInitializerTests
         await using (DataAcquisitionPlatformDbContext seed = database.CreateContext())
         {
             // 账号已存在（历史遗留）但没有超管角色且已停用：零超管的自救路径。
-            seed.AppUsers.Add(CreateUser("bootadmin", "Old@12345", enabled: false));
+            seed.AppUsers.Add(CreateUser("bootadmin", "Old@12345", false));
             await seed.SaveChangesAsync();
         }
 
@@ -278,8 +284,8 @@ public sealed class AuthDataInitializerTests
             HostingFakes.CreateProductionEnvironment());
 
         // appsettings.json 里的公开默认密码只能用于开发环境。
-        InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => initializer.StartAsync(CancellationToken.None));
+        InvalidOperationException exception =
+            await Assert.ThrowsAsync<InvalidOperationException>(() => initializer.StartAsync(CancellationToken.None));
         Assert.Contains("默认初始密码", exception.Message);
     }
 
@@ -308,8 +314,8 @@ public sealed class AuthDataInitializerTests
             OptionsWithBootstrap(password: "weak"),
             HostingFakes.CreateDevelopmentEnvironment());
 
-        InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => initializer.StartAsync(CancellationToken.None));
+        InvalidOperationException exception =
+            await Assert.ThrowsAsync<InvalidOperationException>(() => initializer.StartAsync(CancellationToken.None));
         Assert.Contains("不满足要求", exception.Message);
     }
 
@@ -379,8 +385,8 @@ public sealed class AuthDataInitializerTests
         AuthDataInitializer initializer = CreateInitializer(
             database, options, HostingFakes.CreateDevelopmentEnvironment());
 
-        InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => initializer.StartAsync(CancellationToken.None));
+        InvalidOperationException exception =
+            await Assert.ThrowsAsync<InvalidOperationException>(() => initializer.StartAsync(CancellationToken.None));
         Assert.Contains("IpWhitelist", exception.Message);
     }
 
@@ -395,8 +401,8 @@ public sealed class AuthDataInitializerTests
             database, options, HostingFakes.CreateDevelopmentEnvironment());
 
         // 半配置的目录认证会让域账号登录失败，且现场看起来和「密码错了」一模一样。
-        InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => initializer.StartAsync(CancellationToken.None));
+        InvalidOperationException exception =
+            await Assert.ThrowsAsync<InvalidOperationException>(() => initializer.StartAsync(CancellationToken.None));
         Assert.Contains("LDAP 配置不完整", exception.Message);
     }
 
@@ -410,8 +416,8 @@ public sealed class AuthDataInitializerTests
         AuthDataInitializer initializer = CreateInitializer(
             database, options, HostingFakes.CreateDevelopmentEnvironment());
 
-        InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => initializer.StartAsync(CancellationToken.None));
+        InvalidOperationException exception =
+            await Assert.ThrowsAsync<InvalidOperationException>(() => initializer.StartAsync(CancellationToken.None));
         Assert.Contains("OIDC 配置不完整", exception.Message);
     }
 

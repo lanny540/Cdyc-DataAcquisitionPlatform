@@ -26,27 +26,30 @@ public static class PlatformTheme
         {
             PaletteLight = Light(),
             PaletteDark = Dark(),
-            LayoutProperties = new LayoutProperties
-            {
-                DefaultBorderRadius = "4px",
-                AppbarHeight = "56px",
-                DrawerWidthLeft = "232px"
-            },
+            LayoutProperties =
+                new LayoutProperties
+                {
+                    DefaultBorderRadius = "4px", AppbarHeight = "56px", DrawerWidthLeft = "232px"
+                },
             Typography = new Typography
             {
-                Default = new DefaultTypography
+                Default =
+                    new DefaultTypography
+                    {
+                        FontFamily = ["PingFang SC", "Microsoft YaHei", "sans-serif"],
+                        FontSize = "0.875rem",
+                        LineHeight = "1.5"
+                    },
+                H3 = new H3Typography { FontSize = "2rem", FontWeight = "600", LineHeight = "1.25" },
+                H4 = new H4Typography { FontSize = "1.375rem", FontWeight = "600", LineHeight = "1.4" },
+                H5 = new H5Typography { FontSize = "1.125rem", FontWeight = "600", LineHeight = "1.4" },
+                H6 = new H6Typography { FontSize = "1rem", FontWeight = "600", LineHeight = "1.5" },
+                Body1 = new Body1Typography { FontSize = "0.875rem", LineHeight = "1.5" },
+                Body2 = new Body2Typography { FontSize = "0.8125rem", LineHeight = "1.5" },
+                Button = new ButtonTypography
                 {
-                    FontFamily = ["PingFang SC", "Microsoft YaHei", "sans-serif"],
-                    FontSize = "0.875rem",
-                    LineHeight = "1.5"
-                },
-                H3 = new H3Typography {FontSize = "2rem", FontWeight = "600", LineHeight = "1.25"},
-                H4 = new H4Typography {FontSize = "1.375rem", FontWeight = "600", LineHeight = "1.4"},
-                H5 = new H5Typography {FontSize = "1.125rem", FontWeight = "600", LineHeight = "1.4"},
-                H6 = new H6Typography {FontSize = "1rem", FontWeight = "600", LineHeight = "1.5"},
-                Body1 = new Body1Typography {FontSize = "0.875rem", LineHeight = "1.5"},
-                Body2 = new Body2Typography {FontSize = "0.8125rem", LineHeight = "1.5"},
-                Button = new ButtonTypography {FontSize = "0.8125rem", FontWeight = "500", TextTransform = "none"}
+                    FontSize = "0.8125rem", FontWeight = "500", TextTransform = "none"
+                }
             }
         };
     }

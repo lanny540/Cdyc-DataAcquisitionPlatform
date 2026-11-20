@@ -45,7 +45,10 @@ public sealed class PageAccessResolver(
         // 归一化：去查询串、去首尾斜杠。
         string trimmed = path.Trim();
         int queryIndex = trimmed.IndexOfAny(['?', '#']);
-        if (queryIndex >= 0) trimmed = trimmed[..queryIndex];
+        if (queryIndex >= 0)
+        {
+            trimmed = trimmed[..queryIndex];
+        }
 
         string normalized = trimmed.Trim('/');
 
@@ -59,7 +62,10 @@ public sealed class PageAccessResolver(
                 : normalized.Equals(route, StringComparison.OrdinalIgnoreCase)
                   || normalized.StartsWith(route + "/", StringComparison.OrdinalIgnoreCase);
 
-            if (!isMatch || route.Length <= matchedLength) continue;
+            if (!isMatch || route.Length <= matchedLength)
+            {
+                continue;
+            }
 
             matched = requirement;
             matchedLength = route.Length;
@@ -72,7 +78,10 @@ public sealed class PageAccessResolver(
         CancellationToken cancellationToken)
     {
         if (cache.TryGetValue(CacheKey, out Dictionary<string, PageAccessRequirement>? cached) &&
-            cached is not null) return cached;
+            cached is not null)
+        {
+            return cached;
+        }
 
         List<DomainPage> pages = await db.DomainPages
             .Where(page => page.IsEnabled && !page.IsOrphaned && page.Domain!.IsEnabled)
@@ -86,7 +95,10 @@ public sealed class PageAccessResolver(
 
         foreach (DomainPage page in pages)
         {
-            if (!domainCodes.TryGetValue(page.DomainId, out string? domainCode)) continue;
+            if (!domainCodes.TryGetValue(page.DomainId, out string? domainCode))
+            {
+                continue;
+            }
 
             // 根路由存为空串，与 Normalize 之后的比较逻辑一致。
             string route = page.Route.Trim().Trim('/');

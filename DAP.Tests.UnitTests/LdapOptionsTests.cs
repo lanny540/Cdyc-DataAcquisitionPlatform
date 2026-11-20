@@ -18,7 +18,7 @@ public sealed class LdapOptionsTests
             MailAttribute = "mail",
             DepartmentAttribute = "  ", // 空白应被跳过
             EmployeeNoAttribute = "employeeNumber",
-            DisabledFlagAttribute = "userAccountControl",
+            DisabledFlagAttribute = "userAccountControl"
         };
 
         string[] attributes = options.BuildAttributeList();
@@ -40,7 +40,7 @@ public sealed class LdapOptionsTests
             MailAttribute = string.Empty,
             DepartmentAttribute = string.Empty,
             EmployeeNoAttribute = string.Empty,
-            DisabledFlagAttribute = string.Empty,
+            DisabledFlagAttribute = string.Empty
         };
 
         Assert.Empty(options.BuildAttributeList());

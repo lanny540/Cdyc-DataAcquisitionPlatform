@@ -22,9 +22,7 @@ public sealed class PlatformAuthClient(HttpClient httpClient) : IPlatformAuthCli
     {
         using FormUrlEncodedContent content = new(new Dictionary<string, string>
         {
-            ["userName"] = userName,
-            ["password"] = password,
-            ["returnUrl"] = string.Empty
+            ["userName"] = userName, ["password"] = password, ["returnUrl"] = string.Empty
         });
 
         using HttpResponseMessage response =
@@ -39,7 +37,10 @@ public sealed class PlatformAuthClient(HttpClient httpClient) : IPlatformAuthCli
         using HttpResponseMessage response =
             await httpClient.GetAsync("/api/auth/me", cancellationToken);
 
-        if (response.StatusCode == HttpStatusCode.Unauthorized) return null;
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            return null;
+        }
 
         await PlatformHttpResponse.EnsureSuccessAsync(response, cancellationToken);
 
@@ -64,7 +65,9 @@ public sealed class PlatformAuthClient(HttpClient httpClient) : IPlatformAuthCli
         CancellationToken cancellationToken = default)
     {
         if (!string.Equals(newPassword, confirmPassword, StringComparison.Ordinal))
+        {
             return new AuthOperationResultDto(false, "两次输入的新密码不一致。");
+        }
 
         using FormUrlEncodedContent content = new(new Dictionary<string, string>
         {
@@ -107,7 +110,9 @@ public sealed class PlatformAuthClient(HttpClient httpClient) : IPlatformAuthCli
 
         if (response.IsSuccessStatusCode)
             // 自动重定向已跟随时，服务端失败会最终渲染登录页（200 HTML），无法取到原因。
+        {
             return PlatformSignInResult.Failure(fallbackMessage);
+        }
 
         return PlatformSignInResult.Failure(
             await PlatformHttpResponse.ReadErrorMessageAsync(response, cancellationToken));
@@ -120,14 +125,23 @@ public sealed class PlatformAuthClient(HttpClient httpClient) : IPlatformAuthCli
     private static string? ReadQueryValue(string location, string key)
     {
         int queryIndex = location.IndexOf('?');
-        if (queryIndex < 0 || queryIndex == location.Length - 1) return null;
+        if (queryIndex < 0 || queryIndex == location.Length - 1)
+        {
+            return null;
+        }
 
         foreach (string pair in location[(queryIndex + 1)..].Split('&', StringSplitOptions.RemoveEmptyEntries))
         {
             int separator = pair.IndexOf('=');
-            if (separator <= 0) continue;
+            if (separator <= 0)
+            {
+                continue;
+            }
 
-            if (!string.Equals(pair[..separator], key, StringComparison.OrdinalIgnoreCase)) continue;
+            if (!string.Equals(pair[..separator], key, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
 
             string raw = pair[(separator + 1)..].Replace('+', ' ');
             return Uri.UnescapeDataString(raw);

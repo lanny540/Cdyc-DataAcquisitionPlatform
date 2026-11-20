@@ -28,11 +28,17 @@ public partial class DesignSystemGuardTests
             for (int i = 0; i < lines.Length; i++)
             {
                 string line = lines[i];
-                if (!HexColorRegex().IsMatch(line)) continue;
+                if (!HexColorRegex().IsMatch(line))
+                {
+                    continue;
+                }
 
                 // 注释与文档行不算违规
                 string trimmed = line.TrimStart();
-                if (trimmed.StartsWith("<!--") || trimmed.StartsWith("@*") || trimmed.StartsWith("//")) continue;
+                if (trimmed.StartsWith("<!--") || trimmed.StartsWith("@*") || trimmed.StartsWith("//"))
+                {
+                    continue;
+                }
 
                 offenders.Add($"{Relative(file)}:{i + 1}: {line.Trim()}");
             }
@@ -169,10 +175,10 @@ public partial class DesignSystemGuardTests
         string appCss = ReadRepoFile("DAP.Presentation.BlazorWeb/wwwroot/app.css");
 
         List<string> offenders = new();
-        string[] roles = new[] {"primary", "secondary", "tertiary", "success", "warning", "error", "info"};
+        string[] roles = new[] { "primary", "secondary", "tertiary", "success", "warning", "error", "info" };
 
         foreach (string role in roles)
-        foreach (string level in new[] {"base", "soft", "tint"})
+        foreach (string level in new[] { "base", "soft", "tint" })
         {
             string variable = level == "base" ? $"--md-{role}" : $"--md-{role}-{level}";
 
@@ -185,9 +191,11 @@ public partial class DesignSystemGuardTests
 
             // 文档表格里该角色对应行中应出现这个色值
             if (!doc.Contains(actual, StringComparison.OrdinalIgnoreCase))
+            {
                 offenders.Add(
                     $"{variable} = {actual} 在 docs/DESIGN_SYSTEM.md 的色板表中找不到，" +
                     "文档与代码已漂移");
+            }
         }
 
         Assert.True(offenders.Count == 0,
@@ -209,7 +217,7 @@ public partial class DesignSystemGuardTests
         string appCss = ReadRepoFile("DAP.Presentation.BlazorWeb/wwwroot/app.css");
 
         List<string> offenders = new();
-        string[] roles = new[] {"primary", "secondary", "tertiary", "success", "warning", "error", "info"};
+        string[] roles = new[] { "primary", "secondary", "tertiary", "success", "warning", "error", "info" };
 
         foreach (string role in roles)
         {
@@ -221,9 +229,11 @@ public partial class DesignSystemGuardTests
             }
 
             if (!agents.Contains(actual, StringComparison.OrdinalIgnoreCase))
+            {
                 offenders.Add(
                     $"--md-{role} = {actual} 在 AGENTS.md 的色表中找不到，" +
                     "请同步更新该表的 Base 色");
+            }
         }
 
         Assert.True(offenders.Count == 0,
@@ -252,15 +262,22 @@ public partial class DesignSystemGuardTests
         {
             string text = ReadRepoFile(file);
 
-            if (!text.Contains("<MudChart", StringComparison.Ordinal)) continue;
+            if (!text.Contains("<MudChart", StringComparison.Ordinal))
+            {
+                continue;
+            }
 
             if (!text.Contains("MatchBoundsToSize=\"true\"", StringComparison.Ordinal))
+            {
                 offenders.Add($"{Relative(file)}: MudChart 缺少 MatchBoundsToSize=\"true\"，" +
                               "图表无法铺满卡片，四周会留出大片空白");
+            }
 
             if (!text.Contains("ChartOptions=", StringComparison.Ordinal))
+            {
                 offenders.Add($"{Relative(file)}: MudChart 缺少 ChartOptions，" +
                               "数据点标记、轴线、轴标题与悬停提示会全部退化为默认样式");
+            }
         }
 
         Assert.True(offenders.Count == 0,
@@ -312,16 +329,17 @@ public partial class DesignSystemGuardTests
         // 待扫描的源码目录：Web 客户端、Web 服务端与端点、桌面端 ViewModels
         string[] scanDirs = new[]
         {
-            "DAP.Presentation.BlazorWeb.Client",
-            "DAP.Presentation.BlazorWeb/Services",
-            "DAP.Presentation.BlazorWeb/Endpoints",
-            "DAP.Presentation.AvaloniaApp/ViewModels"
+            "DAP.Presentation.BlazorWeb.Client", "DAP.Presentation.BlazorWeb/Services",
+            "DAP.Presentation.BlazorWeb/Endpoints", "DAP.Presentation.AvaloniaApp/ViewModels"
         };
 
         foreach (string dir in scanDirs)
         {
             string fullDir = Path.Combine(RepoRoot(), dir);
-            if (!Directory.Exists(fullDir)) continue;
+            if (!Directory.Exists(fullDir))
+            {
+                continue;
+            }
 
             IEnumerable<string> sourceFiles = Directory
                 .EnumerateFiles(fullDir, "*.cs", SearchOption.AllDirectories)
@@ -333,17 +351,24 @@ public partial class DesignSystemGuardTests
                         StringComparison.Ordinal)
                     || file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}",
                         StringComparison.Ordinal))
+                {
                     continue;
+                }
 
                 string[] lines = ReadLines(file);
                 for (int i = 0; i < lines.Length; i++)
                 {
                     string trimmed = lines[i].TrimStart();
-                    if (trimmed.StartsWith("//") || trimmed.StartsWith("*") || trimmed.StartsWith("///")) continue;
+                    if (trimmed.StartsWith("//") || trimmed.StartsWith("*") || trimmed.StartsWith("///"))
+                    {
+                        continue;
+                    }
 
                     if (trimmed.Contains("{ex.Message}", StringComparison.Ordinal)
                         || trimmed.Contains("ErrorMessage = ex.Message", StringComparison.Ordinal))
+                    {
                         offenders.Add($"{Relative(file)}:{i + 1}: {lines[i].Trim()}");
+                    }
                 }
             }
         }
@@ -370,7 +395,8 @@ public partial class DesignSystemGuardTests
         Assert.Contains("DisableCollectionPointForManagedDefinitionAsync", service, StringComparison.Ordinal);
         Assert.DoesNotContain("RemoveCollectionPointForManagedDefinitionAsync", service, StringComparison.Ordinal);
         Assert.DoesNotContain("_managedDataDefinitionRepository.Remove", service, StringComparison.Ordinal);
-        Assert.Contains("builder.HasQueryFilter(item => item.DeletedAt == null);", configuration, StringComparison.Ordinal);
+        Assert.Contains("builder.HasQueryFilter(item => item.DeletedAt == null);", configuration,
+            StringComparison.Ordinal);
         Assert.Contains(".HasFilter(\"deleted_at IS NULL\")", configuration, StringComparison.Ordinal);
         Assert.Equal(2, sql.Split("d.deleted_at IS NULL", StringSplitOptions.None).Length - 1);
     }
@@ -392,7 +418,8 @@ public partial class DesignSystemGuardTests
             "MapGroup\\(\"/api/shift-schedule-view\"\\)\\s*\\.WithTags\\(\"ShiftScheduleView\"\\)\\s*" +
             "\\.RequireBanknotePaperDomain\\(\\)(?!\\s*\\.RequireConfigureAccess)",
             shifts);
-        Assert.Contains(".RequirePermission(AuthorizationCatalog.ShiftManagePermission)", shifts, StringComparison.Ordinal);
+        Assert.Contains(".RequirePermission(AuthorizationCatalog.ShiftManagePermission)", shifts,
+            StringComparison.Ordinal);
         Assert.Contains("\"/teams\"", energy, StringComparison.Ordinal);
         Assert.DoesNotContain(".RequireConfigureAccess()", energy, StringComparison.Ordinal);
     }
@@ -411,7 +438,8 @@ public partial class DesignSystemGuardTests
             "public bool ShowShell => _session.IsAuthenticated && !_session.MustChangePassword;",
             viewModel,
             StringComparison.Ordinal);
-        Assert.Contains("if (!ShowShell) return;", viewModel, StringComparison.Ordinal);
+        // 断言入口校验存在即可，不绑定大括号风格：全仓清理会把单行语句强制加大括号。
+        Assert.Contains("if (!ShowShell)", viewModel, StringComparison.Ordinal);
         Assert.Contains("Login.NeedsPasswordChange = true;", viewModel, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding ShowShell}\"", view, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding ShowLogin}\"", view, StringComparison.Ordinal);
@@ -450,7 +478,7 @@ public partial class DesignSystemGuardTests
         double g = Convert.ToInt32(value.Substring(2, 2), 16) / 255.0;
         double b = Convert.ToInt32(value.Substring(4, 2), 16) / 255.0;
 
-        return 0.2126 * ToLinear(r) + 0.7152 * ToLinear(g) + 0.0722 * ToLinear(b);
+        return (0.2126 * ToLinear(r)) + (0.7152 * ToLinear(g)) + (0.0722 * ToLinear(b));
     }
 
     private static double ToLinear(double channel)
@@ -499,9 +527,15 @@ public partial class DesignSystemGuardTests
             {
                 // 去掉 <!-- 与 --> 后检查剩余正文
                 string body = match.Value;
-                if (body.StartsWith("<!--", StringComparison.Ordinal)) body = body[4..];
+                if (body.StartsWith("<!--", StringComparison.Ordinal))
+                {
+                    body = body[4..];
+                }
 
-                if (body.EndsWith("-->", StringComparison.Ordinal)) body = body[..^3];
+                if (body.EndsWith("-->", StringComparison.Ordinal))
+                {
+                    body = body[..^3];
+                }
 
                 if (body.Contains("--", StringComparison.Ordinal))
                 {
@@ -531,11 +565,20 @@ public partial class DesignSystemGuardTests
         foreach (string file in RazorFiles())
         {
             string text = ReadRepoFile(file);
-            if (!text.Contains("@page", StringComparison.Ordinal)) continue;
+            if (!text.Contains("@page", StringComparison.Ordinal))
+            {
+                continue;
+            }
 
-            if (text.Contains("@layout AuthLayout", StringComparison.Ordinal)) continue;
+            if (text.Contains("@layout AuthLayout", StringComparison.Ordinal))
+            {
+                continue;
+            }
 
-            if (!text.Contains("platform-page-shell", StringComparison.Ordinal)) offenders.Add(file);
+            if (!text.Contains("platform-page-shell", StringComparison.Ordinal))
+            {
+                offenders.Add(file);
+            }
         }
 
         Assert.True(offenders.Count == 0,
@@ -562,14 +605,22 @@ public partial class DesignSystemGuardTests
             for (int i = 0; i < lines.Length; i++)
             {
                 string line = lines[i];
-                if (!line.Contains("platform-stat-card", StringComparison.Ordinal)) continue;
+                if (!line.Contains("platform-stat-card", StringComparison.Ordinal))
+                {
+                    continue;
+                }
 
-                if (accentRegex.IsMatch(line)) continue;
+                if (accentRegex.IsMatch(line))
+                {
+                    continue;
+                }
 
                 // 指标卡片通过插值注入 accent，要求代码后置中确有对应的白名单常量声明。
                 if (line.Contains("MetricAccents[", StringComparison.Ordinal) &&
                     HasAccentAllowListConstant(file))
+                {
                     continue;
+                }
 
                 offenders.Add($"{Relative(file)}:{i + 1}: {line.Trim()}");
             }
@@ -586,7 +637,10 @@ public partial class DesignSystemGuardTests
     private static bool HasAccentAllowListConstant(string razorFile)
     {
         string codeBehind = Path.ChangeExtension(razorFile, ".razor.cs");
-        if (!File.Exists(codeBehind)) return false;
+        if (!File.Exists(codeBehind))
+        {
+            return false;
+        }
 
         string text = ReadRepoFile(Path.GetRelativePath(RepoRoot(), codeBehind));
         return text.Contains("MetricAccents", StringComparison.Ordinal) &&
@@ -626,9 +680,15 @@ public partial class DesignSystemGuardTests
             string href = item.Groups["href"].Value;
             string normalized = NormalizeRoute(href);
 
-            if (!routes.Contains(normalized)) offenders.Add($"{title} → {href}：找不到对应的 @page 路由");
+            if (!routes.Contains(normalized))
+            {
+                offenders.Add($"{title} → {href}：找不到对应的 @page 路由");
+            }
 
-            if (!seenHrefs.Add(normalized)) offenders.Add($"{title} → {href}：同一路由在导航中重复出现");
+            if (!seenHrefs.Add(normalized))
+            {
+                offenders.Add($"{title} → {href}：同一路由在导航中重复出现");
+            }
         }
 
         Assert.True(offenders.Count == 0,
@@ -679,10 +739,16 @@ public partial class DesignSystemGuardTests
         string value = route.Trim();
 
         int templateIndex = value.IndexOf('{');
-        if (templateIndex >= 0) value = value[..templateIndex];
+        if (templateIndex >= 0)
+        {
+            value = value[..templateIndex];
+        }
 
         int queryIndex = value.IndexOfAny(['?', '#']);
-        if (queryIndex >= 0) value = value[..queryIndex];
+        if (queryIndex >= 0)
+        {
+            value = value[..queryIndex];
+        }
 
         return value.Trim('/');
     }
@@ -708,7 +774,10 @@ public partial class DesignSystemGuardTests
         {
             string text = ReadRepoFile(file);
             string codeBehind = Path.ChangeExtension(file, ".razor.cs");
-            if (!File.Exists(codeBehind)) continue;
+            if (!File.Exists(codeBehind))
+            {
+                continue;
+            }
 
             string code = ReadRepoFile(Path.GetRelativePath(RepoRoot(), codeBehind));
 
@@ -728,14 +797,19 @@ public partial class DesignSystemGuardTests
                     continue;
                 }
 
-                if (seriesMethod == labelsMethod) continue;
+                if (seriesMethod == labelsMethod)
+                {
+                    continue;
+                }
 
                 // 允许「两者都接受同一入参」的写法，此时数据与标签天然对齐；
                 // 其余情况要求标签方法存在且被系列方法内部使用（即同源实现）。
                 if (!IsLabelsAlignedWithSeries(code, seriesMethod, labelsMethod))
+                {
                     offenders.Add(
                         $"{Relative(file)}: 图表系列来自 {seriesMethod}()，标签来自 {labelsMethod}()，二者不同源。" +
                         "MudChart 按「系列 × 标签」定位，标签错位会让所有柱子挤在同一位置。");
+                }
             }
         }
 
@@ -753,12 +827,18 @@ public partial class DesignSystemGuardTests
     /// </summary>
     private static bool IsLabelsAlignedWithSeries(string code, string seriesMethod, string labelsMethod)
     {
-        if (!Regex.IsMatch(code, $@"string\[\]\s+{Regex.Escape(labelsMethod)}\s*\(")) return false;
+        if (!Regex.IsMatch(code, $@"string\[\]\s+{Regex.Escape(labelsMethod)}\s*\("))
+        {
+            return false;
+        }
 
         string? seriesBody = ExtractMethodBody(code, seriesMethod);
         string? labelsBody = ExtractMethodBody(code, labelsMethod);
 
-        if (seriesBody is null || labelsBody is null) return false;
+        if (seriesBody is null || labelsBody is null)
+        {
+            return false;
+        }
 
         // 两者引用了同一个集合属性，说明数据与标签取自同一来源
         List<string> seriesSources = CollectionReferences(seriesBody);
@@ -771,13 +851,20 @@ public partial class DesignSystemGuardTests
     {
         // 匹配方法签名后第一个 { 到配对 } 之间的内容（支持嵌套花括号）
         Match signature = Regex.Match(code, $@"\b{Regex.Escape(methodName)}\s*\([^)]*\)");
-        if (!signature.Success) return null;
+        if (!signature.Success)
+        {
+            return null;
+        }
 
         int start = code.IndexOf('{', signature.Index + signature.Length);
-        if (start < 0) return string.Empty;
+        if (start < 0)
+        {
+            return string.Empty;
+        }
 
         int depth = 0;
         for (int i = start; i < code.Length; i++)
+        {
             if (code[i] == '{')
             {
                 depth++;
@@ -785,8 +872,12 @@ public partial class DesignSystemGuardTests
             else if (code[i] == '}')
             {
                 depth--;
-                if (depth == 0) return code[(start + 1)..i];
+                if (depth == 0)
+                {
+                    return code[(start + 1)..i];
+                }
             }
+        }
 
         return code[(start + 1)..];
     }
@@ -798,7 +889,10 @@ public partial class DesignSystemGuardTests
     {
         HashSet<string> names = new(StringComparer.Ordinal);
 
-        foreach (Match match in Regex.Matches(body, @"\b([A-Z]\w*)\b")) names.Add(match.Groups[1].Value);
+        foreach (Match match in Regex.Matches(body, @"\b([A-Z]\w*)\b"))
+        {
+            names.Add(match.Groups[1].Value);
+        }
 
         return names.ToList();
     }
@@ -829,22 +923,33 @@ public partial class DesignSystemGuardTests
 
             if (inComment)
             {
-                if (line.Contains("-->", StringComparison.Ordinal)) inComment = false;
+                if (line.Contains("-->", StringComparison.Ordinal))
+                {
+                    inComment = false;
+                }
 
                 continue;
             }
 
             if (line.StartsWith("<!--", StringComparison.Ordinal))
             {
-                if (!line.Contains("-->", StringComparison.Ordinal)) inComment = true;
+                if (!line.Contains("-->", StringComparison.Ordinal))
+                {
+                    inComment = true;
+                }
 
                 continue;
             }
 
-            if (line.StartsWith("<!--", StringComparison.Ordinal) || line.Length == 0) continue;
+            if (line.StartsWith("<!--", StringComparison.Ordinal) || line.Length == 0)
+            {
+                continue;
+            }
 
             if (line.Contains("Brush", StringComparison.Ordinal) || line.Contains("<Color", StringComparison.Ordinal))
+            {
                 yield return line;
+            }
         }
     }
 
@@ -941,16 +1046,25 @@ public partial class DesignSystemGuardTests
         foreach (string file in AvaloniaXamlFiles())
         {
             string relative = Relative(file);
-            if (allowList.Contains(relative)) continue;
+            if (allowList.Contains(relative))
+            {
+                continue;
+            }
 
             string[] lines = ReadLines(file);
             for (int i = 0; i < lines.Length; i++)
             {
                 string line = lines[i];
-                if (!HexColorRegex().IsMatch(line)) continue;
+                if (!HexColorRegex().IsMatch(line))
+                {
+                    continue;
+                }
 
                 string trimmed = line.TrimStart();
-                if (trimmed.StartsWith("<!--", StringComparison.Ordinal)) continue;
+                if (trimmed.StartsWith("<!--", StringComparison.Ordinal))
+                {
+                    continue;
+                }
 
                 offenders.Add($"{relative}:{i + 1}: {line.Trim()}");
             }
@@ -980,7 +1094,9 @@ public partial class DesignSystemGuardTests
         {
             string name = match.Groups[1].Value;
             if (!catalog.Contains($"typeof({name})", StringComparison.Ordinal))
+            {
                 offenders.Add($"{Relative(file)}: {name}");
+            }
         }
 
         Assert.True(offenders.Count == 0,
@@ -1007,10 +1123,14 @@ public partial class DesignSystemGuardTests
             string axaml = ReadRepoFile(Relative(file));
 
             if (!axaml.Contains($"x:DataType=\"vm:{expectedVm}\"", StringComparison.Ordinal))
+            {
                 offenders.Add($"{Relative(file)}: 缺少 x:DataType=\"vm:{expectedVm}\"");
+            }
 
             if (!File.Exists(Path.Combine(vmDir, $"{expectedVm}.cs")))
+            {
                 offenders.Add($"{Relative(file)}: 找不到视图模型 {expectedVm}.cs");
+            }
         }
 
         Assert.True(offenders.Count == 0,
@@ -1045,7 +1165,10 @@ public partial class DesignSystemGuardTests
     private static string RepoRoot()
     {
         DirectoryInfo? dir = new(AppContext.BaseDirectory);
-        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "DAP.slnx"))) dir = dir.Parent;
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "DAP.slnx")))
+        {
+            dir = dir.Parent;
+        }
 
         Assert.NotNull(dir);
         return dir.FullName;
@@ -1086,7 +1209,10 @@ public partial class DesignSystemGuardTests
     public static TheoryData<string> AllowedAccentNames()
     {
         TheoryData<string> data = new();
-        foreach (string name in AllowedAccents) data.Add(name);
+        foreach (string name in AllowedAccents)
+        {
+            data.Add(name);
+        }
 
         return data;
     }

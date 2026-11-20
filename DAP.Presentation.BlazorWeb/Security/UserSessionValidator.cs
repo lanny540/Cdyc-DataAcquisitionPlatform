@@ -39,7 +39,10 @@ public sealed class UserSessionValidator(
     {
         // 没有安全戳的会话一律不认：这既覆盖「升级前签发的老 Cookie」，
         // 也覆盖任何被裁剪过 claims 的伪造尝试。失败方向必须是关闭，不是放行。
-        if (string.IsNullOrWhiteSpace(stamp)) return false;
+        if (string.IsNullOrWhiteSpace(stamp))
+        {
+            return false;
+        }
 
         string key = $"dap:session:{userId}";
 

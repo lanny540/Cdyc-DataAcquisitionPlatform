@@ -23,7 +23,7 @@ public sealed class AcquisitionServerProbeServiceTests
         AcquisitionServerProbeResultDto result = await service.ProbeAsync(
             AcquisitionServerCatalogKeys.Historian,
             "http://10.9.3.54:8080",
-            new Dictionary<string, string> {["useMockResponses"] = "true"},
+            new Dictionary<string, string> { ["useMockResponses"] = "true" },
             "tag001");
 
         Assert.True(result.Success);
@@ -73,11 +73,7 @@ public sealed class AcquisitionServerProbeServiceTests
         AcquisitionServerProbeResultDto result = await service.ProbeAsync(
             AcquisitionServerCatalogKeys.Historian,
             "http://10.9.3.54:8080",
-            new Dictionary<string, string>
-            {
-                ["clientId"] = "admin",
-                ["clientSecret"] = "Pa55word"
-            },
+            new Dictionary<string, string> { ["clientId"] = "admin", ["clientSecret"] = "Pa55word" },
             "tag001");
 
         Assert.True(result.Success);
@@ -96,9 +92,7 @@ public sealed class AcquisitionServerProbeServiceTests
             "http://10.9.3.54:8080",
             new Dictionary<string, string>
             {
-                ["clientId"] = "admin",
-                ["clientSecret"] = "Pa55word",
-                ["currentValuePath"] = "/custom/current"
+                ["clientId"] = "admin", ["clientSecret"] = "Pa55word", ["currentValuePath"] = "/custom/current"
             },
             "t");
 
@@ -117,10 +111,7 @@ public sealed class AcquisitionServerProbeServiceTests
         AcquisitionServerProbeResultDto result = await service.ProbeAsync(
             AcquisitionServerCatalogKeys.HttpApi,
             "http://api.local:8080",
-            new Dictionary<string, string>
-            {
-                ["responseValuePath"] = "data.list.0.value"
-            },
+            new Dictionary<string, string> { ["responseValuePath"] = "data.list.0.value" },
             "steam_flow",
             "/api/metrics/current");
 
@@ -138,7 +129,7 @@ public sealed class AcquisitionServerProbeServiceTests
         await service.ProbeAsync(
             AcquisitionServerCatalogKeys.HttpApi,
             "http://api.local:8080",
-            new Dictionary<string, string> {["apiKey"] = "secret-key"},
+            new Dictionary<string, string> { ["apiKey"] = "secret-key" },
             "steam_flow",
             "/api/current");
 
@@ -200,11 +191,7 @@ public sealed class AcquisitionServerProbeServiceTests
         await service.ProbeAsync(
             AcquisitionServerCatalogKeys.HttpApi,
             "http://api.local:8080",
-            new Dictionary<string, string>
-            {
-                ["authToken"] = "token-123",
-                ["authHeaderName"] = "X-Auth"
-            },
+            new Dictionary<string, string> { ["authToken"] = "token-123", ["authHeaderName"] = "X-Auth" },
             "steam_flow",
             "/api/current");
 
@@ -222,11 +209,7 @@ public sealed class AcquisitionServerProbeServiceTests
         await service.ProbeAsync(
             AcquisitionServerCatalogKeys.HttpApi,
             "http://api.local:8080",
-            new Dictionary<string, string>
-            {
-                ["username"] = "admin",
-                ["password"] = "Pa55word"
-            },
+            new Dictionary<string, string> { ["username"] = "admin", ["password"] = "Pa55word" },
             "steam_flow",
             "/api/current");
 
@@ -243,11 +226,7 @@ public sealed class AcquisitionServerProbeServiceTests
         await service.ProbeAsync(
             AcquisitionServerCatalogKeys.HttpApi,
             "http://api.local:8080",
-            new Dictionary<string, string>
-            {
-                ["httpMethod"] = "POST",
-                ["requestBody"] = """{"tag":"{identifier}"}"""
-            },
+            new Dictionary<string, string> { ["httpMethod"] = "POST", ["requestBody"] = """{"tag":"{identifier}"}""" },
             "steam_flow",
             "/api/current");
 
@@ -267,7 +246,7 @@ public sealed class AcquisitionServerProbeServiceTests
             new Dictionary<string, string>(),
             "steam_flow",
             null,
-            new Dictionary<string, string> {["apiPath"] = "/node/override"});
+            new Dictionary<string, string> { ["apiPath"] = "/node/override" });
 
         Assert.Contains("/node/override", handler.LastRequestUri);
         Assert.Equal("3.14", result.ParsedValue);
@@ -284,7 +263,7 @@ public sealed class AcquisitionServerProbeServiceTests
         AcquisitionServerProbeResultDto result = await service.ProbeAsync(
             AcquisitionServerCatalogKeys.HttpApi,
             "http://127.0.0.1:1",
-            new Dictionary<string, string> {["ignoreCertificateErrors"] = "true"},
+            new Dictionary<string, string> { ["ignoreCertificateErrors"] = "true" },
             "steam_flow",
             "/api/current");
 
@@ -300,7 +279,7 @@ public sealed class AcquisitionServerProbeServiceTests
         AcquisitionServerProbeResultDto result = await service.ProbeAsync(
             AcquisitionServerCatalogKeys.HttpApi,
             "http://api.local:8080",
-            new Dictionary<string, string> {["responseValuePath"] = "data.value"},
+            new Dictionary<string, string> { ["responseValuePath"] = "data.value" },
             "steam_flow",
             "/api/current");
 
@@ -317,7 +296,7 @@ public sealed class AcquisitionServerProbeServiceTests
         AcquisitionServerProbeResultDto result = await service.ProbeAsync(
             AcquisitionServerCatalogKeys.HttpApi,
             "http://api.local:8080",
-            new Dictionary<string, string> {["responseValuePath"] = "data.missing"},
+            new Dictionary<string, string> { ["responseValuePath"] = "data.missing" },
             "steam_flow",
             "/api/current");
 
@@ -382,17 +361,14 @@ public sealed class AcquisitionServerProbeServiceTests
     [Fact]
     public async Task ProbeAsync_Historian_NoTagNameMatch_FallsBackToFirstNumber()
     {
-        StubHttpMessageHandler handler = new(HttpStatusCode.OK, """[{"tagName":"a","value":1},{"tagName":"b","value":2}]""");
+        StubHttpMessageHandler handler = new(HttpStatusCode.OK,
+            """[{"tagName":"a","value":1},{"tagName":"b","value":2}]""");
         AcquisitionServerProbeService service = CreateService(handler);
 
         AcquisitionServerProbeResultDto result = await service.ProbeAsync(
             AcquisitionServerCatalogKeys.Historian,
             "http://10.9.3.54:8080",
-            new Dictionary<string, string>
-            {
-                ["clientId"] = "admin",
-                ["clientSecret"] = "Pa55word"
-            },
+            new Dictionary<string, string> { ["clientId"] = "admin", ["clientSecret"] = "Pa55word" },
             "tag-none");
 
         // 数组里没有匹配的 tagName 时，退化为取第一个数值，而不是直接失败。
@@ -509,7 +485,9 @@ public sealed class AcquisitionServerProbeServiceTests
 
             LastHeaders.Clear();
             foreach (KeyValuePair<string, IEnumerable<string>> header in request.Headers)
+            {
                 LastHeaders[header.Key] = string.Join(",", header.Value);
+            }
 
             LastApiKeyHeader = request.Headers.TryGetValues("X-Api-Key", out IEnumerable<string>? values)
                 ? values.FirstOrDefault()
@@ -517,6 +495,7 @@ public sealed class AcquisitionServerProbeServiceTests
 
             // Token 接口返回可用的访问令牌，其余请求返回预置报文。
             if (request.RequestUri?.AbsolutePath.EndsWith("/uaa/oauth/token") == true)
+            {
                 return new HttpResponseMessage(HttpStatusCode.OK)
                 {
                     Content = new StringContent(
@@ -524,6 +503,7 @@ public sealed class AcquisitionServerProbeServiceTests
                         Encoding.UTF8,
                         "application/json")
                 };
+            }
 
             return new HttpResponseMessage(statusCode)
             {

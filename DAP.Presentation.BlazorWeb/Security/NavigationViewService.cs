@@ -75,7 +75,9 @@ public sealed class NavigationViewService(IServiceScopeFactory scopeFactory)
             // 域可见性：超管看全部（含系统域与空域）；普通用户只看已授权的业务域。
             if (!isSuperAdmin
                 && (domain.IsSystem || !visibleDomainCodes.Contains(domain.Code)))
+            {
                 continue;
+            }
 
             List<DomainPage> domainPages =
                 pages.Where(page => page.DomainId == domain.Id).ToList();
@@ -83,14 +85,19 @@ public sealed class NavigationViewService(IServiceScopeFactory scopeFactory)
             // 页面等级过滤：用户等级只保留不超过自身等级的页面。车间只读终端（等级 1）
             // 因此只见查看类页面，配置类页面连菜单都不出现。
             if (pageLevel < AuthorizationCatalog.SuperAdminPageLevel)
+            {
                 domainPages = domainPages
                     .Where(page => page.AccessLevel <= pageLevel)
                     .ToList();
+            }
 
             bool isEmpty = domainPages.Count == 0;
 
             // 空域默认对普通用户隐藏（visible_when_empty 可按域打开）；超管保留以便核对配置。
-            if (isEmpty && !isSuperAdmin && !domain.VisibleWhenEmpty) continue;
+            if (isEmpty && !isSuperAdmin && !domain.VisibleWhenEmpty)
+            {
+                continue;
+            }
 
             List<NavigationGroupDto> groups = [];
 
@@ -102,7 +109,10 @@ public sealed class NavigationViewService(IServiceScopeFactory scopeFactory)
                     .Select(page => ToDto(page, iconByPageKey))
             ];
 
-            if (quickLinks.Count > 0) groups.Add(new NavigationGroupDto(string.Empty, quickLinks));
+            if (quickLinks.Count > 0)
+            {
+                groups.Add(new NavigationGroupDto(string.Empty, quickLinks));
+            }
 
             // 带分组标题的页面，按页面排序中首次出现的顺序分组。
             groups.AddRange(
@@ -137,12 +147,14 @@ public sealed class NavigationViewService(IServiceScopeFactory scopeFactory)
             ];
 
             if (sharedPages.Count > 0)
+            {
                 result.Add(new NavigationDomainDto(
                     SharedDomainCode,
                     "权限管理",
                     false,
                     false,
                     [new NavigationGroupDto(string.Empty, sharedPages)]));
+            }
         }
 
         return new NavigationDto(result);

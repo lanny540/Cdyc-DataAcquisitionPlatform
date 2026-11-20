@@ -1,6 +1,5 @@
 using DAP.Core.Shared.Catalog;
 using DAP.Core.Shared.Contracts;
-using DAP.Presentation.BlazorWeb.Client.Services;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
@@ -80,7 +79,9 @@ public partial class AcquisitionServers
             _servers.AddRange(await PlatformApiClient.GetAcquisitionServersAsync());
 
             if (_serverTypes.Count == 0)
+            {
                 _serverTypes.AddRange(await PlatformApiClient.GetAcquisitionServerTypesAsync());
+            }
         }
         catch (Exception ex)
         {
@@ -116,7 +117,10 @@ public partial class AcquisitionServers
         foreach (AcquisitionServerConfigValueDto configValue in server.Configuration)
         {
             _configurationDraft[configValue.Key] = configValue.Value;
-            if (configValue.IsSecret) _secretFields.Add(configValue.Key);
+            if (configValue.IsSecret)
+            {
+                _secretFields.Add(configValue.Key);
+            }
         }
 
         _lastProbeResult = null;
@@ -229,7 +233,10 @@ public partial class AcquisitionServers
 
     private async Task ConfirmDeleteAsync()
     {
-        if (_pendingDeleteServer is null) return;
+        if (_pendingDeleteServer is null)
+        {
+            return;
+        }
 
         AcquisitionServerDto server = _pendingDeleteServer;
         _isDeleting = true;
@@ -293,13 +300,19 @@ public partial class AcquisitionServers
     {
         foreach (AcquisitionServerFieldDescriptor field in AcquisitionServerCatalog.GetServerFields(serverType))
         {
-            if (string.IsNullOrWhiteSpace(field.DefaultValue)) continue;
+            if (string.IsNullOrWhiteSpace(field.DefaultValue))
+            {
+                continue;
+            }
 
             _configurationDraft[field.Key] = field.FieldType == AcquisitionServerFieldTypes.Boolean
                 ? field.DefaultValue
                 : field.DefaultValue;
 
-            if (field.FieldType == AcquisitionServerFieldTypes.Password) _secretFields.Add(field.Key);
+            if (field.FieldType == AcquisitionServerFieldTypes.Password)
+            {
+                _secretFields.Add(field.Key);
+            }
         }
     }
 
@@ -337,7 +350,10 @@ public partial class AcquisitionServers
 
         foreach (AcquisitionServerConfigValueDto configValue in server.Configuration)
         {
-            if (configValue.IsSecret && !configValue.HasStoredValue) continue;
+            if (configValue.IsSecret && !configValue.HasStoredValue)
+            {
+                continue;
+            }
 
             configuration[configValue.Key] = configValue.Value;
         }

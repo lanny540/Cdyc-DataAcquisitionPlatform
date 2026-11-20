@@ -46,7 +46,7 @@ public class CollectionPointServiceTests
         IReadOnlyCollection<CollectionPointDto> points = await service.GetCollectionPointsAsync();
 
         Assert.Equal(1, response.CreatedCount);
-        Assert.Contains(points, item => item is {Code: "SYNC-01", Source: "Local"});
+        Assert.Contains(points, item => item is { Code: "SYNC-01", Source: "Local" });
     }
 
     [Fact]

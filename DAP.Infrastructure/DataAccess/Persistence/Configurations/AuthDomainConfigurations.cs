@@ -88,7 +88,7 @@ public sealed class DomainPageConfiguration : IEntityTypeConfiguration<DomainPag
         builder.HasIndex(item => item.Route)
             .HasDatabaseName("ix_domain_pages_route");
 
-        builder.HasIndex(item => new {item.DomainId, item.SortOrder})
+        builder.HasIndex(item => new { item.DomainId, item.SortOrder })
             .HasDatabaseName("ix_domain_pages_domain_sort_order");
 
         builder.HasOne(item => item.Domain)
@@ -109,7 +109,7 @@ public sealed class DepartmentDomainGrantConfiguration : IEntityTypeConfiguratio
     {
         builder.ToTable("department_domain_grants");
 
-        builder.HasKey(item => new {item.DepartmentId, item.DomainId});
+        builder.HasKey(item => new { item.DepartmentId, item.DomainId });
         builder.Property(item => item.DepartmentId).HasColumnName("department_id");
         builder.Property(item => item.DomainId).HasColumnName("domain_id");
         builder.Property(item => item.GrantedAt).HasColumnName("granted_at").IsRequired();

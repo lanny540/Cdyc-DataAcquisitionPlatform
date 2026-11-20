@@ -17,14 +17,14 @@ public sealed class PlatformClaimsFactoryTests
             Guid.NewGuid(),
             "user01",
             "用户一",
-            DepartmentName: null,
-            Roles: [],
-            Domains: [],
-            PageLevel: 1,
-            Permissions: [],
-            MustChangePassword: false,
-            IsSuperAdmin: false,
-            IsBoardTerminal: false);
+            null,
+            [],
+            [],
+            1,
+            [],
+            false,
+            false,
+            false);
 
         ClaimsPrincipal principal = PlatformClaimsFactory.CreatePrincipal(user, DateTimeOffset.UtcNow);
 
@@ -43,13 +43,13 @@ public sealed class PlatformClaimsFactoryTests
             "board01",
             "车间终端",
             "钞纸车间",
-            Roles: [],
-            Domains: ["banknote-paper"],
-            PageLevel: 1,
-            Permissions: [],
-            MustChangePassword: true,
-            IsSuperAdmin: false,
-            IsBoardTerminal: true);
+            [],
+            ["banknote-paper"],
+            1,
+            [],
+            true,
+            false,
+            true);
 
         ClaimsPrincipal principal = PlatformClaimsFactory.CreatePrincipal(user, DateTimeOffset.UtcNow, "stamp-1");
 

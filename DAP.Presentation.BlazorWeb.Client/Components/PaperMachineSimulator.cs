@@ -195,7 +195,7 @@ public static class PaperMachineSimulator
     /// <returns>整线快照。</returns>
     public static PaperMachineSnapshot Snapshot(DateTimeOffset capturedAt)
     {
-        long bucket = capturedAt.ToUnixTimeSeconds() / (long) Tick.TotalSeconds;
+        long bucket = capturedAt.ToUnixTimeSeconds() / (long)Tick.TotalSeconds;
 
         TwinStation[] stations = StationSpecs
             .Select(spec => new TwinStation(
@@ -234,9 +234,9 @@ public static class PaperMachineSimulator
     {
         string key = spec.Label + "|" + spec.Unit;
         double phase = Noise01(key + "|phase", 0) * Math.Tau;
-        double wave = Math.Sin(Math.Tau * bucket / WavePeriodBuckets + phase);
-        double noise = Noise01(key, bucket) * 2 - 1;
-        double value = spec.Base + spec.Amplitude * (0.65 * wave + 0.35 * noise);
+        double wave = Math.Sin((Math.Tau * bucket / WavePeriodBuckets) + phase);
+        double noise = (Noise01(key, bucket) * 2) - 1;
+        double value = spec.Base + (spec.Amplitude * ((0.65 * wave) + (0.35 * noise)));
 
         return new TwinMetric(spec.Label, Math.Round(value, spec.Decimals), spec.Decimals, spec.Unit);
     }
@@ -260,14 +260,14 @@ public static class PaperMachineSimulator
                 hash *= prime;
             }
 
-            hash ^= (uint) (bucket & 0xFFFFFFFF);
+            hash ^= (uint)(bucket & 0xFFFFFFFF);
             hash *= prime;
-            hash ^= (uint) ((bucket >> 32) & 0xFFFFFFFF);
+            hash ^= (uint)((bucket >> 32) & 0xFFFFFFFF);
             hash *= prime;
             hash ^= hash >> 15;
             hash *= prime;
 
-            return hash / (double) uint.MaxValue;
+            return hash / (double)uint.MaxValue;
         }
     }
 

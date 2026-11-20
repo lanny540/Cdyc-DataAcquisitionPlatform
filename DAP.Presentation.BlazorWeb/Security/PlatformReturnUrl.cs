@@ -14,7 +14,10 @@ public static class PlatformReturnUrl
     /// <returns>最终跳转目标。</returns>
     public static string Resolve(string? returnUrl, string landingPage)
     {
-        if (string.IsNullOrWhiteSpace(returnUrl)) return landingPage;
+        if (string.IsNullOrWhiteSpace(returnUrl))
+        {
+            return landingPage;
+        }
 
         string candidate = returnUrl.Trim();
 
@@ -22,12 +25,16 @@ public static class PlatformReturnUrl
         // 浏览器会当成外站，等于开放重定向。
         if (!candidate.StartsWith('/') || candidate.StartsWith("//", StringComparison.Ordinal)
                                        || candidate.StartsWith("/\\", StringComparison.Ordinal))
+        {
             return landingPage;
+        }
 
         // 登录页与认证接口自身不能作为回跳目标，否则会形成重定向环。
         if (candidate.StartsWith("/login", StringComparison.OrdinalIgnoreCase)
             || candidate.StartsWith("/api/auth", StringComparison.OrdinalIgnoreCase))
+        {
             return landingPage;
+        }
 
         return candidate;
     }

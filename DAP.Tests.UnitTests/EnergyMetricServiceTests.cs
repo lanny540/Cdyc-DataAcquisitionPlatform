@@ -87,9 +87,11 @@ public class EnergyMetricServiceTests
 
         // 最高与最低必须是真实存在的两个班组（数据多于 1 个班组时）。
         if (comparison.Teams.Count > 1)
+        {
             Assert.NotEqual(
                 comparison.Teams.Max(item => item.TotalConsumption),
                 comparison.Teams.Min(item => item.TotalConsumption));
+        }
     }
 
     [Fact]

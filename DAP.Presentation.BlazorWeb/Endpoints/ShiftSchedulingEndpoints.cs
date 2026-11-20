@@ -74,25 +74,31 @@ public static class ShiftSchedulingEndpoints
                 async (HttpRequest request, IShiftSchedulingService service, CancellationToken cancellationToken) =>
                 {
                     if (!request.HasFormContentType)
-                        return Results.BadRequest(new {message = "请以 multipart/form-data 方式上传 Excel 文件。"});
+                    {
+                        return Results.BadRequest(new { message = "请以 multipart/form-data 方式上传 Excel 文件。" });
+                    }
 
                     IFormCollection form = await request.ReadFormAsync(cancellationToken);
-                    if (form.Files.Count == 0) return Results.BadRequest(new {message = "未选择要上传的 Excel 文件。"});
+                    if (form.Files.Count == 0)
+                    {
+                        return Results.BadRequest(new { message = "未选择要上传的 Excel 文件。" });
+                    }
 
                     IFormFile file = form.Files[0];
 
                     if (file.Length > MaxUploadBytes)
+                    {
                         return Results.BadRequest(new
                         {
                             message = $"文件体积 {file.Length / 1024} KB 超过 {MaxUploadBytes / 1024} KB 上限。"
                         });
+                    }
 
                     string extension = Path.GetExtension(file.FileName);
                     if (!AllowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
-                        return Results.BadRequest(new
-                        {
-                            message = $"不支持的文件类型 {extension}，请上传 .xlsx 或 .xls 文件。"
-                        });
+                    {
+                        return Results.BadRequest(new { message = $"不支持的文件类型 {extension}，请上传 .xlsx 或 .xls 文件。" });
+                    }
 
                     await using Stream stream = file.OpenReadStream();
                     ShiftScheduleImportResultDto result =
@@ -129,7 +135,9 @@ public static class ShiftSchedulingEndpoints
 
                     // 日历跨度限制为一年，避免传入异常区间导致返回体过大。
                     if (rangeEnd.DayNumber - rangeStart.DayNumber > 366)
-                        return Results.BadRequest(new {message = "查询跨度不能超过 366 天。"});
+                    {
+                        return Results.BadRequest(new { message = "查询跨度不能超过 366 天。" });
+                    }
 
                     IReadOnlyCollection<DailyShiftScheduleDto> calendar = await service.GetCalendarAsync(
                         rangeStart, rangeEnd, teamCode, cancellationToken);
@@ -155,7 +163,10 @@ public static class ShiftSchedulingEndpoints
                         .SelectMany(item => item.Rows)
                         .ToArray();
 
-                    if (rows.Length == 0) return Results.NotFound(new {message = "该班组在所选区间内没有排班记录。"});
+                    if (rows.Length == 0)
+                    {
+                        return Results.NotFound(new { message = "该班组在所选区间内没有排班记录。" });
+                    }
 
                     int dutyShifts = rows.Count(item => !item.IsRestDay);
 

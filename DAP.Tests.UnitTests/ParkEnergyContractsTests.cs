@@ -37,7 +37,7 @@ public sealed class ParkEnergyContractsTests
         // 记录的值语义：审计、缓存、对比都依赖它而不是引用相等。
         Assert.Equal(first, second);
         Assert.Equal(first, second with { });
-        Assert.NotEqual(first, second with {Code = "EM-02"});
+        Assert.NotEqual(first, second with { Code = "EM-02" });
 
         // 可空标识链：Id 为空表示新建，ParentMeterId 为空表示无上级。
         Assert.Null(first.Id);
@@ -57,7 +57,7 @@ public sealed class ParkEnergyContractsTests
     [Fact]
     public void IngestResult_Should_Carry_Counts_And_Messages()
     {
-        IngestEnergyReadingsResultDto result = new(3, 2, 1, new[] {"计量点编码 X 不存在，已跳过。"});
+        IngestEnergyReadingsResultDto result = new(3, 2, 1, new[] { "计量点编码 X 不存在，已跳过。" });
 
         Assert.Equal(3, result.Accepted);
         Assert.Equal(2, result.Updated);
@@ -72,7 +72,8 @@ public sealed class ParkEnergyContractsTests
     [Fact]
     public void IngestReadingItem_Should_Allow_Null_Source()
     {
-        IngestEnergyReadingItem item = new("EM-01", new DateTimeOffset(2026, 11, 19, 8, 0, 0, TimeSpan.FromHours(8)), 100m, null);
+        IngestEnergyReadingItem item = new("EM-01", new DateTimeOffset(2026, 11, 19, 8, 0, 0, TimeSpan.FromHours(8)),
+            100m, null);
 
         // Source 为空时由服务端默认为 collection：外部推送方不需要每次都带。
         Assert.Null(item.Source);

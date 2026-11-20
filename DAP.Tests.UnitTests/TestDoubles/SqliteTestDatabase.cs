@@ -72,7 +72,10 @@ internal sealed class SqliteTestModelCustomizer(ModelCustomizerDependencies depe
             foreach (IReadOnlyCheckConstraint checkConstraint in entityType.GetCheckConstraints().ToList())
             {
                 string? rewritten = checkConstraint.Sql?.Replace("btrim(", "trim(", StringComparison.Ordinal);
-                if (rewritten is null || rewritten == checkConstraint.Sql) continue;
+                if (rewritten is null || rewritten == checkConstraint.Sql)
+                {
+                    continue;
+                }
 
                 entityType.RemoveCheckConstraint(checkConstraint.Name!);
                 entityType.AddCheckConstraint(checkConstraint.Name!, rewritten);
@@ -86,7 +89,9 @@ internal sealed class SqliteTestModelCustomizer(ModelCustomizerDependencies depe
 
                 // jsonb 是 PG 专属列类型；JSON 在测试中按普通文本读写。
                 if (property.GetColumnType() == "jsonb")
+                {
                     property.SetColumnType("TEXT");
+                }
             }
         }
     }

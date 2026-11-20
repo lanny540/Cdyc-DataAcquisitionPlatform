@@ -59,23 +59,26 @@ public sealed class PostgreSqlPlatformReadRepository : IPlatformReadRepository
             await connection.QuerySingleOrDefaultAsync<ManagedDataDefinitionReadModel>(
                 new CommandDefinition(
                     PlatformReadSql.ManagedDataDefinitionById,
-                    new {Id = id},
+                    new { Id = id },
                     cancellationToken: cancellationToken));
 
-        if (definition is null) return null;
+        if (definition is null)
+        {
+            return null;
+        }
 
         CollectionPointReadModel? collectionPoint =
             await connection.QuerySingleOrDefaultAsync<CollectionPointReadModel>(
                 new CommandDefinition(
                     PlatformReadSql.CollectionPointByCode,
-                    new {Code = definition.Code},
+                    new { Code = definition.Code },
                     cancellationToken: cancellationToken));
 
         IEnumerable<CollectionDataRecordReadModel> records =
             await connection.QueryAsync<CollectionDataRecordReadModel>(
                 new CommandDefinition(
                     PlatformReadSql.CollectionDataByPointCode,
-                    new {Code = definition.Code, Limit = Math.Max(1, historyLimit)},
+                    new { Code = definition.Code, Limit = Math.Max(1, historyLimit) },
                     cancellationToken: cancellationToken));
 
         CollectionDataRecordDto[] recentRecords = records.Select(MapCollectionDataRecord).ToArray();
@@ -96,7 +99,7 @@ public sealed class PostgreSqlPlatformReadRepository : IPlatformReadRepository
         IEnumerable<CollectionDataRecordReadModel> items = await connection.QueryAsync<CollectionDataRecordReadModel>(
             new CommandDefinition(
                 PlatformReadSql.CollectionData,
-                new {Limit = Math.Max(1, limit)},
+                new { Limit = Math.Max(1, limit) },
                 cancellationToken: cancellationToken));
 
         return items.Select(MapCollectionDataRecord).ToArray();
@@ -273,10 +276,8 @@ public sealed class PostgreSqlPlatformReadRepository : IPlatformReadRepository
     {
         return new[]
         {
-            new MemberAvatarDto("LY", "#4F46E5"),
-            new MemberAvatarDto("RB", "#14B8A6"),
-            new MemberAvatarDto("ST", "#F59E0B"),
-            new MemberAvatarDto("MK", "#8B5CF6")
+            new MemberAvatarDto("LY", "#4F46E5"), new MemberAvatarDto("RB", "#14B8A6"),
+            new MemberAvatarDto("ST", "#F59E0B"), new MemberAvatarDto("MK", "#8B5CF6")
         };
     }
 

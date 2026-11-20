@@ -39,7 +39,7 @@ public sealed class DirectoryAccountService(
         Guid? userId = await db.ExternalIdentities
             .Where(identity => identity.Provider == DirectorySyncService.LdapProvider
                                && identity.ExternalId == record.ExternalId)
-            .Select(identity => (Guid?) identity.UserId)
+            .Select(identity => (Guid?)identity.UserId)
             .FirstOrDefaultAsync(cancellationToken);
 
         AppUser? user = userId is null
@@ -52,7 +52,10 @@ public sealed class DirectoryAccountService(
 
         Guid? departmentId = await departmentCodes.ResolveAsync(record.DepartmentExternalCode, cancellationToken);
 
-        if (user is null) return await CreateAsync(record, departmentId, now, cancellationToken);
+        if (user is null)
+        {
+            return await CreateAsync(record, departmentId, now, cancellationToken);
+        }
 
         DirectorySyncDecision decision = DirectorySyncPlanner.Decide(record, Snapshot(user), departmentId);
 
@@ -126,13 +129,17 @@ public sealed class DirectoryAccountService(
         Role? defaultRole = await db.Roles
             .FirstOrDefaultAsync(role => role.Code == _options.Ldap.DefaultRoleCode, cancellationToken);
 
-        if (defaultRole is {IsEnabled: true})
-            db.UserRoles.Add(new UserRole {UserId = user.Id, RoleId = defaultRole.Id});
+        if (defaultRole is { IsEnabled: true })
+        {
+            db.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = defaultRole.Id });
+        }
         else
+        {
             logger.LogWarning(
                 "域账号 {UserName} 建号时默认角色 {RoleCode} 不可用，该账号将看不到任何页面。",
                 user.UserName,
                 _options.Ldap.DefaultRoleCode);
+        }
 
         try
         {
@@ -174,13 +181,15 @@ public sealed class DirectoryAccountService(
         foreach (EntityEntry entry in db.ChangeTracker.Entries()
                      .Where(item => item.State == EntityState.Added)
                      .ToList())
+        {
             entry.State = EntityState.Detached;
+        }
 
         Guid? userId = await db.ExternalIdentities
             .AsNoTracking()
             .Where(identity => identity.Provider == DirectorySyncService.LdapProvider
                                && identity.ExternalId == record.ExternalId)
-            .Select(identity => (Guid?) identity.UserId)
+            .Select(identity => (Guid?)identity.UserId)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (userId is { } id)

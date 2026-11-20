@@ -54,7 +54,10 @@ public class AuditedShiftSchedulingServiceTests
             CancellationToken cancellationToken = default)
         {
             ImportCalls++;
-            if (ImportException is not null) throw ImportException;
+            if (ImportException is not null)
+            {
+                throw ImportException;
+            }
 
             ShiftScheduleRowDto row = new(
                 new DateOnly(2026, 11, 19), "T1", "一班", "早班",
@@ -76,7 +79,7 @@ public class AuditedShiftSchedulingServiceTests
         {
             StatusCalls++;
             return Task.FromResult(new ShiftScheduleStatusDto(
-                true, [new("T1", "一班")], new DateOnly(2026, 11, 1), new DateOnly(2026, 11, 30),
+                true, [new ShiftTeamDto("T1", "一班")], new DateOnly(2026, 11, 1), new DateOnly(2026, 11, 30),
                 2, FixedNow, WorkBook));
         }
 
@@ -122,8 +125,8 @@ public class AuditedShiftSchedulingServiceTests
     private static ClaimsPrincipal CreatePrincipal(Guid userId, params string[] permissions)
     {
         List<Claim> claims = [new(AuthorizationCatalog.PlatformClaimTypes.UserId, userId.ToString())];
-        claims.AddRange(permissions.Select(
-            permission => new Claim(AuthorizationCatalog.PlatformClaimTypes.Permission, permission)));
+        claims.AddRange(permissions.Select(permission =>
+            new Claim(AuthorizationCatalog.PlatformClaimTypes.Permission, permission)));
 
         return new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuthentication"));
     }
@@ -220,8 +223,8 @@ public class AuditedShiftSchedulingServiceTests
         StubShiftSchedulingService inner = new();
         AuditedShiftSchedulingService service = CreateService(database, inner, CreateUser(userId, principal));
 
-        ForbiddenAccessException ex = await Assert.ThrowsAsync<ForbiddenAccessException>(
-            () => service.ImportAsync(WorkBook, new MemoryStream()));
+        ForbiddenAccessException ex = await Assert.ThrowsAsync<ForbiddenAccessException>(() =>
+            service.ImportAsync(WorkBook, new MemoryStream()));
 
         Assert.Contains("没有执行该操作的权限", ex.Message);
         Assert.Equal(0, inner.ImportCalls);
@@ -239,10 +242,9 @@ public class AuditedShiftSchedulingServiceTests
     {
         using SqliteTestDatabase database = new();
         StubShiftSchedulingService inner = new();
-        AuditedShiftSchedulingService service = CreateService(database, inner, user: null);
+        AuditedShiftSchedulingService service = CreateService(database, inner, null);
 
-        await Assert.ThrowsAsync<ForbiddenAccessException>(
-            () => service.ImportAsync(WorkBook, new MemoryStream()));
+        await Assert.ThrowsAsync<ForbiddenAccessException>(() => service.ImportAsync(WorkBook, new MemoryStream()));
 
         Assert.Equal(0, inner.ImportCalls);
 
@@ -258,14 +260,14 @@ public class AuditedShiftSchedulingServiceTests
     public async Task 导入_账号已停用_拒绝执行并写失败审计()
     {
         using SqliteTestDatabase database = new();
-        Guid userId = SeedUser(database, enabled: false);
+        Guid userId = SeedUser(database, false);
         ClaimsPrincipal principal = CreatePrincipal(userId, AuthorizationCatalog.ShiftManagePermission);
         StubShiftSchedulingService inner = new();
         AuditedShiftSchedulingService service = CreateService(database, inner, CreateUser(userId, principal));
 
         // Blazor Server 电路建立后不再重新认证：停用必须在写操作前回查一次库。
-        ForbiddenAccessException ex = await Assert.ThrowsAsync<ForbiddenAccessException>(
-            () => service.ImportAsync(WorkBook, new MemoryStream()));
+        ForbiddenAccessException ex = await Assert.ThrowsAsync<ForbiddenAccessException>(() =>
+            service.ImportAsync(WorkBook, new MemoryStream()));
 
         Assert.Contains("账号已停用", ex.Message);
         Assert.Equal(0, inner.ImportCalls);
@@ -300,14 +302,10 @@ public class AuditedShiftSchedulingServiceTests
         using SqliteTestDatabase database = new();
         Guid userId = SeedUser(database);
         ClaimsPrincipal principal = CreatePrincipal(userId, AuthorizationCatalog.ShiftManagePermission);
-        StubShiftSchedulingService inner = new()
-        {
-            ImportException = new InvalidOperationException("解析失败：表头不识别")
-        };
+        StubShiftSchedulingService inner = new() { ImportException = new InvalidOperationException("解析失败：表头不识别") };
         AuditedShiftSchedulingService service = CreateService(database, inner, CreateUser(userId, principal));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => service.ImportAsync(WorkBook, new MemoryStream()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.ImportAsync(WorkBook, new MemoryStream()));
 
         AuditLog audit = Assert.Single(ReadAudits(database));
         Assert.Equal("failed", audit.Result);

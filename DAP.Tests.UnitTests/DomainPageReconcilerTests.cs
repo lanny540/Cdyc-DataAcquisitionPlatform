@@ -35,13 +35,21 @@ public sealed class DomainPageReconcilerTests
 
         foreach (BuiltInDomain builtIn in AuthorizationCatalog.Domains)
         {
-            if (excludeCodes.Contains(builtIn.Code)) continue;
+            if (excludeCodes.Contains(builtIn.Code))
+            {
+                continue;
+            }
 
             BusinessDomain domain = new()
             {
-                Id = Guid.NewGuid(), Code = builtIn.Code, Name = builtIn.Name,
-                SortOrder = builtIn.SortOrder, IsSystem = builtIn.IsSystem, IsEnabled = true,
-                CreatedAt = SeedTime, UpdatedAt = SeedTime
+                Id = Guid.NewGuid(),
+                Code = builtIn.Code,
+                Name = builtIn.Name,
+                SortOrder = builtIn.SortOrder,
+                IsSystem = builtIn.IsSystem,
+                IsEnabled = true,
+                CreatedAt = SeedTime,
+                UpdatedAt = SeedTime
             };
             domainIds[builtIn.Code] = domain.Id;
             db.BusinessDomains.Add(domain);
@@ -118,7 +126,7 @@ public sealed class DomainPageReconcilerTests
             page.Title = "管理员改名";
             page.Route = "/old-route"; // 模拟开发者在代码里改了路由
             page.AccessLevel = descriptor.Item.AccessLevel == 1 ? 2 : 1;
-            page.IsOrphaned = true;   // 模拟页面曾被标记下线后又在代码里回来
+            page.IsOrphaned = true; // 模拟页面曾被标记下线后又在代码里回来
             await setup.SaveChangesAsync();
         }
 
@@ -151,10 +159,18 @@ public sealed class DomainPageReconcilerTests
             // 库里有、代码里没有的页面：标记下线而不是删除。
             setup.DomainPages.Add(new DomainPage
             {
-                Id = Guid.NewGuid(), PageKey = "ghost-page", DomainId = domainIds[AuthorizationCatalog.EnergyDomain],
-                Route = "/ghost", Title = "幽灵页面", AccessLevel = 1, SortOrder = 99,
-                IsEnabled = true, IsOrphaned = false, Source = AuthorizationCatalog.PageSourceCode,
-                CreatedAt = SeedTime, UpdatedAt = SeedTime
+                Id = Guid.NewGuid(),
+                PageKey = "ghost-page",
+                DomainId = domainIds[AuthorizationCatalog.EnergyDomain],
+                Route = "/ghost",
+                Title = "幽灵页面",
+                AccessLevel = 1,
+                SortOrder = 99,
+                IsEnabled = true,
+                IsOrphaned = false,
+                Source = AuthorizationCatalog.PageSourceCode,
+                CreatedAt = SeedTime,
+                UpdatedAt = SeedTime
             });
             await setup.SaveChangesAsync();
         }
@@ -182,7 +198,8 @@ public sealed class DomainPageReconcilerTests
         // 只建 3 个域：钞纸域缺失，其页面必须跳过而不是挂掉。
         SeedDomains(database, AuthorizationCatalog.BanknotePaperDomain);
 
-        int skippedCount = NavigationCatalog.Pages.Count(page => page.Item.DomainCode == AuthorizationCatalog.BanknotePaperDomain);
+        int skippedCount =
+            NavigationCatalog.Pages.Count(page => page.Item.DomainCode == AuthorizationCatalog.BanknotePaperDomain);
 
         DomainPageReconcileResult result = await ReconcileAsync(database);
 
@@ -211,7 +228,10 @@ public sealed class DomainPageReconcilerTests
                 .Select(page => page.Item.PageKey)
                 .ToList();
 
-            if (catalogOrder.Count == 0) continue;
+            if (catalogOrder.Count == 0)
+            {
+                continue;
+            }
 
             List<DomainPage> pages = await verify.DomainPages
                 .Where(page => page.PageKey != "ghost-page")

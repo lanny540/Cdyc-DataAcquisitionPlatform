@@ -42,7 +42,7 @@ public sealed class CollectionDataRecordConfiguration : IEntityTypeConfiguration
         builder.HasIndex(item => item.CollectionPointId)
             .HasDatabaseName("ix_collection_data_records_collection_point_id");
 
-        builder.HasIndex(item => new {item.CollectionPointId, item.MetricName, item.CollectedAt})
+        builder.HasIndex(item => new { item.CollectionPointId, item.MetricName, item.CollectedAt })
             .IsDescending(false, false, true)
             .HasDatabaseName("ix_collection_data_records_point_metric_collected_at");
     }

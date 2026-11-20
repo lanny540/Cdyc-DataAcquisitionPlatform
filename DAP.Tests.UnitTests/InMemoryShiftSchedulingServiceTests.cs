@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http;
 using ClosedXML.Excel;
 using DAP.Clients;
 using DAP.Core.Shared.Contracts;
@@ -147,7 +146,7 @@ public class InMemoryShiftSchedulingServiceTests
 
         // 班组应按名称排序，且编码已规范化（去掉尾部「班」字）
         Assert.Equal(
-            new[] {"丁班", "丙班", "乙班", "甲班"},
+            new[] { "丁班", "丙班", "乙班", "甲班" },
             status.Teams.Select(team => team.TeamName).ToArray());
         Assert.All(status.Teams, team =>
         {
@@ -287,7 +286,7 @@ public class InMemoryShiftSchedulingServiceTests
     public async Task ReadOnly_Clients_Should_Not_Call_Configuration_Level_Shift_API()
     {
         ReadOnlyRouteHandler handler = new();
-        using HttpClient httpClient = new(handler) {BaseAddress = new Uri("https://dap.test")};
+        using HttpClient httpClient = new(handler) { BaseAddress = new Uri("https://dap.test") };
         PlatformApiClient client = new(httpClient);
 
         Assert.Single(await client.GetEnergyTeamsAsync());
@@ -304,7 +303,8 @@ public class InMemoryShiftSchedulingServiceTests
         ];
 
         Assert.Equal(expectedRoutes, handler.Requests);
-        Assert.DoesNotContain(handler.Requests, path => path.StartsWith("/api/shift-schedules/", StringComparison.Ordinal));
+        Assert.DoesNotContain(handler.Requests,
+            path => path.StartsWith("/api/shift-schedules/", StringComparison.Ordinal));
     }
 
     private sealed class ReadOnlyRouteHandler : HttpMessageHandler
@@ -320,7 +320,9 @@ public class InMemoryShiftSchedulingServiceTests
 
             if (request.RequestUri?.AbsolutePath.StartsWith(
                     "/api/shift-schedule-view/teams/", StringComparison.Ordinal) == true)
+            {
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+            }
 
             string payload = request.RequestUri?.AbsolutePath.EndsWith("/teams", StringComparison.Ordinal) == true
                 ? """[{"teamCode":"TEAM-甲","teamName":"甲班"}]"""
@@ -360,8 +362,7 @@ public class InMemoryShiftSchedulingServiceTests
             string[] teamNames = ["甲班", "乙班", "丙班", "丁班"];
             (TimeOnly Start, TimeOnly End)[] shifts = new (TimeOnly Start, TimeOnly End)[]
             {
-                (new TimeOnly(0, 0), new TimeOnly(8, 0)),
-                (new TimeOnly(8, 0), new TimeOnly(16, 0)),
+                (new TimeOnly(0, 0), new TimeOnly(8, 0)), (new TimeOnly(8, 0), new TimeOnly(16, 0)),
                 (new TimeOnly(16, 0), new TimeOnly(0, 0))
             };
 

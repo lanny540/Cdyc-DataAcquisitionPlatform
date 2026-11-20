@@ -43,9 +43,15 @@ public sealed class DirectoryAccountServiceTests
     {
         return new Role
         {
-            Id = Guid.NewGuid(), Code = code, Name = code, PageLevel = pageLevel,
-            IsBuiltin = true, IsEnabled = enabled, SortOrder = 10,
-            CreatedAt = Now, UpdatedAt = Now
+            Id = Guid.NewGuid(),
+            Code = code,
+            Name = code,
+            PageLevel = pageLevel,
+            IsBuiltin = true,
+            IsEnabled = enabled,
+            SortOrder = 10,
+            CreatedAt = Now,
+            UpdatedAt = Now
         };
     }
 
@@ -53,10 +59,16 @@ public sealed class DirectoryAccountServiceTests
     {
         return new AppUser
         {
-            Id = Guid.NewGuid(), UserName = userName, DisplayName = userName,
-            DepartmentId = departmentId, IsEnabled = true, MustChangePassword = false,
+            Id = Guid.NewGuid(),
+            UserName = userName,
+            DisplayName = userName,
+            DepartmentId = departmentId,
+            IsEnabled = true,
+            MustChangePassword = false,
             PasswordHash = password is null ? null : PasswordHasher.Hash(password),
-            SecurityStamp = Guid.NewGuid(), CreatedAt = Now, UpdatedAt = Now
+            SecurityStamp = Guid.NewGuid(),
+            CreatedAt = Now,
+            UpdatedAt = Now
         };
     }
 
@@ -64,9 +76,14 @@ public sealed class DirectoryAccountServiceTests
     {
         return new ExternalIdentity
         {
-            Id = Guid.NewGuid(), UserId = userId, Provider = DirectorySyncService.LdapProvider,
-            ExternalId = externalId, EmployeeNo = null, LastSyncedAt = Now,
-            CreatedAt = Now, UpdatedAt = Now
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            Provider = DirectorySyncService.LdapProvider,
+            ExternalId = externalId,
+            EmployeeNo = null,
+            LastSyncedAt = Now,
+            CreatedAt = Now,
+            UpdatedAt = Now
         };
     }
 
@@ -89,8 +106,13 @@ public sealed class DirectoryAccountServiceTests
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
         Department workshop = new()
         {
-            Id = Guid.NewGuid(), Code = "D001", Name = "抄纸一车间", ExternalCode = "PAPER-1",
-            IsEnabled = true, CreatedAt = Now, UpdatedAt = Now
+            Id = Guid.NewGuid(),
+            Code = "D001",
+            Name = "抄纸一车间",
+            ExternalCode = "PAPER-1",
+            IsEnabled = true,
+            CreatedAt = Now,
+            UpdatedAt = Now
         };
         db.Departments.Add(workshop);
         db.Roles.Add(SeedRole(AuthorizationCatalog.ViewerRole));
@@ -148,13 +170,23 @@ public sealed class DirectoryAccountServiceTests
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
         Department old = new()
         {
-            Id = Guid.NewGuid(), Code = "D001", Name = "抄纸一车间", ExternalCode = "PAPER-1",
-            IsEnabled = true, CreatedAt = Now, UpdatedAt = Now
+            Id = Guid.NewGuid(),
+            Code = "D001",
+            Name = "抄纸一车间",
+            ExternalCode = "PAPER-1",
+            IsEnabled = true,
+            CreatedAt = Now,
+            UpdatedAt = Now
         };
         Department moved = new()
         {
-            Id = Guid.NewGuid(), Code = "D002", Name = "能源车间", ExternalCode = "ENERGY-1",
-            IsEnabled = true, CreatedAt = Now, UpdatedAt = Now
+            Id = Guid.NewGuid(),
+            Code = "D002",
+            Name = "能源车间",
+            ExternalCode = "ENERGY-1",
+            IsEnabled = true,
+            CreatedAt = Now,
+            UpdatedAt = Now
         };
         Role technician = SeedRole(AuthorizationCatalog.TechnicianRole, pageLevel: 2);
         db.Departments.Add(old);
@@ -225,7 +257,7 @@ public sealed class DirectoryAccountServiceTests
 
         DirectoryAccountService service = CreateService(db);
         DirectoryProvisionResult result = await service.EnsureUserAsync(
-            Record(externalId: "ext-9", userName: "zhang3"));
+            Record("ext-9", "zhang3"));
 
         // 并号可能把域身份挂到本地管理员身上，必须拒绝。
         Assert.False(result.Succeeded);
@@ -238,7 +270,7 @@ public sealed class DirectoryAccountServiceTests
     {
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
-        db.Roles.Add(SeedRole(AuthorizationCatalog.ViewerRole, enabled: false));
+        db.Roles.Add(SeedRole(AuthorizationCatalog.ViewerRole, false));
         await db.SaveChangesAsync();
 
         DirectoryAccountService service = CreateService(db);
@@ -260,8 +292,13 @@ public sealed class DirectoryAccountServiceTests
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
         Department workshop = new()
         {
-            Id = Guid.NewGuid(), Code = "D001", Name = "抄纸一车间", ExternalCode = "PAPER-1",
-            IsEnabled = true, CreatedAt = Now, UpdatedAt = Now
+            Id = Guid.NewGuid(),
+            Code = "D001",
+            Name = "抄纸一车间",
+            ExternalCode = "PAPER-1",
+            IsEnabled = true,
+            CreatedAt = Now,
+            UpdatedAt = Now
         };
         db.Departments.Add(workshop);
         await db.SaveChangesAsync();

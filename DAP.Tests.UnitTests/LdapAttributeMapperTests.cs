@@ -127,7 +127,7 @@ public class LdapAttributeMapperTests
         FakeEntry entry = new FakeEntry("CN=张三,OU=抄纸一车间,OU=生产部,DC=example,DC=com")
             .With("sAMAccountName", "zhang3");
 
-        LdapOptions options = new() {DepartmentOuLevel = 1};
+        LdapOptions options = new() { DepartmentOuLevel = 1 };
 
         Assert.Equal("抄纸一车间", LdapAttributeMapper.Map(entry, options)!.DepartmentExternalCode);
 
@@ -144,7 +144,7 @@ public class LdapAttributeMapperTests
 
         Assert.Equal(
             "设备动力部",
-            LdapAttributeMapper.Map(entry, new LdapOptions {DepartmentOuLevel = 1})!.DepartmentExternalCode);
+            LdapAttributeMapper.Map(entry, new LdapOptions { DepartmentOuLevel = 1 })!.DepartmentExternalCode);
     }
 
     [Fact]
@@ -198,11 +198,14 @@ public class LdapAttributeMapperTests
 
         public string? GetString(string attributeName)
         {
-            if (!_attributes.TryGetValue(attributeName, out object? value)) return null;
+            if (!_attributes.TryGetValue(attributeName, out object? value))
+            {
+                return null;
+            }
 
             return value switch
             {
-                string[] {Length: > 0} values => values[0],
+                string[] { Length: > 0 } values => values[0],
                 byte[] bytes => LdapAttributeMapper.ToHexString(bytes),
                 _ => null
             };

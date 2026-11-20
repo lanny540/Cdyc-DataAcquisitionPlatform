@@ -41,8 +41,10 @@ public sealed class DataAcquisitionPlatformDbContextFactory
         {
             string candidate = Path.Combine(directory.FullName, "DAP.Presentation.BlazorWeb", "appsettings.json");
             if (File.Exists(candidate))
+            {
                 return Path.GetDirectoryName(candidate)
                        ?? throw new InvalidOperationException("无法解析 BlazorWeb 配置目录。");
+            }
 
             directory = directory.Parent;
         }

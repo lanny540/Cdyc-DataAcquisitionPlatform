@@ -1,6 +1,5 @@
 using DAP.Core.Shared.Contracts;
 using DAP.Presentation.BlazorWeb.Services;
-using Xunit;
 
 namespace DAP.Tests.UnitTests;
 

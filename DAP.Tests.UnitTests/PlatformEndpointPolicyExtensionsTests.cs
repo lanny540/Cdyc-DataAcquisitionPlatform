@@ -43,7 +43,9 @@ public class PlatformEndpointPolicyExtensionsTests
 
         TestEndpointBuilder endpoint = new();
         foreach (Action<EndpointBuilder> convention in recording.Conventions)
+        {
             convention(endpoint);
+        }
 
         return endpoint.Metadata.OfType<IAuthorizeData>()
             .Select(data => data.Policy ?? string.Empty)
@@ -78,8 +80,8 @@ public class PlatformEndpointPolicyExtensionsTests
     [Fact]
     public void 权限点扩展_应挂载权限点策略名()
     {
-        IReadOnlyList<string> policies = AppliedPolicies(
-            builder => builder.RequirePermission(AuthorizationCatalog.ShiftManagePermission));
+        IReadOnlyList<string> policies =
+            AppliedPolicies(builder => builder.RequirePermission(AuthorizationCatalog.ShiftManagePermission));
 
         Assert.Equal([AuthorizationCatalog.ShiftManagePermission], policies);
     }

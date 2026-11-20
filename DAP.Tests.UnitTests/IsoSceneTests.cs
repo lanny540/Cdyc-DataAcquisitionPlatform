@@ -29,7 +29,7 @@ public sealed class IsoSceneTests
 
         Assert.Equal(ground.X, raised.X, 3);
         Assert.True(raised.Y < ground.Y);
-        Assert.Equal(ground.Y - 2 * Scale, raised.Y, 3);
+        Assert.Equal(ground.Y - (2 * Scale), raised.Y, 3);
     }
 
     /// <summary>

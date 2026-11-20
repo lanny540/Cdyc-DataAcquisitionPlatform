@@ -1,5 +1,4 @@
 using DAP.Core.Shared.Contracts;
-using DAP.Presentation.BlazorWeb.Client.Services;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
@@ -99,7 +98,10 @@ public partial class EnergyHistory
     /// <param name="silent">true 表示定时触发的静默刷新。</param>
     private async Task LoadInternalAsync(bool silent)
     {
-        if (silent && (_isLoading || _isRefreshing)) return;
+        if (silent && (_isLoading || _isRefreshing))
+        {
+            return;
+        }
 
         if (silent)
         {
@@ -116,7 +118,10 @@ public partial class EnergyHistory
             _teams = await PlatformApiClient.GetEnergyTeamsAsync();
 
             // 已导入的班组可能不含甲班，此时回退到第一个真实班组。
-            if (Teams.Length > 0 && Teams.All(team => team.TeamCode != _teamCode)) _teamCode = Teams[0].TeamCode;
+            if (Teams.Length > 0 && Teams.All(team => team.TeamCode != _teamCode))
+            {
+                _teamCode = Teams[0].TeamCode;
+            }
 
             DateOnly today = DateOnly.FromDateTime(DateTime.Today);
             (DateOnly from, DateOnly to) = ResolveRange(today);
@@ -133,14 +138,21 @@ public partial class EnergyHistory
                 : $"历史指标加载失败：{UserFacingErrors.Describe(ex)}";
             _messageSeverity = silent ? Severity.Warning : Severity.Error;
 
-            if (!silent) _history = null;
+            if (!silent)
+            {
+                _history = null;
+            }
         }
         finally
         {
             if (silent)
+            {
                 _isRefreshing = false;
+            }
             else
+            {
                 _isLoading = false;
+            }
         }
     }
 
@@ -175,8 +187,7 @@ public partial class EnergyHistory
         [
             new ChartSeries<double>
             {
-                Name = trend.MetricName,
-                Data = trend.Points.Select(item => (double) item.Value).ToArray()
+                Name = trend.MetricName, Data = trend.Points.Select(item => (double)item.Value).ToArray()
             }
         ];
     }
@@ -188,13 +199,19 @@ public partial class EnergyHistory
     private static string[] BuildLabels(EnergyTrendDto trend)
     {
         IReadOnlyCollection<EnergyTrendPointDto> points = trend.Points;
-        if (points.Count == 0) return [];
+        if (points.Count == 0)
+        {
+            return [];
+        }
 
         const int maxLabels = 12;
 
-        if (points.Count <= maxLabels) return points.Select(item => item.Label).ToArray();
+        if (points.Count <= maxLabels)
+        {
+            return points.Select(item => item.Label).ToArray();
+        }
 
-        int step = (int) Math.Ceiling(points.Count / (double) maxLabels);
+        int step = (int)Math.Ceiling(points.Count / (double)maxLabels);
 
         return points
             .Select((point, index) => index % step == 0 ? point.Label : string.Empty)
@@ -279,7 +296,7 @@ public partial class EnergyHistory
             ? []
             : Trends
                 .SelectMany(trend => trend.Points.Select(point =>
-                    new {point.BucketStart, point.Label, trend.MetricCode, point.Value}))
+                    new { point.BucketStart, point.Label, trend.MetricCode, point.Value }))
                 .GroupBy(item => item.BucketStart)
                 .OrderBy(group => group.Key)
                 .Select(group => new PivotRow(

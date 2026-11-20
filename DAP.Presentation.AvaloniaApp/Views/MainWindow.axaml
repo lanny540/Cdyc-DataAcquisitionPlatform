@@ -14,152 +14,152 @@
               Background="{DynamicResource DapPageBackgroundBrush}"
               Title="CDYC 数据采集平台 · 数据查看客户端">
 
-    <Grid>
-        <!-- 主壳：登录且完成强制改密后才显示 -->
-        <Grid RowDefinitions="Auto,*" IsVisible="{Binding ShowShell}">
-            <!-- 顶栏：品牌 / 模块 / 账号 -->
-            <Border Grid.Row="0"
-                    Background="{DynamicResource DapSurfaceBrush}"
-                    BorderBrush="{DynamicResource DapBorderBrush}"
-                    BorderThickness="0,0,0,1">
-                <!-- macOS 系统交通灯绘制在窗口内容区左上角，品牌区必须让位，
+  <Grid>
+    <!-- 主壳：登录且完成强制改密后才显示 -->
+    <Grid RowDefinitions="Auto,*" IsVisible="{Binding ShowShell}">
+      <!-- 顶栏：品牌 / 模块 / 账号 -->
+      <Border Grid.Row="0"
+              Background="{DynamicResource DapSurfaceBrush}"
+              BorderBrush="{DynamicResource DapBorderBrush}"
+              BorderThickness="0,0,0,1">
+        <!-- macOS 系统交通灯绘制在窗口内容区左上角，品牌区必须让位，
                      否则 logo 与关闭按钮重叠（UrsaWindow 默认延伸内容区）。
                      Windows / Linux 的按钮在标题栏右侧，无需留白。 -->
-                <Border.Padding>
-                    <OnPlatform x:TypeArguments="Thickness" Default="20,10">
-                        <On Options="macOS">86,10,20,10</On>
-                    </OnPlatform>
-                </Border.Padding>
-                <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="18">
-                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                        <Border Width="30" Height="30" CornerRadius="8"
-                                Background="{DynamicResource DapPrimaryBrush}">
-                            <TextBlock Text="C" FontSize="16" FontWeight="Bold"
-                                       Foreground="{DynamicResource DapSurfaceBrush}"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-                        <StackPanel Spacing="0" VerticalAlignment="Center">
-                            <TextBlock Text="CDYC 数据平台" FontSize="15" FontWeight="Bold"
-                                       Foreground="{DynamicResource DapTextPrimaryBrush}" />
-                            <TextBlock Text="数据查看 · 报表查询" FontSize="11"
-                                       Foreground="{DynamicResource DapTextSubtleBrush}" />
-                        </StackPanel>
-                    </StackPanel>
-
-                    <ItemsControl Grid.Column="1" ItemsSource="{Binding Modules}" VerticalAlignment="Center">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <StackPanel Orientation="Horizontal" Spacing="4" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="shell:NavModuleViewModel">
-                                <Button Classes="module-button"
-                                        Classes.active="{Binding IsSelected}"
-                                        Content="{Binding Title}"
-                                        Command="{Binding SelectCommand}" />
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-
-                    <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="12"
-                                VerticalAlignment="Center">
-                        <StackPanel Spacing="0" HorizontalAlignment="Right">
-                            <TextBlock Text="{Binding Session.UserDisplayName}" FontSize="13"
-                                       FontWeight="SemiBold" HorizontalAlignment="Right"
-                                       Foreground="{DynamicResource DapTextPrimaryBrush}" />
-                            <TextBlock Text="{Binding Session.UserRoleText}" FontSize="11"
-                                       HorizontalAlignment="Right"
-                                       Foreground="{DynamicResource DapTextSubtleBrush}" />
-                        </StackPanel>
-                        <Button Classes="ghost" Content="登出" Command="{Binding LogoutCommand}" />
-                    </StackPanel>
-                </Grid>
+        <Border.Padding>
+          <OnPlatform x:TypeArguments="Thickness" Default="20,10">
+            <On Options="macOS">86,10,20,10</On>
+          </OnPlatform>
+        </Border.Padding>
+        <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="18">
+          <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+            <Border Width="30" Height="30" CornerRadius="8"
+                    Background="{DynamicResource DapPrimaryBrush}">
+              <TextBlock Text="C" FontSize="16" FontWeight="Bold"
+                         Foreground="{DynamicResource DapSurfaceBrush}"
+                         HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Border>
+            <StackPanel Spacing="0" VerticalAlignment="Center">
+              <TextBlock Text="CDYC 数据平台" FontSize="15" FontWeight="Bold"
+                         Foreground="{DynamicResource DapTextPrimaryBrush}" />
+              <TextBlock Text="数据查看 · 报表查询" FontSize="11"
+                         Foreground="{DynamicResource DapTextSubtleBrush}" />
+            </StackPanel>
+          </StackPanel>
 
-            <!-- 抽屉 + 内容 -->
-            <Grid Grid.Row="1" ColumnDefinitions="238,*">
-                <Border Background="{DynamicResource DapSurfaceBrush}"
-                        BorderBrush="{DynamicResource DapBorderBrush}"
-                        BorderThickness="0,0,1,0"
-                        Padding="14,16">
-                    <Grid RowDefinitions="Auto,*,Auto" RowSpacing="14">
-                        <StackPanel Spacing="4">
-                            <TextBlock Text="{Binding SelectedModule.Title}" FontSize="13"
-                                       FontWeight="Bold"
-                                       Foreground="{DynamicResource DapTextPrimaryBrush}" />
-                            <TextBlock Text="{Binding DrawerDescription}" FontSize="12"
-                                       TextWrapping="Wrap"
-                                       Foreground="{DynamicResource DapTextSubtleBrush}" />
-                        </StackPanel>
+          <ItemsControl Grid.Column="1" ItemsSource="{Binding Modules}" VerticalAlignment="Center">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Orientation="Horizontal" Spacing="4" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="shell:NavModuleViewModel">
+                <Button Classes="module-button"
+                        Classes.active="{Binding IsSelected}"
+                        Content="{Binding Title}"
+                        Command="{Binding SelectCommand}" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
 
-                        <ItemsControl Grid.Row="1" ItemsSource="{Binding CurrentGroups}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Spacing="14" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="shell:NavGroupViewModel">
-                                    <StackPanel Spacing="4">
-                                        <TextBlock Text="{Binding Title}" FontSize="11"
-                                                   Margin="8,0,0,0"
-                                                   Foreground="{DynamicResource DapTextSubtleBrush}" />
-                                        <ItemsControl ItemsSource="{Binding Items}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate x:DataType="shell:NavItemViewModel">
-                                                    <Button Classes="nav-button"
-                                                            Command="{Binding SelectCommand}">
-                                                        <Border Classes="nav-item"
-                                                                Classes.active="{Binding IsSelected}">
-                                                            <Grid ColumnDefinitions="4,18,*" ColumnSpacing="10">
-                                                                <Border Classes="accent-bar"
-                                                                        Background="{DynamicResource DapPrimaryBrush}"
-                                                                        IsVisible="{Binding IsSelected}" />
-                                                                <PathIcon Grid.Column="1"
-                                                                          Classes="nav-icon"
-                                                                          Classes.active="{Binding IsSelected}"
-                                                                          Foreground="{Binding IconBrush}"
-                                                                          Data="{Binding Icon}" />
-                                                                <TextBlock Grid.Column="2"
-                                                                           Classes="nav-text"
-                                                                           Classes.active="{Binding IsSelected}"
-                                                                           Text="{Binding Title}"
-                                                                           VerticalAlignment="Center" />
-                                                            </Grid>
-                                                        </Border>
-                                                    </Button>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-
-                        <StackPanel Grid.Row="2" Spacing="3">
-                            <Border Classes="divider" Margin="0,0,0,6" />
-                            <TextBlock Text="{Binding ServerAddress}" FontSize="11"
-                                       Foreground="{DynamicResource DapTextSubtleBrush}" />
-                            <TextBlock Text="{Binding VersionText}" FontSize="11"
-                                       Foreground="{DynamicResource DapTextSubtleBrush}" />
-                            <TextBlock Text="只读客户端：配置与写入请在 Web 端操作" FontSize="11"
-                                       TextWrapping="Wrap"
-                                       Foreground="{DynamicResource DapTextSubtleBrush}" />
-                        </StackPanel>
-                    </Grid>
-                </Border>
-
-                <Border Grid.Column="1" Padding="20,18">
-                    <ContentControl Content="{Binding CurrentPage}" />
-                </Border>
-            </Grid>
+          <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="12"
+                      VerticalAlignment="Center">
+            <StackPanel Spacing="0" HorizontalAlignment="Right">
+              <TextBlock Text="{Binding Session.UserDisplayName}" FontSize="13"
+                         FontWeight="SemiBold" HorizontalAlignment="Right"
+                         Foreground="{DynamicResource DapTextPrimaryBrush}" />
+              <TextBlock Text="{Binding Session.UserRoleText}" FontSize="11"
+                         HorizontalAlignment="Right"
+                         Foreground="{DynamicResource DapTextSubtleBrush}" />
+            </StackPanel>
+            <Button Classes="ghost" Content="登出" Command="{Binding LogoutCommand}" />
+          </StackPanel>
         </Grid>
+      </Border>
 
-        <!-- 登录/强制改密浮层 -->
-        <Grid IsVisible="{Binding ShowLogin}"
-              Background="{DynamicResource DapPageBackgroundBrush}">
-            <views:LoginView DataContext="{Binding Login}" />
-        </Grid>
+      <!-- 抽屉 + 内容 -->
+      <Grid Grid.Row="1" ColumnDefinitions="238,*">
+        <Border Background="{DynamicResource DapSurfaceBrush}"
+                BorderBrush="{DynamicResource DapBorderBrush}"
+                BorderThickness="0,0,1,0"
+                Padding="14,16">
+          <Grid RowDefinitions="Auto,*,Auto" RowSpacing="14">
+            <StackPanel Spacing="4">
+              <TextBlock Text="{Binding SelectedModule.Title}" FontSize="13"
+                         FontWeight="Bold"
+                         Foreground="{DynamicResource DapTextPrimaryBrush}" />
+              <TextBlock Text="{Binding DrawerDescription}" FontSize="12"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource DapTextSubtleBrush}" />
+            </StackPanel>
+
+            <ItemsControl Grid.Row="1" ItemsSource="{Binding CurrentGroups}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Spacing="14" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="shell:NavGroupViewModel">
+                  <StackPanel Spacing="4">
+                    <TextBlock Text="{Binding Title}" FontSize="11"
+                               Margin="8,0,0,0"
+                               Foreground="{DynamicResource DapTextSubtleBrush}" />
+                    <ItemsControl ItemsSource="{Binding Items}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="shell:NavItemViewModel">
+                          <Button Classes="nav-button"
+                                  Command="{Binding SelectCommand}">
+                            <Border Classes="nav-item"
+                                    Classes.active="{Binding IsSelected}">
+                              <Grid ColumnDefinitions="4,18,*" ColumnSpacing="10">
+                                <Border Classes="accent-bar"
+                                        Background="{DynamicResource DapPrimaryBrush}"
+                                        IsVisible="{Binding IsSelected}" />
+                                <PathIcon Grid.Column="1"
+                                          Classes="nav-icon"
+                                          Classes.active="{Binding IsSelected}"
+                                          Foreground="{Binding IconBrush}"
+                                          Data="{Binding Icon}" />
+                                <TextBlock Grid.Column="2"
+                                           Classes="nav-text"
+                                           Classes.active="{Binding IsSelected}"
+                                           Text="{Binding Title}"
+                                           VerticalAlignment="Center" />
+                              </Grid>
+                            </Border>
+                          </Button>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <StackPanel Grid.Row="2" Spacing="3">
+              <Border Classes="divider" Margin="0,0,0,6" />
+              <TextBlock Text="{Binding ServerAddress}" FontSize="11"
+                         Foreground="{DynamicResource DapTextSubtleBrush}" />
+              <TextBlock Text="{Binding VersionText}" FontSize="11"
+                         Foreground="{DynamicResource DapTextSubtleBrush}" />
+              <TextBlock Text="只读客户端：配置与写入请在 Web 端操作" FontSize="11"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource DapTextSubtleBrush}" />
+            </StackPanel>
+          </Grid>
+        </Border>
+
+        <Border Grid.Column="1" Padding="20,18">
+          <ContentControl Content="{Binding CurrentPage}" />
+        </Border>
+      </Grid>
     </Grid>
+
+    <!-- 登录/强制改密浮层 -->
+    <Grid IsVisible="{Binding ShowLogin}"
+          Background="{DynamicResource DapPageBackgroundBrush}">
+      <views:LoginView DataContext="{Binding Login}" />
+    </Grid>
+  </Grid>
 </u:UrsaWindow>

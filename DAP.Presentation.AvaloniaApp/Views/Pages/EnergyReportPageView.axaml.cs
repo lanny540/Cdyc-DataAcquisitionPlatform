@@ -29,7 +29,9 @@ public partial class EnergyReportPageView : UserControl
     {
         if (DataContext is not EnergyReportPageViewModel viewModel
             || TopLevel.GetTopLevel(this) is not { } topLevel)
+        {
             return;
+        }
 
         IStorageFile? file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
@@ -38,11 +40,14 @@ public partial class EnergyReportPageView : UserControl
             DefaultExtension = "csv",
             FileTypeChoices =
             [
-                new FilePickerFileType("CSV 文件") {Patterns = ["*.csv"]}
+                new FilePickerFileType("CSV 文件") { Patterns = ["*.csv"] }
             ]
         });
 
-        if (file is null) return;
+        if (file is null)
+        {
+            return;
+        }
 
         await using Stream stream = await file.OpenWriteAsync();
 

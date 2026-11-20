@@ -1,5 +1,4 @@
 using DAP.Core.Shared.Contracts;
-using DAP.Presentation.BlazorWeb.Client.Services;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
@@ -126,7 +125,10 @@ public partial class CollectionPoints
 
     private void CancelDelete()
     {
-        if (_isDeleting) return;
+        if (_isDeleting)
+        {
+            return;
+        }
 
         _pendingDeletePoint = null;
         _isDeleteConfirmOpen = false;
@@ -134,7 +136,10 @@ public partial class CollectionPoints
 
     private async Task ConfirmDeleteAsync()
     {
-        if (_pendingDeletePoint is null) return;
+        if (_pendingDeletePoint is null)
+        {
+            return;
+        }
 
         CollectionPointDto point = _pendingDeletePoint;
         _isDeleting = true;
@@ -149,7 +154,10 @@ public partial class CollectionPoints
                 return;
             }
 
-            if (_editingId == point.Id) ResetEditor();
+            if (_editingId == point.Id)
+            {
+                ResetEditor();
+            }
 
             _message = $"采集点 {point.Code} 已从服务端删除。";
             _messageSeverity = Severity.Success;

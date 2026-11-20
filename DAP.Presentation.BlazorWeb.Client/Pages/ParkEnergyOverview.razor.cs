@@ -1,4 +1,3 @@
-using DAP.Clients;
 using DAP.Core.Shared.Contracts;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
@@ -60,7 +59,10 @@ public partial class ParkEnergyOverview
     {
         get
         {
-            if (_overview is null || _overview.LoadPoints.Count == 0) return "暂无负荷数据";
+            if (_overview is null || _overview.LoadPoints.Count == 0)
+            {
+                return "暂无负荷数据";
+            }
 
             ParkEnergyLoadPointDto peak = _overview.LoadPoints.MaxBy(point => point.LoadKw)!;
 
@@ -99,7 +101,10 @@ public partial class ParkEnergyOverview
 
             // 服务端给的是实测数据时，复位本地演示标记，
             // 否则页头会一直挂着「示例数据」标签，而数其实是真的。
-            if (_overview.DataStatus != ParkEnergyDataStatus.Sample) _demoMode = false;
+            if (_overview.DataStatus != ParkEnergyDataStatus.Sample)
+            {
+                _demoMode = false;
+            }
 
             if (_overview.DataStatus == ParkEnergyDataStatus.Empty && _overview.Warnings.Count > 0)
             {
@@ -121,7 +126,10 @@ public partial class ParkEnergyOverview
 
     private async Task OnPeriodChangedAsync(string period)
     {
-        if (string.Equals(_period, period, StringComparison.Ordinal)) return;
+        if (string.Equals(_period, period, StringComparison.Ordinal))
+        {
+            return;
+        }
 
         _period = period;
         await LoadAsync();

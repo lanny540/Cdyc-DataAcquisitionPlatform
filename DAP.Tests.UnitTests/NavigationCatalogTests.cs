@@ -24,7 +24,9 @@ public class NavigationCatalogTests
     public void Page_Keys_Should_Be_Lowercase_Kebab()
     {
         foreach (string pageKey in NavigationCatalog.Pages.Select(page => page.Item.PageKey))
+        {
             Assert.Matches("^[a-z][a-z0-9-]*$", pageKey);
+        }
     }
 
     /// <summary>
@@ -54,10 +56,12 @@ public class NavigationCatalogTests
     public void Page_Access_Levels_Should_Be_View_Or_Configure()
     {
         foreach (NavPageDescriptor page in NavigationCatalog.Pages)
+        {
             Assert.True(
                 page.Item.AccessLevel is AuthorizationCatalog.ViewAccessLevel
                     or AuthorizationCatalog.ConfigureAccessLevel,
                 $"页面 {page.Item.Title} 的等级 {page.Item.AccessLevel} 不是 1 或 2");
+        }
     }
 
     /// <summary>

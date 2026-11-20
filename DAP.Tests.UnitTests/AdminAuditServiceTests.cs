@@ -41,39 +41,82 @@ public sealed class AdminAuditServiceTests
         db.AuditLogs.AddRange(
             new AuditLog
             {
-                Id = Guid.NewGuid(), OccurredAt = T1, UserName = "user-a", DepartmentName = "一部",
-                ActionCode = "user.create", TargetType = "user", TargetId = "id-1", TargetName = "name-a",
-                Result = "success", Detail = "before=1,after=2", Ip = "10.1.2.3"
+                Id = Guid.NewGuid(),
+                OccurredAt = T1,
+                UserName = "user-a",
+                DepartmentName = "一部",
+                ActionCode = "user.create",
+                TargetType = "user",
+                TargetId = "id-1",
+                TargetName = "name-a",
+                Result = "success",
+                Detail = "before=1,after=2",
+                Ip = "10.1.2.3"
             },
             new AuditLog
             {
-                Id = Guid.NewGuid(), OccurredAt = T2, UserName = "user-a", DepartmentName = "一部",
-                ActionCode = "user.update", TargetType = "domain", TargetId = "id-2", TargetName = null,
-                Result = "failed", Detail = null, Ip = null
+                Id = Guid.NewGuid(),
+                OccurredAt = T2,
+                UserName = "user-a",
+                DepartmentName = "一部",
+                ActionCode = "user.update",
+                TargetType = "domain",
+                TargetId = "id-2",
+                TargetName = null,
+                Result = "failed",
+                Detail = null,
+                Ip = null
             },
             new AuditLog
             {
-                Id = Guid.NewGuid(), OccurredAt = T3, UserName = "user-b", DepartmentName = null,
-                ActionCode = "shift.import", TargetType = "user", TargetId = "id-3", TargetName = "name-c",
-                Result = "success", Detail = null, Ip = null
+                Id = Guid.NewGuid(),
+                OccurredAt = T3,
+                UserName = "user-b",
+                DepartmentName = null,
+                ActionCode = "shift.import",
+                TargetType = "user",
+                TargetId = "id-3",
+                TargetName = "name-c",
+                Result = "success",
+                Detail = null,
+                Ip = null
             },
             new AuditLog
             {
-                Id = Guid.NewGuid(), OccurredAt = T4, UserName = null, DepartmentName = null,
-                ActionCode = "domain_page.update", TargetType = null, TargetId = null, TargetName = null,
-                Result = "success", Detail = null, Ip = null
+                Id = Guid.NewGuid(),
+                OccurredAt = T4,
+                UserName = null,
+                DepartmentName = null,
+                ActionCode = "domain_page.update",
+                TargetType = null,
+                TargetId = null,
+                TargetName = null,
+                Result = "success",
+                Detail = null,
+                Ip = null
             },
             new AuditLog
             {
-                Id = Guid.NewGuid(), OccurredAt = T5, UserName = "user-c", DepartmentName = "二部",
-                ActionCode = "shift.import", TargetType = "shift-schedule", TargetId = "id-5", TargetName = "name-e",
-                Result = "success", Detail = "=cmd|'/c calc'!A0", Ip = "10.1.2.4"
+                Id = Guid.NewGuid(),
+                OccurredAt = T5,
+                UserName = "user-c",
+                DepartmentName = "二部",
+                ActionCode = "shift.import",
+                TargetType = "shift-schedule",
+                TargetId = "id-5",
+                TargetName = "name-e",
+                Result = "success",
+                Detail = "=cmd|'/c calc'!A0",
+                Ip = "10.1.2.4"
             });
 
         db.SaveChanges();
     }
 
-    private static AdminAuditService CreateService(DataAcquisitionPlatformDbContext db) => new(db);
+    private static AdminAuditService CreateService(DataAcquisitionPlatformDbContext db)
+    {
+        return new AdminAuditService(db);
+    }
 
     [Fact]
     public async Task QueryAsync_Should_Return_All_Ordered_By_Time_Desc()
@@ -102,7 +145,7 @@ public sealed class AdminAuditServiceTests
 
         // 页面传进来的日期带本地时区（+08:00），服务端必须转成 UTC 再比较。
         DateTimeOffset from = new(2026, 11, 19, 15, 0, 0, TimeSpan.FromHours(8)); // 07:00 UTC
-        DateTimeOffset to = new(2026, 11, 19, 18, 0, 0, TimeSpan.FromHours(8));   // 10:00 UTC
+        DateTimeOffset to = new(2026, 11, 19, 18, 0, 0, TimeSpan.FromHours(8)); // 10:00 UTC
 
         AuditLogPageDto page = await CreateService(db).QueryAsync(
             new AuditLogFilter(from, to, null, null, null));
@@ -147,7 +190,7 @@ public sealed class AdminAuditServiceTests
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
 
         AuditLogPageDto page = await CreateService(db).QueryAsync(
-            new AuditLogFilter(null, null, null, null, null, Page: 2, PageSize: 2));
+            new AuditLogFilter(null, null, null, null, null, 2, 2));
 
         Assert.Equal(5, page.Total);
         Assert.Equal(2, page.Items.Count);
@@ -163,13 +206,13 @@ public sealed class AdminAuditServiceTests
         AdminAuditService service = CreateService(db);
 
         AuditLogPageDto page = await service.QueryAsync(
-            new AuditLogFilter(null, null, null, null, null, Page: 0, PageSize: 0));
+            new AuditLogFilter(null, null, null, null, null, 0, 0));
         Assert.Equal(1, page.Page);
         Assert.Equal(1, page.PageSize);
 
         // 每页上限 200：导出走独立方法，不靠调大分页绕开限制。
         AuditLogPageDto clamped = await service.QueryAsync(
-            new AuditLogFilter(null, null, null, null, null, Page: 1, PageSize: 500));
+            new AuditLogFilter(null, null, null, null, null, 1, 500));
         Assert.Equal(AdminAuditService.MaxPageSize, clamped.PageSize);
         Assert.Equal(200, clamped.PageSize);
     }
@@ -303,7 +346,10 @@ public sealed class AdminAuditServiceTests
                 foreach (IReadOnlyCheckConstraint checkConstraint in entityType.GetCheckConstraints().ToList())
                 {
                     string? rewritten = checkConstraint.Sql?.Replace("btrim(", "trim(", StringComparison.Ordinal);
-                    if (rewritten is null || rewritten == checkConstraint.Sql) continue;
+                    if (rewritten is null || rewritten == checkConstraint.Sql)
+                    {
+                        continue;
+                    }
 
                     entityType.RemoveCheckConstraint(checkConstraint.Name!);
                     entityType.AddCheckConstraint(checkConstraint.Name!, rewritten);
@@ -314,12 +360,16 @@ public sealed class AdminAuditServiceTests
                     property.SetDefaultValueSql(null);
 
                     if (property.GetColumnType() == "jsonb")
+                    {
                         property.SetColumnType("TEXT");
+                    }
 
                     if (property.ClrType == typeof(DateTimeOffset))
+                    {
                         property.SetValueConverter(new ValueConverter<DateTimeOffset, long>(
                             value => value.UtcTicks,
                             ticks => new DateTimeOffset(ticks, TimeSpan.Zero)));
+                    }
                 }
             }
         }

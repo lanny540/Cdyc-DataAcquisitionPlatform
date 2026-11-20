@@ -121,7 +121,10 @@ public sealed partial class EnergyComparisonPageViewModel : AutoRefreshPageViewM
     /// </summary>
     partial void OnSelectedGranularityChanged(GranularityOption? value)
     {
-        if (value is not null) _ = ReloadAsync();
+        if (value is not null)
+        {
+            _ = ReloadAsync();
+        }
     }
 
     /// <summary>
@@ -129,7 +132,10 @@ public sealed partial class EnergyComparisonPageViewModel : AutoRefreshPageViewM
     /// </summary>
     partial void OnSelectedDateChanged(DateTime? value)
     {
-        if (value is not null) _ = ReloadAsync();
+        if (value is not null)
+        {
+            _ = ReloadAsync();
+        }
     }
 
     /// <inheritdoc />
@@ -159,7 +165,10 @@ public sealed partial class EnergyComparisonPageViewModel : AutoRefreshPageViewM
         MetricCharts.Clear();
         TeamRows.Clear();
 
-        if (teams.Length == 0) return;
+        if (teams.Length == 0)
+        {
+            return;
+        }
 
         TeamEnergyComparisonDto highest = teams.MaxBy(team => team.TotalConsumption)!;
         TeamEnergyComparisonDto lowest = teams.MinBy(team => team.TotalConsumption)!;
@@ -238,7 +247,10 @@ public sealed partial class EnergyComparisonPageViewModel : AutoRefreshPageViewM
     /// </summary>
     private static string TeamValue(TeamEnergyComparisonDto team, EnergyMetricDescriptorDto? metric)
     {
-        if (metric is null) return "--";
+        if (metric is null)
+        {
+            return "--";
+        }
 
         EnergyMetricValueDto? value =
             team.MetricValues.FirstOrDefault(item => item.MetricCode == metric.MetricCode);

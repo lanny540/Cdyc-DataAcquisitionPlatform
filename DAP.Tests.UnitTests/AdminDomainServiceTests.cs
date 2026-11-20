@@ -36,45 +36,81 @@ public sealed class AdminDomainServiceTests
     {
         using DataAcquisitionPlatformDbContext db = database.CreateContext();
 
-        BusinessDomain energy = new BusinessDomain
+        BusinessDomain energy = new()
         {
-            Id = Guid.NewGuid(), Code = AuthorizationCatalog.EnergyDomain, Name = "能源",
-            SortOrder = 30, IsSystem = false, IsEnabled = true, VisibleWhenEmpty = false,
-            CreatedAt = SeedTime, UpdatedAt = SeedTime
+            Id = Guid.NewGuid(),
+            Code = AuthorizationCatalog.EnergyDomain,
+            Name = "能源",
+            SortOrder = 30,
+            IsSystem = false,
+            IsEnabled = true,
+            VisibleWhenEmpty = false,
+            CreatedAt = SeedTime,
+            UpdatedAt = SeedTime
         };
-        BusinessDomain system = new BusinessDomain
+        BusinessDomain system = new()
         {
-            Id = Guid.NewGuid(), Code = AuthorizationCatalog.PlatformDomain, Name = "平台管理",
-            SortOrder = 900, IsSystem = true, IsEnabled = true, VisibleWhenEmpty = false,
-            CreatedAt = SeedTime, UpdatedAt = SeedTime
+            Id = Guid.NewGuid(),
+            Code = AuthorizationCatalog.PlatformDomain,
+            Name = "平台管理",
+            SortOrder = 900,
+            IsSystem = true,
+            IsEnabled = true,
+            VisibleWhenEmpty = false,
+            CreatedAt = SeedTime,
+            UpdatedAt = SeedTime
         };
         db.BusinessDomains.AddRange(energy, system);
 
-        DomainPage energyPage = new DomainPage
+        DomainPage energyPage = new()
         {
-            Id = Guid.NewGuid(), PageKey = "energy-history", DomainId = energy.Id,
-            Route = "/energy-history", Title = "能耗历史", AccessLevel = 1, SortOrder = 0,
-            IsEnabled = true, Source = AuthorizationCatalog.PageSourceCode, IsOrphaned = false,
-            CreatedAt = SeedTime, UpdatedAt = SeedTime
+            Id = Guid.NewGuid(),
+            PageKey = "energy-history",
+            DomainId = energy.Id,
+            Route = "/energy-history",
+            Title = "能耗历史",
+            AccessLevel = 1,
+            SortOrder = 0,
+            IsEnabled = true,
+            Source = AuthorizationCatalog.PageSourceCode,
+            IsOrphaned = false,
+            CreatedAt = SeedTime,
+            UpdatedAt = SeedTime
         };
-        DomainPage orphanedPage = new DomainPage
+        DomainPage orphanedPage = new()
         {
-            Id = Guid.NewGuid(), PageKey = "ghost-page", DomainId = energy.Id,
-            Route = "/ghost", Title = "已下线页面", AccessLevel = 1, SortOrder = 1,
-            IsEnabled = true, Source = AuthorizationCatalog.PageSourceCode, IsOrphaned = true,
-            CreatedAt = SeedTime, UpdatedAt = SeedTime
+            Id = Guid.NewGuid(),
+            PageKey = "ghost-page",
+            DomainId = energy.Id,
+            Route = "/ghost",
+            Title = "已下线页面",
+            AccessLevel = 1,
+            SortOrder = 1,
+            IsEnabled = true,
+            Source = AuthorizationCatalog.PageSourceCode,
+            IsOrphaned = true,
+            CreatedAt = SeedTime,
+            UpdatedAt = SeedTime
         };
         db.DomainPages.AddRange(energyPage, orphanedPage);
 
-        Department deptA = new Department
+        Department deptA = new()
         {
-            Id = Guid.NewGuid(), Code = "dept-a", Name = "一部", IsEnabled = true,
-            CreatedAt = SeedTime, UpdatedAt = SeedTime
+            Id = Guid.NewGuid(),
+            Code = "dept-a",
+            Name = "一部",
+            IsEnabled = true,
+            CreatedAt = SeedTime,
+            UpdatedAt = SeedTime
         };
-        Department deptB = new Department
+        Department deptB = new()
         {
-            Id = Guid.NewGuid(), Code = "dept-b", Name = "二部", IsEnabled = true,
-            CreatedAt = SeedTime, UpdatedAt = SeedTime
+            Id = Guid.NewGuid(),
+            Code = "dept-b",
+            Name = "二部",
+            IsEnabled = true,
+            CreatedAt = SeedTime,
+            UpdatedAt = SeedTime
         };
         db.Departments.AddRange(deptA, deptB);
 
@@ -110,7 +146,9 @@ public sealed class AdminDomainServiceTests
     private sealed class StubUserContext(CurrentUser? user) : ICurrentUserContext
     {
         public Task<CurrentUser?> GetUserAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult(user);
+        {
+            return Task.FromResult(user);
+        }
     }
 
     // ------------------------------------------------------------------
@@ -141,10 +179,10 @@ public sealed class AdminDomainServiceTests
     // ------------------------------------------------------------------
 
     [Theory]
-    [InlineData("1abc")]   // 数字开头
-    [InlineData("a")]      // 长度不足 2
-    [InlineData("-abc")]   // 连字符开头
-    [InlineData("")]       // 空编码
+    [InlineData("1abc")] // 数字开头
+    [InlineData("a")] // 长度不足 2
+    [InlineData("-abc")] // 连字符开头
+    [InlineData("")] // 空编码
     public async Task CreateDomainAsync_Should_Reject_Invalid_Code(string code)
     {
         using SqliteTestDatabase database = new();
@@ -347,8 +385,14 @@ public sealed class AdminDomainServiceTests
         {
             BusinessDomain empty = new()
             {
-                Id = Guid.NewGuid(), Code = "to-delete", Name = "待删域", SortOrder = 50,
-                IsSystem = false, IsEnabled = true, CreatedAt = SeedTime, UpdatedAt = SeedTime
+                Id = Guid.NewGuid(),
+                Code = "to-delete",
+                Name = "待删域",
+                SortOrder = 50,
+                IsSystem = false,
+                IsEnabled = true,
+                CreatedAt = SeedTime,
+                UpdatedAt = SeedTime
             };
             setup.BusinessDomains.Add(empty);
             await setup.SaveChangesAsync();
@@ -494,7 +538,7 @@ public sealed class AdminDomainServiceTests
         AdminDomainService service = CreateService(db, SuperAdminActor());
 
         AuthOperationResultDto result = await service.UpdateDomainPageAsync(
-            seed.EnergyPage.Id, new AdminDomainPageUpdateRequest(null, null, null, Title: title));
+            seed.EnergyPage.Id, new AdminDomainPageUpdateRequest(null, null, null, title));
 
         Assert.False(result.Succeeded);
         Assert.Equal("页面名称不能为空，且不超过 64 个字。", result.ErrorMessage);
@@ -509,7 +553,7 @@ public sealed class AdminDomainServiceTests
         AdminDomainService service = CreateService(db, SuperAdminActor());
 
         AuthOperationResultDto result = await service.UpdateDomainPageAsync(
-            seed.EnergyPage.Id, new AdminDomainPageUpdateRequest(null, null, null, Title: new string('页', 65)));
+            seed.EnergyPage.Id, new AdminDomainPageUpdateRequest(null, null, null, new string('页', 65)));
 
         Assert.False(result.Succeeded);
         Assert.Equal("页面名称不能为空，且不超过 64 个字。", result.ErrorMessage);
@@ -654,22 +698,40 @@ public sealed class AdminDomainServiceTests
         {
             setup.AppUsers.Add(new AppUser
             {
-                Id = Guid.NewGuid(), UserName = "user-a1", DisplayName = "一部用户1",
-                DepartmentId = seed.DeptA.Id, IsEnabled = true, MustChangePassword = false,
-                SecurityStamp = Guid.NewGuid(), CreatedAt = SeedTime, UpdatedAt = SeedTime
+                Id = Guid.NewGuid(),
+                UserName = "user-a1",
+                DisplayName = "一部用户1",
+                DepartmentId = seed.DeptA.Id,
+                IsEnabled = true,
+                MustChangePassword = false,
+                SecurityStamp = Guid.NewGuid(),
+                CreatedAt = SeedTime,
+                UpdatedAt = SeedTime
             });
             setup.AppUsers.Add(new AppUser
             {
-                Id = Guid.NewGuid(), UserName = "user-a2", DisplayName = "一部用户2",
-                DepartmentId = seed.DeptA.Id, IsEnabled = true, MustChangePassword = false,
-                SecurityStamp = Guid.NewGuid(), CreatedAt = SeedTime, UpdatedAt = SeedTime
+                Id = Guid.NewGuid(),
+                UserName = "user-a2",
+                DisplayName = "一部用户2",
+                DepartmentId = seed.DeptA.Id,
+                IsEnabled = true,
+                MustChangePassword = false,
+                SecurityStamp = Guid.NewGuid(),
+                CreatedAt = SeedTime,
+                UpdatedAt = SeedTime
             });
             // 未归属部门的不计入任何部门。
             setup.AppUsers.Add(new AppUser
             {
-                Id = Guid.NewGuid(), UserName = "user-orphan", DisplayName = "无部门用户",
-                DepartmentId = null, IsEnabled = true, MustChangePassword = false,
-                SecurityStamp = Guid.NewGuid(), CreatedAt = SeedTime, UpdatedAt = SeedTime
+                Id = Guid.NewGuid(),
+                UserName = "user-orphan",
+                DisplayName = "无部门用户",
+                DepartmentId = null,
+                IsEnabled = true,
+                MustChangePassword = false,
+                SecurityStamp = Guid.NewGuid(),
+                CreatedAt = SeedTime,
+                UpdatedAt = SeedTime
             });
             await setup.SaveChangesAsync();
         }
@@ -887,8 +949,14 @@ public sealed class AdminDomainServiceTests
         {
             BusinessDomain extra = new()
             {
-                Id = Guid.NewGuid(), Code = "banknote-paper", Name = "钞纸", SortOrder = 10,
-                IsSystem = false, IsEnabled = true, CreatedAt = SeedTime, UpdatedAt = SeedTime
+                Id = Guid.NewGuid(),
+                Code = "banknote-paper",
+                Name = "钞纸",
+                SortOrder = 10,
+                IsSystem = false,
+                IsEnabled = true,
+                CreatedAt = SeedTime,
+                UpdatedAt = SeedTime
             };
             setup.BusinessDomains.Add(extra);
             await setup.SaveChangesAsync();

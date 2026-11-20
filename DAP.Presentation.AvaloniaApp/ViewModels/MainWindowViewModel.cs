@@ -124,7 +124,10 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     /// <param name="module">目标模块。</param>
     private async Task SelectModuleAsync(NavModuleViewModel module)
     {
-        if (SelectModule(module) && ShowShell) await NavigateAsync(module.Items[0]);
+        if (SelectModule(module) && ShowShell)
+        {
+            await NavigateAsync(module.Items[0]);
+        }
     }
 
     /// <summary>
@@ -136,7 +139,10 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     {
         bool changed = !ReferenceEquals(SelectedModule, module);
 
-        foreach (NavModuleViewModel item in Modules) item.IsSelected = ReferenceEquals(item, module);
+        foreach (NavModuleViewModel item in Modules)
+        {
+            item.IsSelected = ReferenceEquals(item, module);
+        }
 
         SelectedModule = module;
 
@@ -161,21 +167,31 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private async Task NavigateAsync(NavItemViewModel item)
     {
         // 导航命令还可能在登录状态切换的瞬间排队执行，入口必须再次校验。
-        if (!ShowShell) return;
+        if (!ShowShell)
+        {
+            return;
+        }
 
         DesktopNavModule module = DesktopNavigationCatalog.ResolveModule(item.PageKey);
         NavModuleViewModel? moduleViewModel = Modules.FirstOrDefault(candidate => candidate.Id == module.Id);
 
         if (moduleViewModel is not null && !ReferenceEquals(SelectedModule, moduleViewModel))
+        {
             SelectModule(moduleViewModel);
+        }
 
         foreach (NavItemViewModel candidate in Modules.SelectMany(entry => entry.Items))
+        {
             candidate.IsSelected = string.Equals(candidate.PageKey, item.PageKey, StringComparison.Ordinal);
+        }
 
         PageViewModelBase? previous = CurrentPage;
         PageViewModelBase next = _pageFactory.Resolve(item.Source);
 
-        if (!ReferenceEquals(previous, next)) previous?.OnDeactivated();
+        if (!ReferenceEquals(previous, next))
+        {
+            previous?.OnDeactivated();
+        }
 
         CurrentPage = next;
 
@@ -188,14 +204,20 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private void OnSessionPropertyChanged(object? sender, PropertyChangedEventArgs args)
     {
         if (args.PropertyName != nameof(DesktopSession.IsAuthenticated) &&
-            args.PropertyName != nameof(DesktopSession.MustChangePassword)) return;
+            args.PropertyName != nameof(DesktopSession.MustChangePassword))
+        {
+            return;
+        }
 
         OnPropertyChanged(nameof(ShowShell));
         OnPropertyChanged(nameof(ShowLogin));
 
         // 改密成功会刷新用户但登录态不变，因此必须按“主壳是否可用”而不是仅按登录态判断。
         bool showShell = ShowShell;
-        if (showShell == _wasShellVisible) return;
+        if (showShell == _wasShellVisible)
+        {
+            return;
+        }
 
         _wasShellVisible = showShell;
 
@@ -208,7 +230,10 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         CurrentPage?.OnDeactivated();
         CurrentPage = null;
 
-        foreach (NavItemViewModel item in Modules.SelectMany(module => module.Items)) item.IsSelected = false;
+        foreach (NavItemViewModel item in Modules.SelectMany(module => module.Items))
+        {
+            item.IsSelected = false;
+        }
     }
 
     /// <summary>
@@ -229,7 +254,10 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     {
         await _session.TryRestoreAsync();
 
-        if (!_session.MustChangePassword) return;
+        if (!_session.MustChangePassword)
+        {
+            return;
+        }
 
         Login.NeedsPasswordChange = true;
         Login.Message = "当前会话要求先修改初始密码，请设置新密码后继续。";

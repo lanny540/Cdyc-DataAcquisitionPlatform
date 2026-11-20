@@ -97,7 +97,10 @@ internal sealed class InMemoryDataAcquisitionPlatformService : IDataAcquisitionP
         lock (_syncRoot)
         {
             CollectionPointDto? existingPoint = _collectionPoints.FirstOrDefault(item => item.Id == id);
-            if (existingPoint is null) return Task.FromResult(false);
+            if (existingPoint is null)
+            {
+                return Task.FromResult(false);
+            }
 
             _collectionPoints.Remove(existingPoint);
             _records.RemoveAll(item => item.CollectionPointId == id);
@@ -123,7 +126,10 @@ internal sealed class InMemoryDataAcquisitionPlatformService : IDataAcquisitionP
         lock (_syncRoot)
         {
             ManagedDataDefinitionDto? definition = _managedDataDefinitions.FirstOrDefault(item => item.Id == id);
-            if (definition is null) return Task.FromResult<ManagedDataDefinitionDetailsDto?>(null);
+            if (definition is null)
+            {
+                return Task.FromResult<ManagedDataDefinitionDetailsDto?>(null);
+            }
 
             CollectionPointDto? point = _collectionPoints.FirstOrDefault(item =>
                 item.Code.Equals(definition.Code, StringComparison.OrdinalIgnoreCase));
@@ -191,7 +197,10 @@ internal sealed class InMemoryDataAcquisitionPlatformService : IDataAcquisitionP
         {
             ManagedDataDefinitionDto? existingDefinition =
                 _managedDataDefinitions.FirstOrDefault(item => item.Id == id);
-            if (existingDefinition is null) return Task.FromResult(false);
+            if (existingDefinition is null)
+            {
+                return Task.FromResult(false);
+            }
 
             _managedDataDefinitions.Remove(existingDefinition);
             CollectionPointDto? existingPoint = _collectionPoints.FirstOrDefault(item =>
@@ -202,9 +211,7 @@ internal sealed class InMemoryDataAcquisitionPlatformService : IDataAcquisitionP
                 int index = _collectionPoints.IndexOf(existingPoint);
                 _collectionPoints[index] = existingPoint with
                 {
-                    IsEnabled = false,
-                    CommunicationStatus = "停用",
-                    UpdatedAt = DateTimeOffset.UtcNow
+                    IsEnabled = false, CommunicationStatus = "停用", UpdatedAt = DateTimeOffset.UtcNow
                 };
             }
 
@@ -322,8 +329,10 @@ internal sealed class InMemoryDataAcquisitionPlatformService : IDataAcquisitionP
         CollectionPointDto? existingPoint = null;
         if (!string.IsNullOrWhiteSpace(originalCode) &&
             !originalCode.Equals(definition.Code, StringComparison.OrdinalIgnoreCase))
+        {
             existingPoint = _collectionPoints.FirstOrDefault(item =>
                 item.Code.Equals(originalCode, StringComparison.OrdinalIgnoreCase));
+        }
 
         existingPoint ??= _collectionPoints.FirstOrDefault(item =>
             item.Code.Equals(definition.Code, StringComparison.OrdinalIgnoreCase));
@@ -354,13 +363,15 @@ internal sealed class InMemoryDataAcquisitionPlatformService : IDataAcquisitionP
 
         for (int index = 0; index < _records.Count; index++)
         {
-            if (_records[index].CollectionPointId != savedPoint.Id) continue;
+            if (_records[index].CollectionPointId != savedPoint.Id)
+            {
+                continue;
+            }
 
             CollectionDataRecordDto record = _records[index];
             _records[index] = record with
             {
-                CollectionPointCode = savedPoint.Code,
-                CollectionPointName = savedPoint.Name
+                CollectionPointCode = savedPoint.Code, CollectionPointName = savedPoint.Name
             };
         }
     }

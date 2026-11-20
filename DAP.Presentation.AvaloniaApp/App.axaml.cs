@@ -9,7 +9,6 @@ using DAP.Presentation.AvaloniaApp.ViewModels.Shell;
 using DAP.Presentation.AvaloniaApp.Views;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
 namespace DAP.Presentation.AvaloniaApp;
 
@@ -27,10 +26,12 @@ public partial class App : Application
         _serviceProvider = ConfigureServices();
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
             desktop.MainWindow = new MainWindow
             {
                 DataContext = _serviceProvider.GetRequiredService<MainWindowViewModel>()
             };
+        }
 
         base.OnFrameworkInitializationCompleted();
     }

@@ -1,5 +1,4 @@
 @page "/user-management"
-@using DAP.Core.Shared.Contracts
 
 <PageTitle>用户与角色</PageTitle>
 
@@ -248,7 +247,7 @@
                     <MudSelect T="Guid?" Label="所属部门" @bind-Value="_editorDepartmentId" Clearable="true">
                         @foreach (AdminDepartmentDto department in _departments)
                         {
-                            <MudSelectItem T="Guid?" Value="@((Guid?) department.Id)">@department.Name</MudSelectItem>
+                            <MudSelectItem T="Guid?" Value="@((Guid?)department.Id)">@department.Name</MudSelectItem>
                         }
                     </MudSelect>
                 }

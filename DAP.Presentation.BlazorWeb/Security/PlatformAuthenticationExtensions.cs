@@ -167,7 +167,6 @@ public static class PlatformAuthenticationExtensions
                         context.Response.Redirect(context.RedirectUri);
                         return Task.CompletedTask;
                     },
-
                     OnRedirectToAccessDenied = context =>
                     {
                         if (IsApiRequest(context.Request))
@@ -234,7 +233,7 @@ public static class PlatformAuthenticationExtensions
                 if (context.Request.Path.StartsWithSegments("/api"))
                 {
                     context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                    await context.Response.WriteAsJsonAsync(new {message = "请先修改初始密码。"});
+                    await context.Response.WriteAsJsonAsync(new { message = "请先修改初始密码。" });
                     return;
                 }
 
@@ -269,9 +268,11 @@ public static class PlatformAuthenticationExtensions
         NavItem? sharedPage = NavigationCatalog.ResolveSharedPage(context.Request.Path);
 
         if (sharedPage is not null)
+        {
             return (sharedPage.RequiresPermission
                     && !PlatformClaimsFactory.HasPermission(context.User, sharedPage.RequiredPermission!))
                    || PlatformClaimsFactory.ReadPageLevel(context.User) < sharedPage.AccessLevel;
+        }
 
         // 中间件无法构造注入，从根容器开 scope 取解析器；判定走 60 秒缓存，开销可控。
         using IServiceScope scope = app.ApplicationServices.CreateScope();
@@ -281,7 +282,10 @@ public static class PlatformAuthenticationExtensions
             context.Request.Path.Value ?? string.Empty,
             context.RequestAborted);
 
-        if (requirement is null) return false;
+        if (requirement is null)
+        {
+            return false;
+        }
 
         return !PlatformClaimsFactory.CanAccessDomain(context.User, requirement.DomainCode)
                || PlatformClaimsFactory.ReadPageLevel(context.User) < requirement.AccessLevel;
@@ -298,13 +302,22 @@ public static class PlatformAuthenticationExtensions
     {
         BoardOptions options = app.ApplicationServices.GetRequiredService<IOptions<PlatformAuthOptions>>().Value.Board;
 
-        if (!options.Enabled || options.IpWhitelist.Length == 0) return false;
+        if (!options.Enabled || options.IpWhitelist.Length == 0)
+        {
+            return false;
+        }
 
         IPAddress? remoteIp = context.Connection.RemoteIpAddress;
 
-        if (remoteIp is null) return false;
+        if (remoteIp is null)
+        {
+            return false;
+        }
 
-        if (!options.IpWhitelist.Any(entry => BoardIpWhitelist.IsMatch(remoteIp, entry))) return false;
+        if (!options.IpWhitelist.Any(entry => BoardIpWhitelist.IsMatch(remoteIp, entry)))
+        {
+            return false;
+        }
 
         // 直连 Kestrel 时 RemoteIpAddress 即真实对端地址。一旦前面加了反向代理，
         // 必须配置 ForwardedHeaders 且只信已知代理，否则伪造请求头即可获得只读会话。
@@ -353,7 +366,7 @@ public static class PlatformAuthenticationExtensions
         if (context.Request.Path.StartsWithSegments("/api"))
         {
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            await context.Response.WriteAsJsonAsync(new {message = "未登录或会话已过期，请重新登录。"});
+            await context.Response.WriteAsJsonAsync(new { message = "未登录或会话已过期，请重新登录。" });
             return;
         }
 
@@ -379,23 +392,34 @@ public static class PlatformAuthenticationExtensions
     /// <returns>免登录时返回 true。</returns>
     private static bool IsExemptPath(PathString path)
     {
-        if (!path.HasValue) return false;
+        if (!path.HasValue)
+        {
+            return false;
+        }
 
         string value = path.Value!;
 
         // /_blazor、/_framework、/_content：Blazor 电路、WASM 运行时与静态资源包。
-        if (value.StartsWith("/_", StringComparison.Ordinal)) return true;
+        if (value.StartsWith("/_", StringComparison.Ordinal))
+        {
+            return true;
+        }
 
         // 静态资源按扩展名白名单放行。
         // 不写「带扩展名即放行」：那样将来新增 /api/export.json、/reports/xxx.xlsx 这类端点
         // 会被静默当成静态资源，登录闸门与页面归属判定一起失效，而且不会有任何报错。
         string extension = Path.GetExtension(value);
 
-        if (extension.Length > 1 && IsStaticAssetExtension(extension)) return true;
+        if (extension.Length > 1 && IsStaticAssetExtension(extension))
+        {
+            return true;
+        }
 
         if (value.StartsWith("/api/auth", StringComparison.OrdinalIgnoreCase)
             || value.StartsWith("/health", StringComparison.OrdinalIgnoreCase))
+        {
             return true;
+        }
 
         return value.Equals("/login", StringComparison.OrdinalIgnoreCase)
                || value.Equals("/login/", StringComparison.OrdinalIgnoreCase);
@@ -411,11 +435,32 @@ public static class PlatformAuthenticationExtensions
     /// </summary>
     private static readonly HashSet<string> StaticAssetExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".css", ".js", ".mjs", ".map", ".json", ".webmanifest",
-        ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".webp", ".bmp",
-        ".woff", ".woff2", ".ttf", ".eot", ".otf",
-        ".wasm", ".dat", ".blat", ".pdb",
-        ".txt", ".xml", ".pdf"
+        ".css",
+        ".js",
+        ".mjs",
+        ".map",
+        ".json",
+        ".webmanifest",
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".gif",
+        ".svg",
+        ".ico",
+        ".webp",
+        ".bmp",
+        ".woff",
+        ".woff2",
+        ".ttf",
+        ".eot",
+        ".otf",
+        ".wasm",
+        ".dat",
+        ".blat",
+        ".pdb",
+        ".txt",
+        ".xml",
+        ".pdf"
     };
 
     private static bool IsStaticAssetExtension(string extension)

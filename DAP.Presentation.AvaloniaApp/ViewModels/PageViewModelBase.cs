@@ -103,7 +103,10 @@ public abstract partial class PageViewModelBase : ViewModelBase
     /// <returns>加载任务。</returns>
     public async Task EnsureLoadedAsync()
     {
-        if (_loaded) return;
+        if (_loaded)
+        {
+            return;
+        }
 
         await LoadAsync(false);
     }
@@ -131,9 +134,15 @@ public abstract partial class PageViewModelBase : ViewModelBase
     /// <returns>加载任务。</returns>
     private async Task LoadAsync(bool force)
     {
-        if (IsLoading) return;
+        if (IsLoading)
+        {
+            return;
+        }
 
-        if (_loaded && !force) return;
+        if (_loaded && !force)
+        {
+            return;
+        }
 
         IsLoading = true;
         Message = null;

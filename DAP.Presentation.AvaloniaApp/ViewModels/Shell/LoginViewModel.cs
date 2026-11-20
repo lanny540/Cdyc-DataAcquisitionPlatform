@@ -100,7 +100,10 @@ public sealed partial class LoginViewModel : ViewModelBase
     /// </summary>
     private async Task LoginAsync()
     {
-        if (IsBusy) return;
+        if (IsBusy)
+        {
+            return;
+        }
 
         if (string.IsNullOrWhiteSpace(UserName) || string.IsNullOrWhiteSpace(Password))
         {
@@ -145,7 +148,10 @@ public sealed partial class LoginViewModel : ViewModelBase
     /// </summary>
     private async Task ChangePasswordAsync()
     {
-        if (IsBusy) return;
+        if (IsBusy)
+        {
+            return;
+        }
 
         if (string.IsNullOrWhiteSpace(NewPassword))
         {

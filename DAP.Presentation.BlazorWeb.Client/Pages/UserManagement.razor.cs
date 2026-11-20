@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using DAP.Core.Shared.Catalog;
 using DAP.Core.Shared.Contracts;
-using DAP.Presentation.BlazorWeb.Client.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
@@ -82,7 +81,10 @@ public partial class UserManagement
     /// </summary>
     private async Task LoadDirectoryStatusAsync()
     {
-        if (!_isSuperAdmin) return;
+        if (!_isSuperAdmin)
+        {
+            return;
+        }
 
         try
         {
@@ -160,7 +162,10 @@ public partial class UserManagement
 
     private async Task ReadIdentityAsync()
     {
-        if (AuthenticationStateTask is null) return;
+        if (AuthenticationStateTask is null)
+        {
+            return;
+        }
 
         AuthenticationState state = await AuthenticationStateTask;
         ClaimsPrincipal principal = state.User;
@@ -178,7 +183,10 @@ public partial class UserManagement
             _users = await Api.GetAdminUsersAsync(_keyword);
             _roles = await Api.GetAdminRolesAsync();
 
-            if (_isSuperAdmin) _departments = await Api.GetAdminDepartmentsAsync();
+            if (_isSuperAdmin)
+            {
+                _departments = await Api.GetAdminDepartmentsAsync();
+            }
 
             _selected.Clear();
         }
@@ -264,8 +272,10 @@ public partial class UserManagement
 
                 // 部门变更仅超管可执行；值未变时服务端会直接返回成功。
                 if (_isSuperAdmin && !_editingSuperAdmin)
+                {
                     await Api.UpdateAdminUserDepartmentAsync(_editingUserId,
                         new AdminUserDepartmentRequest(_editorDepartmentId));
+                }
 
                 _message = $"已更新账号「{_editorUserName}」，角色变更在该用户下次登录时生效。";
             }
@@ -317,7 +327,10 @@ public partial class UserManagement
 
     private async Task SetSelectedEnabledAsync(bool isEnabled)
     {
-        if (_selected.Count == 0) return;
+        if (_selected.Count == 0)
+        {
+            return;
+        }
 
         try
         {

@@ -20,7 +20,10 @@ public sealed class HttpNavigationViewClient(HttpClient httpClient) : INavigatio
             using HttpResponseMessage response =
                 await httpClient.GetAsync("/api/navigation", cancellationToken);
 
-            if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden) return null;
+            if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            {
+                return null;
+            }
 
             response.EnsureSuccessStatusCode();
 

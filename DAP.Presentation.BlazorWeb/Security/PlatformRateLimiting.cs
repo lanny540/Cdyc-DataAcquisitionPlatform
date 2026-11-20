@@ -1,5 +1,4 @@
 using System.Threading.RateLimiting;
-using Microsoft.AspNetCore.RateLimiting;
 
 namespace DAP.Presentation.BlazorWeb.Security;
 
@@ -74,7 +73,7 @@ public static class PlatformRateLimiting
                 httpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
 
                 await httpContext.Response.WriteAsJsonAsync(
-                    new {message = "登录尝试过于频繁，请稍后再试。"},
+                    new { message = "登录尝试过于频繁，请稍后再试。" },
                     cancellationToken);
             };
         });

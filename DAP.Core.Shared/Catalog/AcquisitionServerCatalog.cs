@@ -27,7 +27,7 @@ public static class AcquisitionServerCatalog
     public const string HttpApi = "HTTP API";
 
     private static readonly HashSet<string> SupportedAddressSchemes =
-        new(StringComparer.OrdinalIgnoreCase) {"http", "https", "tcp", "mqtt"};
+        new(StringComparer.OrdinalIgnoreCase) { "http", "https", "tcp", "mqtt" };
 
     private static readonly IReadOnlyList<AcquisitionServerTypeDescriptor> AllDescriptors =
     [
@@ -306,7 +306,10 @@ public static class AcquisitionServerCatalog
     /// <returns>类型描述，未注册时返回 <see langword="null"/>。</returns>
     public static AcquisitionServerTypeDescriptor? Find(string? serverType)
     {
-        if (string.IsNullOrWhiteSpace(serverType)) return null;
+        if (string.IsNullOrWhiteSpace(serverType))
+        {
+            return null;
+        }
 
         string normalized = serverType.Trim();
         return AllDescriptors.FirstOrDefault(descriptor =>
@@ -384,17 +387,28 @@ public static class AcquisitionServerCatalog
         IReadOnlyDictionary<string, string> configuration)
     {
         AcquisitionServerTypeDescriptor? descriptor = Find(serverType);
-        if (descriptor is null) return [$"不支持的采集服务器类型：{serverType}。"];
+        if (descriptor is null)
+        {
+            return [$"不支持的采集服务器类型：{serverType}。"];
+        }
 
         List<string> errors = [];
         if (string.IsNullOrWhiteSpace(address))
+        {
             errors.Add($"{descriptor.AddressLabel}不能为空。");
+        }
         else
+        {
             errors.AddRange(ValidateAddress(address, descriptor));
+        }
 
         foreach (AcquisitionServerFieldDescriptor field in descriptor.ServerFields.Where(field => field.IsRequired))
+        {
             if (!configuration.TryGetValue(field.Key, out string? value) || string.IsNullOrWhiteSpace(value))
+            {
                 errors.Add($"{field.Label}不能为空。");
+            }
+        }
 
         return errors;
     }
@@ -412,14 +426,24 @@ public static class AcquisitionServerCatalog
         IReadOnlyDictionary<string, string> nodeConfiguration)
     {
         AcquisitionServerTypeDescriptor? descriptor = Find(serverType);
-        if (descriptor is null) return [$"不支持的采集服务器类型：{serverType}。"];
+        if (descriptor is null)
+        {
+            return [$"不支持的采集服务器类型：{serverType}。"];
+        }
 
         List<string> errors = [];
-        if (string.IsNullOrWhiteSpace(identifier)) errors.Add($"{descriptor.IdentifierLabel}不能为空。");
+        if (string.IsNullOrWhiteSpace(identifier))
+        {
+            errors.Add($"{descriptor.IdentifierLabel}不能为空。");
+        }
 
         foreach (AcquisitionServerFieldDescriptor field in descriptor.NodeFields.Where(field => field.IsRequired))
+        {
             if (!nodeConfiguration.TryGetValue(field.Key, out string? value) || string.IsNullOrWhiteSpace(value))
+            {
                 errors.Add($"{field.Label}不能为空。");
+            }
+        }
 
         return errors;
     }
@@ -447,13 +471,23 @@ public static class AcquisitionServerCatalog
         Dictionary<string, string> merged = new(StringComparer.OrdinalIgnoreCase);
 
         foreach (AcquisitionServerFieldDescriptor field in GetServerFields(serverType))
+        {
             if (!string.IsNullOrWhiteSpace(field.DefaultValue))
+            {
                 merged[field.Key] = field.DefaultValue;
+            }
+        }
 
         if (configuration is not null)
+        {
             foreach (KeyValuePair<string, string> item in configuration)
+            {
                 if (!string.IsNullOrWhiteSpace(item.Key))
+                {
                     merged[item.Key.Trim()] = item.Value ?? string.Empty;
+                }
+            }
+        }
 
         return merged;
     }
@@ -467,20 +501,27 @@ public static class AcquisitionServerCatalog
         }
 
         if (!SupportedAddressSchemes.Contains(uri.Scheme))
+        {
             yield return $"{descriptor.AddressLabel}仅支持 http、https、tcp 或 mqtt 协议，当前为 {uri.Scheme}。";
+        }
 
         // 地址只应到主机、端口与上下文路径；填入接口路径会在运行时与接口路径重复拼接。
         // 若地址尾部与该类型登记的接口路径前缀重复，直接拦截以避免 404。
         string path = uri.AbsolutePath.Trim('/');
         if (path.Length > 0 && LooksLikeInterfacePath(path))
+        {
             yield return
                 $"{descriptor.AddressLabel}只填到主机和端口，不要包含接口路径；接口路径请在下方接口配置中单独填写。";
+        }
     }
 
     private static bool LooksLikeInterfacePath(string path)
     {
         // 多段路径一定是误填；单段路径中包含 api、rest、v1 等接口特征时同样视为误填。
-        if (path.Contains('/')) return true;
+        if (path.Contains('/'))
+        {
+            return true;
+        }
 
         string[] apiPrefixHints = ["api", "rest", "service", "endpoint", "query"];
         return apiPrefixHints.Any(hint =>

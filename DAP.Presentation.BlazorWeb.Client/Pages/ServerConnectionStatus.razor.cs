@@ -1,5 +1,4 @@
 using DAP.Core.Shared.Contracts;
-using DAP.Presentation.BlazorWeb.Client.Services;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
@@ -70,23 +69,37 @@ public partial class ServerConnectionStatus : IDisposable
         }
 
         if (_statuses.Count > 0 && !cancellationToken.IsCancellationRequested)
+        {
             _ = CheckStatusesAsync(refreshVersion, cancellationToken);
+        }
     }
 
     private Color GetStatusColor(ServerConnectionStatusDto item)
     {
-        if (item.IsChecking) return Color.Info;
+        if (item.IsChecking)
+        {
+            return Color.Info;
+        }
 
-        if (!item.IsConfigured) return Color.Default;
+        if (!item.IsConfigured)
+        {
+            return Color.Default;
+        }
 
         return item.IsReachable ? Color.Success : Color.Warning;
     }
 
     private string GetStatusText(ServerConnectionStatusDto item)
     {
-        if (item.IsChecking) return "检测中";
+        if (item.IsChecking)
+        {
+            return "检测中";
+        }
 
-        if (!item.IsConfigured) return "未配置";
+        if (!item.IsConfigured)
+        {
+            return "未配置";
+        }
 
         return item.IsReachable ? "可连接" : "不可连接";
     }
@@ -97,9 +110,15 @@ public partial class ServerConnectionStatus : IDisposable
     /// </summary>
     private static string GetStatusCardClass(ServerConnectionStatusDto item)
     {
-        if (item.IsChecking) return "platform-accent-info";
+        if (item.IsChecking)
+        {
+            return "platform-accent-info";
+        }
 
-        if (!item.IsConfigured) return "platform-accent-neutral";
+        if (!item.IsConfigured)
+        {
+            return "platform-accent-neutral";
+        }
 
         return item.IsReachable ? "platform-accent-success" : "platform-accent-warning";
     }
@@ -118,11 +137,9 @@ public partial class ServerConnectionStatus : IDisposable
     {
         _isCheckingStatuses = true;
         for (int index = 0; index < _statuses.Count; index++)
-            _statuses[index] = _statuses[index] with
-            {
-                IsChecking = true,
-                StatusMessage = "正在执行网络探测..."
-            };
+        {
+            _statuses[index] = _statuses[index] with { IsChecking = true, StatusMessage = "正在执行网络探测..." };
+        }
 
         await InvokeAsync(StateHasChanged);
 
@@ -190,7 +207,10 @@ public partial class ServerConnectionStatus : IDisposable
     {
         return InvokeAsync(() =>
         {
-            if (refreshVersion != _refreshVersion || cancellationToken.IsCancellationRequested) return;
+            if (refreshVersion != _refreshVersion || cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
 
             int index = _statuses.FindIndex(item => item.Key == status.Key);
             if (index >= 0)

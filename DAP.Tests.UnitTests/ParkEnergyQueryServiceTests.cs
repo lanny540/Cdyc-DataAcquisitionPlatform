@@ -7,9 +7,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -84,7 +82,7 @@ public sealed class ParkEnergyQueryServiceTests
             Ratio = ratio,
             IsEnabled = true,
             CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
         };
         db.EnergyMeters.Add(meter);
         await db.SaveChangesAsync();
@@ -92,7 +90,8 @@ public sealed class ParkEnergyQueryServiceTests
     }
 
     /// <summary>直接播种一条读数（绕过 Npgsql 专用的写入接口）。</summary>
-    private static async Task AddReadingAsync(EnergySqliteTestDatabase database, Guid meterId, DateTimeOffset readAt, decimal value)
+    private static async Task AddReadingAsync(EnergySqliteTestDatabase database, Guid meterId, DateTimeOffset readAt,
+        decimal value)
     {
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
 
@@ -103,7 +102,7 @@ public sealed class ParkEnergyQueryServiceTests
             ReadAt = readAt,
             Value = value,
             Source = EnergyReading.ManualSource,
-            CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAt = DateTimeOffset.UtcNow
         });
         await db.SaveChangesAsync();
     }
@@ -204,7 +203,7 @@ public sealed class ParkEnergyQueryServiceTests
         ParkEnergyQueryService service = CreateService(
             database, HostingFakes.CreateProductionEnvironment());
 
-        ParkEnergyOverviewDto overview = await service.GetOverviewAsync("month", demo: true);
+        ParkEnergyOverviewDto overview = await service.GetOverviewAsync("month", true);
 
         Assert.Equal(ParkEnergyDataStatus.Empty, overview.DataStatus);
         Assert.Contains(overview.Warnings, warning => warning.Contains("当前环境未开启示例数据预览"));
@@ -216,7 +215,7 @@ public sealed class ParkEnergyQueryServiceTests
         using EnergySqliteTestDatabase database = new();
         ParkEnergyQueryService service = CreateService(database, HostingFakes.CreateDevelopmentEnvironment());
 
-        ParkEnergyOverviewDto overview = await service.GetOverviewAsync("month", demo: true);
+        ParkEnergyOverviewDto overview = await service.GetOverviewAsync("month", true);
 
         Assert.Equal(ParkEnergyDataStatus.Sample, overview.DataStatus);
         Assert.Equal(24, overview.LoadPoints.Count);
@@ -233,7 +232,7 @@ public sealed class ParkEnergyQueryServiceTests
             HostingFakes.CreateProductionEnvironment(),
             ("Energy:AllowSamplePreview", "true"));
 
-        ParkEnergyOverviewDto overview = await service.GetOverviewAsync("year", demo: true);
+        ParkEnergyOverviewDto overview = await service.GetOverviewAsync("year", true);
 
         // 配置开关是显式的产品决定（例如预发环境），允许在非开发环境放行。
         Assert.Equal(ParkEnergyDataStatus.Sample, overview.DataStatus);
@@ -365,7 +364,7 @@ public sealed class ParkEnergyQueryServiceTests
         CatalogRefs refs = await SeedCatalogAsync(database);
         // 流量计约定读数即区间用量，直接相加再乘倍率：(12 + 8) × 2 = 40 t。
         Guid meterId = await AddMeterAsync(
-            database, refs, "EM-WATER-001", mediumId: refs.WaterMediumId, isCumulative: false, ratio: 2m);
+            database, refs, "EM-WATER-001", refs.WaterMediumId, isCumulative: false, ratio: 2m);
 
         DateOnly monthStart = MonthStart();
         await AddReadingAsync(database, meterId, At(monthStart, 1), 12m);
@@ -428,7 +427,7 @@ public sealed class ParkEnergyQueryServiceTests
         using EnergySqliteTestDatabase database = new();
         CatalogRefs refs = await SeedCatalogAsync(database);
         // 蒸汽字典默认没有折标系数：实物量照常出现，但不进综合能耗，且要有提示。
-        Guid meterId = await AddMeterAsync(database, refs, "EM-STEAM-001", mediumId: refs.SteamMediumId);
+        Guid meterId = await AddMeterAsync(database, refs, "EM-STEAM-001", refs.SteamMediumId);
 
         DateOnly monthStart = MonthStart();
         await AddReadingAsync(database, meterId, At(monthStart.AddDays(-1), 12), 0m);
@@ -453,10 +452,10 @@ public sealed class ParkEnergyQueryServiceTests
         CatalogRefs refs = await SeedCatalogAsync(database);
         Guid elecId = await AddMeterAsync(database, refs, "EM-E-001");
         Guid airId = await AddMeterAsync(
-            database, refs, "EM-AIR-001", mediumId: refs.CoolingMediumId, isCumulative: true);
+            database, refs, "EM-AIR-001", refs.CoolingMediumId, isCumulative: true);
 
         DateOnly monthStart = MonthStart();
-        foreach ((Guid id, decimal end) in new[] {(elecId, 1000m), (airId, 500m)})
+        foreach ((Guid id, decimal end) in new[] { (elecId, 1000m), (airId, 500m) })
         {
             await AddReadingAsync(database, id, At(monthStart, 1), 0m);
             await AddReadingAsync(database, id, At(monthStart, 2), end);
@@ -496,7 +495,7 @@ public sealed class ParkEnergyQueryServiceTests
                 ParentId = refs.ParkOrgId,
                 IsEnabled = true,
                 CreatedAt = DateTimeOffset.UtcNow,
-                UpdatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
             };
             db.EnergyOrgUnits.Add(dept);
             await db.SaveChangesAsync();
@@ -507,7 +506,7 @@ public sealed class ParkEnergyQueryServiceTests
         Guid smallId = await AddMeterAsync(database, refs, "EM-SMALL", orgUnitId: deptId);
 
         DateOnly monthStart = MonthStart();
-        foreach ((Guid id, decimal end) in new[] {(bigId, 2000m), (smallId, 400m)})
+        foreach ((Guid id, decimal end) in new[] { (bigId, 2000m), (smallId, 400m) })
         {
             await AddReadingAsync(database, id, At(monthStart, 1), 0m);
             await AddReadingAsync(database, id, At(monthStart, 2), end);
@@ -546,7 +545,7 @@ public sealed class ParkEnergyQueryServiceTests
                 ParentId = refs.ParkOrgId,
                 IsEnabled = true,
                 CreatedAt = DateTimeOffset.UtcNow,
-                UpdatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
             };
             EnergyOrgUnit processEntity = new()
             {
@@ -557,7 +556,7 @@ public sealed class ParkEnergyQueryServiceTests
                 ParentId = deptEntity.Id,
                 IsEnabled = true,
                 CreatedAt = DateTimeOffset.UtcNow,
-                UpdatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
             };
             db.EnergyOrgUnits.AddRange(deptEntity, processEntity);
             await db.SaveChangesAsync();
@@ -628,7 +627,7 @@ public sealed class ParkEnergyQueryServiceTests
         IReadOnlyList<EnergyMeterDto> meters = await service.GetMetersAsync();
 
         Assert.Equal(3, meters.Count);
-        Assert.Equal(new[] {"EM-ALONE", "EM-CHILD", "EM-PARENT"}, meters.Select(meter => meter.Code));
+        Assert.Equal(new[] { "EM-ALONE", "EM-CHILD", "EM-PARENT" }, meters.Select(meter => meter.Code));
 
         EnergyMeterDto parent = meters.Single(meter => meter.Code == "EM-PARENT");
         Assert.Equal("ELEC", parent.MediumCode);
@@ -648,19 +647,22 @@ public sealed class ParkEnergyQueryServiceTests
     // ---------------------------------------------------------------
 
     /// <summary>构造一个四维齐全的合法请求，各用例按需 with 覆盖。</summary>
-    private static EnergyMeterUpsertRequest ValidMeterRequest(CatalogRefs refs, string code) => new(
-        Id: null,
-        Code: code,
-        Name: $"{code} 名称",
-        MediumId: refs.ElecMediumId,
-        OrgUnitId: refs.ParkOrgId,
-        UsageTypeId: refs.ProdUsageId,
-        SystemTypeId: refs.ProcessSystemId,
-        ParentMeterId: null,
-        IsCumulative: true,
-        Ratio: 1m,
-        IsEnabled: true,
-        Remark: null);
+    private static EnergyMeterUpsertRequest ValidMeterRequest(CatalogRefs refs, string code)
+    {
+        return new EnergyMeterUpsertRequest(
+            null,
+            code,
+            $"{code} 名称",
+            refs.ElecMediumId,
+            refs.ParkOrgId,
+            refs.ProdUsageId,
+            refs.ProcessSystemId,
+            null,
+            true,
+            1m,
+            true,
+            null);
+    }
 
     [Fact]
     public async Task UpsertMeter_Create_Should_Persist_And_Return_Dto()
@@ -671,7 +673,7 @@ public sealed class ParkEnergyQueryServiceTests
 
         // 编码 Trim 后落库；名称空白时回退为编码，备注 Trim。
         EnergyMeterDto dto = await service.UpsertMeterAsync(
-            ValidMeterRequest(refs, "  EM-NEW-001  ") with {Name = "   ", Remark = "  备注  "});
+            ValidMeterRequest(refs, "  EM-NEW-001  ") with { Name = "   ", Remark = "  备注  " });
 
         Assert.Equal("EM-NEW-001", dto.Code);
         Assert.Equal("EM-NEW-001", dto.Name);
@@ -697,10 +699,7 @@ public sealed class ParkEnergyQueryServiceTests
         ParkEnergyQueryService service = CreateService(database);
 
         EnergyMeterDto dto = await service.UpsertMeterAsync(
-            ValidMeterRequest(refs, "EM-UP-001") with
-            {
-                Id = meterId, Name = "新名字", Ratio = 10m, Remark = "  备注  ",
-            });
+            ValidMeterRequest(refs, "EM-UP-001") with { Id = meterId, Name = "新名字", Ratio = 10m, Remark = "  备注  " });
 
         Assert.Equal(meterId, dto.Id);
         Assert.Equal("新名字", dto.Name);
@@ -724,8 +723,8 @@ public sealed class ParkEnergyQueryServiceTests
         CatalogRefs refs = await SeedCatalogAsync(database);
         ParkEnergyQueryService service = CreateService(database);
 
-        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(
-            () => service.UpsertMeterAsync(ValidMeterRequest(refs, "   ")));
+        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.UpsertMeterAsync(ValidMeterRequest(refs, "   ")));
 
         Assert.Contains("计量点编码不能为空", ex.Message);
     }
@@ -737,8 +736,8 @@ public sealed class ParkEnergyQueryServiceTests
         CatalogRefs refs = await SeedCatalogAsync(database);
         ParkEnergyQueryService service = CreateService(database);
 
-        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(
-            () => service.UpsertMeterAsync(ValidMeterRequest(refs, "EM-R0") with {Ratio = 0m}));
+        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.UpsertMeterAsync(ValidMeterRequest(refs, "EM-R0") with { Ratio = 0m }));
 
         Assert.Contains("倍率必须大于 0", ex.Message);
     }
@@ -751,8 +750,8 @@ public sealed class ParkEnergyQueryServiceTests
         await AddMeterAsync(database, refs, "EM-DUP");
         ParkEnergyQueryService service = CreateService(database);
 
-        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(
-            () => service.UpsertMeterAsync(ValidMeterRequest(refs, "EM-DUP")));
+        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.UpsertMeterAsync(ValidMeterRequest(refs, "EM-DUP")));
 
         Assert.Contains("已存在", ex.Message);
     }
@@ -765,11 +764,8 @@ public sealed class ParkEnergyQueryServiceTests
         Guid meterId = await AddMeterAsync(database, refs, "EM-SELF");
         ParkEnergyQueryService service = CreateService(database);
 
-        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(
-            () => service.UpsertMeterAsync(ValidMeterRequest(refs, "EM-SELF") with
-            {
-                Id = meterId, ParentMeterId = meterId,
-            }));
+        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(() => service.UpsertMeterAsync(
+            ValidMeterRequest(refs, "EM-SELF") with { Id = meterId, ParentMeterId = meterId }));
 
         Assert.Contains("上级计量点不能是自身", ex.Message);
     }
@@ -781,11 +777,8 @@ public sealed class ParkEnergyQueryServiceTests
         CatalogRefs refs = await SeedCatalogAsync(database);
         ParkEnergyQueryService service = CreateService(database);
 
-        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(
-            () => service.UpsertMeterAsync(ValidMeterRequest(refs, "EM-ORPH") with
-            {
-                ParentMeterId = Guid.NewGuid(),
-            }));
+        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(() => service.UpsertMeterAsync(
+            ValidMeterRequest(refs, "EM-ORPH") with { ParentMeterId = Guid.NewGuid() }));
 
         Assert.Contains("上级计量点不存在", ex.Message);
     }
@@ -798,11 +791,8 @@ public sealed class ParkEnergyQueryServiceTests
         Guid parentId = await AddMeterAsync(database, refs, "EM-P");
         ParkEnergyQueryService service = CreateService(database);
 
-        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(
-            () => service.UpsertMeterAsync(ValidMeterRequest(refs, "EM-C") with
-            {
-                MediumId = refs.WaterMediumId, ParentMeterId = parentId,
-            }));
+        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(() => service.UpsertMeterAsync(
+            ValidMeterRequest(refs, "EM-C") with { MediumId = refs.WaterMediumId, ParentMeterId = parentId }));
 
         Assert.Contains("上级计量点必须使用相同介质", ex.Message);
     }
@@ -820,11 +810,8 @@ public sealed class ParkEnergyQueryServiceTests
 
         // 把上级表挂到自己的下级：B 的上级改成 A（A 的上级是 B），形成环。
         // 注意请求编码必须是被更新实体自己的编码，否则会先撞「编码已存在」。
-        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(
-            () => service.UpsertMeterAsync(ValidMeterRequest(refs, "EM-PARENT") with
-            {
-                Id = parentId, ParentMeterId = childId,
-            }));
+        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(() => service.UpsertMeterAsync(
+            ValidMeterRequest(refs, "EM-PARENT") with { Id = parentId, ParentMeterId = childId }));
 
         Assert.Contains("不能是自身或下级计量点", ex.Message);
     }
@@ -838,11 +825,8 @@ public sealed class ParkEnergyQueryServiceTests
         await AddMeterAsync(database, refs, "EM-CHILD", parentMeterId: parentId);
         ParkEnergyQueryService service = CreateService(database);
 
-        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(
-            () => service.UpsertMeterAsync(ValidMeterRequest(refs, "EM-PARENT") with
-            {
-                Id = parentId, MediumId = refs.WaterMediumId,
-            }));
+        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(() => service.UpsertMeterAsync(
+            ValidMeterRequest(refs, "EM-PARENT") with { Id = parentId, MediumId = refs.WaterMediumId }));
 
         Assert.Contains("存在不同介质的下级计量点", ex.Message);
     }
@@ -860,10 +844,10 @@ public sealed class ParkEnergyQueryServiceTests
 
         EnergyMeterUpsertRequest request = expected switch
         {
-            "介质不存在" => ValidMeterRequest(refs, "EM-X") with {MediumId = Guid.NewGuid()},
-            "组织节点不存在" => ValidMeterRequest(refs, "EM-X") with {OrgUnitId = Guid.NewGuid()},
-            "用能用途不存在" => ValidMeterRequest(refs, "EM-X") with {UsageTypeId = Guid.NewGuid()},
-            _ => ValidMeterRequest(refs, "EM-X") with {SystemTypeId = Guid.NewGuid()},
+            "介质不存在" => ValidMeterRequest(refs, "EM-X") with { MediumId = Guid.NewGuid() },
+            "组织节点不存在" => ValidMeterRequest(refs, "EM-X") with { OrgUnitId = Guid.NewGuid() },
+            "用能用途不存在" => ValidMeterRequest(refs, "EM-X") with { UsageTypeId = Guid.NewGuid() },
+            _ => ValidMeterRequest(refs, "EM-X") with { SystemTypeId = Guid.NewGuid() }
         };
 
         ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(() => service.UpsertMeterAsync(request));
@@ -877,8 +861,8 @@ public sealed class ParkEnergyQueryServiceTests
         CatalogRefs refs = await SeedCatalogAsync(database);
         ParkEnergyQueryService service = CreateService(database);
 
-        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(
-            () => service.UpsertMeterAsync(ValidMeterRequest(refs, "EM-GONE") with {Id = Guid.NewGuid()}));
+        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.UpsertMeterAsync(ValidMeterRequest(refs, "EM-GONE") with { Id = Guid.NewGuid() }));
 
         Assert.Contains("计量点不存在", ex.Message);
     }
@@ -905,8 +889,8 @@ public sealed class ParkEnergyQueryServiceTests
         await AddReadingAsync(database, meterId, DateTimeOffset.UtcNow, 100m);
         ParkEnergyQueryService service = CreateService(database);
 
-        InvalidOperationException ex = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => service.DeleteMeterAsync(meterId));
+        InvalidOperationException ex =
+            await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteMeterAsync(meterId));
 
         // 有读数的表删掉会让历史数据失去归属：正确做法是停用。
         Assert.Contains("已有读数", ex.Message);
@@ -922,8 +906,8 @@ public sealed class ParkEnergyQueryServiceTests
         await AddMeterAsync(database, refs, "EM-DEL-C", parentMeterId: parentId);
         ParkEnergyQueryService service = CreateService(database);
 
-        InvalidOperationException ex = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => service.DeleteMeterAsync(parentId));
+        InvalidOperationException ex =
+            await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteMeterAsync(parentId));
 
         Assert.Contains("下级表", ex.Message);
     }
@@ -977,8 +961,8 @@ public sealed class ParkEnergyQueryServiceTests
             null, "PARK-2", "二期园区", EnergyOrgUnit.ParkLevel, null));
         Assert.Equal(0, park.Depth);
 
-        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(
-            () => service.UpsertOrgUnitAsync(new EnergyOrgUnitUpsertRequest(
+        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(() => service.UpsertOrgUnitAsync(
+            new EnergyOrgUnitUpsertRequest(
                 null, "PARK-3", "三期园区", EnergyOrgUnit.ParkLevel, refs.ParkOrgId)));
         Assert.Contains("园区级节点不能有上级", ex.Message);
     }
@@ -992,8 +976,8 @@ public sealed class ParkEnergyQueryServiceTests
         await SeedCatalogAsync(database);
         ParkEnergyQueryService service = CreateService(database);
 
-        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(
-            () => service.UpsertOrgUnitAsync(new EnergyOrgUnitUpsertRequest(
+        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(() => service.UpsertOrgUnitAsync(
+            new EnergyOrgUnitUpsertRequest(
                 null, "ORG-X", "节点", level, parentId)));
 
         Assert.Contains(expected, ex.Message);
@@ -1007,8 +991,8 @@ public sealed class ParkEnergyQueryServiceTests
         ParkEnergyQueryService service = CreateService(database);
 
         // 部门的上级必须是园区。
-        ArgumentException unknownParent = await Assert.ThrowsAsync<ArgumentException>(
-            () => service.UpsertOrgUnitAsync(new EnergyOrgUnitUpsertRequest(
+        ArgumentException unknownParent = await Assert.ThrowsAsync<ArgumentException>(() => service.UpsertOrgUnitAsync(
+            new EnergyOrgUnitUpsertRequest(
                 null, "DEPT-BAD", "节点", EnergyOrgUnit.DepartmentLevel, Guid.NewGuid())));
         Assert.Contains("上级节点不存在", unknownParent.Message);
 
@@ -1016,14 +1000,14 @@ public sealed class ParkEnergyQueryServiceTests
             null, "DEPT-OK", "节点", EnergyOrgUnit.DepartmentLevel, refs.ParkOrgId));
 
         // 工序的上级必须是部门。
-        ArgumentException processUnderPark = await Assert.ThrowsAsync<ArgumentException>(
-            () => service.UpsertOrgUnitAsync(new EnergyOrgUnitUpsertRequest(
+        ArgumentException processUnderPark = await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.UpsertOrgUnitAsync(new EnergyOrgUnitUpsertRequest(
                 null, "PROC-BAD", "节点", EnergyOrgUnit.ProcessLevel, refs.ParkOrgId)));
         Assert.Contains("工序级节点的上级必须是部门", processUnderPark.Message);
 
         // 部门的上级不能是部门。
-        ArgumentException deptUnderDept = await Assert.ThrowsAsync<ArgumentException>(
-            () => service.UpsertOrgUnitAsync(new EnergyOrgUnitUpsertRequest(
+        ArgumentException deptUnderDept = await Assert.ThrowsAsync<ArgumentException>(() => service.UpsertOrgUnitAsync(
+            new EnergyOrgUnitUpsertRequest(
                 null, "DEPT-BAD-2", "节点", EnergyOrgUnit.DepartmentLevel, deptOk.Id)));
         Assert.Contains("部门级节点的上级必须是园区", deptUnderDept.Message);
     }
@@ -1035,8 +1019,8 @@ public sealed class ParkEnergyQueryServiceTests
         await SeedCatalogAsync(database);
         ParkEnergyQueryService service = CreateService(database);
 
-        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(
-            () => service.UpsertOrgUnitAsync(new EnergyOrgUnitUpsertRequest(
+        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(() => service.UpsertOrgUnitAsync(
+            new EnergyOrgUnitUpsertRequest(
                 null, "  ", "节点", EnergyOrgUnit.DepartmentLevel, Guid.NewGuid())));
 
         Assert.Contains("节点编码与名称都不能为空", ex.Message);
@@ -1049,8 +1033,8 @@ public sealed class ParkEnergyQueryServiceTests
         await SeedCatalogAsync(database);
         ParkEnergyQueryService service = CreateService(database);
 
-        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(
-            () => service.UpsertOrgUnitAsync(new EnergyOrgUnitUpsertRequest(
+        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(() => service.UpsertOrgUnitAsync(
+            new EnergyOrgUnitUpsertRequest(
                 null, "PARK", "园区二号楼", EnergyOrgUnit.ParkLevel, null)));
 
         Assert.Contains("节点编码 PARK 已存在", ex.Message);
@@ -1071,8 +1055,8 @@ public sealed class ParkEnergyQueryServiceTests
         // 常规路径造不出环（层级校验在先、数据库还有 CHECK 兜底），
         // 但「把节点的上级设成它自己」这条守卫必须仍然成立：
         // 这里以部门身份更新园区节点、并把上级指向它自己。
-        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(
-            () => service.UpsertOrgUnitAsync(new EnergyOrgUnitUpsertRequest(
+        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(() => service.UpsertOrgUnitAsync(
+            new EnergyOrgUnitUpsertRequest(
                 refs.ParkOrgId, "DEPT-CYC", "园区被当作部门", EnergyOrgUnit.DepartmentLevel, refs.ParkOrgId)));
 
         Assert.Contains("上级节点不能是自己或自己的下级", ex.Message);
@@ -1095,8 +1079,8 @@ public sealed class ParkEnergyQueryServiceTests
         Assert.Equal("新名", renamed.Name);
 
         // 用全新编码更新一个不存在的标识：编码查重先通过，才轮到「节点不存在」。
-        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(
-            () => service.UpsertOrgUnitAsync(new EnergyOrgUnitUpsertRequest(
+        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(() => service.UpsertOrgUnitAsync(
+            new EnergyOrgUnitUpsertRequest(
                 Guid.NewGuid(), "DEPT-R-2", "不存在", EnergyOrgUnit.DepartmentLevel, refs.ParkOrgId)));
         Assert.Contains("节点不存在", ex.Message);
     }
@@ -1134,17 +1118,19 @@ public sealed class ParkEnergyQueryServiceTests
         CatalogRefs refs = await SeedCatalogAsync(database);
         ParkEnergyQueryService service = CreateService(database);
 
-        ArgumentException unknown = await Assert.ThrowsAsync<ArgumentException>(
-            () => service.UpdateMediumFactorAsync(Guid.NewGuid(), 1m));
+        ArgumentException unknown =
+            await Assert.ThrowsAsync<ArgumentException>(() => service.UpdateMediumFactorAsync(Guid.NewGuid(), 1m));
         Assert.Contains("介质不存在", unknown.Message);
 
-        ArgumentException negative = await Assert.ThrowsAsync<ArgumentException>(
-            () => service.UpdateMediumFactorAsync(refs.ElecMediumId, -0.1m));
+        ArgumentException negative =
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                service.UpdateMediumFactorAsync(refs.ElecMediumId, -0.1m));
         Assert.Contains("不能为负数", negative.Message);
 
         // 二次能源没有折标煤口径：配了系数会让人以为它进了综合能耗。
-        ArgumentException secondary = await Assert.ThrowsAsync<ArgumentException>(
-            () => service.UpdateMediumFactorAsync(refs.CoolingMediumId, 1m));
+        ArgumentException secondary =
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                service.UpdateMediumFactorAsync(refs.CoolingMediumId, 1m));
         Assert.Contains("不是一次能源", secondary.Message);
     }
 
@@ -1242,7 +1228,10 @@ internal sealed class EnergySqliteModelCustomizer(ModelCustomizerDependencies de
             foreach (IReadOnlyCheckConstraint checkConstraint in entityType.GetCheckConstraints().ToList())
             {
                 string? rewritten = checkConstraint.Sql?.Replace("btrim(", "trim(", StringComparison.Ordinal);
-                if (rewritten is null || rewritten == checkConstraint.Sql) continue;
+                if (rewritten is null || rewritten == checkConstraint.Sql)
+                {
+                    continue;
+                }
 
                 entityType.RemoveCheckConstraint(checkConstraint.Name!);
                 entityType.AddCheckConstraint(checkConstraint.Name!, rewritten);
@@ -1253,7 +1242,9 @@ internal sealed class EnergySqliteModelCustomizer(ModelCustomizerDependencies de
                 property.SetDefaultValueSql(null);
 
                 if (property.GetColumnType() == "jsonb")
+                {
                     property.SetColumnType("TEXT");
+                }
 
                 if (property.ClrType == typeof(DateTimeOffset))
                 {

@@ -1,4 +1,3 @@
-using DAP.Core.Shared.Catalog;
 using DAP.Core.Shared.Contracts;
 
 namespace DAP.Tests.UnitTests;

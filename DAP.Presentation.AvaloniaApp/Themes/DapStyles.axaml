@@ -14,258 +14,258 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- ============ 文本层级 ============ -->
-    <Style Selector="TextBlock.page-title">
-        <Setter Property="FontSize" Value="24" />
-        <Setter Property="FontWeight" Value="Bold" />
-        <Setter Property="Foreground" Value="{DynamicResource DapTextPrimaryBrush}" />
-    </Style>
+  <!-- ============ 文本层级 ============ -->
+  <Style Selector="TextBlock.page-title">
+    <Setter Property="FontSize" Value="24" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Foreground" Value="{DynamicResource DapTextPrimaryBrush}" />
+  </Style>
 
-    <Style Selector="TextBlock.page-subtitle">
-        <Setter Property="FontSize" Value="13" />
-        <Setter Property="Foreground" Value="{DynamicResource DapTextSecondaryBrush}" />
-        <Setter Property="TextWrapping" Value="Wrap" />
-    </Style>
+  <Style Selector="TextBlock.page-subtitle">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Foreground" Value="{DynamicResource DapTextSecondaryBrush}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
 
-    <Style Selector="TextBlock.card-title">
-        <Setter Property="FontSize" Value="15" />
-        <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Foreground" Value="{DynamicResource DapTextPrimaryBrush}" />
-    </Style>
+  <Style Selector="TextBlock.card-title">
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource DapTextPrimaryBrush}" />
+  </Style>
 
-    <Style Selector="TextBlock.card-description">
-        <Setter Property="FontSize" Value="12" />
-        <Setter Property="Foreground" Value="{DynamicResource DapTextSecondaryBrush}" />
-        <Setter Property="TextWrapping" Value="Wrap" />
-    </Style>
+  <Style Selector="TextBlock.card-description">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource DapTextSecondaryBrush}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
 
-    <Style Selector="TextBlock.stat-label">
-        <Setter Property="FontSize" Value="12" />
-        <Setter Property="Foreground" Value="{DynamicResource DapTextSecondaryBrush}" />
-    </Style>
+  <Style Selector="TextBlock.stat-label">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource DapTextSecondaryBrush}" />
+  </Style>
 
-    <Style Selector="TextBlock.stat-value">
-        <Setter Property="FontSize" Value="26" />
-        <Setter Property="FontWeight" Value="Bold" />
-        <Setter Property="Foreground" Value="{DynamicResource DapTextPrimaryBrush}" />
-    </Style>
+  <Style Selector="TextBlock.stat-value">
+    <Setter Property="FontSize" Value="26" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Foreground" Value="{DynamicResource DapTextPrimaryBrush}" />
+  </Style>
 
-    <Style Selector="TextBlock.stat-value-large">
-        <Setter Property="FontSize" Value="32" />
-        <Setter Property="FontWeight" Value="Bold" />
-        <Setter Property="Foreground" Value="{DynamicResource DapTextPrimaryBrush}" />
-    </Style>
+  <Style Selector="TextBlock.stat-value-large">
+    <Setter Property="FontSize" Value="32" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Foreground" Value="{DynamicResource DapTextPrimaryBrush}" />
+  </Style>
 
-    <Style Selector="TextBlock.stat-supporting">
-        <Setter Property="FontSize" Value="12" />
-        <Setter Property="Foreground" Value="{DynamicResource DapTextSecondaryBrush}" />
-        <Setter Property="TextWrapping" Value="Wrap" />
-    </Style>
+  <Style Selector="TextBlock.stat-supporting">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource DapTextSecondaryBrush}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
 
-    <Style Selector="TextBlock.field-label">
-        <Setter Property="FontSize" Value="12" />
-        <Setter Property="Foreground" Value="{DynamicResource DapTextSecondaryBrush}" />
-    </Style>
+  <Style Selector="TextBlock.field-label">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource DapTextSecondaryBrush}" />
+  </Style>
 
-    <Style Selector="TextBlock.timestamp">
-        <Setter Property="FontSize" Value="12" />
-        <Setter Property="Foreground" Value="{DynamicResource DapTextSubtleBrush}" />
-    </Style>
+  <Style Selector="TextBlock.timestamp">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource DapTextSubtleBrush}" />
+  </Style>
 
-    <Style Selector="TextBlock.table-primary">
-        <Setter Property="FontSize" Value="13" />
-        <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Foreground" Value="{DynamicResource DapTextPrimaryBrush}" />
-    </Style>
+  <Style Selector="TextBlock.table-primary">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource DapTextPrimaryBrush}" />
+  </Style>
 
-    <Style Selector="TextBlock.table-cell">
-        <Setter Property="FontSize" Value="13" />
-        <Setter Property="Foreground" Value="{DynamicResource DapTextPrimaryBrush}" />
-    </Style>
+  <Style Selector="TextBlock.table-cell">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Foreground" Value="{DynamicResource DapTextPrimaryBrush}" />
+  </Style>
 
-    <Style Selector="TextBlock.empty-title">
-        <Setter Property="FontSize" Value="16" />
-        <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Foreground" Value="{DynamicResource DapTextPrimaryBrush}" />
-    </Style>
+  <Style Selector="TextBlock.empty-title">
+    <Setter Property="FontSize" Value="16" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource DapTextPrimaryBrush}" />
+  </Style>
 
-    <Style Selector="TextBlock.empty-text">
-        <Setter Property="FontSize" Value="13" />
-        <Setter Property="Foreground" Value="{DynamicResource DapTextSecondaryBrush}" />
-        <Setter Property="TextWrapping" Value="Wrap" />
-        <Setter Property="TextAlignment" Value="Center" />
-        <Setter Property="MaxWidth" Value="420" />
-    </Style>
+  <Style Selector="TextBlock.empty-text">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Foreground" Value="{DynamicResource DapTextSecondaryBrush}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="TextAlignment" Value="Center" />
+    <Setter Property="MaxWidth" Value="420" />
+  </Style>
 
-    <!-- ============ 容器 ============ -->
-    <Style Selector="Border.page-hero">
-        <Setter Property="CornerRadius" Value="14" />
-        <Setter Property="Padding" Value="20,18" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="BorderBrush" Value="{DynamicResource DapBorderBrush}" />
-    </Style>
+  <!-- ============ 容器 ============ -->
+  <Style Selector="Border.page-hero">
+    <Setter Property="CornerRadius" Value="14" />
+    <Setter Property="Padding" Value="20,18" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DapBorderBrush}" />
+  </Style>
 
-    <Style Selector="Border.stat-card">
-        <Setter Property="CornerRadius" Value="12" />
-        <Setter Property="Padding" Value="16,14" />
-        <!-- 左侧 4px 色条：与 Web 端统计卡一致，画刷由各卡片绑定 Accent（base 档） -->
-        <Setter Property="BorderThickness" Value="4,0,0,0" />
-    </Style>
+  <Style Selector="Border.stat-card">
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Padding" Value="16,14" />
+    <!-- 左侧 4px 色条：与 Web 端统计卡一致，画刷由各卡片绑定 Accent（base 档） -->
+    <Setter Property="BorderThickness" Value="4,0,0,0" />
+  </Style>
 
-    <Style Selector="Border.section-card">
-        <Setter Property="CornerRadius" Value="12" />
-        <Setter Property="Padding" Value="18" />
-        <Setter Property="BorderThickness" Value="4,0,0,0" />
-    </Style>
+  <Style Selector="Border.section-card">
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Padding" Value="18" />
+    <Setter Property="BorderThickness" Value="4,0,0,0" />
+  </Style>
 
-    <Style Selector="Border.panel">
-        <Setter Property="Background" Value="{DynamicResource DapSurfaceBrush}" />
-        <Setter Property="CornerRadius" Value="12" />
-        <Setter Property="Padding" Value="18" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="BorderBrush" Value="{DynamicResource DapBorderBrush}" />
-    </Style>
+  <Style Selector="Border.panel">
+    <Setter Property="Background" Value="{DynamicResource DapSurfaceBrush}" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Padding" Value="18" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DapBorderBrush}" />
+  </Style>
 
-    <Style Selector="Border.chart-frame">
-        <Setter Property="Background" Value="{DynamicResource DapSurfaceBrush}" />
-        <Setter Property="CornerRadius" Value="10" />
-        <Setter Property="Padding" Value="12" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="BorderBrush" Value="{DynamicResource DapBorderBrush}" />
-    </Style>
+  <Style Selector="Border.chart-frame">
+    <Setter Property="Background" Value="{DynamicResource DapSurfaceBrush}" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="12" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DapBorderBrush}" />
+  </Style>
 
-    <Style Selector="Border.chip">
-        <Setter Property="CornerRadius" Value="999" />
-        <Setter Property="Padding" Value="10,3" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="BorderBrush" Value="{DynamicResource DapBorderStrongBrush}" />
-        <Setter Property="Background" Value="{DynamicResource DapSurfaceMutedBrush}" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-    </Style>
+  <Style Selector="Border.chip">
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="Padding" Value="10,3" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DapBorderStrongBrush}" />
+    <Setter Property="Background" Value="{DynamicResource DapSurfaceMutedBrush}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
 
-    <Style Selector="Border.chip > TextBlock">
-        <Setter Property="FontSize" Value="12" />
-        <Setter Property="Foreground" Value="{DynamicResource DapTextPrimaryBrush}" />
-    </Style>
+  <Style Selector="Border.chip > TextBlock">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource DapTextPrimaryBrush}" />
+  </Style>
 
-    <Style Selector="Border.divider">
-        <Setter Property="Height" Value="1" />
-        <Setter Property="Background" Value="{DynamicResource DapBorderBrush}" />
-        <Setter Property="Margin" Value="0,12" />
-    </Style>
+  <Style Selector="Border.divider">
+    <Setter Property="Height" Value="1" />
+    <Setter Property="Background" Value="{DynamicResource DapBorderBrush}" />
+    <Setter Property="Margin" Value="0,12" />
+  </Style>
 
-    <Style Selector="Border.empty-state">
-        <Setter Property="Padding" Value="32" />
-        <Setter Property="CornerRadius" Value="12" />
-        <Setter Property="BorderThickness" Value="0" />
-    </Style>
+  <Style Selector="Border.empty-state">
+    <Setter Property="Padding" Value="32" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
 
-    <!-- ============ 表单控件 ============ -->
-    <Style Selector="TextBox.field, ComboBox.field, CalendarDatePicker.field, NumericUpDown.field">
-        <Setter Property="MinHeight" Value="34" />
-        <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="FontSize" Value="13" />
-    </Style>
+  <!-- ============ 表单控件 ============ -->
+  <Style Selector="TextBox.field, ComboBox.field, CalendarDatePicker.field, NumericUpDown.field">
+    <Setter Property="MinHeight" Value="34" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="FontSize" Value="13" />
+  </Style>
 
-    <Style Selector="Button.ghost">
-        <Setter Property="Background" Value="{DynamicResource DapSurfaceBrush}" />
-        <Setter Property="Foreground" Value="{DynamicResource DapTextPrimaryBrush}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource DapBorderStrongBrush}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="Padding" Value="14,7" />
-        <Setter Property="FontSize" Value="13" />
-    </Style>
+  <Style Selector="Button.ghost">
+    <Setter Property="Background" Value="{DynamicResource DapSurfaceBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource DapTextPrimaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DapBorderStrongBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="14,7" />
+    <Setter Property="FontSize" Value="13" />
+  </Style>
 
-    <!-- ============ 数据表 ============ -->
-    <Style Selector="DataGrid.data-table">
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="GridLinesVisibility" Value="None" />
-        <Setter Property="HeadersVisibility" Value="Column" />
-        <Setter Property="IsReadOnly" Value="True" />
-        <Setter Property="CanUserResizeColumns" Value="True" />
-        <Setter Property="RowHeight" Value="34" />
-        <Setter Property="FontSize" Value="13" />
-    </Style>
+  <!-- ============ 数据表 ============ -->
+  <Style Selector="DataGrid.data-table">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="GridLinesVisibility" Value="None" />
+    <Setter Property="HeadersVisibility" Value="Column" />
+    <Setter Property="IsReadOnly" Value="True" />
+    <Setter Property="CanUserResizeColumns" Value="True" />
+    <Setter Property="RowHeight" Value="34" />
+    <Setter Property="FontSize" Value="13" />
+  </Style>
 
-    <Style Selector="DataGrid.data-table /template/ DataGridColumnHeader">
-        <Setter Property="Background" Value="{DynamicResource DapSurfaceSunkenBrush}" />
-        <Setter Property="Foreground" Value="{DynamicResource DapTextSecondaryBrush}" />
-        <Setter Property="FontSize" Value="12" />
-        <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Padding" Value="10,8" />
-        <Setter Property="BorderThickness" Value="0" />
-    </Style>
+  <Style Selector="DataGrid.data-table /template/ DataGridColumnHeader">
+    <Setter Property="Background" Value="{DynamicResource DapSurfaceSunkenBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource DapTextSecondaryBrush}" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Padding" Value="10,8" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
 
-    <Style Selector="DataGrid.data-table DataGridCell">
-        <Setter Property="Padding" Value="10,0" />
-        <Setter Property="BorderThickness" Value="0" />
-    </Style>
+  <Style Selector="DataGrid.data-table DataGridCell">
+    <Setter Property="Padding" Value="10,0" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
 
-    <!-- ============ 导航 ============ -->
-    <Style Selector="Button.nav-button">
-        <Setter Property="Padding" Value="0" />
-        <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="HorizontalAlignment" Value="Stretch" />
-        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-    </Style>
+  <!-- ============ 导航 ============ -->
+  <Style Selector="Button.nav-button">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+  </Style>
 
-    <Style Selector="Border.nav-item">
-        <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="Padding" Value="12,9" />
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="BorderThickness" Value="0" />
-    </Style>
+  <Style Selector="Border.nav-item">
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="12,9" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
 
-    <Style Selector="Border.nav-item:pointerover">
-        <Setter Property="Background" Value="{DynamicResource DapSurfaceSunkenBrush}" />
-    </Style>
+  <Style Selector="Border.nav-item:pointerover">
+    <Setter Property="Background" Value="{DynamicResource DapSurfaceSunkenBrush}" />
+  </Style>
 
-    <Style Selector="Border.nav-item.active">
-        <Setter Property="Background" Value="{DynamicResource DapPrimaryTintBrush}" />
-    </Style>
+  <Style Selector="Border.nav-item.active">
+    <Setter Property="Background" Value="{DynamicResource DapPrimaryTintBrush}" />
+  </Style>
 
-    <Style Selector="TextBlock.nav-text">
-        <Setter Property="FontSize" Value="13" />
-        <Setter Property="Foreground" Value="{DynamicResource DapTextPrimaryBrush}" />
-    </Style>
+  <Style Selector="TextBlock.nav-text">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Foreground" Value="{DynamicResource DapTextPrimaryBrush}" />
+  </Style>
 
-    <Style Selector="TextBlock.nav-text.active">
-        <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Foreground" Value="{DynamicResource DapPrimaryStrongBrush}" />
-    </Style>
+  <Style Selector="TextBlock.nav-text.active">
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource DapPrimaryStrongBrush}" />
+  </Style>
 
-    <Style Selector="PathIcon.nav-icon">
-        <Setter Property="Width" Value="16" />
-        <Setter Property="Height" Value="16" />
-        <Setter Property="Foreground" Value="{DynamicResource DapTextSecondaryBrush}" />
-    </Style>
+  <Style Selector="PathIcon.nav-icon">
+    <Setter Property="Width" Value="16" />
+    <Setter Property="Height" Value="16" />
+    <Setter Property="Foreground" Value="{DynamicResource DapTextSecondaryBrush}" />
+  </Style>
 
-    <Style Selector="PathIcon.nav-icon.active">
-        <Setter Property="Foreground" Value="{DynamicResource DapPrimaryStrongBrush}" />
-    </Style>
+  <Style Selector="PathIcon.nav-icon.active">
+    <Setter Property="Foreground" Value="{DynamicResource DapPrimaryStrongBrush}" />
+  </Style>
 
-    <Style Selector="Button.module-button">
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="Padding" Value="14,8" />
-        <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="FontSize" Value="14" />
-        <Setter Property="Foreground" Value="{DynamicResource DapTextSecondaryBrush}" />
-    </Style>
+  <Style Selector="Button.module-button">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="14,8" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="Foreground" Value="{DynamicResource DapTextSecondaryBrush}" />
+  </Style>
 
-    <Style Selector="Button.module-button.active">
-        <Setter Property="Background" Value="{DynamicResource DapPrimaryTintBrush}" />
-        <Setter Property="Foreground" Value="{DynamicResource DapPrimaryStrongBrush}" />
-        <Setter Property="FontWeight" Value="SemiBold" />
-    </Style>
+  <Style Selector="Button.module-button.active">
+    <Setter Property="Background" Value="{DynamicResource DapPrimaryTintBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource DapPrimaryStrongBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
 
-    <!-- 左侧色条：仅用于导航选中态与卡片强调，宽度以外边距控制 -->
-    <Style Selector="Border.accent-bar">
-        <Setter Property="Width" Value="4" />
-        <Setter Property="CornerRadius" Value="2" />
-    </Style>
+  <!-- 左侧色条：仅用于导航选中态与卡片强调，宽度以外边距控制 -->
+  <Style Selector="Border.accent-bar">
+    <Setter Property="Width" Value="4" />
+    <Setter Property="CornerRadius" Value="2" />
+  </Style>
 
 </Styles>

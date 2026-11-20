@@ -18,7 +18,8 @@ public sealed class OidcSignInServiceTests
 {
     private static readonly DateTimeOffset Now = new(2026, 11, 19, 8, 0, 0, TimeSpan.Zero);
 
-    private static OidcProviderOptions Provider(string code = "keycloak", string defaultRole = AuthorizationCatalog.ViewerRole)
+    private static OidcProviderOptions Provider(string code = "keycloak",
+        string defaultRole = AuthorizationCatalog.ViewerRole)
     {
         return new OidcProviderOptions
         {
@@ -53,8 +54,13 @@ public sealed class OidcSignInServiceTests
     {
         return new Department
         {
-            Id = Guid.NewGuid(), Code = $"D-{externalCode}", Name = externalCode,
-            ExternalCode = externalCode, IsEnabled = true, CreatedAt = Now, UpdatedAt = Now
+            Id = Guid.NewGuid(),
+            Code = $"D-{externalCode}",
+            Name = externalCode,
+            ExternalCode = externalCode,
+            IsEnabled = true,
+            CreatedAt = Now,
+            UpdatedAt = Now
         };
     }
 
@@ -62,9 +68,15 @@ public sealed class OidcSignInServiceTests
     {
         return new Role
         {
-            Id = Guid.NewGuid(), Code = code, Name = code, PageLevel = 1,
-            IsBuiltin = true, IsEnabled = enabled, SortOrder = 10,
-            CreatedAt = Now, UpdatedAt = Now
+            Id = Guid.NewGuid(),
+            Code = code,
+            Name = code,
+            PageLevel = 1,
+            IsBuiltin = true,
+            IsEnabled = enabled,
+            SortOrder = 10,
+            CreatedAt = Now,
+            UpdatedAt = Now
         };
     }
 
@@ -72,9 +84,15 @@ public sealed class OidcSignInServiceTests
     {
         return new AppUser
         {
-            Id = Guid.NewGuid(), UserName = userName, DisplayName = userName,
-            IsEnabled = enabled, MustChangePassword = false, PasswordHash = null,
-            SecurityStamp = Guid.NewGuid(), CreatedAt = Now, UpdatedAt = Now
+            Id = Guid.NewGuid(),
+            UserName = userName,
+            DisplayName = userName,
+            IsEnabled = enabled,
+            MustChangePassword = false,
+            PasswordHash = null,
+            SecurityStamp = Guid.NewGuid(),
+            CreatedAt = Now,
+            UpdatedAt = Now
         };
     }
 
@@ -134,8 +152,13 @@ public sealed class OidcSignInServiceTests
         db.AppUsers.Add(user);
         db.ExternalIdentities.Add(new ExternalIdentity
         {
-            Id = Guid.NewGuid(), UserId = user.Id, Provider = "oidc:keycloak",
-            ExternalId = "sub-1", LastSyncedAt = Now, CreatedAt = Now, UpdatedAt = Now
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            Provider = "oidc:keycloak",
+            ExternalId = "sub-1",
+            LastSyncedAt = Now,
+            CreatedAt = Now,
+            UpdatedAt = Now
         });
         await db.SaveChangesAsync();
 
@@ -168,8 +191,13 @@ public sealed class OidcSignInServiceTests
         db.AppUsers.Add(user);
         db.ExternalIdentities.Add(new ExternalIdentity
         {
-            Id = Guid.NewGuid(), UserId = user.Id, Provider = "oidc:keycloak",
-            ExternalId = "sub-1", LastSyncedAt = Now, CreatedAt = Now, UpdatedAt = Now
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            Provider = "oidc:keycloak",
+            ExternalId = "sub-1",
+            LastSyncedAt = Now,
+            CreatedAt = Now,
+            UpdatedAt = Now
         });
         await db.SaveChangesAsync();
 
@@ -188,12 +216,17 @@ public sealed class OidcSignInServiceTests
     {
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
-        AppUser user = SeedUser("alice", enabled: false);
+        AppUser user = SeedUser("alice", false);
         db.AppUsers.Add(user);
         db.ExternalIdentities.Add(new ExternalIdentity
         {
-            Id = Guid.NewGuid(), UserId = user.Id, Provider = "oidc:keycloak",
-            ExternalId = "sub-1", LastSyncedAt = Now, CreatedAt = Now, UpdatedAt = Now
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            Provider = "oidc:keycloak",
+            ExternalId = "sub-1",
+            LastSyncedAt = Now,
+            CreatedAt = Now,
+            UpdatedAt = Now
         });
         await db.SaveChangesAsync();
 
@@ -274,7 +307,7 @@ public sealed class OidcSignInServiceTests
     {
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
-        db.Roles.Add(SeedRole(AuthorizationCatalog.ViewerRole, enabled: false));
+        db.Roles.Add(SeedRole(AuthorizationCatalog.ViewerRole, false));
         await db.SaveChangesAsync();
 
         OidcSignInService service = CreateService(db);

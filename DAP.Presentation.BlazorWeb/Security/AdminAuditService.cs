@@ -267,7 +267,10 @@ public sealed class AuditRetentionService(
                 .Take(BatchSize)
                 .ToListAsync(cancellationToken);
 
-            if (batch.Count == 0) break;
+            if (batch.Count == 0)
+            {
+                break;
+            }
 
             db.AuditLogs.RemoveRange(batch);
             await db.SaveChangesAsync(cancellationToken);
@@ -275,8 +278,10 @@ public sealed class AuditRetentionService(
         }
 
         if (total > 0)
+        {
             logger.LogInformation(
                 "已清理 {Count} 条超过 {Days} 天的审计记录（截止 {Cutoff:yyyy-MM-dd}）。",
                 total, _options.RetentionDays, cutoff);
+        }
     }
 }

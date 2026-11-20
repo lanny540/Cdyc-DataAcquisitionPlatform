@@ -32,7 +32,7 @@ public sealed class OidcSignInService(
 
         Guid? userId = await db.ExternalIdentities
             .Where(identity => identity.Provider == providerKey && identity.ExternalId == profile.ExternalId)
-            .Select(identity => (Guid?) identity.UserId)
+            .Select(identity => (Guid?)identity.UserId)
             .FirstOrDefaultAsync(cancellationToken);
 
         Guid? departmentId = await departmentCodes.ResolveAsync(profile.DepartmentCode, cancellationToken);
@@ -42,9 +42,15 @@ public sealed class OidcSignInService(
             AppUser? existing = await db.AppUsers
                 .FirstOrDefaultAsync(user => user.Id == existingUserId, cancellationToken);
 
-            if (existing is null) return new OidcProvisionResult(false, null, "账号已不存在，请联系管理员。");
+            if (existing is null)
+            {
+                return new OidcProvisionResult(false, null, "账号已不存在，请联系管理员。");
+            }
 
-            if (!existing.IsEnabled) return new OidcProvisionResult(false, null, "该账号已停用，请联系管理员。");
+            if (!existing.IsEnabled)
+            {
+                return new OidcProvisionResult(false, null, "该账号已停用，请联系管理员。");
+            }
 
             // 姓名与邮箱跟随 IdP；部门只在映射到时更新，映射不到保留原归属。
             if (!string.IsNullOrWhiteSpace(profile.DisplayName)
@@ -106,13 +112,17 @@ public sealed class OidcSignInService(
         Role? defaultRole = await db.Roles
             .FirstOrDefaultAsync(role => role.Code == provider.DefaultRoleCode, cancellationToken);
 
-        if (defaultRole is {IsEnabled: true})
-            db.UserRoles.Add(new UserRole {UserId = created.Id, RoleId = defaultRole.Id});
+        if (defaultRole is { IsEnabled: true })
+        {
+            db.UserRoles.Add(new UserRole { UserId = created.Id, RoleId = defaultRole.Id });
+        }
         else
+        {
             logger.LogWarning(
                 "OIDC 账号 {UserName} 建号时默认角色 {RoleCode} 不可用，该账号将看不到任何页面。",
                 userName,
                 provider.DefaultRoleCode);
+        }
 
         try
         {
@@ -126,12 +136,14 @@ public sealed class OidcSignInService(
             foreach (EntityEntry entry in db.ChangeTracker.Entries()
                          .Where(item => item.State == EntityState.Added)
                          .ToList())
+            {
                 entry.State = EntityState.Detached;
+            }
 
             Guid? concurrentUserId = await db.ExternalIdentities
                 .AsNoTracking()
                 .Where(identity => identity.Provider == providerKey && identity.ExternalId == profile.ExternalId)
-                .Select(identity => (Guid?) identity.UserId)
+                .Select(identity => (Guid?)identity.UserId)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (concurrentUserId is { } id)
@@ -177,7 +189,10 @@ public sealed class OidcSignInService(
             .FirstOrDefaultAsync(item => item.Provider == providerKey && item.ExternalId == externalId,
                 cancellationToken);
 
-        if (identity is null) return;
+        if (identity is null)
+        {
+            return;
+        }
 
         identity.LastSyncedAt = now;
         identity.UpdatedAt = now;
@@ -207,7 +222,10 @@ public sealed class OidcSignInService(
 
     private static string Truncate(string value, int maxLength)
     {
-        if (maxLength <= 0) return value;
+        if (maxLength <= 0)
+        {
+            return value;
+        }
 
         return value.Length <= maxLength ? value : value[..maxLength];
     }

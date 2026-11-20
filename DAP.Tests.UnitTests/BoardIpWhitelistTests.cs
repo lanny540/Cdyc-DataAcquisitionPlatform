@@ -1,6 +1,5 @@
 using System.Net;
 using DAP.Presentation.BlazorWeb.Security;
-using Xunit;
 
 namespace DAP.Tests.UnitTests;
 

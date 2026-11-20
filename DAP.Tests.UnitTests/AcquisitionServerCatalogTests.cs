@@ -82,7 +82,7 @@ public sealed class AcquisitionServerCatalogTests
         IReadOnlyCollection<string> errors = AcquisitionServerCatalog.ValidateNode(
             AcquisitionServerCatalog.InfluxDb,
             "steam_flow",
-            new Dictionary<string, string> {["bucket"] = "factory"});
+            new Dictionary<string, string> { ["bucket"] = "factory" });
 
         Assert.Empty(errors);
     }
@@ -106,11 +106,7 @@ public sealed class AcquisitionServerCatalogTests
         IReadOnlyCollection<string> errors = AcquisitionServerCatalog.ValidateServer(
             AcquisitionServerCatalog.Historian,
             "http://10.9.3.54:8080/historian-rest-api",
-            new Dictionary<string, string>
-            {
-                ["clientId"] = "admin",
-                ["clientSecret"] = "Pa55word"
-            });
+            new Dictionary<string, string> { ["clientId"] = "admin", ["clientSecret"] = "Pa55word" });
 
         Assert.Contains(errors, error => error.Contains("不要包含接口路径"));
     }
@@ -153,7 +149,7 @@ public sealed class AcquisitionServerCatalogTests
     {
         Dictionary<string, string> merged = AcquisitionServerCatalog.MergeWithDefaults(
             AcquisitionServerCatalog.Historian,
-            new Dictionary<string, string> {["clientId"] = "admin"});
+            new Dictionary<string, string> { ["clientId"] = "admin" });
 
         Assert.Equal("admin", merged["clientId"]);
         Assert.Equal("/uaa/oauth/token", merged["oauthTokenPath"]);
@@ -165,11 +161,7 @@ public sealed class AcquisitionServerCatalogTests
     {
         Dictionary<string, string> merged = AcquisitionServerCatalog.MergeWithDefaults(
             AcquisitionServerCatalog.Historian,
-            new Dictionary<string, string>
-            {
-                ["currentValuePath"] = "/custom/value",
-                ["clientSecret"] = "  "
-            });
+            new Dictionary<string, string> { ["currentValuePath"] = "/custom/value", ["clientSecret"] = "  " });
 
         Assert.Equal("/custom/value", merged["currentValuePath"]);
         Assert.Equal("  ", merged["clientSecret"]);

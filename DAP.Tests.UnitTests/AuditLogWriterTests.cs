@@ -34,7 +34,9 @@ public sealed class AuditLogWriterTests
     }
 
     private static AuditLogWriter CreateWriter(DataAcquisitionPlatformDbContext db, TimeProvider? time = null)
-        => new(db, time ?? new FixedTimeProvider(FixedNow), NullLogger<AuditLogWriter>.Instance);
+    {
+        return new AuditLogWriter(db, time ?? new FixedTimeProvider(FixedNow), NullLogger<AuditLogWriter>.Instance);
+    }
 
     [Fact]
     public async Task RecordAsync_Should_Write_All_Actor_Fields()
@@ -45,7 +47,7 @@ public sealed class AuditLogWriterTests
 
         await CreateWriter(db).RecordAsync(
             actor, "shift.import", "shift-schedule", "id-1", "11 月排班", true,
-            new {month = "2026-11"});
+            new { month = "2026-11" });
 
         await using DataAcquisitionPlatformDbContext verify = database.CreateContext();
         AuditLog log = await verify.AuditLogs.SingleAsync();
@@ -73,7 +75,7 @@ public sealed class AuditLogWriterTests
         // 失败的操作也记录，否则连续尝试越权的痕迹会消失。
         await CreateWriter(db).RecordAsync(
             BuildActor(), "user.update", "user", "id-2", "victim", false,
-            new {reason = "越权"});
+            new { reason = "越权" });
 
         await using DataAcquisitionPlatformDbContext verify = database.CreateContext();
         AuditLog log = await verify.AuditLogs.SingleAsync();
@@ -88,7 +90,7 @@ public sealed class AuditLogWriterTests
 
         await CreateWriter(db).RecordAsync(
             null, "domain_page.update", "domain-page", null, null, false,
-            new {reason = "会话没有可识别的操作者"});
+            new { reason = "会话没有可识别的操作者" });
 
         await using DataAcquisitionPlatformDbContext verify = database.CreateContext();
         AuditLog log = await verify.AuditLogs.SingleAsync();
@@ -107,7 +109,7 @@ public sealed class AuditLogWriterTests
 
         await CreateWriter(db).RecordAsync(
             BuildActor(), "domain.update", "domain", "id-3", null, true,
-            new {before = (string?)null, after = "新名"});
+            new { before = (string?)null, after = "新名" });
 
         await using DataAcquisitionPlatformDbContext verify = database.CreateContext();
         AuditLog log = await verify.AuditLogs.SingleAsync();

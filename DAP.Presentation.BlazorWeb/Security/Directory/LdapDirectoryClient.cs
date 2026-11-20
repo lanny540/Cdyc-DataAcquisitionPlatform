@@ -1,7 +1,5 @@
 using System.DirectoryServices.Protocols;
 using System.Net;
-using DAP.Core.Domain.Entities;
-using DAP.Presentation.BlazorWeb.Security;
 using Microsoft.Extensions.Options;
 
 namespace DAP.Presentation.BlazorWeb.Security.Directory;
@@ -31,14 +29,19 @@ public sealed class LdapDirectoryClient(
         string? password,
         CancellationToken cancellationToken = default)
     {
-        if (!_options.Enabled) return LdapAuthenticationResult.Failed("目录认证未启用。");
+        if (!_options.Enabled)
+        {
+            return LdapAuthenticationResult.Failed("目录认证未启用。");
+        }
 
         string normalized = LdapAttributeMapper.NormalizeUserName(userName);
 
         // 空密码在 LDAP 里会变成「匿名 bind」，被服务器当成成功——必须在这里挡掉。
         // 这不是防御性编程，是一个真实的认证绕过路径。
         if (normalized.Length == 0 || string.IsNullOrEmpty(password))
+        {
             return LdapAuthenticationResult.Failed("请输入账号与密码。");
+        }
 
         try
         {
@@ -83,7 +86,10 @@ public sealed class LdapDirectoryClient(
     /// <inheritdoc />
     public async Task<IReadOnlyList<LdapDirectoryUser>> ListUsersAsync(CancellationToken cancellationToken = default)
     {
-        if (!_options.Enabled) return [];
+        if (!_options.Enabled)
+        {
+            return [];
+        }
 
         return await Task.Run(() => SearchAllUsers(cancellationToken), cancellationToken);
     }
@@ -119,24 +125,26 @@ public sealed class LdapDirectoryClient(
             _options.BaseDn,
             filter,
             SearchScope.Subtree,
-            _options.BuildAttributeList())
-        {
-            TimeLimit = TimeSpan.FromSeconds(Math.Max(1, _options.TimeoutSeconds))
-        };
+            _options.BuildAttributeList()) { TimeLimit = TimeSpan.FromSeconds(Math.Max(1, _options.TimeoutSeconds)) };
 
-        SearchResponse response = (SearchResponse) connection.SendRequest(request);
+        SearchResponse response = (SearchResponse)connection.SendRequest(request);
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (response.Entries.Count == 0) return null;
+        if (response.Entries.Count == 0)
+        {
+            return null;
+        }
 
         if (response.Entries.Count > 1)
             // 过滤器配置不唯一时不能随机挑一个：那等于把别人的身份 bind 上，
             // 出现这种情况说明 UserFilter 配错了，必须让人看到。
+        {
             logger.LogWarning(
                 "目录查询命中 {Count} 条记录，账号 {UserName} 的过滤器可能不唯一，已取第一条。",
                 response.Entries.Count,
                 userName);
+        }
 
         return new SearchResultEntryAdapter(response.Entries[0]);
     }
@@ -167,20 +175,26 @@ public sealed class LdapDirectoryClient(
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            SearchResponse response = (SearchResponse) connection.SendRequest(request);
+            SearchResponse response = (SearchResponse)connection.SendRequest(request);
 
             foreach (SearchResultEntry entry in response.Entries)
             {
                 LdapDirectoryUser? user = LdapAttributeMapper.Map(new SearchResultEntryAdapter(entry), _options);
 
-                if (user is not null) users.Add(user);
+                if (user is not null)
+                {
+                    users.Add(user);
+                }
             }
 
             PageResultResponseControl? cookie = response.Controls
                 .OfType<PageResultResponseControl>()
                 .FirstOrDefault();
 
-            if (cookie is null || cookie.Cookie.Length == 0) break;
+            if (cookie is null || cookie.Cookie.Length == 0)
+            {
+                break;
+            }
 
             pageControl.Cookie = cookie.Cookie;
         }
@@ -195,8 +209,7 @@ public sealed class LdapDirectoryClient(
         // 需要解析的 FQDN，传入 IP 字面量时反而连不上。
         LdapConnection connection = new($"{_options.Host}:{_options.Port}")
         {
-            AuthType = AuthType.Basic,
-            Timeout = TimeSpan.FromSeconds(Math.Max(1, _options.TimeoutSeconds))
+            AuthType = AuthType.Basic, Timeout = TimeSpan.FromSeconds(Math.Max(1, _options.TimeoutSeconds))
         };
 
         connection.SessionOptions.ProtocolVersion = 3;
@@ -230,7 +243,9 @@ public sealed class LdapDirectoryClient(
     {
         if (_options.SkipCertificateValidation)
             // 仅供内网自签证书的临时排查。默认关闭：关掉证书校验等于放弃中间人防护。
+        {
             connection.SessionOptions.VerifyServerCertificate = static (_, _) => true;
+        }
     }
 
     private void BindServiceAccount(LdapConnection connection)
@@ -255,11 +270,17 @@ public sealed class LdapDirectoryClient(
 
         public string? GetString(string attributeName)
         {
-            if (!entry.Attributes.Contains(attributeName)) return null;
+            if (!entry.Attributes.Contains(attributeName))
+            {
+                return null;
+            }
 
             DirectoryAttribute attribute = entry.Attributes[attributeName];
 
-            if (attribute.Count == 0) return null;
+            if (attribute.Count == 0)
+            {
+                return null;
+            }
 
             return attribute[0] switch
             {
@@ -271,21 +292,31 @@ public sealed class LdapDirectoryClient(
 
         public byte[]? GetBytes(string attributeName)
         {
-            if (!entry.Attributes.Contains(attributeName) || entry.Attributes[attributeName].Count == 0) return null;
+            if (!entry.Attributes.Contains(attributeName) || entry.Attributes[attributeName].Count == 0)
+            {
+                return null;
+            }
 
             return entry.Attributes[attributeName][0] as byte[];
         }
 
         public IReadOnlyList<string> GetStrings(string attributeName)
         {
-            if (!entry.Attributes.Contains(attributeName)) return [];
+            if (!entry.Attributes.Contains(attributeName))
+            {
+                return [];
+            }
 
             DirectoryAttribute attribute = entry.Attributes[attributeName];
             List<string> values = [];
 
             foreach (object item in attribute.GetValues(typeof(string)))
+            {
                 if (item is string text && !string.IsNullOrWhiteSpace(text))
+                {
                     values.Add(text);
+                }
+            }
 
             return values;
         }

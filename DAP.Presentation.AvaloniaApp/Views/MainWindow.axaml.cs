@@ -1,5 +1,4 @@
 using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Platform;
 using Ursa.Controls;
 
@@ -31,7 +30,10 @@ public partial class MainWindow : UrsaWindow
     {
         Screen? screen = Screens.ScreenFromWindow(this) ?? Screens.Primary;
 
-        if (screen is null) return;
+        if (screen is null)
+        {
+            return;
+        }
 
         PixelRect workingArea = screen.WorkingArea;
 
@@ -44,7 +46,7 @@ public partial class MainWindow : UrsaWindow
         MinHeight = Math.Min(MinimumHeight, workingArea.Height);
 
         Position = new PixelPoint(
-            workingArea.X + Math.Max(0, (workingArea.Width - (int) width) / 2),
-            workingArea.Y + Math.Max(0, (workingArea.Height - (int) height) / 2));
+            workingArea.X + Math.Max(0, (workingArea.Width - (int)width) / 2),
+            workingArea.Y + Math.Max(0, (workingArea.Height - (int)height) / 2));
     }
 }

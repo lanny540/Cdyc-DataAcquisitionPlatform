@@ -145,7 +145,7 @@ public class HistoryApiProxyServiceTests
         return new HistoryApiProxyService(
             new TestHttpClientFactory(),
             new MemoryCache(new MemoryCacheOptions()),
-            Options.Create(new AcquisitionServerRuntimeOptions {UseMockResponses = false}),
+            Options.Create(new AcquisitionServerRuntimeOptions { UseMockResponses = false }),
             NullLogger<HistoryApiProxyService>.Instance);
     }
 

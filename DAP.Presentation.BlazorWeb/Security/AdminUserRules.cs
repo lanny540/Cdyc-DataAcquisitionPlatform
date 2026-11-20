@@ -40,9 +40,15 @@ public static partial class AdminUserRules
     /// <returns>可授予时返回 true。</returns>
     public static bool IsAssignableRoleCode(bool actorIsSuperAdmin, string roleCode)
     {
-        if (string.Equals(roleCode, AuthorizationCatalog.SuperAdminRole, StringComparison.Ordinal)) return false;
+        if (string.Equals(roleCode, AuthorizationCatalog.SuperAdminRole, StringComparison.Ordinal))
+        {
+            return false;
+        }
 
-        if (actorIsSuperAdmin) return true;
+        if (actorIsSuperAdmin)
+        {
+            return true;
+        }
 
         return roleCode is AuthorizationCatalog.ViewerRole or AuthorizationCatalog.TechnicianRole;
     }
@@ -62,9 +68,15 @@ public static partial class AdminUserRules
         Guid? actorDepartmentId,
         Guid? targetDepartmentId)
     {
-        if (actorIsSuperAdmin) return null;
+        if (actorIsSuperAdmin)
+        {
+            return null;
+        }
 
-        if (actorDepartmentId is null) return "当前账号未归属部门，无法管理用户。";
+        if (actorDepartmentId is null)
+        {
+            return "当前账号未归属部门，无法管理用户。";
+        }
 
         return targetDepartmentId == actorDepartmentId
             ? null

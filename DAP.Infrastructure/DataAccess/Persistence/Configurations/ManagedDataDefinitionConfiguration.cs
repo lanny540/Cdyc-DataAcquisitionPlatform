@@ -76,10 +76,10 @@ public sealed class ManagedDataDefinitionConfiguration : IEntityTypeConfiguratio
             .HasDatabaseName("ux_managed_data_definitions_code")
             .HasFilter("deleted_at IS NULL");
 
-        builder.HasIndex(item => new {item.AcquisitionType, item.IsEnabled, item.UpdatedAt})
+        builder.HasIndex(item => new { item.AcquisitionType, item.IsEnabled, item.UpdatedAt })
             .HasDatabaseName("ix_managed_data_definitions_type_enabled_updated_at");
 
-        builder.HasIndex(item => new {item.Department, item.ProcessCode})
+        builder.HasIndex(item => new { item.Department, item.ProcessCode })
             .HasDatabaseName("ix_managed_data_definitions_department_process_code");
 
         builder.HasIndex(item => item.ServerConnectionId)

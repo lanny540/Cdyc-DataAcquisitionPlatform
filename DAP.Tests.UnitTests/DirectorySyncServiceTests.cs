@@ -37,7 +37,10 @@ public sealed class DirectorySyncServiceTests
     /// </summary>
     private sealed class NoOpLockHandle : IAsyncDisposable
     {
-        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+        public ValueTask DisposeAsync()
+        {
+            return ValueTask.CompletedTask;
+        }
     }
 
     /// <summary>
@@ -96,10 +99,7 @@ public sealed class DirectorySyncServiceTests
 
     private static PlatformAuthOptions EnabledOptions()
     {
-        return new PlatformAuthOptions
-        {
-            Ldap = { Enabled = true, DefaultRoleCode = AuthorizationCatalog.ViewerRole }
-        };
+        return new PlatformAuthOptions { Ldap = { Enabled = true, DefaultRoleCode = AuthorizationCatalog.ViewerRole } };
     }
 
     private static DirectorySyncService CreateService(
@@ -133,9 +133,15 @@ public sealed class DirectorySyncServiceTests
     {
         return new Role
         {
-            Id = Guid.NewGuid(), Code = code, Name = code, PageLevel = pageLevel,
-            IsBuiltin = true, IsEnabled = enabled, SortOrder = 10,
-            CreatedAt = Now, UpdatedAt = Now
+            Id = Guid.NewGuid(),
+            Code = code,
+            Name = code,
+            PageLevel = pageLevel,
+            IsBuiltin = true,
+            IsEnabled = enabled,
+            SortOrder = 10,
+            CreatedAt = Now,
+            UpdatedAt = Now
         };
     }
 
@@ -143,8 +149,13 @@ public sealed class DirectorySyncServiceTests
     {
         return new Department
         {
-            Id = Guid.NewGuid(), Code = $"D-{externalCode}", Name = externalCode,
-            ExternalCode = externalCode, IsEnabled = true, CreatedAt = Now, UpdatedAt = Now
+            Id = Guid.NewGuid(),
+            Code = $"D-{externalCode}",
+            Name = externalCode,
+            ExternalCode = externalCode,
+            IsEnabled = true,
+            CreatedAt = Now,
+            UpdatedAt = Now
         };
     }
 
@@ -154,10 +165,17 @@ public sealed class DirectorySyncServiceTests
     {
         return new AppUser
         {
-            Id = Guid.NewGuid(), UserName = userName, DisplayName = userName,
-            DepartmentId = departmentId, IsEnabled = enabled, DisabledSource = disabledSource,
-            MustChangePassword = false, PasswordHash = PasswordHasher.Hash(password),
-            SecurityStamp = Guid.NewGuid(), CreatedAt = Now, UpdatedAt = Now
+            Id = Guid.NewGuid(),
+            UserName = userName,
+            DisplayName = userName,
+            DepartmentId = departmentId,
+            IsEnabled = enabled,
+            DisabledSource = disabledSource,
+            MustChangePassword = false,
+            PasswordHash = PasswordHasher.Hash(password),
+            SecurityStamp = Guid.NewGuid(),
+            CreatedAt = Now,
+            UpdatedAt = Now
         };
     }
 
@@ -165,9 +183,14 @@ public sealed class DirectorySyncServiceTests
     {
         return new ExternalIdentity
         {
-            Id = Guid.NewGuid(), UserId = userId, Provider = DirectorySyncService.LdapProvider,
-            ExternalId = externalId, EmployeeNo = null, LastSyncedAt = Now,
-            CreatedAt = Now, UpdatedAt = Now
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            Provider = DirectorySyncService.LdapProvider,
+            ExternalId = externalId,
+            EmployeeNo = null,
+            LastSyncedAt = Now,
+            CreatedAt = Now,
+            UpdatedAt = Now
         };
     }
 
@@ -252,7 +275,8 @@ public sealed class DirectorySyncServiceTests
 
         // 目录挂了、权限被回收、过滤器写错，表现都是「返回 0 个」：
         // 照常执行等于把全平台账号停用。
-        DirectorySyncService service = CreateService(db, new StubLdapDirectory(), EnabledOptions(), new StubAdvisoryLock(true));
+        DirectorySyncService service =
+            CreateService(db, new StubLdapDirectory(), EnabledOptions(), new StubAdvisoryLock(true));
 
         DirectorySyncRunDto result = await service.RunAsync(null, "schedule");
 
@@ -312,7 +336,7 @@ public sealed class DirectorySyncServiceTests
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
         // 默认角色存在但停用：账号建出来但没有任何角色。
-        Role disabledRole = SeedRole(AuthorizationCatalog.ViewerRole, enabled: false);
+        Role disabledRole = SeedRole(AuthorizationCatalog.ViewerRole, false);
         db.Roles.Add(disabledRole);
         await db.SaveChangesAsync();
 
@@ -441,7 +465,7 @@ public sealed class DirectorySyncServiceTests
     {
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
-        AppUser user = SeedUser("zhang3", enabled: false, disabledSource: UserDisableSources.Manual);
+        AppUser user = SeedUser("zhang3", false, UserDisableSources.Manual);
         user.DisplayName = "张三";
         db.AppUsers.Add(user);
         db.ExternalIdentities.Add(SeedIdentity(user.Id, "ext-1"));
@@ -633,7 +657,10 @@ public sealed class DirectorySyncServiceTests
                 foreach (IReadOnlyCheckConstraint checkConstraint in entityType.GetCheckConstraints().ToList())
                 {
                     string? rewritten = checkConstraint.Sql?.Replace("btrim(", "trim(", StringComparison.Ordinal);
-                    if (rewritten is null || rewritten == checkConstraint.Sql) continue;
+                    if (rewritten is null || rewritten == checkConstraint.Sql)
+                    {
+                        continue;
+                    }
 
                     entityType.RemoveCheckConstraint(checkConstraint.Name!);
                     entityType.AddCheckConstraint(checkConstraint.Name!, rewritten);
@@ -644,13 +671,17 @@ public sealed class DirectorySyncServiceTests
                     property.SetDefaultValueSql(null);
 
                     if (property.GetColumnType() == "jsonb")
+                    {
                         property.SetColumnType("TEXT");
+                    }
 
                     if (property.ClrType == typeof(DateTimeOffset))
+                    {
                         property.SetValueConverter(
                             new ValueConverter<DateTimeOffset, long>(
                                 value => value.UtcTicks,
                                 value => new DateTimeOffset(value, TimeSpan.Zero)));
+                    }
                 }
             }
         }
@@ -794,7 +825,8 @@ public sealed class DirectorySyncServiceTests
 
         await using (DataAcquisitionPlatformDbContext read = database.CreateContext())
         {
-            firstResolvedAt = (await read.DirectorySyncIssues.SingleAsync(item => item.Id == issueId)).ResolvedAt!.Value;
+            firstResolvedAt = (await read.DirectorySyncIssues.SingleAsync(item => item.Id == issueId)).ResolvedAt!
+                .Value;
         }
 
         // 重复处理：幂等成功，不覆盖第一次的处理时间。

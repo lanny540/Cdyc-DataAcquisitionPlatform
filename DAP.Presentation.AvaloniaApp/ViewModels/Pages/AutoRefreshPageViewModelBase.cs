@@ -37,7 +37,7 @@ public abstract partial class AutoRefreshPageViewModelBase : PageViewModelBase
             new RefreshIntervalOption(300, "5 分钟")
         ]);
 
-        _autoRefreshTimer = new DispatcherTimer {Interval = DefaultRefreshInterval};
+        _autoRefreshTimer = new DispatcherTimer { Interval = DefaultRefreshInterval };
         _autoRefreshTimer.Tick += OnAutoRefreshTick;
 
         // 在下拉项与定时器都就绪后再落默认值，避免变更回调里访问未初始化的字段。
@@ -116,7 +116,10 @@ public abstract partial class AutoRefreshPageViewModelBase : PageViewModelBase
     /// </summary>
     partial void OnSelectedRefreshIntervalChanged(RefreshIntervalOption? value)
     {
-        if (value is null) return;
+        if (value is null)
+        {
+            return;
+        }
 
         _autoRefreshTimer.Interval = value.Interval;
         RestartCountdown();
@@ -141,7 +144,10 @@ public abstract partial class AutoRefreshPageViewModelBase : PageViewModelBase
     /// </summary>
     private void RestartCountdown()
     {
-        if (!_autoRefreshTimer.IsEnabled) return;
+        if (!_autoRefreshTimer.IsEnabled)
+        {
+            return;
+        }
 
         _autoRefreshTimer.Stop();
         _autoRefreshTimer.Start();
@@ -149,7 +155,10 @@ public abstract partial class AutoRefreshPageViewModelBase : PageViewModelBase
 
     private void OnAutoRefreshTick(object? sender, EventArgs e)
     {
-        if (!_isActive || IsLoading) return;
+        if (!_isActive || IsLoading)
+        {
+            return;
+        }
 
         _ = ReloadAsync();
     }

@@ -167,7 +167,9 @@ public class HistoryApiProxyRequestTests
 
         Assert.Equal(expectedValid, error is null);
         if (!expectedValid && count > 0)
+        {
             Assert.Contains(HistoryRawDataQueryRequest.MaxCount.ToString(), error, StringComparison.Ordinal);
+        }
     }
 
     #region 辅助
@@ -197,7 +199,8 @@ public class HistoryApiProxyRequestTests
         return new HistoryApiProxyService(
             new StubHttpClientFactory(handler),
             new MemoryCache(new MemoryCacheOptions()),
-            Microsoft.Extensions.Options.Options.Create(new AcquisitionServerRuntimeOptions {UseMockResponses = false}),
+            Microsoft.Extensions.Options.Options.Create(
+                new AcquisitionServerRuntimeOptions { UseMockResponses = false }),
             NullLogger<HistoryApiProxyService>.Instance);
     }
 
@@ -225,10 +228,7 @@ public class HistoryApiProxyRequestTests
     {
         public HttpClient CreateClient(string name)
         {
-            return new HttpClient(handler, false)
-            {
-                Timeout = Timeout.InfiniteTimeSpan
-            };
+            return new HttpClient(handler, false) { Timeout = Timeout.InfiniteTimeSpan };
         }
     }
 
@@ -249,7 +249,10 @@ public class HistoryApiProxyRequestTests
             LastRequest = request;
             LastRequestUri = request.RequestUri;
 
-            if (responder(request) is { } response) return Task.FromResult(response);
+            if (responder(request) is { } response)
+            {
+                return Task.FromResult(response);
+            }
 
             throw new InvalidOperationException("测试处理器未配置响应。");
         }

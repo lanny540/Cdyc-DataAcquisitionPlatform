@@ -31,14 +31,40 @@ public sealed class CurrentUserContextTests
     {
         List<Claim> claims = [];
 
-        if (identityName is not null) claims.Add(new Claim(ClaimTypes.Name, identityName));
-        if (userId is { } id) claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.UserId, id.ToString()));
-        if (userName is not null) claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.UserName, userName));
-        if (displayName is not null) claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.DisplayName, displayName));
+        if (identityName is not null)
+        {
+            claims.Add(new Claim(ClaimTypes.Name, identityName));
+        }
+
+        if (userId is { } id)
+        {
+            claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.UserId, id.ToString()));
+        }
+
+        if (userName is not null)
+        {
+            claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.UserName, userName));
+        }
+
+        if (displayName is not null)
+        {
+            claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.DisplayName, displayName));
+        }
+
         if (departmentName is not null)
+        {
             claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.DepartmentName, departmentName));
-        if (isSuperAdmin) claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.SuperAdmin, "true"));
-        foreach (string permission in permissions ?? []) claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.Permission, permission));
+        }
+
+        if (isSuperAdmin)
+        {
+            claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.SuperAdmin, "true"));
+        }
+
+        foreach (string permission in permissions ?? [])
+        {
+            claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.Permission, permission));
+        }
 
         ClaimsIdentity identity = new(claims, isAuthenticated ? "TestAuthentication" : null);
         return new ClaimsPrincipal(identity);
@@ -51,7 +77,7 @@ public sealed class CurrentUserContextTests
     [Fact]
     public void FromPrincipal_Unauthenticated_Should_Return_Null()
     {
-        ClaimsPrincipal principal = BuildPrincipal(userId: Guid.NewGuid(), isAuthenticated: false);
+        ClaimsPrincipal principal = BuildPrincipal(Guid.NewGuid(), isAuthenticated: false);
 
         Assert.Null(CurrentUser.FromPrincipal(principal, "127.0.0.1", "agent"));
     }
@@ -61,7 +87,7 @@ public sealed class CurrentUserContextTests
     {
         Guid userId = Guid.NewGuid();
         ClaimsPrincipal principal = BuildPrincipal(
-            userId: userId, userName: "zhang3", displayName: "张三",
+            userId, "zhang3", displayName: "张三",
             departmentName: "一部", isSuperAdmin: false,
             permissions: [AuthorizationCatalog.UserManagePermission]);
 
@@ -119,7 +145,7 @@ public sealed class CurrentUserContextTests
     [Fact]
     public void FromPrincipal_SuperAdmin_Flag_Should_Be_Parsed()
     {
-        ClaimsPrincipal principal = BuildPrincipal(userId: Guid.NewGuid(), isSuperAdmin: true);
+        ClaimsPrincipal principal = BuildPrincipal(Guid.NewGuid(), isSuperAdmin: true);
 
         CurrentUser? user = CurrentUser.FromPrincipal(principal, null, null);
 
@@ -135,7 +161,7 @@ public sealed class CurrentUserContextTests
     public void HasPermission_SuperAdmin_Should_Short_Circuit()
     {
         // 超管不带任何权限点 claim，也必须对任意权限点返回 true。
-        ClaimsPrincipal principal = BuildPrincipal(userId: Guid.NewGuid(), isSuperAdmin: true);
+        ClaimsPrincipal principal = BuildPrincipal(Guid.NewGuid(), isSuperAdmin: true);
         CurrentUser user = CurrentUser.FromPrincipal(principal, null, null)!;
 
         Assert.True(user.HasPermission(AuthorizationCatalog.SystemManagePermission));
@@ -159,10 +185,7 @@ public sealed class CurrentUserContextTests
     public async Task PlatformCurrentUserContext_HttpContext_Should_Provide_User_With_Ip_And_UserAgent()
     {
         Guid userId = Guid.NewGuid();
-        DefaultHttpContext http = new()
-        {
-            User = BuildPrincipal(userId: userId, userName: "http-user")
-        };
+        DefaultHttpContext http = new() { User = BuildPrincipal(userId, "http-user") };
         http.Connection.RemoteIpAddress = IPAddress.Parse("10.1.2.3");
         http.Request.Headers.UserAgent = "browser-agent";
 
@@ -196,7 +219,7 @@ public sealed class CurrentUserContextTests
     {
         Guid userId = Guid.NewGuid();
         StubAuthenticationStateProvider provider = new(
-            new AuthenticationState(BuildPrincipal(userId: userId, userName: "circuit-user")));
+            new AuthenticationState(BuildPrincipal(userId, "circuit-user")));
 
         HttpContextAccessor accessor = new() { HttpContext = null };
         ServiceCollection services = new();
@@ -253,6 +276,9 @@ public sealed class CurrentUserContextTests
     /// <summary>空容器替身：GetService 恒返回 null。</summary>
     private sealed class EmptyServiceProvider : IServiceProvider
     {
-        public object? GetService(Type serviceType) => null;
+        public object? GetService(Type serviceType)
+        {
+            return null;
+        }
     }
 }

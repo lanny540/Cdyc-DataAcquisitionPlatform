@@ -40,7 +40,10 @@ public sealed class OidcOptions
     {
         List<string> errors = [];
 
-        if (!Enabled) return errors;
+        if (!Enabled)
+        {
+            return errors;
+        }
 
         if (Providers.Count == 0)
         {
@@ -54,7 +57,10 @@ public sealed class OidcOptions
         {
             errors.AddRange(provider.Validate());
 
-            if (!codes.Add(provider.Code)) errors.Add($"Auth:Oidc:Providers 中的 Code「{provider.Code}」重复：它同时是回调地址的一部分。");
+            if (!codes.Add(provider.Code))
+            {
+                errors.Add($"Auth:Oidc:Providers 中的 Code「{provider.Code}」重复：它同时是回调地址的一部分。");
+            }
         }
 
         return errors;
@@ -164,17 +170,29 @@ public sealed class OidcProviderOptions
         List<string> errors = [];
         string prefix = $"Auth:Oidc:Providers[{Code}]";
 
-        if (!CodePattern.IsMatch(Code)) errors.Add($"{prefix}: Code 只能是小写字母、数字与短横线，长度 2~32。");
+        if (!CodePattern.IsMatch(Code))
+        {
+            errors.Add($"{prefix}: Code 只能是小写字母、数字与短横线，长度 2~32。");
+        }
 
         if (!Uri.TryCreate(Authority, UriKind.Absolute, out Uri? authority))
+        {
             errors.Add($"{prefix}: Authority 必须是绝对地址。");
+        }
         else if (RequireHttpsMetadata && authority.Scheme != Uri.UriSchemeHttps)
+        {
             errors.Add($"{prefix}: Authority 必须是 https，或显式关闭 RequireHttpsMetadata。");
+        }
 
-        if (string.IsNullOrWhiteSpace(ClientId)) errors.Add($"{prefix}: ClientId 未配置。");
+        if (string.IsNullOrWhiteSpace(ClientId))
+        {
+            errors.Add($"{prefix}: ClientId 未配置。");
+        }
 
         if (!Scopes.Any(scope => string.Equals(scope, "openid", StringComparison.Ordinal)))
+        {
             errors.Add($"{prefix}: Scopes 必须包含 openid。");
+        }
 
         return errors;
     }
@@ -214,7 +232,10 @@ public static class OidcClaimsMapper
 
         string? subject = ReadFirst(list, "sub")?.Trim();
 
-        if (string.IsNullOrWhiteSpace(subject)) return null;
+        if (string.IsNullOrWhiteSpace(subject))
+        {
+            return null;
+        }
 
         string? displayName = ReadFirst(list, options.NameClaim)?.Trim();
         string? email = ReadFirst(list, options.EmailClaim)?.Trim();
@@ -223,13 +244,18 @@ public static class OidcClaimsMapper
         if (string.IsNullOrWhiteSpace(rawUserName))
             // 邮箱的本地部分比完整邮箱更适合当账号名：完整邮箱会被 user_name 的
             // lower() 约束和长度限制挤掉，而且登录框里也不好看。
-            rawUserName = email is {Length: > 0} && email.Contains('@', StringComparison.Ordinal)
+        {
+            rawUserName = email is { Length: > 0 } && email.Contains('@', StringComparison.Ordinal)
                 ? email[..email.IndexOf('@', StringComparison.Ordinal)]
                 : null;
+        }
 
         string userName = DeriveUserName(rawUserName, subject);
 
-        if (string.IsNullOrWhiteSpace(displayName)) displayName = userName;
+        if (string.IsNullOrWhiteSpace(displayName))
+        {
+            displayName = userName;
+        }
 
         return new OidcUserProfile(
             subject,
@@ -274,7 +300,10 @@ public static class OidcClaimsMapper
 
         foreach (string name in options.DepartmentClaims)
         {
-            if (string.IsNullOrWhiteSpace(name)) continue;
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                continue;
+            }
 
             List<string> values =
             [
@@ -285,7 +314,10 @@ public static class OidcClaimsMapper
                     .Select(value => value!)
             ];
 
-            if (values.Count == 0) continue;
+            if (values.Count == 0)
+            {
+                continue;
+            }
 
             if (options.DepartmentPrefix.Length > 0)
             {
@@ -296,7 +328,10 @@ public static class OidcClaimsMapper
                 {
                     string stripped = prefixed[options.DepartmentPrefix.Length..];
 
-                    if (!string.IsNullOrWhiteSpace(stripped)) return stripped;
+                    if (!string.IsNullOrWhiteSpace(stripped))
+                    {
+                        return stripped;
+                    }
                 }
             }
 
@@ -304,9 +339,14 @@ public static class OidcClaimsMapper
 
             if (options.DepartmentPrefix.Length > 0
                 && first.StartsWith(options.DepartmentPrefix, StringComparison.Ordinal))
+            {
                 first = first[options.DepartmentPrefix.Length..];
+            }
 
-            if (!string.IsNullOrWhiteSpace(first)) return first;
+            if (!string.IsNullOrWhiteSpace(first))
+            {
+                return first;
+            }
         }
 
         return null;
@@ -314,7 +354,10 @@ public static class OidcClaimsMapper
 
     private static string? ReadFirst(IReadOnlyList<Claim> claims, string name)
     {
-        if (string.IsNullOrWhiteSpace(name)) return null;
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return null;
+        }
 
         return claims.FirstOrDefault(claim =>
             string.Equals(claim.Type, name, StringComparison.Ordinal))?.Value;

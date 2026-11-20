@@ -121,7 +121,10 @@ public static class DesktopNavigationCatalog
     /// <returns>命中的条目；未命中返回 null。</returns>
     public static DesktopNavItem? FindItem(string? pageKey)
     {
-        if (string.IsNullOrWhiteSpace(pageKey)) return null;
+        if (string.IsNullOrWhiteSpace(pageKey))
+        {
+            return null;
+        }
 
         return Modules
             .SelectMany(module => module.AllItems)
@@ -158,9 +161,12 @@ public sealed class PageFactory(IServiceProvider services)
     /// <returns>页面视图模型。</returns>
     public PageViewModelBase Resolve(DesktopNavItem item)
     {
-        if (_cache.TryGetValue(item.PageKey, out PageViewModelBase? cached)) return cached;
+        if (_cache.TryGetValue(item.PageKey, out PageViewModelBase? cached))
+        {
+            return cached;
+        }
 
-        PageViewModelBase page = (PageViewModelBase) services.GetRequiredService(item.ViewModelType);
+        PageViewModelBase page = (PageViewModelBase)services.GetRequiredService(item.ViewModelType);
         _cache[item.PageKey] = page;
         return page;
     }

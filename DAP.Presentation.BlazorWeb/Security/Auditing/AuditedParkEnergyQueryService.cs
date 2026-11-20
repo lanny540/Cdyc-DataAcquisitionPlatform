@@ -93,7 +93,7 @@ public sealed class AuditedParkEnergyQueryService(
             string? stamp = actor.Principal.FindFirst(AuthorizationCatalog.PlatformClaimTypes.SecurityStamp)?.Value;
             Guid? currentStamp = await db.AppUsers.AsNoTracking()
                 .Where(user => user.Id == userId && user.IsEnabled)
-                .Select(user => (Guid?) user.SecurityStamp)
+                .Select(user => (Guid?)user.SecurityStamp)
                 .FirstOrDefaultAsync(cancellationToken);
             AuthUserDto? current = await auth.GetUserAsync(userId, cancellationToken);
 
@@ -114,7 +114,7 @@ public sealed class AuditedParkEnergyQueryService(
         if (!allowed)
         {
             await writer.RecordAsync(actor, action, targetType, targetId, targetName, false,
-                new {reason = "会话失效或缺少能源配置权限"}, cancellationToken);
+                new { reason = "会话失效或缺少能源配置权限" }, cancellationToken);
             throw new ForbiddenAccessException("会话已失效或没有执行该操作的权限，请重新登录或联系管理员。");
         }
 
@@ -128,7 +128,7 @@ public sealed class AuditedParkEnergyQueryService(
         catch (Exception ex)
         {
             await writer.RecordAsync(actor, action, targetType, targetId, targetName, false,
-                new {errorType = ex.GetType().Name}, cancellationToken);
+                new { errorType = ex.GetType().Name }, cancellationToken);
             throw;
         }
     }

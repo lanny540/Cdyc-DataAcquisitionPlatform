@@ -18,7 +18,10 @@ public class AuthorizationCatalogTests
 
         Assert.Equal(codes.Count, codes.Distinct(StringComparer.Ordinal).Count());
 
-        foreach (string code in codes) Assert.Matches("^[a-z][a-z0-9-]*$", code);
+        foreach (string code in codes)
+        {
+            Assert.Matches("^[a-z][a-z0-9-]*$", code);
+        }
     }
 
     /// <summary>
@@ -93,9 +96,11 @@ public class AuthorizationCatalogTests
     {
         foreach (BuiltInRole role in AuthorizationCatalog.Roles.Where(role =>
                      role.Code != AuthorizationCatalog.SuperAdminRole))
+        {
             Assert.True(
                 role.PageLevel is AuthorizationCatalog.ViewAccessLevel or AuthorizationCatalog.ConfigureAccessLevel,
                 $"角色 {role.Code} 的页面等级 {role.PageLevel} 不在 1/2 之内");
+        }
     }
 
     /// <summary>
@@ -109,7 +114,10 @@ public class AuthorizationCatalogTests
 
         Assert.Equal(codes.Count, codes.Distinct(StringComparer.Ordinal).Count());
 
-        foreach (string code in codes) Assert.StartsWith("action.", code, StringComparison.Ordinal);
+        foreach (string code in codes)
+        {
+            Assert.StartsWith("action.", code, StringComparison.Ordinal);
+        }
     }
 
     /// <summary>

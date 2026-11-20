@@ -87,8 +87,9 @@ public class PlatformDataProtectionExtensionsTests
         ServiceCollection services = new();
 
         // 静默退回默认位置会让密钥落在临时目录里，下次部署全员掉线且无日志线索。
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
-            () => services.AddPlatformDataProtection(configuration, environment));
+        InvalidOperationException exception =
+            Assert.Throws<InvalidOperationException>(() =>
+                services.AddPlatformDataProtection(configuration, environment));
 
         Assert.Contains("数据保护密钥目录不可写", exception.Message);
     }
@@ -133,7 +134,7 @@ public class PlatformDataProtectionExtensionsTests
         {
             try
             {
-                Directory.Delete(Path, recursive: true);
+                Directory.Delete(Path, true);
             }
             catch (IOException)
             {

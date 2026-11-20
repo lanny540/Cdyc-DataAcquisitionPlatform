@@ -4,31 +4,31 @@
              xmlns:local="using:DAP.Presentation.AvaloniaApp"
              xmlns:semi="https://irihi.tech/semi"
              RequestedThemeVariant="Dark">
-    <!-- 全站固定深色主题（与 Web 端一致）：Semi 控件按 Dark variant 取色，
+  <!-- 全站固定深色主题（与 Web 端一致）：Semi 控件按 Dark variant 取色，
          页面自绘部分通过 DapPalette 的深色画刷对齐，不再跟随系统浅色。 -->
 
-    <Application.DataTemplates>
-        <local:ViewLocator />
-    </Application.DataTemplates>
+  <Application.DataTemplates>
+    <local:ViewLocator />
+  </Application.DataTemplates>
 
-    <Application.Resources>
-        <!-- 平台统一品牌色板：全项目配色的唯一权威来源，详见 docs/DESIGN_SYSTEM.md。
+  <Application.Resources>
+    <!-- 平台统一品牌色板：全项目配色的唯一权威来源，详见 docs/DESIGN_SYSTEM.md。
              品牌色覆盖与 Semi 主题同处 Application.Resources：Semi 控件通过
              DynamicResource 取色，此处优先级高于主题默认调色板，可在不改动
              Semi 主题源码的前提下替换为平台品牌色。 -->
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceInclude Source="avares://DAP.Presentation.AvaloniaApp/Themes/DapPalette.axaml" />
-                <ResourceInclude Source="avares://DAP.Presentation.AvaloniaApp/Themes/SemiBrandOverride.axaml" />
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
-    </Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://DAP.Presentation.AvaloniaApp/Themes/DapPalette.axaml" />
+        <ResourceInclude Source="avares://DAP.Presentation.AvaloniaApp/Themes/SemiBrandOverride.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
 
-    <Application.Styles>
-        <semi:SemiTheme Locale="zh-CN" />
-        <semi:UrsaSemiTheme Locale="zh-CN" />
-        <StyleInclude Source="avares://Semi.Avalonia.DataGrid/Index.axaml" />
-        <!-- 平台自有样式必须排在主题之后：同一属性后加载的样式优先，否则会被 Semi 默认值覆盖。 -->
-        <StyleInclude Source="avares://DAP.Presentation.AvaloniaApp/Themes/DapStyles.axaml" />
-    </Application.Styles>
+  <Application.Styles>
+    <semi:SemiTheme Locale="zh-CN" />
+    <semi:UrsaSemiTheme Locale="zh-CN" />
+    <StyleInclude Source="avares://Semi.Avalonia.DataGrid/Index.axaml" />
+    <!-- 平台自有样式必须排在主题之后：同一属性后加载的样式优先，否则会被 Semi 默认值覆盖。 -->
+    <StyleInclude Source="avares://DAP.Presentation.AvaloniaApp/Themes/DapStyles.axaml" />
+  </Application.Styles>
 </Application>

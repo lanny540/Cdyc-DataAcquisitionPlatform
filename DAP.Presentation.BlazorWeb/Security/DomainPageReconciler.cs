@@ -136,16 +136,23 @@ public static class DomainPageReconciler
             page.UpdatedAt = now;
 
             if (isNew)
+            {
                 created++;
+            }
             else
+            {
                 updated++;
+            }
         }
 
         int orphaned = 0;
 
         foreach (DomainPage page in pages.Values)
         {
-            if (seenPageKeys.Contains(page.PageKey) || page.IsOrphaned) continue;
+            if (seenPageKeys.Contains(page.PageKey) || page.IsOrphaned)
+            {
+                continue;
+            }
 
             // 代码里已不存在：标记下线而不是删除，后台以「已下线」列出由管理员处理。
             page.IsOrphaned = true;

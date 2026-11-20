@@ -71,11 +71,7 @@ public class OidcClaimsMapperTests
     [Fact]
     public void Department_Should_Use_Configured_Claim_And_Strip_Prefix()
     {
-        OidcProviderOptions options = new()
-        {
-            DepartmentClaims = ["groups"],
-            DepartmentPrefix = "APP-DEPT-"
-        };
+        OidcProviderOptions options = new() { DepartmentClaims = ["groups"], DepartmentPrefix = "APP-DEPT-" };
 
         OidcUserProfile? profile = OidcClaimsMapper.Map(
             Claims(("sub", "abc"), ("groups", "APP-DEPT-paper-1")),
@@ -87,7 +83,7 @@ public class OidcClaimsMapperTests
     [Fact]
     public void Department_Should_Try_Claims_In_Order()
     {
-        OidcProviderOptions options = new() {DepartmentClaims = ["department", "groups"]};
+        OidcProviderOptions options = new() { DepartmentClaims = ["department", "groups"] };
 
         OidcUserProfile? profile = OidcClaimsMapper.Map(
             Claims(("sub", "abc"), ("groups", "fallback")),
@@ -105,11 +101,7 @@ public class OidcClaimsMapperTests
     [Fact]
     public void Department_Should_Be_Null_When_Prefix_Strips_Everything()
     {
-        OidcProviderOptions options = new()
-        {
-            DepartmentClaims = ["groups"],
-            DepartmentPrefix = "APP-DEPT-"
-        };
+        OidcProviderOptions options = new() { DepartmentClaims = ["groups"], DepartmentPrefix = "APP-DEPT-" };
 
         OidcUserProfile? profile = OidcClaimsMapper.Map(Claims(("sub", "abc"), ("groups", "APP-DEPT-")), options);
 
@@ -123,11 +115,7 @@ public class OidcClaimsMapperTests
     [Fact]
     public void Multi_Valued_Department_Claim_Should_Pick_Prefixed_Value()
     {
-        OidcProviderOptions options = new()
-        {
-            DepartmentClaims = ["groups"],
-            DepartmentPrefix = "dept:"
-        };
+        OidcProviderOptions options = new() { DepartmentClaims = ["groups"], DepartmentPrefix = "dept:" };
 
         OidcUserProfile? profile = OidcClaimsMapper.Map(
             Claims(("sub", "abc"), ("groups", "staff"), ("groups", "dept:PRINT2"), ("groups", "vpn")),
@@ -143,11 +131,7 @@ public class OidcClaimsMapperTests
     [Fact]
     public void Multi_Valued_Department_Claim_Should_Fall_Back_To_First_Value()
     {
-        OidcProviderOptions options = new()
-        {
-            DepartmentClaims = ["groups"],
-            DepartmentPrefix = "dept:"
-        };
+        OidcProviderOptions options = new() { DepartmentClaims = ["groups"], DepartmentPrefix = "dept:" };
 
         OidcUserProfile? profile = OidcClaimsMapper.Map(
             Claims(("sub", "abc"), ("groups", "staff"), ("groups", "vpn")),
@@ -162,7 +146,7 @@ public class OidcClaimsMapperTests
     [Fact]
     public void Multi_Valued_Department_Claim_Should_Use_First_Value_Without_Prefix()
     {
-        OidcProviderOptions options = new() {DepartmentClaims = ["groups"]};
+        OidcProviderOptions options = new() { DepartmentClaims = ["groups"] };
 
         OidcUserProfile? profile = OidcClaimsMapper.Map(
             Claims(("sub", "abc"), ("groups", "PAPER1"), ("groups", "PRINT2")),
@@ -174,12 +158,7 @@ public class OidcClaimsMapperTests
     [Fact]
     public void Custom_Claim_Names_Should_Be_Honored()
     {
-        OidcProviderOptions options = new()
-        {
-            NameClaim = "cn",
-            EmailClaim = "mail",
-            UserNameClaim = "uid"
-        };
+        OidcProviderOptions options = new() { NameClaim = "cn", EmailClaim = "mail", UserNameClaim = "uid" };
 
         OidcUserProfile? profile = OidcClaimsMapper.Map(
             Claims(("sub", "abc"), ("cn", "李四"), ("mail", "li4@example.com"), ("uid", "Li4")),
@@ -201,7 +180,7 @@ public class OidcClaimsMapperTests
     [Fact]
     public void Callback_Path_Should_Stay_Under_Auth_Api()
     {
-        OidcProviderOptions options = new() {Code = "corp"};
+        OidcProviderOptions options = new() { Code = "corp" };
 
         Assert.Equal("/api/auth/oidc/corp/callback", options.CallbackPath);
         Assert.Equal("oidc-corp", options.SchemeName);
@@ -222,7 +201,7 @@ public class ExternalIdentityOptionsTests
     [Fact]
     public void Enabled_Ldap_Without_Host_Should_Fail()
     {
-        DAP.Presentation.BlazorWeb.Security.Directory.LdapOptions options = new() {Enabled = true};
+        DAP.Presentation.BlazorWeb.Security.Directory.LdapOptions options = new() { Enabled = true };
 
         IReadOnlyList<string> errors = options.Validate();
 
@@ -295,7 +274,7 @@ public class ExternalIdentityOptionsTests
     [Fact]
     public void Enabled_Oidc_Without_Providers_Should_Fail()
     {
-        OidcOptions options = new() {Enabled = true};
+        OidcOptions options = new() { Enabled = true };
 
         Assert.Contains(options.Validate(), error => error.Contains("提供方"));
     }
@@ -308,12 +287,7 @@ public class ExternalIdentityOptionsTests
     [InlineData("corp_login", false)]
     public void Provider_Code_Format_Should_Be_Enforced(string code, bool expectedValid)
     {
-        OidcProviderOptions provider = new()
-        {
-            Code = code,
-            Authority = "https://idp.example.com",
-            ClientId = "dap"
-        };
+        OidcProviderOptions provider = new() { Code = code, Authority = "https://idp.example.com", ClientId = "dap" };
 
         Assert.Equal(expectedValid, provider.Validate().Count == 0);
     }
@@ -321,14 +295,9 @@ public class ExternalIdentityOptionsTests
     [Fact]
     public void Duplicate_Provider_Code_Should_Be_Rejected()
     {
-        OidcProviderOptions provider = new()
-        {
-            Code = "corp",
-            Authority = "https://idp.example.com",
-            ClientId = "dap"
-        };
+        OidcProviderOptions provider = new() { Code = "corp", Authority = "https://idp.example.com", ClientId = "dap" };
 
-        OidcOptions options = new() {Enabled = true, Providers = [provider, provider]};
+        OidcOptions options = new() { Enabled = true, Providers = [provider, provider] };
 
         Assert.Contains(options.Validate(), error => error.Contains("重复"));
     }
@@ -338,10 +307,7 @@ public class ExternalIdentityOptionsTests
     {
         OidcProviderOptions provider = new()
         {
-            Code = "corp",
-            Authority = "http://localhost:9000",
-            ClientId = "dap",
-            RequireHttpsMetadata = true
+            Code = "corp", Authority = "http://localhost:9000", ClientId = "dap", RequireHttpsMetadata = true
         };
 
         Assert.Contains(provider.Validate(), error => error.Contains("https"));

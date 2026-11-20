@@ -5,10 +5,7 @@ using MudBlazor.Services;
 
 WebAssemblyHostBuilder builder = WebAssemblyHostBuilder.CreateDefault(args);
 
-builder.Services.AddScoped(_ => new HttpClient
-{
-    BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
-});
+builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 builder.Services.AddScoped<IPlatformApiClient, PlatformApiClient>();
 builder.Services.AddScoped<INavigationViewClient, HttpNavigationViewClient>();
 builder.Services.AddMudServices();

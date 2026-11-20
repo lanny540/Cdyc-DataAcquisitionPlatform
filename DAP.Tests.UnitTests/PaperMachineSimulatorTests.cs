@@ -28,7 +28,9 @@ public class PaperMachineSimulatorTests
             Assert.Equal(first.Stations[i].Code, second.Stations[i].Code);
 
             for (int m = 0; m < first.Stations[i].Metrics.Count; m++)
+            {
                 Assert.Equal(first.Stations[i].Metrics[m].DisplayValue, second.Stations[i].Metrics[m].DisplayValue);
+            }
         }
 
         Assert.Equal(
@@ -118,7 +120,10 @@ public class PaperMachineSimulatorTests
             .SelectMany(station => station.Metrics)
             .ToDictionary(metric => metric.Label, metric => metric.DisplayValue);
 
-        foreach (TwinMetric point in snapshot.Dewatering) Assert.Equal(stationValues[point.Label], point.DisplayValue);
+        foreach (TwinMetric point in snapshot.Dewatering)
+        {
+            Assert.Equal(stationValues[point.Label], point.DisplayValue);
+        }
     }
 
     /// <summary>

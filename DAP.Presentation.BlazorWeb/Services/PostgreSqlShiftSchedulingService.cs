@@ -17,7 +17,10 @@ public sealed class PostgreSqlShiftSchedulingService(NpgsqlDataSource dataSource
     {
         InMemoryShiftSchedulingService parser = new();
         ShiftScheduleImportResultDto result = await parser.ImportAsync(fileName, stream, cancellationToken);
-        if (!result.Succeeded) return result;
+        if (!result.Succeeded)
+        {
+            return result;
+        }
 
         await using NpgsqlCommand command = dataSource.CreateCommand(
             """
@@ -99,7 +102,10 @@ public sealed class PostgreSqlShiftSchedulingService(NpgsqlDataSource dataSource
         await using NpgsqlCommand command = dataSource.CreateCommand(
             "SELECT rows_json::text, imported_at, file_name FROM shift_schedule_snapshot WHERE id = 1");
         await using NpgsqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
-        if (!await reader.ReadAsync(cancellationToken)) return new ScheduleSnapshot([], null, null);
+        if (!await reader.ReadAsync(cancellationToken))
+        {
+            return new ScheduleSnapshot([], null, null);
+        }
 
         ShiftScheduleRowDto[] rows = JsonSerializer.Deserialize<ShiftScheduleRowDto[]>(reader.GetString(0))
                                      ?? throw new InvalidOperationException("排班数据格式无效，请检查服务端日志。");

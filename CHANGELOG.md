@@ -38,6 +38,18 @@
 
 ### 优化
 
+- **排班覆盖校验拆分（2026-11-20）**：`ShiftRotationValidator.ValidateCoverage` 的逐日覆盖
+  逻辑拆分为 `ValidateDayCoverage`（班次数量检查）与 `ValidateShiftContinuity`（时间连续性
+  检查），消除 Rider 认知复杂度警告（12 → 各方法均低于阈值），校验行为与提示文案保持不变。
+- **排班日历覆盖判断整数化（2026-11-20）**：`GroupByDate` 的覆盖完成判断改为
+  「在岗班次数 == (int)(24d / ShiftHours)」整数比较，修复误引入的未解析符号 `TOLERANCE`
+  并消除浮点相等比较警告；同文件 `ThenBy` 排序补充 `StringComparer.Ordinal`。
+- **全仓代码清理与规范协同（2026-11-20）**：新增根目录 `.editorconfig`（C# 显式类型三项
+  规则、LF、UTF-8、XML/AXAML/JSON 缩进、空格与命名规则）并入库 Rider 共享设置
+  `DAP.sln.DotSettings`（显式类型策略、清理配置、LF 强制、初始化器大括号空格）；按新规则
+  执行全仓清理：单行语句强制大括号、对象初始化器排版统一、`DAP.slnx` 按 2 空格缩进重排，
+  不含业务语义变化；`DesignSystemGuardTests` 中受大括号化影响的断言同步适配。
+
 - **可测性最小改造**：`PlatformAdvisoryLock` 改为可继承且 `TryAcquireAsync` 标记 virtual
   （单元测试用替身模拟「拿不到锁/直接放行」，不影响生产行为）；BlazorWeb 工程对
   `DAP.Tests.UnitTests` 开放 `InternalsVisibleTo`（审计守卫、当前用户上下文等 internal 类型）。

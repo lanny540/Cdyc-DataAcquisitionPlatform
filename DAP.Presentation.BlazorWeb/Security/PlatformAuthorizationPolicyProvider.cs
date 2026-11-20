@@ -34,19 +34,25 @@ public sealed class PlatformAuthorizationPolicyProvider(
         }
 
         if (policyName == AuthorizationCatalog.PolicyNames.Configure)
+        {
             return Task.FromResult<AuthorizationPolicy?>(new AuthorizationPolicyBuilder()
                 .RequireAssertion(context => PlatformClaimsFactory.CanConfigure(context.User))
                 .Build());
+        }
 
         if (policyName == AuthorizationCatalog.PolicyNames.PlatformAdmin)
+        {
             return Task.FromResult<AuthorizationPolicy?>(new AuthorizationPolicyBuilder()
                 .RequireAssertion(context => PlatformClaimsFactory.IsSuperAdmin(context.User))
                 .Build());
+        }
 
         if (policyName.StartsWith(AuthorizationCatalog.PolicyNames.PermissionPrefix, StringComparison.Ordinal))
+        {
             return Task.FromResult<AuthorizationPolicy?>(new AuthorizationPolicyBuilder()
                 .RequireAssertion(context => PlatformClaimsFactory.HasPermission(context.User, policyName))
                 .Build());
+        }
 
         return _fallback.GetPolicyAsync(policyName);
     }

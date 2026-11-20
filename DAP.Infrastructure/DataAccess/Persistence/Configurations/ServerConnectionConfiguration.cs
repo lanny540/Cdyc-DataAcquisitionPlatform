@@ -49,11 +49,11 @@ public sealed class ServerConnectionConfiguration : IEntityTypeConfiguration<Ser
             .IsUnique()
             .HasDatabaseName("ux_server_connections_code");
 
-        builder.HasIndex(item => new {item.AcquisitionType, item.IsEnabled, item.UpdatedAt})
+        builder.HasIndex(item => new { item.AcquisitionType, item.IsEnabled, item.UpdatedAt })
             .IsDescending(false, false, true)
             .HasDatabaseName("ix_server_connections_type_enabled_updated_at");
 
-        builder.HasIndex(item => new {item.AcquisitionType, item.Address})
+        builder.HasIndex(item => new { item.AcquisitionType, item.Address })
             .IsUnique()
             .HasDatabaseName("ux_server_connections_type_address");
     }

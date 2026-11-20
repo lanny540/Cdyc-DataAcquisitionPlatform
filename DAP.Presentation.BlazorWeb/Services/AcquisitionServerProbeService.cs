@@ -58,22 +58,33 @@ public sealed class AcquisitionServerProbeService(
         AcquisitionServerTypeDescriptor? descriptor = AcquisitionServerCatalog.Find(serverType);
         string normalizedAddress = AcquisitionServerCatalog.NormalizeAddress(address);
 
-        if (descriptor is null) return CreateFailure("不支持的采集服务器类型", serverType, 0, $"不支持的采集服务器类型：{serverType}。");
+        if (descriptor is null)
+        {
+            return CreateFailure("不支持的采集服务器类型", serverType, 0, $"不支持的采集服务器类型：{serverType}。");
+        }
 
         if (string.IsNullOrWhiteSpace(normalizedAddress))
+        {
             return CreateFailure("网络探测", string.Empty, 0, $"{descriptor.AddressLabel}不能为空。");
+        }
 
         if (IsMockEnabled(configuration))
+        {
             return CreateMockResult(descriptor, normalizedAddress, identifier, requestPath);
+        }
 
         // Historian 需要先换取 OAuth2 令牌，复用既有代理服务避免重复实现鉴权。
         if (descriptor.ServerType == AcquisitionServerCatalog.Historian)
+        {
             return await ProbeHistorianAsync(normalizedAddress, configuration, identifier, cancellationToken);
+        }
 
         if (descriptor.SupportsApiProbe && ShouldReadApiValue(identifier, requestPath))
+        {
             return await ProbeHttpAsync(
                 descriptor, normalizedAddress, configuration, identifier, requestPath, nodeConfiguration,
                 cancellationToken);
+        }
 
         return await ProbeNetworkAsync(descriptor, normalizedAddress, cancellationToken);
     }
@@ -85,8 +96,10 @@ public sealed class AcquisitionServerProbeService(
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(identifier))
+        {
             return await ProbeNetworkAsync(
                 AcquisitionServerCatalog.Find(AcquisitionServerCatalog.Historian)!, address, cancellationToken);
+        }
 
         Stopwatch stopwatch = Stopwatch.StartNew();
         bool useMockResponses = IsTrue(GetValue(configuration, "useMockResponses", "false"));
@@ -116,7 +129,7 @@ public sealed class AcquisitionServerProbeService(
             response.Success
                 ? $"Historian 接口调用成功，返回 {response.PayloadJson.Length} 字节。" +
                   (parsedValue is null ? "未能在返回报文中定位数值。" : $"已解析出数值 {parsedValue}。")
-                : response.ErrorMessage ?? $"Historian 接口返回 {(int) response.StatusCode}。",
+                : response.ErrorMessage ?? $"Historian 接口返回 {(int)response.StatusCode}。",
             string.IsNullOrWhiteSpace(response.PayloadJson) ? "{}" : response.PayloadJson,
             parsedValue,
             stopwatch.ElapsedMilliseconds,
@@ -131,6 +144,7 @@ public sealed class AcquisitionServerProbeService(
     {
         // 串口地址无法解析为网络端点，需在端点解析之前拦截。
         if (IsSerialAddress(address))
+        {
             return new AcquisitionServerProbeResultDto(
                 false,
                 "网络探测",
@@ -142,9 +156,13 @@ public sealed class AcquisitionServerProbeService(
                 0,
                 DateTimeOffset.UtcNow,
                 "不支持串口自动探测。");
+        }
 
         if (!TryResolveEndpoint(address, out string host, out int port, out string normalizedAddress,
-                out string? errorMessage)) return CreateFailure("网络探测", address, 0, errorMessage ?? "无法解析服务器地址。");
+                out string? errorMessage))
+        {
+            return CreateFailure("网络探测", address, 0, errorMessage ?? "无法解析服务器地址。");
+        }
 
         Stopwatch stopwatch = Stopwatch.StartNew();
         using CancellationTokenSource
@@ -231,7 +249,10 @@ public sealed class AcquisitionServerProbeService(
 
             ApplyAuthentication(request, configuration);
 
-            if (httpMethod == "POST") request.Content = BuildRequestBody(configuration, identifier);
+            if (httpMethod == "POST")
+            {
+                request.Content = BuildRequestBody(configuration, identifier);
+            }
 
             using HttpResponseMessage response = await client.SendAsync(request, timeoutSource.Token);
             string payload = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -243,11 +264,11 @@ public sealed class AcquisitionServerProbeService(
                 response.IsSuccessStatusCode,
                 "接口读取",
                 requestTarget,
-                (int) response.StatusCode,
+                (int)response.StatusCode,
                 response.IsSuccessStatusCode
                     ? $"接口调用成功，返回 {payload.Length} 字节。" +
                       (parsedValue is null ? "未能在返回报文中定位数值。" : $"已解析出数值 {parsedValue}。")
-                    : $"上游接口返回 {(int) response.StatusCode} {response.ReasonPhrase}。",
+                    : $"上游接口返回 {(int)response.StatusCode} {response.ReasonPhrase}。",
                 string.IsNullOrWhiteSpace(payload) ? "{}" : payload,
                 parsedValue,
                 stopwatch.ElapsedMilliseconds,
@@ -318,12 +339,14 @@ public sealed class AcquisitionServerProbeService(
                 ServerCertificateCustomValidationCallback = HttpClientHandler
                     .DangerousAcceptAnyServerCertificateValidator
             };
-            client = new HttpClient(handler) {Timeout = client.Timeout};
+            client = new HttpClient(handler) { Timeout = client.Timeout };
         }
 
         // 接口路径为相对路径，必须先设置基地址，否则请求无法解析为绝对地址。
         if (Uri.TryCreate(address, UriKind.Absolute, out Uri? baseUri))
+        {
             client.BaseAddress = new Uri($"{baseUri.GetLeftPart(UriPartial.Authority)}/");
+        }
 
         return client;
     }
@@ -333,7 +356,10 @@ public sealed class AcquisitionServerProbeService(
         IReadOnlyDictionary<string, string> configuration)
     {
         string apiKey = GetValue(configuration, "apiKey", string.Empty);
-        if (!string.IsNullOrWhiteSpace(apiKey)) request.Headers.TryAddWithoutValidation("X-Api-Key", apiKey);
+        if (!string.IsNullOrWhiteSpace(apiKey))
+        {
+            request.Headers.TryAddWithoutValidation("X-Api-Key", apiKey);
+        }
 
         string authToken = GetValue(configuration, "authToken", string.Empty);
         if (!string.IsNullOrWhiteSpace(authToken))
@@ -346,9 +372,11 @@ public sealed class AcquisitionServerProbeService(
         string username = GetValue(configuration, "username", string.Empty);
         string password = GetValue(configuration, "password", string.Empty);
         if (!string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password))
+        {
             request.Headers.Authorization = new AuthenticationHeaderValue(
                 "Basic",
                 Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}")));
+        }
     }
 
     private static HttpContent? BuildRequestBody(
@@ -356,7 +384,10 @@ public sealed class AcquisitionServerProbeService(
         string? identifier)
     {
         string template = GetValue(configuration, "requestBody", string.Empty);
-        if (string.IsNullOrWhiteSpace(template)) return new StringContent("{}", Encoding.UTF8, "application/json");
+        if (string.IsNullOrWhiteSpace(template))
+        {
+            return new StringContent("{}", Encoding.UTF8, "application/json");
+        }
 
         string body = template.Replace("{identifier}", identifier ?? string.Empty, StringComparison.Ordinal);
         return new StringContent(body, Encoding.UTF8, "application/json");
@@ -371,16 +402,19 @@ public sealed class AcquisitionServerProbeService(
     {
         string?[] candidates = new[]
         {
-            requestPath,
-            nodeConfiguration is not null && nodeConfiguration.TryGetValue("apiPath", out string? nodePath)
+            requestPath, nodeConfiguration is not null && nodeConfiguration.TryGetValue("apiPath", out string? nodePath)
                 ? nodePath
                 : null,
             descriptor.DefaultApiProbePath
         };
 
         foreach (string? candidate in candidates)
+        {
             if (!string.IsNullOrWhiteSpace(candidate))
+            {
                 return NormalizePath(ExpandPlaceholders(candidate, identifier));
+            }
+        }
 
         // 默认路径为空时，回落到类型配置中登记的接口路径。
         string fallback = descriptor.ServerType switch
@@ -396,7 +430,10 @@ public sealed class AcquisitionServerProbeService(
 
     private static string ExpandPlaceholders(string path, string? identifier)
     {
-        if (string.IsNullOrWhiteSpace(identifier)) return path;
+        if (string.IsNullOrWhiteSpace(identifier))
+        {
+            return path;
+        }
 
         return path
             .Replace("{tagName}", Uri.EscapeDataString(identifier), StringComparison.Ordinal)
@@ -440,27 +477,43 @@ public sealed class AcquisitionServerProbeService(
         IReadOnlyDictionary<string, string> configuration,
         string? identifier)
     {
-        if (string.IsNullOrWhiteSpace(payload)) return null;
+        if (string.IsNullOrWhiteSpace(payload))
+        {
+            return null;
+        }
 
         string valuePath = GetValue(configuration, "responseValuePath", string.Empty);
-        if (!string.IsNullOrWhiteSpace(valuePath)) return TryReadJsonPath(payload, valuePath);
+        if (!string.IsNullOrWhiteSpace(valuePath))
+        {
+            return TryReadJsonPath(payload, valuePath);
+        }
 
-        if (string.IsNullOrWhiteSpace(identifier)) return TryReadFirstNumber(payload);
+        if (string.IsNullOrWhiteSpace(identifier))
+        {
+            return TryReadFirstNumber(payload);
+        }
 
         // GE Historian 最新值返回数组，元素中 tagName 与当前采集点位匹配。
         try
         {
             using JsonDocument document = JsonDocument.Parse(payload);
             if (document.RootElement.ValueKind == JsonValueKind.Array)
+            {
                 foreach (JsonElement element in document.RootElement.EnumerateArray())
                 {
                     string? tagName = TryReadStringProperty(element, "tagName");
                     if (tagName is null || !string.Equals(tagName, identifier, StringComparison.OrdinalIgnoreCase))
+                    {
                         continue;
+                    }
 
                     string? value = TryReadNumber(element, "value");
-                    if (value is not null) return value;
+                    if (value is not null)
+                    {
+                        return value;
+                    }
                 }
+            }
         }
         catch (JsonException)
         {
@@ -531,16 +584,24 @@ public sealed class AcquisitionServerProbeService(
                     : null;
             case JsonValueKind.Object:
                 foreach (JsonProperty property in element.EnumerateObject())
+                {
                     if (string.Equals(property.Name, "value", StringComparison.OrdinalIgnoreCase))
                     {
                         string? direct = ReadScalar(property.Value);
-                        if (direct is not null) return direct;
+                        if (direct is not null)
+                        {
+                            return direct;
+                        }
                     }
+                }
 
                 foreach (JsonProperty property in element.EnumerateObject())
                 {
                     string? nested = FindFirstNumber(property.Value);
-                    if (nested is not null) return nested;
+                    if (nested is not null)
+                    {
+                        return nested;
+                    }
                 }
 
                 return null;
@@ -548,7 +609,10 @@ public sealed class AcquisitionServerProbeService(
                 foreach (JsonElement item in element.EnumerateArray())
                 {
                     string? nested = FindFirstNumber(item);
-                    if (nested is not null) return nested;
+                    if (nested is not null)
+                    {
+                        return nested;
+                    }
                 }
 
                 return null;
@@ -654,7 +718,10 @@ public sealed class AcquisitionServerProbeService(
 
     private static string NormalizePath(string path)
     {
-        if (string.IsNullOrWhiteSpace(path)) return "/";
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return "/";
+        }
 
         return path.StartsWith('/') ? path : $"/{path}";
     }

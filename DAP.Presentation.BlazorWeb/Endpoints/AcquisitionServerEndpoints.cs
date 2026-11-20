@@ -43,7 +43,7 @@ public static class AcquisitionServerEndpoints
                 }
                 catch (InvalidOperationException ex)
                 {
-                    return Results.BadRequest(new {message = ex.Message});
+                    return Results.BadRequest(new { message = ex.Message });
                 }
             })
             .WithName("UpsertAcquisitionServer");
@@ -116,7 +116,7 @@ public static class AcquisitionServerEndpoints
 
                 return succeeded
                     ? Results.NoContent()
-                    : Results.BadRequest(new {message = errorMessage ?? "删除采集服务器失败。"});
+                    : Results.BadRequest(new { message = errorMessage ?? "删除采集服务器失败。" });
             })
             .WithName("DeleteAcquisitionServer");
 

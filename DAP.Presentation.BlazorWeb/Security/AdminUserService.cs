@@ -43,7 +43,9 @@ public sealed class AdminUserService(
         if (scopeDepartmentId is null && !await IsActorSuperAdminAsync(cancellationToken))
             // 无用户管理权限，或部门管理员未归属部门：返回空列表而不是异常，
             // 端点策略已挡住无权请求，这里只处理「有权限但范围为空」的情形。
+        {
             return [];
+        }
 
         IQueryable<AppUser> query = db.AppUsers
             .Include(user => user.Department)
@@ -51,7 +53,10 @@ public sealed class AdminUserService(
             .ThenInclude(link => link.Role)
             .AsQueryable();
 
-        if (scopeDepartmentId is not null) query = query.Where(user => user.DepartmentId == scopeDepartmentId);
+        if (scopeDepartmentId is not null)
+        {
+            query = query.Where(user => user.DepartmentId == scopeDepartmentId);
+        }
 
         if (!string.IsNullOrWhiteSpace(keyword))
         {
@@ -106,7 +111,10 @@ public sealed class AdminUserService(
     {
         (CurrentUser? actor, _) = await ResolveScopeAsync(cancellationToken);
 
-        if (actor is null || !actor.HasPermission(AuthorizationCatalog.UserManagePermission)) return [];
+        if (actor is null || !actor.HasPermission(AuthorizationCatalog.UserManagePermission))
+        {
+            return [];
+        }
 
         List<Role> roles = await db.Roles
             .Where(role => role.IsEnabled && role.Code != AuthorizationCatalog.SuperAdminRole)
@@ -115,11 +123,13 @@ public sealed class AdminUserService(
 
         if (!actor.IsSuperAdmin)
             // 部门管理员只能授予「普通用户 / 技术人员」：授予部门管理员会形成自我提权链。
+        {
             roles =
             [
                 .. roles.Where(role =>
                     role.Code is AuthorizationCatalog.ViewerRole or AuthorizationCatalog.TechnicianRole)
             ];
+        }
 
         List<RolePermission> links = await db.RolePermissions
             .Where(link => roles.Select(role => role.Id).Contains(link.RoleId))
@@ -156,22 +166,36 @@ public sealed class AdminUserService(
         (CurrentUser? actor, Guid? scopeDepartmentId) = await ResolveScopeAsync(cancellationToken);
         string? denied = await CheckManagerAsync(actor, cancellationToken);
 
-        if (denied is not null) return new AuthOperationResultDto(false, denied);
+        if (denied is not null)
+        {
+            return new AuthOperationResultDto(false, denied);
+        }
 
         string userName = PlatformAuthService.NormalizeUserName(request.UserName);
 
         if (!AdminUserRules.IsValidUserName(userName))
+        {
             return new AuthOperationResultDto(false, "账号需为 3–32 位小写字母、数字、点、下划线或连字符，且以字母或数字开头。");
+        }
 
-        if (string.IsNullOrWhiteSpace(request.DisplayName)) return new AuthOperationResultDto(false, "请填写姓名。");
+        if (string.IsNullOrWhiteSpace(request.DisplayName))
+        {
+            return new AuthOperationResultDto(false, "请填写姓名。");
+        }
 
         string? passwordError = PlatformAuthService.ValidateNewPassword(userName, request.InitialPassword);
 
-        if (passwordError is not null) return new AuthOperationResultDto(false, passwordError);
+        if (passwordError is not null)
+        {
+            return new AuthOperationResultDto(false, passwordError);
+        }
 
         bool exists = await db.AppUsers.AnyAsync(user => user.UserName == userName, cancellationToken);
 
-        if (exists) return new AuthOperationResultDto(false, $"账号 {userName} 已存在。");
+        if (exists)
+        {
+            return new AuthOperationResultDto(false, $"账号 {userName} 已存在。");
+        }
 
         // 部门管理员只能把新账号建在本部门，且该部门必须已归属。
         Guid? departmentId = request.DepartmentId;
@@ -179,8 +203,10 @@ public sealed class AdminUserService(
         if (!actor!.IsSuperAdmin)
         {
             if (scopeDepartmentId is null)
+            {
                 return await DenyAsync(actor, "user.create", null, userName,
                     "当前账号未归属部门，无法新建用户。", cancellationToken);
+            }
 
             departmentId = scopeDepartmentId;
         }
@@ -189,14 +215,19 @@ public sealed class AdminUserService(
         {
             bool departmentExists = await db.Departments.AnyAsync(item => item.Id == id, cancellationToken);
 
-            if (!departmentExists) return new AuthOperationResultDto(false, "所选部门不存在。");
+            if (!departmentExists)
+            {
+                return new AuthOperationResultDto(false, "所选部门不存在。");
+            }
         }
 
         List<Role> roles = await ResolveRolesAsync(request.RoleIds, actor, cancellationToken);
 
         if (roles.Count != request.RoleIds.Distinct().Count())
+        {
             return await DenyAsync(actor, "user.create", null, userName,
                 "角色包含不存在、已停用或超出授权范围的角色。", cancellationToken);
+        }
 
         DateTimeOffset now = timeProvider.GetUtcNow();
 
@@ -216,11 +247,14 @@ public sealed class AdminUserService(
 
         db.AppUsers.Add(user);
 
-        foreach (Role role in roles) db.UserRoles.Add(new UserRole {UserId = user.Id, RoleId = role.Id});
+        foreach (Role role in roles)
+        {
+            db.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = role.Id });
+        }
 
         await db.SaveChangesAsync(cancellationToken);
         await audit.RecordAsync(actor, "user.create", "user", user.Id.ToString(), user.UserName, true,
-            new {user.UserName, user.DisplayName, departmentId, roles = roles.Select(role => role.Code).ToArray()},
+            new { user.UserName, user.DisplayName, departmentId, roles = roles.Select(role => role.Code).ToArray() },
             cancellationToken);
 
         return new AuthOperationResultDto(true, null);
@@ -241,31 +275,44 @@ public sealed class AdminUserService(
         (CurrentUser? actor, Guid? scopeDepartmentId) = await ResolveScopeAsync(cancellationToken);
         string? denied = await CheckManagerAsync(actor, cancellationToken);
 
-        if (denied is not null) return new AuthOperationResultDto(false, denied);
+        if (denied is not null)
+        {
+            return new AuthOperationResultDto(false, denied);
+        }
 
         AppUser? user = await db.AppUsers
             .Include(item => item.UserRoles)
             .ThenInclude(link => link.Role)
             .FirstOrDefaultAsync(item => item.Id == userId, cancellationToken);
 
-        if (user is null) return new AuthOperationResultDto(false, "账号不存在，请刷新后重试。");
+        if (user is null)
+        {
+            return new AuthOperationResultDto(false, "账号不存在，请刷新后重试。");
+        }
 
         string? scopeError = CheckTargetInScope(actor!, scopeDepartmentId, user);
 
         if (scopeError is not null)
+        {
             return await DenyAsync(actor, "user.update", user.Id.ToString(), user.UserName, scopeError,
                 cancellationToken);
+        }
 
-        if (string.IsNullOrWhiteSpace(request.DisplayName)) return new AuthOperationResultDto(false, "请填写姓名。");
+        if (string.IsNullOrWhiteSpace(request.DisplayName))
+        {
+            return new AuthOperationResultDto(false, "请填写姓名。");
+        }
 
         bool isTargetSuperAdmin = user.UserRoles.Any(link => link.Role?.Code == AuthorizationCatalog.SuperAdminRole);
 
         // 超管账号保护：不可停用。启停开关在页面对超管隐藏，服务端再兜一层。
         if (isTargetSuperAdmin && !request.IsEnabled)
+        {
             return await DenyAsync(actor, "user.update", user.Id.ToString(), user.UserName,
                 "超级管理员账号不可停用。如需更换请使用「移交超管」。", cancellationToken);
+        }
 
-        var before = new {user.DisplayName, user.Email, user.IsEnabled};
+        var before = new { user.DisplayName, user.Email, user.IsEnabled };
         bool changed = false;
 
         if (!string.Equals(user.DisplayName, request.DisplayName.Trim(), StringComparison.Ordinal))
@@ -301,12 +348,15 @@ public sealed class AdminUserService(
             }
         }
 
-        if (!changed) return new AuthOperationResultDto(true, null);
+        if (!changed)
+        {
+            return new AuthOperationResultDto(true, null);
+        }
 
         user.UpdatedAt = timeProvider.GetUtcNow();
         await db.SaveChangesAsync(cancellationToken);
         await audit.RecordAsync(actor, "user.update", "user", user.Id.ToString(), user.UserName, true,
-            new {before, after = new {user.DisplayName, user.Email, user.IsEnabled}}, cancellationToken);
+            new { before, after = new { user.DisplayName, user.Email, user.IsEnabled } }, cancellationToken);
 
         return new AuthOperationResultDto(true, null);
     }
@@ -327,31 +377,46 @@ public sealed class AdminUserService(
         (CurrentUser? actor, _) = await ResolveScopeAsync(cancellationToken);
 
         if (actor is null || !actor.HasPermission(AuthorizationCatalog.UserManagePermission))
+        {
             return new AuthOperationResultDto(false, "没有用户管理权限。");
+        }
 
         if (!actor.IsSuperAdmin)
+        {
             return await DenyAsync(actor, "user.department.update", userId.ToString(), null,
                 "调整部门仅超级管理员可执行。", cancellationToken);
+        }
 
         AppUser? user = await db.AppUsers
             .Include(item => item.UserRoles)
             .ThenInclude(link => link.Role)
             .FirstOrDefaultAsync(item => item.Id == userId, cancellationToken);
 
-        if (user is null) return new AuthOperationResultDto(false, "账号不存在，请刷新后重试。");
+        if (user is null)
+        {
+            return new AuthOperationResultDto(false, "账号不存在，请刷新后重试。");
+        }
 
         if (user.UserRoles.Any(link => link.Role?.Code == AuthorizationCatalog.SuperAdminRole))
+        {
             return await DenyAsync(actor, "user.department.update", user.Id.ToString(), user.UserName,
                 "超级管理员账号不可调整部门。", cancellationToken);
+        }
 
         if (request.DepartmentId is { } departmentId)
         {
             bool exists = await db.Departments.AnyAsync(item => item.Id == departmentId, cancellationToken);
 
-            if (!exists) return new AuthOperationResultDto(false, "所选部门不存在。");
+            if (!exists)
+            {
+                return new AuthOperationResultDto(false, "所选部门不存在。");
+            }
         }
 
-        if (user.DepartmentId == request.DepartmentId) return new AuthOperationResultDto(true, null);
+        if (user.DepartmentId == request.DepartmentId)
+        {
+            return new AuthOperationResultDto(true, null);
+        }
 
         Guid? before = user.DepartmentId;
         user.DepartmentId = request.DepartmentId;
@@ -359,7 +424,7 @@ public sealed class AdminUserService(
 
         await db.SaveChangesAsync(cancellationToken);
         await audit.RecordAsync(actor, "user.department.update", "user", user.Id.ToString(), user.UserName, true,
-            new {before, after = request.DepartmentId}, cancellationToken);
+            new { before, after = request.DepartmentId }, cancellationToken);
 
         return new AuthOperationResultDto(true, null);
     }
@@ -379,30 +444,42 @@ public sealed class AdminUserService(
         (CurrentUser? actor, Guid? scopeDepartmentId) = await ResolveScopeAsync(cancellationToken);
         string? denied = await CheckManagerAsync(actor, cancellationToken);
 
-        if (denied is not null) return new AuthOperationResultDto(false, denied);
+        if (denied is not null)
+        {
+            return new AuthOperationResultDto(false, denied);
+        }
 
         AppUser? user = await db.AppUsers
             .Include(item => item.UserRoles)
             .ThenInclude(link => link.Role)
             .FirstOrDefaultAsync(item => item.Id == userId, cancellationToken);
 
-        if (user is null) return new AuthOperationResultDto(false, "账号不存在，请刷新后重试。");
+        if (user is null)
+        {
+            return new AuthOperationResultDto(false, "账号不存在，请刷新后重试。");
+        }
 
         string? scopeError = CheckTargetInScope(actor!, scopeDepartmentId, user);
 
         if (scopeError is not null)
+        {
             return await DenyAsync(actor, "user.roles.update", user.Id.ToString(), user.UserName, scopeError,
                 cancellationToken);
+        }
 
         if (user.UserRoles.Any(link => link.Role?.Code == AuthorizationCatalog.SuperAdminRole))
+        {
             return await DenyAsync(actor, "user.roles.update", user.Id.ToString(), user.UserName,
                 "超级管理员角色只能通过「移交超管」调整。", cancellationToken);
+        }
 
         List<Role> roles = await ResolveRolesAsync(request.RoleIds, actor!, cancellationToken);
 
         if (roles.Count != request.RoleIds.Distinct().Count())
+        {
             return await DenyAsync(actor, "user.roles.update", user.Id.ToString(), user.UserName,
                 "角色包含不存在、已停用或超出授权范围的角色。", cancellationToken);
+        }
 
         string[] before = user.UserRoles
             .Where(link => link.Role is not null)
@@ -412,17 +489,23 @@ public sealed class AdminUserService(
 
         string[] after = roles.Select(role => role.Code).OrderBy(code => code, StringComparer.Ordinal).ToArray();
 
-        if (before.SequenceEqual(after)) return new AuthOperationResultDto(true, null);
+        if (before.SequenceEqual(after))
+        {
+            return new AuthOperationResultDto(true, null);
+        }
 
         List<UserRole> existingLinks = [.. user.UserRoles];
         db.UserRoles.RemoveRange(existingLinks);
 
-        foreach (Role role in roles) db.UserRoles.Add(new UserRole {UserId = user.Id, RoleId = role.Id});
+        foreach (Role role in roles)
+        {
+            db.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = role.Id });
+        }
 
         user.UpdatedAt = timeProvider.GetUtcNow();
         await db.SaveChangesAsync(cancellationToken);
         await audit.RecordAsync(actor, "user.roles.update", "user", user.Id.ToString(), user.UserName, true,
-            new {before, after}, cancellationToken);
+            new { before, after }, cancellationToken);
 
         return new AuthOperationResultDto(true, null);
     }
@@ -442,28 +525,41 @@ public sealed class AdminUserService(
         (CurrentUser? actor, Guid? scopeDepartmentId) = await ResolveScopeAsync(cancellationToken);
         string? denied = await CheckManagerAsync(actor, cancellationToken);
 
-        if (denied is not null) return new AuthOperationResultDto(false, denied);
+        if (denied is not null)
+        {
+            return new AuthOperationResultDto(false, denied);
+        }
 
         AppUser? user = await db.AppUsers
             .Include(item => item.UserRoles)
             .ThenInclude(link => link.Role)
             .FirstOrDefaultAsync(item => item.Id == userId, cancellationToken);
 
-        if (user is null) return new AuthOperationResultDto(false, "账号不存在，请刷新后重试。");
+        if (user is null)
+        {
+            return new AuthOperationResultDto(false, "账号不存在，请刷新后重试。");
+        }
 
         string? scopeError = CheckTargetInScope(actor!, scopeDepartmentId, user);
 
         if (scopeError is not null)
+        {
             return await DenyAsync(actor, "user.password.reset", user.Id.ToString(), user.UserName, scopeError,
                 cancellationToken);
+        }
 
         if (user.UserRoles.Any(link => link.Role?.Code == AuthorizationCatalog.SuperAdminRole))
+        {
             return await DenyAsync(actor, "user.password.reset", user.Id.ToString(), user.UserName,
                 "超级管理员密码只能由本人修改。", cancellationToken);
+        }
 
         string? passwordError = PlatformAuthService.ValidateNewPassword(user.UserName, request.NewPassword);
 
-        if (passwordError is not null) return new AuthOperationResultDto(false, passwordError);
+        if (passwordError is not null)
+        {
+            return new AuthOperationResultDto(false, passwordError);
+        }
 
         user.PasswordHash = PasswordHasher.Hash(request.NewPassword);
         user.MustChangePassword = true;
@@ -475,7 +571,7 @@ public sealed class AdminUserService(
 
         await db.SaveChangesAsync(cancellationToken);
         await audit.RecordAsync(actor, "user.password.reset", "user", user.Id.ToString(), user.UserName, true,
-            new {reason = "管理员重置密码，下次登录强制修改；已签发会话全部失效"}, cancellationToken);
+            new { reason = "管理员重置密码，下次登录强制修改；已签发会话全部失效" }, cancellationToken);
 
         return new AuthOperationResultDto(true, null);
     }
@@ -493,9 +589,15 @@ public sealed class AdminUserService(
         (CurrentUser? actor, Guid? scopeDepartmentId) = await ResolveScopeAsync(cancellationToken);
         string? denied = await CheckManagerAsync(actor, cancellationToken);
 
-        if (denied is not null) return new AuthOperationResultDto(false, denied);
+        if (denied is not null)
+        {
+            return new AuthOperationResultDto(false, denied);
+        }
 
-        if (request.UserIds.Count == 0) return new AuthOperationResultDto(false, "请先选择账号。");
+        if (request.UserIds.Count == 0)
+        {
+            return new AuthOperationResultDto(false, "请先选择账号。");
+        }
 
         List<AppUser> users = await db.AppUsers
             .Include(item => item.UserRoles)
@@ -504,20 +606,26 @@ public sealed class AdminUserService(
             .ToListAsync(cancellationToken);
 
         if (users.Count != request.UserIds.Distinct().Count())
+        {
             return new AuthOperationResultDto(false, "部分账号不存在，请刷新后重试。");
+        }
 
         foreach (AppUser user in users)
         {
             string? scopeError = CheckTargetInScope(actor!, scopeDepartmentId, user);
 
             if (scopeError is not null)
+            {
                 return await DenyAsync(actor, "user.status.batch", user.Id.ToString(), user.UserName, scopeError,
                     cancellationToken);
+            }
 
             if (!request.IsEnabled &&
                 user.UserRoles.Any(link => link.Role?.Code == AuthorizationCatalog.SuperAdminRole))
+            {
                 return await DenyAsync(actor, "user.status.batch", user.Id.ToString(), user.UserName,
                     "超级管理员账号不可停用。", cancellationToken);
+            }
         }
 
         DateTimeOffset now = timeProvider.GetUtcNow();
@@ -538,11 +646,14 @@ public sealed class AdminUserService(
             }
         }
 
-        if (changed.Count == 0) return new AuthOperationResultDto(true, null);
+        if (changed.Count == 0)
+        {
+            return new AuthOperationResultDto(true, null);
+        }
 
         await db.SaveChangesAsync(cancellationToken);
         await audit.RecordAsync(actor, "user.status.batch", "user", null, $"{changed.Count} 个账号", true,
-            new {isEnabled = request.IsEnabled, users = changed.ToArray()}, cancellationToken);
+            new { isEnabled = request.IsEnabled, users = changed.ToArray() }, cancellationToken);
 
         return new AuthOperationResultDto(true, null);
     }
@@ -560,13 +671,21 @@ public sealed class AdminUserService(
     {
         (CurrentUser? actor, _) = await ResolveScopeAsync(cancellationToken);
 
-        if (actor?.UserId is null) return new AuthOperationResultDto(false, "未登录或会话已过期，请重新登录。");
+        if (actor?.UserId is null)
+        {
+            return new AuthOperationResultDto(false, "未登录或会话已过期，请重新登录。");
+        }
 
         if (!actor.IsSuperAdmin)
+        {
             return await DenyAsync(actor, "user.super_admin.handover", request.TargetUserId.ToString(), null,
                 "只有超级管理员可以移交账号。", cancellationToken);
+        }
 
-        if (actor.UserId == request.TargetUserId) return new AuthOperationResultDto(false, "接任账号不能是当前账号。");
+        if (actor.UserId == request.TargetUserId)
+        {
+            return new AuthOperationResultDto(false, "接任账号不能是当前账号。");
+        }
 
         Role superAdminRole = await db.Roles
             .FirstAsync(role => role.Code == AuthorizationCatalog.SuperAdminRole, cancellationToken);
@@ -575,17 +694,28 @@ public sealed class AdminUserService(
             .Include(user => user.UserRoles)
             .FirstOrDefaultAsync(user => user.Id == request.TargetUserId, cancellationToken);
 
-        if (target is null) return new AuthOperationResultDto(false, "接任账号不存在，请刷新后重试。");
+        if (target is null)
+        {
+            return new AuthOperationResultDto(false, "接任账号不存在，请刷新后重试。");
+        }
 
-        if (!target.IsEnabled) return new AuthOperationResultDto(false, "接任账号已停用，请先启用再移交。");
+        if (!target.IsEnabled)
+        {
+            return new AuthOperationResultDto(false, "接任账号已停用，请先启用再移交。");
+        }
 
         if (target.UserRoles.Any(link => link.RoleId == superAdminRole.Id))
+        {
             return new AuthOperationResultDto(false, "该账号已经是超级管理员。");
+        }
 
         UserRole? currentLink = await db.UserRoles.FirstOrDefaultAsync(
             link => link.UserId == actor.UserId && link.RoleId == superAdminRole.Id, cancellationToken);
 
-        if (currentLink is null) return new AuthOperationResultDto(false, "当前会话的超管身份与库中记录不一致，请重新登录后重试。");
+        if (currentLink is null)
+        {
+            return new AuthOperationResultDto(false, "当前会话的超管身份与库中记录不一致，请重新登录后重试。");
+        }
 
         DateTimeOffset now = timeProvider.GetUtcNow();
 
@@ -595,7 +725,7 @@ public sealed class AdminUserService(
         await using IDbContextTransaction transaction = await db.Database.BeginTransactionAsync(cancellationToken);
 
         db.UserRoles.Remove(currentLink);
-        db.UserRoles.Add(new UserRole {UserId = target.Id, RoleId = superAdminRole.Id});
+        db.UserRoles.Add(new UserRole { UserId = target.Id, RoleId = superAdminRole.Id });
         target.UpdatedAt = now;
 
         // 两边都换安全戳：移交后原超管的会话必须立刻结束（否则旧会话里还带着超管 claim），
@@ -612,7 +742,7 @@ public sealed class AdminUserService(
         await transaction.CommitAsync(cancellationToken);
 
         await audit.RecordAsync(actor, "user.super_admin.handover", "user", target.Id.ToString(), target.UserName, true,
-            new {from = actor.UserName, to = target.UserName}, cancellationToken);
+            new { from = actor.UserName, to = target.UserName }, cancellationToken);
 
         return new AuthOperationResultDto(true, null);
     }
@@ -622,11 +752,16 @@ public sealed class AdminUserService(
     {
         CurrentUser? actor = await currentUser.GetUserAsync(cancellationToken);
 
-        if (actor?.UserId is null) return (actor, null);
+        if (actor?.UserId is null)
+        {
+            return (actor, null);
+        }
 
         if (actor.IsSuperAdmin)
             // 超管不受部门限制：范围用哨兵值表示「全部」，调用方据 actor.IsSuperAdmin 区分。
+        {
             return (actor, null);
+        }
 
         Guid? departmentId = await db.AppUsers
             .Where(user => user.Id == actor.UserId)
@@ -644,11 +779,20 @@ public sealed class AdminUserService(
 
     private async Task<string?> CheckManagerAsync(CurrentUser? actor, CancellationToken cancellationToken)
     {
-        if (actor?.UserId is null) return "未登录或会话已过期，请重新登录。";
+        if (actor?.UserId is null)
+        {
+            return "未登录或会话已过期，请重新登录。";
+        }
 
-        if (!actor.HasPermission(AuthorizationCatalog.UserManagePermission)) return "没有用户管理权限。";
+        if (!actor.HasPermission(AuthorizationCatalog.UserManagePermission))
+        {
+            return "没有用户管理权限。";
+        }
 
-        if (actor.IsSuperAdmin) return null;
+        if (actor.IsSuperAdmin)
+        {
+            return null;
+        }
 
         bool hasDepartment = await db.AppUsers
             .AnyAsync(user => user.Id == actor.UserId && user.DepartmentId != null, cancellationToken);
@@ -681,8 +825,10 @@ public sealed class AdminUserService(
         CancellationToken cancellationToken)
     {
         if (actor?.UserId is not null)
+        {
             await audit.RecordAsync(actor, actionCode, "user", targetId, targetName, false,
-                new {reason}, cancellationToken);
+                new { reason }, cancellationToken);
+        }
 
         return new AuthOperationResultDto(false, reason);
     }
@@ -697,7 +843,10 @@ public sealed class AdminUserService(
     {
         List<Guid> ids = [.. roleIds.Distinct()];
 
-        if (ids.Count == 0) return [];
+        if (ids.Count == 0)
+        {
+            return [];
+        }
 
         List<Role> roles = await db.Roles
             .Where(role => ids.Contains(role.Id) && role.IsEnabled)
@@ -705,9 +854,14 @@ public sealed class AdminUserService(
 
         if (roles.Any(role => role.Code == AuthorizationCatalog.SuperAdminRole))
             // 超管角色只能通过移交流程分配，任何直接分配请求都按越权处理。
+        {
             return [];
+        }
 
-        if (roles.Any(role => !AdminUserRules.IsAssignableRoleCode(actor.IsSuperAdmin, role.Code))) return [];
+        if (roles.Any(role => !AdminUserRules.IsAssignableRoleCode(actor.IsSuperAdmin, role.Code)))
+        {
+            return [];
+        }
 
         return roles;
     }

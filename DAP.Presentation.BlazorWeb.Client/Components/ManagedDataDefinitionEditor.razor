@@ -62,7 +62,7 @@
                                            HelperText="选择该节点所属的采集服务器，采集方式与连接地址由服务器决定。"
                                            @bind-Value="_selectedServerId"
                                            @bind-Value:after="() => OnServerChanged(_selectedServerId)">
-                                    <MudSelectItem T="Guid?" Value="@((Guid?) null)">请选择采集服务器</MudSelectItem>
+                                    <MudSelectItem T="Guid?" Value="@((Guid?)null)">请选择采集服务器</MudSelectItem>
                                     @foreach (AcquisitionServerDto server in _servers)
                                     {
                                         <MudSelectItem T="Guid?" Value="@server.Id">

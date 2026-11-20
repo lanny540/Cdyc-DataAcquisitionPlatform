@@ -131,7 +131,10 @@ public abstract class PlatformChartBase : Control
     /// <returns>合适的轴上限，最小为 1。</returns>
     protected static double NiceCeiling(double max)
     {
-        if (max <= 0 || double.IsNaN(max) || double.IsInfinity(max)) return 1;
+        if (max <= 0 || double.IsNaN(max) || double.IsInfinity(max))
+        {
+            return 1;
+        }
 
         double exponent = Math.Floor(Math.Log10(max));
         double magnitude = Math.Pow(10, exponent);

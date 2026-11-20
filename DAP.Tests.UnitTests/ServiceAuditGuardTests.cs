@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using DAP.Core.Domain.Entities;
-using DAP.Core.Domain.Services;
 using DAP.Core.Shared.Catalog;
 using DAP.Infrastructure.DataAccess.Persistence;
 using DAP.Presentation.BlazorWeb.Security.Auditing;
@@ -29,7 +28,9 @@ public sealed class ServiceAuditGuardTests
     private sealed class StubUserContext(CurrentUser? user) : ICurrentUserContext
     {
         public Task<CurrentUser?> GetUserAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult(user);
+        {
+            return Task.FromResult(user);
+        }
     }
 
     /// <summary>
@@ -38,7 +39,10 @@ public sealed class ServiceAuditGuardTests
     /// </summary>
     private static string? DetailReason(string? detail)
     {
-        if (detail is null) return null;
+        if (detail is null)
+        {
+            return null;
+        }
 
         using System.Text.Json.JsonDocument document = System.Text.Json.JsonDocument.Parse(detail);
         return document.RootElement.TryGetProperty("reason", out System.Text.Json.JsonElement reason)
@@ -51,12 +55,18 @@ public sealed class ServiceAuditGuardTests
     {
         List<Claim> claims =
         [
-            new Claim(AuthorizationCatalog.PlatformClaimTypes.UserId, userId.ToString()),
-            new Claim(AuthorizationCatalog.PlatformClaimTypes.UserName, "actor")
+            new(AuthorizationCatalog.PlatformClaimTypes.UserId, userId.ToString()),
+            new(AuthorizationCatalog.PlatformClaimTypes.UserName, "actor")
         ];
-        if (isSuperAdmin) claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.SuperAdmin, "true"));
+        if (isSuperAdmin)
+        {
+            claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.SuperAdmin, "true"));
+        }
+
         foreach (string permission in permissions)
+        {
             claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.Permission, permission));
+        }
 
         ClaimsIdentity identity = new(claims, "TestAuthentication");
         return CurrentUser.FromPrincipal(new ClaimsPrincipal(identity), "127.0.0.1", "unit-test-agent")!;
@@ -79,7 +89,9 @@ public sealed class ServiceAuditGuardTests
             NullLogger<AuditLogWriter>.Instance));
 
         if (scopedUser is not null)
+        {
             services.AddScoped<ICurrentUserContext>(_ => scopedUser!);
+        }
 
         return services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
     }
@@ -89,9 +101,15 @@ public sealed class ServiceAuditGuardTests
         using DataAcquisitionPlatformDbContext db = database.CreateContext();
         AppUser user = new()
         {
-            Id = Guid.NewGuid(), UserName = "guard-user", DisplayName = "守卫用户",
-            DepartmentId = null, IsEnabled = isEnabled, MustChangePassword = false,
-            SecurityStamp = Guid.NewGuid(), CreatedAt = SeedTime, UpdatedAt = SeedTime
+            Id = Guid.NewGuid(),
+            UserName = "guard-user",
+            DisplayName = "守卫用户",
+            DepartmentId = null,
+            IsEnabled = isEnabled,
+            MustChangePassword = false,
+            SecurityStamp = Guid.NewGuid(),
+            CreatedAt = SeedTime,
+            UpdatedAt = SeedTime
         };
         db.AppUsers.Add(user);
         db.SaveChanges();
@@ -109,7 +127,11 @@ public sealed class ServiceAuditGuardTests
             ServiceAuditGuard.ExecuteAsync(
                 scopeFactory, AuthorizationCatalog.ShiftManagePermission, "shift.import",
                 "shift-schedule", "id-1", "11 月排班",
-                _ => { operationInvoked = true; return Task.FromResult(1); }));
+                _ =>
+                {
+                    operationInvoked = true;
+                    return Task.FromResult(1);
+                }));
 
         Assert.False(operationInvoked);
         Assert.Contains("会话已失效", ex.Message);
@@ -145,7 +167,7 @@ public sealed class ServiceAuditGuardTests
     public async Task ExecuteAsync_Disabled_User_Should_Forbid_Before_Writing()
     {
         using SqliteTestDatabase database = new();
-        AppUser user = SeedUser(database, isEnabled: false);
+        AppUser user = SeedUser(database, false);
         CurrentUser actor = BuildActor(user.Id, permissions: AuthorizationCatalog.ShiftManagePermission);
         IServiceScopeFactory scopeFactory = CreateScopeFactory(database, new StubUserContext(actor));
         bool operationInvoked = false;
@@ -155,7 +177,11 @@ public sealed class ServiceAuditGuardTests
             ServiceAuditGuard.ExecuteAsync(
                 scopeFactory, AuthorizationCatalog.ShiftManagePermission, "shift.import",
                 "shift-schedule", null, null,
-                _ => { operationInvoked = true; return Task.FromResult(1); }));
+                _ =>
+                {
+                    operationInvoked = true;
+                    return Task.FromResult(1);
+                }));
 
         Assert.False(operationInvoked);
 
@@ -198,8 +224,12 @@ public sealed class ServiceAuditGuardTests
         int result = await ServiceAuditGuard.ExecuteAsync(
             scopeFactory, AuthorizationCatalog.ShiftManagePermission, "shift.import",
             "shift-schedule", "id-1", "11 月排班",
-            current => { Assert.Equal(actor.UserId, current.UserId); return Task.FromResult(42); },
-            detailFactory: value => new {count = value});
+            current =>
+            {
+                Assert.Equal(actor.UserId, current.UserId);
+                return Task.FromResult(42);
+            },
+            detailFactory: value => new { count = value });
 
         Assert.Equal(42, result);
 
@@ -224,7 +254,7 @@ public sealed class ServiceAuditGuardTests
             scopeFactory, AuthorizationCatalog.ShiftManagePermission, "shift.import",
             "shift-schedule", null, null,
             _ => Task.FromResult(0),
-            succeededSelector: imported => imported > 0);
+            imported => imported > 0);
 
         await using DataAcquisitionPlatformDbContext verify = database.CreateContext();
         AuditLog audit = await verify.AuditLogs.SingleAsync();
@@ -261,7 +291,7 @@ public sealed class ServiceAuditGuardTests
         AppUser user = SeedUser(database);
         CurrentUser actor = BuildActor(user.Id, permissions: AuthorizationCatalog.ShiftManagePermission);
         IServiceScopeFactory scopeFactory = CreateScopeFactory(database, new StubUserContext(actor));
-        string longMessage = new string('错', 600);
+        string longMessage = new('错', 600);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             ServiceAuditGuard.ExecuteAsync<int>(
@@ -325,7 +355,7 @@ public sealed class ServiceAuditGuardTests
     {
         using SqliteTestDatabase database = new();
         AppUser user = SeedUser(database);
-        CurrentUser actor = BuildActor(user.Id, isSuperAdmin: true);
+        CurrentUser actor = BuildActor(user.Id, true);
         IServiceScopeFactory scopeFactory = CreateScopeFactory(database, new StubUserContext(actor));
 
         // 超管不带权限点 claim，也必须通过任意权限点判定。

@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using DAP.Core.Shared.Catalog;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Http;
 
 namespace DAP.Presentation.BlazorWeb.Security.Auditing;
 
@@ -45,7 +44,10 @@ public sealed record CurrentUser(
     /// <returns>操作者视图；主体未认证时返回 null。</returns>
     public static CurrentUser? FromPrincipal(ClaimsPrincipal principal, string? ip, string? userAgent)
     {
-        if (principal.Identity?.IsAuthenticated != true) return null;
+        if (principal.Identity?.IsAuthenticated != true)
+        {
+            return null;
+        }
 
         string? userIdRaw = principal.FindFirst(AuthorizationCatalog.PlatformClaimTypes.UserId)?.Value;
         Guid.TryParse(userIdRaw, out Guid userId);
@@ -91,16 +93,21 @@ internal sealed class PlatformCurrentUserContext(
         HttpContext? http = httpContextAccessor.HttpContext;
 
         if (http is not null)
+        {
             return CurrentUser.FromPrincipal(
                 http.User,
                 http.Connection.RemoteIpAddress?.ToString(),
                 http.Request.Headers.UserAgent.ToString());
+        }
 
         // Server 电路内没有 HttpContext：尝试从认证状态提供者取电路建立时的用户。
         // 该服务只在交互式服务端组件环境下可用，取不到或调用失败按「无身份」处理。
         AuthenticationStateProvider? provider = services.GetService<AuthenticationStateProvider>();
 
-        if (provider is null) return null;
+        if (provider is null)
+        {
+            return null;
+        }
 
         try
         {

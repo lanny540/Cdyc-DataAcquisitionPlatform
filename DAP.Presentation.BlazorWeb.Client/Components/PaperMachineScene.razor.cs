@@ -66,11 +66,15 @@ public partial class PaperMachineScene : ComponentBase, IAsyncDisposable
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        if (_loopCts is null) return;
+        if (_loopCts is null)
+        {
+            return;
+        }
 
         await _loopCts.CancelAsync();
 
         if (_loopTask is not null)
+        {
             try
             {
                 await _loopTask;
@@ -78,6 +82,7 @@ public partial class PaperMachineScene : ComponentBase, IAsyncDisposable
             catch (OperationCanceledException)
             {
             }
+        }
 
         _loopCts.Dispose();
         _loopCts = null;
@@ -151,14 +156,18 @@ public partial class PaperMachineScene : ComponentBase, IAsyncDisposable
         scene.AddFloor(77.5, 119.6, 0.4, 29.6, "scene-zone stage-dry");
 
         for (double x = 8.0; x < 120; x += 8)
+        {
             scene.AddPolyline(
                 [IsoScene.Project(x, 0, 0), IsoScene.Project(x, 30, 0)],
                 "scene-grid");
+        }
 
         for (double y = 6.0; y < 30; y += 6)
+        {
             scene.AddPolyline(
                 [IsoScene.Project(0, y, 0), IsoScene.Project(120, y, 0)],
                 "scene-grid");
+        }
 
         // 地坪轮廓：一圈实线把画面框住，否则白底上的浅色地坪没有边界。
         scene.AddPolyline(
@@ -254,7 +263,9 @@ public partial class PaperMachineScene : ComponentBase, IAsyncDisposable
         scene.AddBox(97.8, 98.6, 3.9, 4.7, 0, 13.4, metal);
 
         for (int index = 0; index < 4; index++)
-            scene.AddCylinderAlongY(80.6 + index * 5.0, 6.8, 2.2, 8.0, 14.0, metal, true);
+        {
+            scene.AddCylinderAlongY(80.6 + (index * 5.0), 6.8, 2.2, 8.0, 14.0, metal, true);
+        }
 
         scene.FlushDeferredCaps();
 
@@ -270,7 +281,9 @@ public partial class PaperMachineScene : ComponentBase, IAsyncDisposable
         scene.AddBox(106.4, 107.4, 4.4, 5.6, 0, 9.6, stage);
 
         for (int index = 0; index < 4; index++)
-            scene.AddCylinderAlongY(104.4, 2.9 + index * 1.8, 0.85, 8.0, 14.0, metal, true);
+        {
+            scene.AddCylinderAlongY(104.4, 2.9 + (index * 1.8), 0.85, 8.0, 14.0, metal, true);
+        }
 
         scene.FlushDeferredCaps();
     }
@@ -321,21 +334,9 @@ public partial class PaperMachineScene : ComponentBase, IAsyncDisposable
         // 纸幅：唇口 → 网案 → 伏辊 → 压榨 → 烘缸 → 压光 → 卷取
         (double X, double Y, double Z)[] web = new (double X, double Y, double Z)[]
         {
-            (45.6, 11.5, 11.2),
-            (48.8, 11.5, 10.9),
-            (49.8, 11.5, 5.8),
-            (62.6, 11.5, 5.8),
-            (64.6, 11.5, 7.6),
-            (66.6, 11.5, 7.4),
-            (74.6, 11.5, 7.4),
-            (77.4, 11.5, 7.6),
-            (79.6, 11.5, 9.0),
-            (96.4, 11.5, 9.0),
-            (99.0, 11.5, 9.2),
-            (101.8, 11.5, 9.9),
-            (107.0, 11.5, 9.9),
-            (109.6, 11.5, 6.6),
-            (112.6, 11.5, 9.0),
+            (45.6, 11.5, 11.2), (48.8, 11.5, 10.9), (49.8, 11.5, 5.8), (62.6, 11.5, 5.8), (64.6, 11.5, 7.6),
+            (66.6, 11.5, 7.4), (74.6, 11.5, 7.4), (77.4, 11.5, 7.6), (79.6, 11.5, 9.0), (96.4, 11.5, 9.0),
+            (99.0, 11.5, 9.2), (101.8, 11.5, 9.9), (107.0, 11.5, 9.9), (109.6, 11.5, 6.6), (112.6, 11.5, 9.0),
             (114.9, 11.5, 9.0)
         };
 
@@ -364,7 +365,7 @@ public partial class PaperMachineScene : ComponentBase, IAsyncDisposable
         return anchors.Select((anchor, index) =>
         {
             ScenePoint point = IsoScene.Project(anchor.CenterX, 5, anchor.TopZ);
-            double tagX = Math.Clamp(point.X - TagWidth / 2, 6, IsoScene.ViewWidth - 6 - TagWidth);
+            double tagX = Math.Clamp(point.X - (TagWidth / 2), 6, IsoScene.ViewWidth - 6 - TagWidth);
             double tagY = index % 2 == 0 ? TagRowTop : TagRowBottom;
 
             return new TagSpec(anchor.Code, tagX, tagY, point.X, point.Y);
@@ -426,7 +427,7 @@ public partial class PaperMachineScene : ComponentBase, IAsyncDisposable
                 Svg(spec.TagX + TagWidth - 10),
                 Svg(spec.TagY + 16),
                 Svg(spec.TagY + 32),
-                $"{Svg(spec.TagX + TagWidth / 2)},{Svg(spec.TagY + TagHeight)} {Svg(spec.AnchorX)},{Svg(spec.AnchorY)}",
+                $"{Svg(spec.TagX + (TagWidth / 2))},{Svg(spec.TagY + TagHeight)} {Svg(spec.AnchorX)},{Svg(spec.AnchorY)}",
                 Svg(spec.AnchorX),
                 Svg(spec.AnchorY),
                 station.Stage switch

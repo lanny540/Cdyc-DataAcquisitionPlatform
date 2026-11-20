@@ -69,8 +69,7 @@ public sealed class ParkEnergyAggregatorTests
         ParkEnergyReadingInput[] readings = new[]
         {
             new ParkEnergyReadingInput(meter.Id, Before(28), 900m),
-            new ParkEnergyReadingInput(meter.Id, At(2), 1000m),
-            new ParkEnergyReadingInput(meter.Id, At(5), 1400m)
+            new ParkEnergyReadingInput(meter.Id, At(2), 1000m), new ParkEnergyReadingInput(meter.Id, At(5), 1400m)
         };
 
         ParkEnergyAggregate result = ParkEnergyAggregator.Aggregate([meter], readings, Period, Offset);
@@ -178,8 +177,7 @@ public sealed class ParkEnergyAggregatorTests
         {
             new ParkEnergyReadingInput(electricity.Id, At(1), 0m),
             new ParkEnergyReadingInput(electricity.Id, At(20), 1000m),
-            new ParkEnergyReadingInput(air.Id, At(1), 0m),
-            new ParkEnergyReadingInput(air.Id, At(20), 500m)
+            new ParkEnergyReadingInput(air.Id, At(1), 0m), new ParkEnergyReadingInput(air.Id, At(20), 500m)
         };
 
         ParkEnergyAggregate result = ParkEnergyAggregator.Aggregate([electricity, air], readings, Period, Offset);
@@ -250,10 +248,8 @@ public sealed class ParkEnergyAggregatorTests
 
         ParkEnergyReadingInput[] readings = new[]
         {
-            new ParkEnergyReadingInput(big.Id, At(1), 0m),
-            new ParkEnergyReadingInput(big.Id, At(20), 1000m),
-            new ParkEnergyReadingInput(small.Id, At(1), 0m),
-            new ParkEnergyReadingInput(small.Id, At(20), 200m)
+            new ParkEnergyReadingInput(big.Id, At(1), 0m), new ParkEnergyReadingInput(big.Id, At(20), 1000m),
+            new ParkEnergyReadingInput(small.Id, At(1), 0m), new ParkEnergyReadingInput(small.Id, At(20), 200m)
         };
 
         ParkEnergyAggregate result = ParkEnergyAggregator.Aggregate([big, smallOrg], readings, Period, Offset);
@@ -319,7 +315,10 @@ public sealed class ParkEnergyAggregatorTests
 
         decimal?[] load = ParkEnergyAggregator.BuildHourlyLoad([meter], readings, day, Offset);
 
-        foreach (int hour in new[] {8, 9, 10, 11}) Assert.Equal(100m, load[hour]);
+        foreach (int hour in new[] { 8, 9, 10, 11 })
+        {
+            Assert.Equal(100m, load[hour]);
+        }
     }
 
     /// <summary>
@@ -345,12 +344,11 @@ public sealed class ParkEnergyAggregatorTests
     public void Summary_And_Submeters_Should_Not_Double_Count_And_Should_Show_Loss()
     {
         ParkEnergyMeterInput summary = Meter(name: "总表");
-        ParkEnergyMeterInput child = Meter(name: "分表") with {ParentMeterId = summary.Id};
+        ParkEnergyMeterInput child = Meter(name: "分表") with { ParentMeterId = summary.Id };
         ParkEnergyReadingInput[] readings = new[]
         {
             new ParkEnergyReadingInput(summary.Id, At(1), 0m),
-            new ParkEnergyReadingInput(summary.Id, At(20), 1000m),
-            new ParkEnergyReadingInput(child.Id, At(1), 0m),
+            new ParkEnergyReadingInput(summary.Id, At(20), 1000m), new ParkEnergyReadingInput(child.Id, At(1), 0m),
             new ParkEnergyReadingInput(child.Id, At(20), 800m)
         };
 
@@ -365,7 +363,7 @@ public sealed class ParkEnergyAggregatorTests
     public void Missing_Submeter_Should_Not_Be_Reported_As_Loss()
     {
         ParkEnergyMeterInput summary = Meter(name: "总表");
-        ParkEnergyMeterInput child = Meter(name: "分表") with {ParentMeterId = summary.Id};
+        ParkEnergyMeterInput child = Meter(name: "分表") with { ParentMeterId = summary.Id };
         ParkEnergyAggregate result = ParkEnergyAggregator.Aggregate(
             [summary, child],
             [
@@ -401,7 +399,7 @@ public sealed class ParkEnergyAggregatorTests
     public void Hourly_Load_Should_Only_Count_Summary_Meter()
     {
         ParkEnergyMeterInput summary = Meter(name: "总表");
-        ParkEnergyMeterInput child = Meter(name: "分表") with {ParentMeterId = summary.Id};
+        ParkEnergyMeterInput child = Meter(name: "分表") with { ParentMeterId = summary.Id };
         DateOnly day = new(2026, 11, 10);
         decimal?[] result = ParkEnergyAggregator.BuildHourlyLoad(
             [summary, child],
@@ -421,8 +419,8 @@ public sealed class ParkEnergyAggregatorTests
     public void Nested_Meters_Should_Allocate_Each_Level_Loss_Once()
     {
         ParkEnergyMeterInput root = Meter(name: "总表");
-        ParkEnergyMeterInput middle = Meter(name: "车间表") with {ParentMeterId = root.Id};
-        ParkEnergyMeterInput leaf = Meter(name: "工序表") with {ParentMeterId = middle.Id};
+        ParkEnergyMeterInput middle = Meter(name: "车间表") with { ParentMeterId = root.Id };
+        ParkEnergyMeterInput leaf = Meter(name: "工序表") with { ParentMeterId = middle.Id };
         ParkEnergyAggregate result = ParkEnergyAggregator.Aggregate(
             [root, middle, leaf],
             [
@@ -445,7 +443,7 @@ public sealed class ParkEnergyAggregatorTests
     public void Submeter_Exceeding_Summary_Should_Warn_Without_Negative_Loss()
     {
         ParkEnergyMeterInput root = Meter(name: "总表");
-        ParkEnergyMeterInput child = Meter(name: "分表") with {ParentMeterId = root.Id};
+        ParkEnergyMeterInput child = Meter(name: "分表") with { ParentMeterId = root.Id };
         ParkEnergyAggregate result = ParkEnergyAggregator.Aggregate(
             [root, child],
             [
@@ -466,7 +464,7 @@ public sealed class ParkEnergyAggregatorTests
     public void Noncumulative_Submeter_Without_Period_Readings_Should_Not_Create_Loss()
     {
         ParkEnergyMeterInput root = Meter(cumulative: false, name: "总表");
-        ParkEnergyMeterInput child = Meter(cumulative: false, name: "分表") with {ParentMeterId = root.Id};
+        ParkEnergyMeterInput child = Meter(cumulative: false, name: "分表") with { ParentMeterId = root.Id };
         ParkEnergyAggregate result = ParkEnergyAggregator.Aggregate(
             [root, child],
             [
@@ -484,8 +482,8 @@ public sealed class ParkEnergyAggregatorTests
     public void Cyclic_Meter_Relationship_Should_Be_Excluded_With_Warning()
     {
         ParkEnergyMeterInput first = Meter(name: "第一块表");
-        ParkEnergyMeterInput second = Meter(name: "第二块表") with {ParentMeterId = first.Id};
-        first = first with {ParentMeterId = second.Id};
+        ParkEnergyMeterInput second = Meter(name: "第二块表") with { ParentMeterId = first.Id };
+        first = first with { ParentMeterId = second.Id };
         ParkEnergyReadingInput[] readings = new[]
         {
             new ParkEnergyReadingInput(first.Id, At(10, 8), 0m),
@@ -508,7 +506,7 @@ public sealed class ParkEnergyAggregatorTests
     public void Mismatched_Meter_Medium_Should_Exclude_The_Whole_Tree()
     {
         ParkEnergyMeterInput root = Meter(name: "电总表");
-        ParkEnergyMeterInput child = Meter("WATER", name: "水分表") with {ParentMeterId = root.Id};
+        ParkEnergyMeterInput child = Meter("WATER", name: "水分表") with { ParentMeterId = root.Id };
         ParkEnergyAggregate result = ParkEnergyAggregator.Aggregate(
             [root, child],
             [

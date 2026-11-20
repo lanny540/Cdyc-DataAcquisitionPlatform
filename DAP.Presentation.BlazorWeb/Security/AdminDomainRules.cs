@@ -53,7 +53,10 @@ public static partial class AdminDomainRules
     /// <returns>可删除时返回 null，否则返回中文原因。</returns>
     public static string? DescribeDeleteViolation(int pageCount, bool isSystem)
     {
-        if (isSystem) return "系统域是平台管理的固定入口，不允许删除。";
+        if (isSystem)
+        {
+            return "系统域是平台管理的固定入口，不允许删除。";
+        }
 
         return pageCount > 0
             ? $"该域下还有 {pageCount} 个页面，请先把页面迁到其他域或停用，再删除域。"

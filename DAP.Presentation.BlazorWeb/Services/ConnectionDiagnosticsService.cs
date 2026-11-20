@@ -102,10 +102,16 @@ public sealed class ConnectionDiagnosticsService(
         string address = boundServer?.Address.Trim() ?? request.ConnectionAddress.Trim();
 
         ManagedDataConnectionTestResultDto? validationResult = ValidateConnectionTestRequest(acquisitionType, address);
-        if (validationResult is not null) return validationResult;
+        if (validationResult is not null)
+        {
+            return validationResult;
+        }
 
         validationResult = ValidateModbusConnectionTestRequest(request, acquisitionType, address);
-        if (validationResult is not null) return validationResult;
+        if (validationResult is not null)
+        {
+            return validationResult;
+        }
 
         // 节点测试沿用服务器的凭据与接口路径配置，只需提供节点自身的采集信息。
         Dictionary<string, string> serverConfiguration = boundServer is null
@@ -143,6 +149,7 @@ public sealed class ConnectionDiagnosticsService(
         CancellationToken cancellationToken)
     {
         if (!server.IsConfigured)
+        {
             return server with
             {
                 IsChecking = false,
@@ -150,8 +157,10 @@ public sealed class ConnectionDiagnosticsService(
                 CheckedAt = DateTimeOffset.UtcNow,
                 ErrorMessage = "数据库中的连接地址为空。"
             };
+        }
 
         if (IsSerialAddress(server.AcquisitionType, server.Address))
+        {
             return server with
             {
                 IsChecking = false,
@@ -159,6 +168,7 @@ public sealed class ConnectionDiagnosticsService(
                 CheckedAt = DateTimeOffset.UtcNow,
                 ErrorMessage = "不支持串口自动探测。"
             };
+        }
 
         ConnectionProbeResult probeResult = await ProbeAddressAsync(server.Address, cancellationToken);
         string statusMessage = BuildStatusMessage(server, probeResult.Success);
@@ -180,7 +190,7 @@ public sealed class ConnectionDiagnosticsService(
             .AsNoTracking()
             .Where(item => item.ServerConnectionId.HasValue)
             .GroupBy(item => item.ServerConnectionId!.Value)
-            .Select(item => new {ServerConnectionId = item.Key, Count = item.Count()})
+            .Select(item => new { ServerConnectionId = item.Key, Count = item.Count() })
             .ToDictionaryAsync(item => item.ServerConnectionId, item => item.Count, cancellationToken);
     }
 
@@ -214,7 +224,10 @@ public sealed class ConnectionDiagnosticsService(
     private async Task<ConnectionProbeResult> ProbeAddressAsync(string address, CancellationToken cancellationToken)
     {
         if (!TryResolveEndpoint(address, out string host, out int port, out string normalizedAddress,
-                out string? errorMessage)) return CreateProbeFailureResult(normalizedAddress, errorMessage);
+                out string? errorMessage))
+        {
+            return CreateProbeFailureResult(normalizedAddress, errorMessage);
+        }
 
         using CancellationTokenSource linkedSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         linkedSource.CancelAfter(TimeSpan.FromSeconds(DefaultRequestTimeoutSeconds));
@@ -274,11 +287,17 @@ public sealed class ConnectionDiagnosticsService(
         string acquisitionType,
         string address)
     {
-        if (!string.Equals(acquisitionType, "Modbus", StringComparison.OrdinalIgnoreCase)) return null;
+        if (!string.Equals(acquisitionType, "Modbus", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
 
         Dictionary<string, string> configuration = ParseJsonDictionary(request.ConfigurationJson);
         string variant = GetValueOrDefault(configuration, "protocolVariant", "RTU");
-        if (!string.Equals(variant, "RTU", StringComparison.OrdinalIgnoreCase)) return null;
+        if (!string.Equals(variant, "RTU", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
 
         return new ManagedDataConnectionTestResultDto(
             acquisitionType,
@@ -414,7 +433,10 @@ public sealed class ConnectionDiagnosticsService(
 
     private static Dictionary<string, string> ParseJsonDictionary(string json)
     {
-        if (string.IsNullOrWhiteSpace(json)) return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
 
         try
         {

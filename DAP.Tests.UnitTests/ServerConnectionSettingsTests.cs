@@ -4,12 +4,6 @@ namespace DAP.Tests.UnitTests;
 
 /// <summary>
 /// 采集服务器连接参数解析测试。
-///
-/// 这一层负责把数据库里存的 JSON 配置转成运行时连接参数，
-/// 转换错了会出现两类严重问题：
-/// - 凭据字段解析不出来 → 所有接口都401，连不上历史库；
-/// - 超时/证书开关解析错误 → 要么请求挂死，要么在生产环境意外关闭证书校验。
-/// 因此这里逐个字段验证「缺失、空白、类型不符、正常」四种输入的解析结果。
 /// </summary>
 public class ServerConnectionSettingsTests
 {
@@ -17,7 +11,10 @@ public class ServerConnectionSettingsTests
     {
         Dictionary<string, string> dictionary = new(StringComparer.OrdinalIgnoreCase);
 
-        foreach ((string key, string value) in config) dictionary[key] = value;
+        foreach ((string key, string value) in config)
+        {
+            dictionary[key] = value;
+        }
 
         return new ServerConnectionSettings(
             Guid.NewGuid(), "HIST-01", "历史库服务器", "https://hist.example.com/", dictionary);

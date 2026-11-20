@@ -51,13 +51,21 @@ public sealed class AdminUserServiceTests
 
         Department deptA = new()
         {
-            Id = Guid.NewGuid(), Code = "dept-a", Name = "一部", IsEnabled = true,
-            CreatedAt = SeedTime, UpdatedAt = SeedTime
+            Id = Guid.NewGuid(),
+            Code = "dept-a",
+            Name = "一部",
+            IsEnabled = true,
+            CreatedAt = SeedTime,
+            UpdatedAt = SeedTime
         };
         Department deptB = new()
         {
-            Id = Guid.NewGuid(), Code = "dept-b", Name = "二部", IsEnabled = true,
-            CreatedAt = SeedTime, UpdatedAt = SeedTime
+            Id = Guid.NewGuid(),
+            Code = "dept-b",
+            Name = "二部",
+            IsEnabled = true,
+            CreatedAt = SeedTime,
+            UpdatedAt = SeedTime
         };
         db.Departments.AddRange(deptA, deptB);
 
@@ -66,10 +74,15 @@ public sealed class AdminUserServiceTests
         {
             Role role = new()
             {
-                Id = Guid.NewGuid(), Code = builtIn.Code, Name = builtIn.Name,
-                PageLevel = builtIn.PageLevel, IsBuiltin = builtIn.IsBuiltin,
-                IsEnabled = true, SortOrder = builtIn.SortOrder,
-                CreatedAt = SeedTime, UpdatedAt = SeedTime
+                Id = Guid.NewGuid(),
+                Code = builtIn.Code,
+                Name = builtIn.Name,
+                PageLevel = builtIn.PageLevel,
+                IsBuiltin = builtIn.IsBuiltin,
+                IsEnabled = true,
+                SortOrder = builtIn.SortOrder,
+                CreatedAt = SeedTime,
+                UpdatedAt = SeedTime
             };
             roleIds[builtIn.Code] = role.Id;
             db.Roles.Add(role);
@@ -80,9 +93,13 @@ public sealed class AdminUserServiceTests
         {
             Permission permission = new()
             {
-                Id = Guid.NewGuid(), Code = builtIn.Code, Name = builtIn.Name,
-                Group = builtIn.Group, SortOrder = builtIn.SortOrder,
-                CreatedAt = SeedTime, UpdatedAt = SeedTime
+                Id = Guid.NewGuid(),
+                Code = builtIn.Code,
+                Name = builtIn.Name,
+                Group = builtIn.Group,
+                SortOrder = builtIn.SortOrder,
+                CreatedAt = SeedTime,
+                UpdatedAt = SeedTime
             };
             permissionIds[builtIn.Code] = permission.Id;
             db.Permissions.Add(permission);
@@ -90,10 +107,12 @@ public sealed class AdminUserServiceTests
 
         foreach (BuiltInRole builtIn in AuthorizationCatalog.Roles)
         foreach (string code in builtIn.PermissionCodes)
+        {
             db.RolePermissions.Add(new RolePermission
             {
                 RoleId = roleIds[builtIn.Code], PermissionId = permissionIds[code]
             });
+        }
 
         AppUser superAdmin = CreateUser("superadmin", "超级管理员", null);
         AppUser deptAdminA = CreateUser("dept-admin-a", "一部管理员", deptA.Id);
@@ -149,20 +168,28 @@ public sealed class AdminUserServiceTests
         ];
 
         if (isSuperAdmin)
+        {
             claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.SuperAdmin, "true"));
+        }
 
         foreach (string permission in permissions)
+        {
             claims.Add(new Claim(AuthorizationCatalog.PlatformClaimTypes.Permission, permission));
+        }
 
         ClaimsIdentity identity = new(claims, "TestAuthentication");
         return CurrentUser.FromPrincipal(new ClaimsPrincipal(identity), "127.0.0.1", "unit-test-agent")!;
     }
 
     private static CurrentUser SuperAdminActor(AppUser user)
-        => BuildActor(user, isSuperAdmin: true);
+    {
+        return BuildActor(user, true);
+    }
 
     private static CurrentUser DeptAdminActor(AppUser user)
-        => BuildActor(user, permissions: AuthorizationCatalog.UserManagePermission);
+    {
+        return BuildActor(user, permissions: AuthorizationCatalog.UserManagePermission);
+    }
 
     private static AdminUserService CreateService(
         DataAcquisitionPlatformDbContext db,
@@ -187,7 +214,9 @@ public sealed class AdminUserServiceTests
     private sealed class StubUserContext(CurrentUser? user) : ICurrentUserContext
     {
         public Task<CurrentUser?> GetUserAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult(user);
+        {
+            return Task.FromResult(user);
+        }
     }
 
     /// <summary>
@@ -196,7 +225,10 @@ public sealed class AdminUserServiceTests
     /// </summary>
     private static string? DetailReason(string? detail)
     {
-        if (detail is null) return null;
+        if (detail is null)
+        {
+            return null;
+        }
 
         using System.Text.Json.JsonDocument document = System.Text.Json.JsonDocument.Parse(detail);
         return document.RootElement.TryGetProperty("reason", out System.Text.Json.JsonElement reason)

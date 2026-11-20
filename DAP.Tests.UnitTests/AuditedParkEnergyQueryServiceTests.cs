@@ -62,7 +62,7 @@ public sealed class AuditedParkEnergyQueryServiceTests
             MustChangePassword = false,
             SecurityStamp = stamp,
             CreatedAt = now,
-            UpdatedAt = now,
+            UpdatedAt = now
         });
         db.Roles.Add(new Role
         {
@@ -74,7 +74,7 @@ public sealed class AuditedParkEnergyQueryServiceTests
             IsEnabled = true,
             SortOrder = 10,
             CreatedAt = now,
-            UpdatedAt = now,
+            UpdatedAt = now
         });
         db.UserRoles.Add(new UserRole { UserId = userId, RoleId = roleId });
         db.BusinessDomains.Add(new BusinessDomain
@@ -85,7 +85,7 @@ public sealed class AuditedParkEnergyQueryServiceTests
             SortOrder = 30,
             IsEnabled = true,
             CreatedAt = now,
-            UpdatedAt = now,
+            UpdatedAt = now
         });
         await db.SaveChangesAsync();
 
@@ -104,8 +104,8 @@ public sealed class AuditedParkEnergyQueryServiceTests
             [AuthorizationCatalog.EnergyDomain],
             AuthorizationCatalog.SuperAdminPageLevel,
             [],
-            MustChangePassword: false,
-            IsSuperAdmin: true);
+            false,
+            true);
 
         ClaimsPrincipal principal = PlatformClaimsFactory.CreatePrincipal(dto, issuedAt, stamp.ToString());
         return new CurrentUser(userId, "admin", "管理员", "动力部", "192.168.1.10", "UnitTest/1.0", true, principal);
@@ -128,7 +128,8 @@ public sealed class AuditedParkEnergyQueryServiceTests
     }
 
     /// <summary>构造合法的计量点新建请求（四维标识取自已播种的字典）。</summary>
-    private static async Task<EnergyMeterUpsertRequest> ValidMeterRequestAsync(EnergySqliteTestDatabase database, string code)
+    private static async Task<EnergyMeterUpsertRequest> ValidMeterRequestAsync(EnergySqliteTestDatabase database,
+        string code)
     {
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
 
@@ -153,7 +154,7 @@ public sealed class AuditedParkEnergyQueryServiceTests
     {
         using EnergySqliteTestDatabase database = new();
         await SeedCatalogAsync(database);
-        AuditedParkEnergyQueryService service = CreateService(database, user: null);
+        AuditedParkEnergyQueryService service = CreateService(database, null);
 
         // 读操作不做权限判定也不留审计：查询不留痕是审计边界的基本约定。
         ParkEnergyOverviewDto overview = await service.GetOverviewAsync("month");
@@ -172,15 +173,14 @@ public sealed class AuditedParkEnergyQueryServiceTests
     {
         using EnergySqliteTestDatabase database = new();
         await SeedCatalogAsync(database);
-        AuditedParkEnergyQueryService service = CreateService(database, user: null);
+        AuditedParkEnergyQueryService service = CreateService(database, null);
 
         EnergyMeterUpsertRequest request = await ValidMeterRequestAsync(database, "EM-AUDIT-001");
 
         await Assert.ThrowsAsync<ForbiddenAccessException>(() => service.UpsertMeterAsync(request));
-        await Assert.ThrowsAsync<ForbiddenAccessException>(
-            () => service.UpdateMediumFactorAsync(Guid.NewGuid(), 1m));
-        await Assert.ThrowsAsync<ForbiddenAccessException>(
-            () => service.IngestReadingsAsync(new IngestEnergyReadingsRequest([])));
+        await Assert.ThrowsAsync<ForbiddenAccessException>(() => service.UpdateMediumFactorAsync(Guid.NewGuid(), 1m));
+        await Assert.ThrowsAsync<ForbiddenAccessException>(() =>
+            service.IngestReadingsAsync(new IngestEnergyReadingsRequest([])));
 
         List<AuditLog> audits = await LoadAuditsAsync(database);
 
@@ -199,7 +199,7 @@ public sealed class AuditedParkEnergyQueryServiceTests
 
         // 三条记录的时间戳相同（固定时钟），顺序不保证，按集合比较。
         Assert.Equal(
-            new[] {"energy.meter.upsert", "energy.factor.update", "energy.readings.ingest"}
+            new[] { "energy.meter.upsert", "energy.factor.update", "energy.readings.ingest" }
                 .OrderBy(code => code, StringComparer.Ordinal),
             audits.Select(audit => audit.ActionCode).OrderBy(code => code, StringComparer.Ordinal));
 
@@ -214,7 +214,8 @@ public sealed class AuditedParkEnergyQueryServiceTests
         using EnergySqliteTestDatabase database = new();
         await SeedCatalogAsync(database);
         (Guid userId, Guid stamp) = await SeedSuperAdminAsync(database);
-        AuditedParkEnergyQueryService service = CreateService(database, SuperAdmin(userId, stamp, DateTimeOffset.UtcNow.AddMinutes(-5)));
+        AuditedParkEnergyQueryService service =
+            CreateService(database, SuperAdmin(userId, stamp, DateTimeOffset.UtcNow.AddMinutes(-5)));
 
         EnergyMeterUpsertRequest request = await ValidMeterRequestAsync(database, "EM-AUDIT-OK");
         EnergyMeterDto dto = await service.UpsertMeterAsync(request);
@@ -245,7 +246,8 @@ public sealed class AuditedParkEnergyQueryServiceTests
         using EnergySqliteTestDatabase database = new();
         await SeedCatalogAsync(database);
         (Guid userId, Guid stamp) = await SeedSuperAdminAsync(database);
-        AuditedParkEnergyQueryService service = CreateService(database, SuperAdmin(userId, stamp, DateTimeOffset.UtcNow));
+        AuditedParkEnergyQueryService service =
+            CreateService(database, SuperAdmin(userId, stamp, DateTimeOffset.UtcNow));
 
         // 业务上「删除不存在的计量点」返回 false：审计必须记 failed 而不是 success。
         Assert.False(await service.DeleteMeterAsync(Guid.NewGuid()));
@@ -262,7 +264,8 @@ public sealed class AuditedParkEnergyQueryServiceTests
         using EnergySqliteTestDatabase database = new();
         await SeedCatalogAsync(database);
         (Guid userId, Guid stamp) = await SeedSuperAdminAsync(database);
-        AuditedParkEnergyQueryService service = CreateService(database, SuperAdmin(userId, stamp, DateTimeOffset.UtcNow));
+        AuditedParkEnergyQueryService service =
+            CreateService(database, SuperAdmin(userId, stamp, DateTimeOffset.UtcNow));
 
         EnergyMeterUpsertRequest request = await ValidMeterRequestAsync(database, "EM-AUDIT-DUP");
         await service.UpsertMeterAsync(request);
@@ -289,7 +292,8 @@ public sealed class AuditedParkEnergyQueryServiceTests
         using EnergySqliteTestDatabase database = new();
         await SeedCatalogAsync(database);
         (Guid userId, Guid stamp) = await SeedSuperAdminAsync(database);
-        AuditedParkEnergyQueryService service = CreateService(database, SuperAdmin(userId, stamp, DateTimeOffset.UtcNow));
+        AuditedParkEnergyQueryService service =
+            CreateService(database, SuperAdmin(userId, stamp, DateTimeOffset.UtcNow));
 
         // 空批次走系统权限点：开发环境端点在无数据时返回 0 条而不是报错。
         // （非空批次依赖 Npgsql 批量写入，SQLite 下不可测，见类注释。）
@@ -365,14 +369,14 @@ public sealed class AuditedParkEnergyQueryServiceTests
                 MustChangePassword = false,
                 SecurityStamp = stamp,
                 CreatedAt = now,
-                UpdatedAt = now,
+                UpdatedAt = now
             });
             await db.SaveChangesAsync();
         }
 
         AuthUserDto dto = new(
             userId, "worker", "普通用户", null, [], [], AuthorizationCatalog.ViewAccessLevel,
-            [], MustChangePassword: false, IsSuperAdmin: false);
+            [], false, false);
         ClaimsPrincipal principal = PlatformClaimsFactory.CreatePrincipal(dto, DateTimeOffset.UtcNow, stamp.ToString());
         CurrentUser user = new(userId, "worker", "普通用户", null, "10.0.0.5", "UnitTest/1.0", false, principal);
 

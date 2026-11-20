@@ -156,7 +156,10 @@ public sealed partial class EnergyDashboardPageViewModel : EnergyPageViewModelBa
     /// </summary>
     partial void OnTrendDaysChanged(int value)
     {
-        if (!_isApplyingDashboard) _ = ReloadAsync();
+        if (!_isApplyingDashboard)
+        {
+            _ = ReloadAsync();
+        }
     }
 
     /// <inheritdoc />
@@ -211,7 +214,10 @@ public sealed partial class EnergyDashboardPageViewModel : EnergyPageViewModelBa
             TotalUnit = dashboard.TotalUnit;
 
             // 在岗时回填班组选择器，便于用户直接切换；非在岗不回填，避免把猜测的班组当成事实。
-            if (IsOnDuty) SelectTeam(dashboard.TeamCode);
+            if (IsOnDuty)
+            {
+                SelectTeam(dashboard.TeamCode);
+            }
 
             BuildMetricCards(dashboard.MetricTotals.ToArray());
             BuildTrends(dashboard.Trends.ToArray(), dashboard.TeamName);
@@ -295,12 +301,14 @@ public sealed partial class EnergyDashboardPageViewModel : EnergyPageViewModelBa
             .OrderBy(group => group.Key);
 
         foreach (IGrouping<DateOnly, (DateOnly Bucket, string Code, decimal Value)> group in groups)
+        {
             DetailRows.Add(new PivotRowModel(
                 group.Key.ToString("yyyy-MM-dd"),
                 ValueOf(group, trends.ElementAtOrDefault(0)),
                 ValueOf(group, trends.ElementAtOrDefault(1)),
                 ValueOf(group, trends.ElementAtOrDefault(2)),
                 ValueOf(group, trends.ElementAtOrDefault(3))));
+        }
     }
 
     /// <summary>
@@ -310,11 +318,18 @@ public sealed partial class EnergyDashboardPageViewModel : EnergyPageViewModelBa
         IEnumerable<(DateOnly Bucket, string Code, decimal Value)> group,
         EnergyTrendDto? trend)
     {
-        if (trend is null) return "--";
+        if (trend is null)
+        {
+            return "--";
+        }
 
         foreach ((DateOnly _, string code, decimal value) in group)
+        {
             if (code == trend.MetricCode)
+            {
                 return MetricFormat.Value(value);
+            }
+        }
 
         return "--";
     }

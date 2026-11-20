@@ -33,7 +33,10 @@ public sealed class ManagedDataCollectionScheduler(
             startupDelaySeconds,
             scanIntervalSeconds);
 
-        if (startupDelaySeconds > 0) await Task.Delay(TimeSpan.FromSeconds(startupDelaySeconds), stoppingToken);
+        if (startupDelaySeconds > 0)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(startupDelaySeconds), stoppingToken);
+        }
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -81,7 +84,10 @@ public sealed class ManagedDataCollectionScheduler(
 
         foreach (ManagedDataDefinitionDto definition in GetDefinitionsToDispatch(definitions))
         {
-            if (!await ShouldDispatchDefinitionAsync(platformService, definition, cancellationToken)) continue;
+            if (!await ShouldDispatchDefinitionAsync(platformService, definition, cancellationToken))
+            {
+                continue;
+            }
 
             await CollectDefinitionAsync(
                 definition,

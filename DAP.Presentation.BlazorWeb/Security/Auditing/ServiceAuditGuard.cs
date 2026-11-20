@@ -1,6 +1,5 @@
 using DAP.Infrastructure.DataAccess.Persistence;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace DAP.Presentation.BlazorWeb.Security.Auditing;
 
@@ -54,7 +53,7 @@ internal static class ServiceAuditGuard
         {
             // 没有可归责的操作者就不允许写：IP 不是身份（docs/AUTH_DESIGN.md 6.6 硬约束 4）。
             await writer.RecordAsync(null, actionCode, targetType, targetId, targetName, false,
-                new {reason = "会话没有可识别的操作者"}, cancellationToken);
+                new { reason = "会话没有可识别的操作者" }, cancellationToken);
             throw new ForbiddenAccessException("页面仍在加载或会话已失效，请刷新页面后重试。");
         }
 
@@ -73,7 +72,7 @@ internal static class ServiceAuditGuard
             if (!stillEnabled)
             {
                 await writer.RecordAsync(user, actionCode, targetType, targetId, targetName, false,
-                    new {reason = "账号已停用或不存在"}, cancellationToken);
+                    new { reason = "账号已停用或不存在" }, cancellationToken);
                 throw new ForbiddenAccessException("账号已停用，请联系管理员。");
             }
         }
@@ -81,7 +80,7 @@ internal static class ServiceAuditGuard
         if (!user.HasPermission(permissionCode))
         {
             await writer.RecordAsync(user, actionCode, targetType, targetId, targetName, false,
-                new {reason = "缺少权限点", permission = permissionCode}, cancellationToken);
+                new { reason = "缺少权限点", permission = permissionCode }, cancellationToken);
             throw new ForbiddenAccessException("当前账号没有执行该操作的权限，请联系管理员。");
         }
 
@@ -106,7 +105,7 @@ internal static class ServiceAuditGuard
             string reason = ex.Message.Length > 500 ? ex.Message[..500] : ex.Message;
 
             await writer.RecordAsync(user, actionCode, targetType, targetId, targetName, false,
-                new {reason, errorType = ex.GetType().Name}, cancellationToken);
+                new { reason, errorType = ex.GetType().Name }, cancellationToken);
 
             throw;
         }

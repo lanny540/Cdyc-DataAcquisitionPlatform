@@ -158,29 +158,54 @@ public sealed class LdapOptions
     {
         List<string> errors = [];
 
-        if (!Enabled) return errors;
+        if (!Enabled)
+        {
+            return errors;
+        }
 
-        if (string.IsNullOrWhiteSpace(Host)) errors.Add("Auth:Ldap:Host 未配置。");
+        if (string.IsNullOrWhiteSpace(Host))
+        {
+            errors.Add("Auth:Ldap:Host 未配置。");
+        }
 
-        if (Port is < 1 or > 65535) errors.Add("Auth:Ldap:Port 必须在 1 到 65535 之间。");
+        if (Port is < 1 or > 65535)
+        {
+            errors.Add("Auth:Ldap:Port 必须在 1 到 65535 之间。");
+        }
 
-        if (string.IsNullOrWhiteSpace(BindDn)) errors.Add("Auth:Ldap:BindDn 未配置：需要一个只读服务账号来检索用户。");
+        if (string.IsNullOrWhiteSpace(BindDn))
+        {
+            errors.Add("Auth:Ldap:BindDn 未配置：需要一个只读服务账号来检索用户。");
+        }
 
-        if (string.IsNullOrWhiteSpace(BaseDn)) errors.Add("Auth:Ldap:BaseDn 未配置：不知道从哪个节点开始搜索。");
+        if (string.IsNullOrWhiteSpace(BaseDn))
+        {
+            errors.Add("Auth:Ldap:BaseDn 未配置：不知道从哪个节点开始搜索。");
+        }
 
         if (!UserFilter.Contains("{0}", StringComparison.Ordinal))
+        {
             errors.Add("Auth:Ldap:UserFilter 必须包含 {0} 占位符，否则查不到对应用户。");
+        }
 
-        if (PageSize < 1) errors.Add("Auth:Ldap:PageSize 必须大于 0。");
+        if (PageSize < 1)
+        {
+            errors.Add("Auth:Ldap:PageSize 必须大于 0。");
+        }
 
-        if (TimeoutSeconds < 1) errors.Add("Auth:Ldap:TimeoutSeconds 必须大于 0。");
+        if (TimeoutSeconds < 1)
+        {
+            errors.Add("Auth:Ldap:TimeoutSeconds 必须大于 0。");
+        }
 
         // 明文只允许出现在本机测试目录上：域账号密码以明文过网，等同于把口令交给同网段任何人。
         // 判定用 loopback 而不是「开发环境」标志，因为标志会被误带到生产配置里。
         if (TransportSecurity == LdapTransportSecurity.None && !IsLoopbackHost(Host))
+        {
             errors.Add(
                 "Auth:Ldap:TransportSecurity 为 None，域账号密码会以明文经过网络。"
                 + "除本机测试目录外必须使用 Ssl 或 StartTls。");
+        }
 
         return errors;
     }
@@ -192,11 +217,17 @@ public sealed class LdapOptions
     /// <returns>本机时返回 true。</returns>
     public static bool IsLoopbackHost(string? host)
     {
-        if (string.IsNullOrWhiteSpace(host)) return false;
+        if (string.IsNullOrWhiteSpace(host))
+        {
+            return false;
+        }
 
         string value = host.Trim();
 
-        if (string.Equals(value, "localhost", StringComparison.OrdinalIgnoreCase)) return true;
+        if (string.Equals(value, "localhost", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
 
         return System.Net.IPAddress.TryParse(value, out System.Net.IPAddress? address)
                && System.Net.IPAddress.IsLoopback(address);
@@ -210,13 +241,8 @@ public sealed class LdapOptions
     {
         return new[]
             {
-                LoginAttribute,
-                UniqueIdAttribute,
-                DisplayNameAttribute,
-                MailAttribute,
-                DepartmentAttribute,
-                EmployeeNoAttribute,
-                DisabledFlagAttribute
+                LoginAttribute, UniqueIdAttribute, DisplayNameAttribute, MailAttribute, DepartmentAttribute,
+                EmployeeNoAttribute, DisabledFlagAttribute
             }
             .Where(name => !string.IsNullOrWhiteSpace(name))
             .Distinct(StringComparer.OrdinalIgnoreCase)

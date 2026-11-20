@@ -87,8 +87,8 @@ public sealed class IsoScene
     public static ScenePoint Project(double x, double y, double z)
     {
         return new ScenePoint(
-            OriginX + (x + y * DepthX) * Scale,
-            OriginY - (z + y * DepthY) * Scale);
+            OriginX + ((x + (y * DepthX)) * Scale),
+            OriginY - ((z + (y * DepthY)) * Scale));
     }
 
     /// <summary>
@@ -180,10 +180,10 @@ public sealed class IsoScene
 
         for (int i = 0; i <= half; i++)
         {
-            double angle = Math.PI - Math.PI * i / half;
+            double angle = Math.PI - (Math.PI * i / half);
             outline.Add(Project(
-                cx + radius * Math.Cos(angle),
-                cy + radius * Math.Sin(angle),
+                cx + (radius * Math.Cos(angle)),
+                cy + (radius * Math.Sin(angle)),
                 z1));
         }
 
@@ -191,8 +191,8 @@ public sealed class IsoScene
         {
             double angle = -Math.PI * i / half;
             outline.Add(Project(
-                cx + radius * Math.Cos(angle),
-                cy + radius * Math.Sin(angle),
+                cx + (radius * Math.Cos(angle)),
+                cy + (radius * Math.Sin(angle)),
                 z0));
         }
 
@@ -255,9 +255,13 @@ public sealed class IsoScene
             $"iso-cyl-cap {stageCss}");
 
         if (deferCap)
+        {
             _deferred.Add(cap);
+        }
         else
+        {
             _shapes.Add(cap);
+        }
     }
 
     /// <summary>
@@ -310,7 +314,7 @@ public sealed class IsoScene
         for (int i = 0; i < CircleSegments; i++)
         {
             double angle = Math.Tau * i / CircleSegments;
-            ring[i] = (cx + radius * Math.Cos(angle), cy + radius * Math.Sin(angle));
+            ring[i] = (cx + (radius * Math.Cos(angle)), cy + (radius * Math.Sin(angle)));
         }
 
         return ring;
@@ -319,8 +323,8 @@ public sealed class IsoScene
     private static ScenePoint PointAt(ScenePoint center, double radius, double angle)
     {
         return new ScenePoint(
-            center.X + radius * Math.Cos(angle),
-            center.Y - radius * Math.Sin(angle));
+            center.X + (radius * Math.Cos(angle)),
+            center.Y - (radius * Math.Sin(angle)));
     }
 
     private void AddPolygon(IReadOnlyList<ScenePoint> points, string cssClass)

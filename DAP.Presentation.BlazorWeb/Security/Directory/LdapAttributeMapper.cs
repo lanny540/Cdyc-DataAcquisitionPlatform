@@ -19,11 +19,15 @@ public static class LdapFilter
     /// <returns>转义后的值。</returns>
     public static string Escape(string? value)
     {
-        if (string.IsNullOrEmpty(value)) return string.Empty;
+        if (string.IsNullOrEmpty(value))
+        {
+            return string.Empty;
+        }
 
         StringBuilder builder = new(value.Length);
 
         foreach (char character in value)
+        {
             switch (character)
             {
                 case '\\':
@@ -45,6 +49,7 @@ public static class LdapFilter
                     builder.Append(character);
                     break;
             }
+        }
 
         return builder.ToString();
     }
@@ -77,13 +82,20 @@ public static class LdapAttributeMapper
     /// <returns>OU 名称；解析不到时返回 null。</returns>
     public static string? ResolveOuName(string? distinguishedName, int level)
     {
-        if (level < 1 || string.IsNullOrWhiteSpace(distinguishedName)) return null;
+        if (level < 1 || string.IsNullOrWhiteSpace(distinguishedName))
+        {
+            return null;
+        }
 
         List<string> ous = [];
 
         foreach (string part in SplitDn(distinguishedName))
+        {
             if (part.StartsWith("OU=", StringComparison.OrdinalIgnoreCase))
+            {
                 ous.Add(part[3..]);
+            }
+        }
 
         return ous.Count >= level ? ous[level - 1] : null;
     }
@@ -121,7 +133,10 @@ public static class LdapAttributeMapper
             current.Append(character);
         }
 
-        if (current.Length > 0) parts.Add(current.ToString().Trim());
+        if (current.Length > 0)
+        {
+            parts.Add(current.ToString().Trim());
+        }
 
         return parts;
     }
@@ -149,18 +164,29 @@ public static class LdapAttributeMapper
 
         string externalId = ReadExternalId(entry, options);
 
-        if (externalId.Length == 0) externalId = userName;
+        if (externalId.Length == 0)
+        {
+            externalId = userName;
+        }
 
-        if (externalId.Length == 0) return null;
+        if (externalId.Length == 0)
+        {
+            return null;
+        }
 
         string? displayName = entry.GetString(options.DisplayNameAttribute)?.Trim();
 
-        if (string.IsNullOrWhiteSpace(displayName)) displayName = userName.Length > 0 ? userName : externalId;
+        if (string.IsNullOrWhiteSpace(displayName))
+        {
+            displayName = userName.Length > 0 ? userName : externalId;
+        }
 
         string? department = entry.GetString(options.DepartmentAttribute)?.Trim();
 
         if (string.IsNullOrWhiteSpace(department))
+        {
             department = ResolveOuName(entry.DistinguishedName, options.DepartmentOuLevel);
+        }
 
         string? email = entry.GetString(options.MailAttribute)?.Trim();
         string? employeeNo = entry.GetString(options.EmployeeNoAttribute)?.Trim();
@@ -190,24 +216,36 @@ public static class LdapAttributeMapper
     {
         string? raw = entry.GetString(options.UniqueIdAttribute)?.Trim();
 
-        if (!string.IsNullOrWhiteSpace(raw)) return raw;
+        if (!string.IsNullOrWhiteSpace(raw))
+        {
+            return raw;
+        }
 
         byte[]? bytes = entry.GetBytes(options.UniqueIdAttribute);
 
-        return bytes is {Length: > 0} ? ToHexString(bytes) : string.Empty;
+        return bytes is { Length: > 0 } ? ToHexString(bytes) : string.Empty;
     }
 
     private static bool ReadEnabled(ILdapEntry entry, LdapOptions options)
     {
-        if (string.IsNullOrWhiteSpace(options.DisabledFlagAttribute)) return true;
+        if (string.IsNullOrWhiteSpace(options.DisabledFlagAttribute))
+        {
+            return true;
+        }
 
         string? raw = entry.GetString(options.DisabledFlagAttribute);
 
         // 属性缺失（OpenLDAP 没有 userAccountControl）时不能当成停用：
         // 那会让整个目录的账号在第一次同步后全部失效。
-        if (string.IsNullOrWhiteSpace(raw)) return true;
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return true;
+        }
 
-        if (!int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out int flags)) return true;
+        if (!int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out int flags))
+        {
+            return true;
+        }
 
         return (flags & options.DisabledFlagMask) == 0;
     }

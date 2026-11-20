@@ -26,8 +26,8 @@ public class ShiftRotationValidatorTests
     public void Validate_Should_Fail_When_Shift_Is_Not_Eight_Hours()
     {
         ShiftScheduleRowDto[] rows = BuildFourDaySchedule()
-            .Select(item => item is {IsRestDay: false} && item.StartTime == new TimeOnly(8, 0)
-                ? item with {EndTime = new TimeOnly(15, 0), DurationHours = 7d}
+            .Select(item => item is { IsRestDay: false } && item.StartTime == new TimeOnly(8, 0)
+                ? item with { EndTime = new TimeOnly(15, 0), DurationHours = 7d }
                 : item)
             .ToArray();
 
@@ -42,8 +42,8 @@ public class ShiftRotationValidatorTests
     {
         // 第一个班次结束后留出 1 小时空档，导致 24 小时未被连续覆盖。
         ShiftScheduleRowDto[] rows = BuildFourDaySchedule()
-            .Select(item => item is {IsRestDay: false} && item.StartTime == new TimeOnly(8, 0)
-                ? item with {StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(17, 0)}
+            .Select(item => item is { IsRestDay: false } && item.StartTime == new TimeOnly(8, 0)
+                ? item with { StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(17, 0) }
                 : item)
             .ToArray();
 
@@ -132,8 +132,7 @@ public class ShiftRotationValidatorTests
         string[] teamNames = ["甲班", "乙班", "丙班", "丁班"];
         (TimeOnly Start, TimeOnly End, string Name)[] shifts = new (TimeOnly Start, TimeOnly End, string Name)[]
         {
-            (new TimeOnly(0, 0), new TimeOnly(8, 0), "夜班"),
-            (new TimeOnly(8, 0), new TimeOnly(16, 0), "早班"),
+            (new TimeOnly(0, 0), new TimeOnly(8, 0), "夜班"), (new TimeOnly(8, 0), new TimeOnly(16, 0), "早班"),
             (new TimeOnly(16, 0), new TimeOnly(0, 0), "中班")
         };
 

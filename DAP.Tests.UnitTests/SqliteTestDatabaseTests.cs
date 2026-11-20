@@ -81,7 +81,8 @@ public sealed class SqliteTestDatabaseTests
             EnergyMedium medium = await context.EnergyMedia.SingleAsync(item => item.Code == "ELEC");
             EnergyUsageType usage = await context.EnergyUsageTypes.SingleAsync(item => item.Code == "PROD");
             EnergySystemType system = await context.EnergySystems.SingleAsync(item => item.Code == "PROCESS");
-            EnergyOrgUnit park = await context.EnergyOrgUnits.SingleAsync(item => item.Level == EnergyOrgUnit.ParkLevel);
+            EnergyOrgUnit park =
+                await context.EnergyOrgUnits.SingleAsync(item => item.Level == EnergyOrgUnit.ParkLevel);
 
             EnergyMeter meter = new()
             {
@@ -95,7 +96,7 @@ public sealed class SqliteTestDatabaseTests
                 Ratio = 10m,
                 IsCumulative = true,
                 CreatedAt = DateTimeOffset.UtcNow,
-                UpdatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
             };
             context.EnergyMeters.Add(meter);
             meterId = meter.Id;
@@ -111,7 +112,7 @@ public sealed class SqliteTestDatabaseTests
                 ReadAt = occurredAt,
                 Value = value,
                 Source = EnergyReading.ManualSource,
-                CreatedAt = DateTimeOffset.UtcNow,
+                CreatedAt = DateTimeOffset.UtcNow
             });
             await context.SaveChangesAsync();
         }

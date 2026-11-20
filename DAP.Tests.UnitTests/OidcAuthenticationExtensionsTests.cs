@@ -83,7 +83,7 @@ public class OidcAuthenticationExtensionsTests
     [Fact]
     public async Task 已启用的提供方_注册为独立scheme()
     {
-        (IServiceProvider provider, _) = Build(CreateOptions(CreateProvider()), requireSecureCookie: false);
+        (IServiceProvider provider, _) = Build(CreateOptions(CreateProvider()), false);
 
         AuthenticationScheme[] schemes =
             (await provider.GetRequiredService<IAuthenticationSchemeProvider>().GetAllSchemesAsync())
@@ -100,7 +100,7 @@ public class OidcAuthenticationExtensionsTests
     {
         OidcOptions options = new() { Enabled = false, Providers = [CreateProvider()] };
 
-        (IServiceProvider provider, _) = Build(options, requireSecureCookie: false);
+        (IServiceProvider provider, _) = Build(options, false);
 
         // Enabled=false 时 EnabledProviders 返回空：即使配置了提供方也不注册。
         OpenIdConnectOptions resolved = GetOptions(provider, "oidc-corp");
@@ -113,7 +113,7 @@ public class OidcAuthenticationExtensionsTests
         OidcProviderOptions unusable = Clone(CreateProvider(), copy => copy.Authority = " ");
         OidcProviderOptions usable = Clone(CreateProvider(), copy => copy.Code = "usable");
 
-        (IServiceProvider provider, _) = Build(CreateOptions(unusable, usable), requireSecureCookie: false);
+        (IServiceProvider provider, _) = Build(CreateOptions(unusable, usable), false);
 
         // 缺 Authority 的提供方不注册，不影响其他提供方。
         OpenIdConnectOptions unusableOptions = GetOptions(provider, "oidc-corp");
@@ -126,7 +126,7 @@ public class OidcAuthenticationExtensionsTests
     [Fact]
     public void 注册参数_授权码加PKCE_令牌不落前端()
     {
-        (IServiceProvider provider, _) = Build(CreateOptions(CreateProvider()), requireSecureCookie: false);
+        (IServiceProvider provider, _) = Build(CreateOptions(CreateProvider()), false);
         OpenIdConnectOptions options = GetOptions(provider, "oidc-corp");
 
         Assert.Equal("code", options.ResponseType);
@@ -166,7 +166,7 @@ public class OidcAuthenticationExtensionsTests
     {
         OidcProviderOptions publicClient = Clone(CreateProvider(), copy => copy.ClientSecret = " ");
 
-        (IServiceProvider provider, _) = Build(CreateOptions(publicClient), requireSecureCookie: false);
+        (IServiceProvider provider, _) = Build(CreateOptions(publicClient), false);
 
         OpenIdConnectOptions options = GetOptions(provider, "oidc-corp");
 

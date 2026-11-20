@@ -1,5 +1,3 @@
-@using DAP.Core.Shared.Catalog
-
 @* 左侧菜单只展示当前职能域的内容：分组标题 + 子菜单。
    菜单树来自服务端按当前用户过滤的 /api/navigation（域可见性、页面等级、空域规则都在服务端判定），
    这里拿到什么就渲染什么，不做第二套过滤。空域（仅超管可见）渲染内联空状态，
@@ -41,7 +39,8 @@
     /// <summary>
     /// 当前顶栏选中的职能域。
     /// </summary>
-    [Parameter][EditorRequired]
+    [Parameter]
+    [EditorRequired]
     public NavigationDomainDto Domain { get; set; } = null!;
 
 }

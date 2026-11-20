@@ -38,7 +38,7 @@ public sealed class DirectorySyncIssueConfiguration : IEntityTypeConfiguration<D
 
         // 未处理项唯一：同一部门/同一账号名只留一行，靠 occurrences 计数。
         // 已处理的允许重复建行——处理完又被目录带回来，是新一轮问题，不该被历史行吞掉。
-        builder.HasIndex(item => new {item.Provider, item.IssueType, item.ExternalCode})
+        builder.HasIndex(item => new { item.Provider, item.IssueType, item.ExternalCode })
             .IsUnique()
             .HasDatabaseName("ux_directory_sync_issues_pending")
             .HasFilter("resolved_at IS NULL");

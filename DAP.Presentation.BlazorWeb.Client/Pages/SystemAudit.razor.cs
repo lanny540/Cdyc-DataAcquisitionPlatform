@@ -1,6 +1,5 @@
 using System.Text.Json;
 using DAP.Core.Shared.Contracts;
-using DAP.Presentation.BlazorWeb.Client.Services;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
@@ -38,7 +37,7 @@ public partial class SystemAudit
     private string _detailTitle = string.Empty;
     private string _detailContent = string.Empty;
 
-    private int TotalPages => Math.Max(1, (int) Math.Ceiling(_total / (double) PageSize));
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(_total / (double)PageSize));
 
     /// <summary>
     /// 导出地址：与当前筛选条件同源，浏览器直接下载，带 Cookie 判定权限。
@@ -113,12 +112,15 @@ public partial class SystemAudit
     /// </summary>
     private static string PrettyPrint(string? detail)
     {
-        if (string.IsNullOrWhiteSpace(detail)) return "（无变更明细）";
+        if (string.IsNullOrWhiteSpace(detail))
+        {
+            return "（无变更明细）";
+        }
 
         try
         {
             using JsonDocument document = JsonDocument.Parse(detail);
-            return JsonSerializer.Serialize(document.RootElement, new JsonSerializerOptions {WriteIndented = true});
+            return JsonSerializer.Serialize(document.RootElement, new JsonSerializerOptions { WriteIndented = true });
         }
         catch (JsonException)
         {

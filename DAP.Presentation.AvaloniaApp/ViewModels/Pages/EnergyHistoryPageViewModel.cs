@@ -130,7 +130,10 @@ public sealed partial class EnergyHistoryPageViewModel : EnergyPageViewModelBase
     /// </summary>
     partial void OnSelectedGranularityChanged(GranularityOption? value)
     {
-        if (value is not null) _ = ReloadAsync();
+        if (value is not null)
+        {
+            _ = ReloadAsync();
+        }
     }
 
     /// <inheritdoc />
@@ -262,11 +265,18 @@ public sealed partial class EnergyHistoryPageViewModel : EnergyPageViewModelBase
         IEnumerable<(DateOnly BucketStart, string Label, string MetricCode, decimal Value)> group,
         EnergyTrendDto? trend)
     {
-        if (trend is null) return "--";
+        if (trend is null)
+        {
+            return "--";
+        }
 
         foreach ((DateOnly _, string _, string metricCode, decimal value) in group)
+        {
             if (metricCode == trend.MetricCode)
+            {
                 return MetricFormat.Value(value);
+            }
+        }
 
         return "--";
     }

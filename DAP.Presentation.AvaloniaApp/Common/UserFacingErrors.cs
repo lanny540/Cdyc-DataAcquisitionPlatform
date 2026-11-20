@@ -32,11 +32,18 @@ public static class UserFacingErrors
 
     private static bool HasChinese(string? text)
     {
-        if (string.IsNullOrEmpty(text)) return false;
+        if (string.IsNullOrEmpty(text))
+        {
+            return false;
+        }
 
         foreach (char ch in text)
+        {
             if (ch is >= '\u4e00' and <= '\u9fff')
+            {
                 return true;
+            }
+        }
 
         return false;
     }

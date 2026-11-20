@@ -35,10 +35,25 @@ public sealed record HistoryRawDataQueryRequest(
     /// <returns>参数合法时返回 null，否则返回可直接展示的中文错误。</returns>
     public string? Validate()
     {
-        if (string.IsNullOrWhiteSpace(TagName)) return "标签名称不能为空。";
-        if (EndTime <= StartTime) return "结束时间必须晚于开始时间。";
-        if (StartIndex < 0 || Count <= 0) return "起始偏移量不能小于 0，返回条数必须大于 0。";
-        if (Count > MaxCount) return $"返回条数不能超过 {MaxCount}，请分页查询。";
+        if (string.IsNullOrWhiteSpace(TagName))
+        {
+            return "标签名称不能为空。";
+        }
+
+        if (EndTime <= StartTime)
+        {
+            return "结束时间必须晚于开始时间。";
+        }
+
+        if (StartIndex < 0 || Count <= 0)
+        {
+            return "起始偏移量不能小于 0，返回条数必须大于 0。";
+        }
+
+        if (Count > MaxCount)
+        {
+            return $"返回条数不能超过 {MaxCount}，请分页查询。";
+        }
 
         return null;
     }

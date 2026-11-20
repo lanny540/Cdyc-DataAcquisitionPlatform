@@ -3,82 +3,82 @@
              xmlns:vm="using:DAP.Presentation.AvaloniaApp.ViewModels.Shell"
              x:Class="DAP.Presentation.AvaloniaApp.Views.LoginView"
              x:DataType="vm:LoginViewModel">
-    <Grid>
-        <Border Classes="panel" Width="440" Padding="30,26" HorizontalAlignment="Center"
-                VerticalAlignment="Center">
-            <StackPanel Spacing="16">
-                <StackPanel Orientation="Horizontal" Spacing="12">
-                    <Border Width="38" Height="38" CornerRadius="10"
-                            Background="{DynamicResource DapPrimaryBrush}">
-                        <TextBlock Text="C" FontSize="20" FontWeight="Bold"
-                                   Foreground="{DynamicResource DapSurfaceBrush}"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
-                    </Border>
-                    <StackPanel Spacing="2" VerticalAlignment="Center">
-                        <TextBlock Text="CDYC 数据采集平台" FontSize="17" FontWeight="Bold"
-                                   Foreground="{DynamicResource DapTextPrimaryBrush}" />
-                        <TextBlock Text="数据查看与报表查询客户端" FontSize="12"
-                                   Foreground="{DynamicResource DapTextSubtleBrush}" />
-                    </StackPanel>
-                </StackPanel>
+  <Grid>
+    <Border Classes="panel" Width="440" Padding="30,26" HorizontalAlignment="Center"
+            VerticalAlignment="Center">
+      <StackPanel Spacing="16">
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <Border Width="38" Height="38" CornerRadius="10"
+                  Background="{DynamicResource DapPrimaryBrush}">
+            <TextBlock Text="C" FontSize="20" FontWeight="Bold"
+                       Foreground="{DynamicResource DapSurfaceBrush}"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+          <StackPanel Spacing="2" VerticalAlignment="Center">
+            <TextBlock Text="CDYC 数据采集平台" FontSize="17" FontWeight="Bold"
+                       Foreground="{DynamicResource DapTextPrimaryBrush}" />
+            <TextBlock Text="数据查看与报表查询客户端" FontSize="12"
+                       Foreground="{DynamicResource DapTextSubtleBrush}" />
+          </StackPanel>
+        </StackPanel>
 
-                <Border Classes="divider" Margin="0,2" />
+        <Border Classes="divider" Margin="0,2" />
 
-                <!-- 登录表单 -->
-                <StackPanel Spacing="12" IsVisible="{Binding !NeedsPasswordChange}">
-                    <TextBlock Classes="card-title" Text="账号登录" />
-                    <StackPanel Spacing="4">
-                        <TextBlock Classes="field-label" Text="账号" />
-                        <TextBox Classes="field" Text="{Binding UserName}" PlaceholderText="请输入账号" />
-                    </StackPanel>
-                    <StackPanel Spacing="4">
-                        <TextBlock Classes="field-label" Text="密码" />
-                        <TextBox Classes="field" Text="{Binding Password}" PasswordChar="●"
-                                 PlaceholderText="请输入密码" />
-                    </StackPanel>
-                    <Button Classes="Primary" Content="登录" HorizontalAlignment="Stretch"
-                            HorizontalContentAlignment="Center" Height="38"
-                            Command="{Binding LoginCommand}"
-                            IsEnabled="{Binding IsNotBusy}" />
-                </StackPanel>
+        <!-- 登录表单 -->
+        <StackPanel Spacing="12" IsVisible="{Binding !NeedsPasswordChange}">
+          <TextBlock Classes="card-title" Text="账号登录" />
+          <StackPanel Spacing="4">
+            <TextBlock Classes="field-label" Text="账号" />
+            <TextBox Classes="field" Text="{Binding UserName}" PlaceholderText="请输入账号" />
+          </StackPanel>
+          <StackPanel Spacing="4">
+            <TextBlock Classes="field-label" Text="密码" />
+            <TextBox Classes="field" Text="{Binding Password}" PasswordChar="●"
+                     PlaceholderText="请输入密码" />
+          </StackPanel>
+          <Button Classes="Primary" Content="登录" HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Center" Height="38"
+                  Command="{Binding LoginCommand}"
+                  IsEnabled="{Binding IsNotBusy}" />
+        </StackPanel>
 
-                <!-- 首次登录强制改密 -->
-                <StackPanel Spacing="12" IsVisible="{Binding NeedsPasswordChange}">
-                    <TextBlock Classes="card-title" Text="设置新密码" />
-                    <TextBlock Classes="card-description"
-                               Text="首次登录必须修改初始密码后才能查看数据。" />
-                    <StackPanel Spacing="4">
-                        <TextBlock Classes="field-label" Text="新密码" />
-                        <TextBox Classes="field" Text="{Binding NewPassword}" PasswordChar="●" />
-                    </StackPanel>
-                    <StackPanel Spacing="4">
-                        <TextBlock Classes="field-label" Text="确认新密码" />
-                        <TextBox Classes="field" Text="{Binding ConfirmPassword}" PasswordChar="●" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                        <Button Classes="Primary" Content="修改并继续"
-                                Command="{Binding ChangePasswordCommand}"
-                                IsEnabled="{Binding IsNotBusy}" />
-                        <Button Classes="ghost" Content="返回登录"
-                                Command="{Binding BackToLoginCommand}" />
-                    </StackPanel>
-                </StackPanel>
+        <!-- 首次登录强制改密 -->
+        <StackPanel Spacing="12" IsVisible="{Binding NeedsPasswordChange}">
+          <TextBlock Classes="card-title" Text="设置新密码" />
+          <TextBlock Classes="card-description"
+                     Text="首次登录必须修改初始密码后才能查看数据。" />
+          <StackPanel Spacing="4">
+            <TextBlock Classes="field-label" Text="新密码" />
+            <TextBox Classes="field" Text="{Binding NewPassword}" PasswordChar="●" />
+          </StackPanel>
+          <StackPanel Spacing="4">
+            <TextBlock Classes="field-label" Text="确认新密码" />
+            <TextBox Classes="field" Text="{Binding ConfirmPassword}" PasswordChar="●" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Button Classes="Primary" Content="修改并继续"
+                    Command="{Binding ChangePasswordCommand}"
+                    IsEnabled="{Binding IsNotBusy}" />
+            <Button Classes="ghost" Content="返回登录"
+                    Command="{Binding BackToLoginCommand}" />
+          </StackPanel>
+        </StackPanel>
 
-                <Border Classes="panel" Padding="12,10" IsVisible="{Binding HasMessage}"
-                        Background="{DynamicResource DapErrorTintBrush}"
-                        BorderBrush="{DynamicResource DapErrorBrush}">
-                    <TextBlock Classes="table-cell" Text="{Binding Message}" TextWrapping="Wrap"
-                               Foreground="{DynamicResource DapErrorStrongBrush}" />
-                </Border>
-
-                <ProgressBar IsIndeterminate="True" Height="3" IsVisible="{Binding IsBusy}" />
-
-                <StackPanel Spacing="2">
-                    <TextBlock Classes="stat-supporting" Text="{Binding ServerAddress}" />
-                    <TextBlock Classes="stat-supporting"
-                               Text="会话凭据保存在本机内存，关闭客户端即失效。" />
-                </StackPanel>
-            </StackPanel>
+        <Border Classes="panel" Padding="12,10" IsVisible="{Binding HasMessage}"
+                Background="{DynamicResource DapErrorTintBrush}"
+                BorderBrush="{DynamicResource DapErrorBrush}">
+          <TextBlock Classes="table-cell" Text="{Binding Message}" TextWrapping="Wrap"
+                     Foreground="{DynamicResource DapErrorStrongBrush}" />
         </Border>
-    </Grid>
+
+        <ProgressBar IsIndeterminate="True" Height="3" IsVisible="{Binding IsBusy}" />
+
+        <StackPanel Spacing="2">
+          <TextBlock Classes="stat-supporting" Text="{Binding ServerAddress}" />
+          <TextBlock Classes="stat-supporting"
+                     Text="会话凭据保存在本机内存，关闭客户端即失效。" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+  </Grid>
 </UserControl>

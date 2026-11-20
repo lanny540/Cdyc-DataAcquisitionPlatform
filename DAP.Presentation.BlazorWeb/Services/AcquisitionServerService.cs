@@ -99,7 +99,10 @@ public sealed class AcquisitionServerService(
             .AsNoTracking()
             .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
 
-        if (server is null) return null;
+        if (server is null)
+        {
+            return null;
+        }
 
         int nodeCount = await dbContext.ManagedDataDefinitions
             .AsNoTracking()
@@ -133,23 +136,35 @@ public sealed class AcquisitionServerService(
 
         // 密钥字段回显为掩码时表示"保持原值"，避免因掩码覆盖真实密钥。
         if (existing is not null)
+        {
             foreach (string secretKey in configuration.Keys.Where(key => IsSecretKey(serverType, key)).ToArray())
+            {
                 if (string.Equals(configuration[secretKey], SecretMask, StringComparison.Ordinal) &&
                     existing.ConfigurationJson.Contains(secretKey))
                 {
                     string? storedValue = ParseConfiguration(existing.ConfigurationJson)
                         .GetValueOrDefault(secretKey);
-                    if (!string.IsNullOrWhiteSpace(storedValue)) configuration[secretKey] = storedValue;
+                    if (!string.IsNullOrWhiteSpace(storedValue))
+                    {
+                        configuration[secretKey] = storedValue;
+                    }
                 }
+            }
+        }
 
         IReadOnlyCollection<string> errors =
             AcquisitionServerCatalog.ValidateServer(serverType, address, configuration);
-        if (errors.Count > 0) throw new InvalidOperationException(string.Join(" ", errors));
+        if (errors.Count > 0)
+        {
+            throw new InvalidOperationException(string.Join(" ", errors));
+        }
 
         // 校验用明文（上游要求真实密码），落库前统一加密。
         // 掩码分支取回的已是密文，Protect 对已加密值幂等，不会套两层。
         foreach (string secretKey in configuration.Keys.Where(key => IsSecretKey(serverType, key)).ToArray())
+        {
             configuration[secretKey] = secretProtector.Protect(configuration[secretKey]);
+        }
 
         DateTimeOffset now = DateTimeOffset.UtcNow;
         string displayName = string.IsNullOrWhiteSpace(request.DisplayName)
@@ -206,13 +221,19 @@ public sealed class AcquisitionServerService(
         ServerConnection? server = await dbContext.ServerConnections
             .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
 
-        if (server is null) return (false, "采集服务器不存在或已被删除。");
+        if (server is null)
+        {
+            return (false, "采集服务器不存在或已被删除。");
+        }
 
         int nodeCount = await dbContext.ManagedDataDefinitions
             .AsNoTracking()
             .CountAsync(item => item.ServerConnectionId == id, cancellationToken);
 
-        if (nodeCount > 0) return (false, $"该服务器仍被 {nodeCount} 个采集节点引用，请先调整这些节点的服务器绑定。");
+        if (nodeCount > 0)
+        {
+            return (false, $"该服务器仍被 {nodeCount} 个采集节点引用，请先调整这些节点的服务器绑定。");
+        }
 
         dbContext.ServerConnections.Remove(server);
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -259,7 +280,10 @@ public sealed class AcquisitionServerService(
                                                                   .OrdinalIgnoreCase))
                 {
                     // 掩码占位表示「保持原值」，不能覆盖库中真实密钥。
-                    if (string.Equals(item.Value, SecretMask, StringComparison.Ordinal)) continue;
+                    if (string.Equals(item.Value, SecretMask, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
 
                     configuration[item.Key] = item.Value;
                 }
@@ -268,12 +292,17 @@ public sealed class AcquisitionServerService(
 
         // 探针要拿真实密码去连上游，密文必须先还原；请求里新填的值本就是明文，Unprotect 原样返回。
         foreach (string secretKey in configuration.Keys.Where(key => IsSecretKey(serverType, key)).ToArray())
+        {
             configuration[secretKey] = secretProtector.Unprotect(configuration[secretKey]);
+        }
 
         AcquisitionServerProbeResultDto result = await probeService.ProbeAsync(
             serverType, address, configuration, identifier, requestPath, nodeConfiguration, cancellationToken);
 
-        if (request.Id.HasValue) await PersistProbeResultAsync(request.Id.Value, result, cancellationToken);
+        if (request.Id.HasValue)
+        {
+            await PersistProbeResultAsync(request.Id.Value, result, cancellationToken);
+        }
 
         return result;
     }
@@ -288,7 +317,10 @@ public sealed class AcquisitionServerService(
             ServerConnection? server = await dbContext.ServerConnections
                 .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
 
-            if (server is null) return;
+            if (server is null)
+            {
+                return;
+            }
 
             server.LastProbeStatus = result.Success ? "成功" : "失败";
             server.LastProbeMessage = Truncate(result.StatusMessage);
@@ -309,9 +341,15 @@ public sealed class AcquisitionServerService(
                            item.ConnectionAddress != server.Address)
             .ToListAsync(cancellationToken);
 
-        if (nodes.Count == 0) return;
+        if (nodes.Count == 0)
+        {
+            return;
+        }
 
-        foreach (ManagedDataDefinition node in nodes) node.ConnectionAddress = server.Address;
+        foreach (ManagedDataDefinition node in nodes)
+        {
+            node.ConnectionAddress = server.Address;
+        }
 
         await dbContext.SaveChangesAsync(cancellationToken);
     }
@@ -322,7 +360,7 @@ public sealed class AcquisitionServerService(
             .AsNoTracking()
             .Where(item => item.ServerConnectionId.HasValue)
             .GroupBy(item => item.ServerConnectionId!.Value)
-            .Select(item => new {ServerConnectionId = item.Key, Count = item.Count()})
+            .Select(item => new { ServerConnectionId = item.Key, Count = item.Count() })
             .ToDictionaryAsync(item => item.ServerConnectionId, item => item.Count, cancellationToken);
     }
 
@@ -333,7 +371,7 @@ public sealed class AcquisitionServerService(
             await dbContext.SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateException ex) when (
-            ex.InnerException is Npgsql.PostgresException {SqlState: Npgsql.PostgresErrorCodes.UniqueViolation})
+            ex.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation })
         {
             throw new InvalidOperationException($"采集服务器编码 {code} 或相同地址的服务器已存在。", ex);
         }
@@ -391,7 +429,10 @@ public sealed class AcquisitionServerService(
         AcquisitionServerTypeDescriptor descriptor,
         string address)
     {
-        if (!string.IsNullOrWhiteSpace(requestedCode)) return requestedCode.Trim().ToUpperInvariant();
+        if (!string.IsNullOrWhiteSpace(requestedCode))
+        {
+            return requestedCode.Trim().ToUpperInvariant();
+        }
 
         string suffix = new(address
             .Replace("://", string.Empty, StringComparison.Ordinal)
@@ -419,7 +460,10 @@ public sealed class AcquisitionServerService(
 
     private static Dictionary<string, string> ParseConfiguration(string json)
     {
-        if (string.IsNullOrWhiteSpace(json)) return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
 
         try
         {

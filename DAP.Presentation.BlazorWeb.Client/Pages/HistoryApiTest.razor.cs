@@ -1,7 +1,6 @@
 using System.Globalization;
 using DAP.Core.Shared.Catalog;
 using DAP.Core.Shared.Contracts;
-using DAP.Presentation.BlazorWeb.Client.Services;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
@@ -60,7 +59,10 @@ public partial class HistoryApiTest
 
             _selectedServerId = _historianServers.FirstOrDefault()?.Id;
 
-            if (_historianServers.Count == 0) SetMessage("尚未配置 GE Historian 采集服务器，请先在采集服务器页面新增并启用。", Severity.Warning);
+            if (_historianServers.Count == 0)
+            {
+                SetMessage("尚未配置 GE Historian 采集服务器，请先在采集服务器页面新增并启用。", Severity.Warning);
+            }
         }
         catch (Exception ex)
         {
@@ -74,7 +76,10 @@ public partial class HistoryApiTest
 
     private async Task QueryCurrentValueAsync()
     {
-        if (!EnsureServerSelected()) return;
+        if (!EnsureServerSelected())
+        {
+            return;
+        }
 
         if (string.IsNullOrWhiteSpace(_currentTagNames))
         {
@@ -108,7 +113,10 @@ public partial class HistoryApiTest
 
     private async Task QueryRawDataAsync()
     {
-        if (!EnsureServerSelected()) return;
+        if (!EnsureServerSelected())
+        {
+            return;
+        }
 
         if (string.IsNullOrWhiteSpace(_rawTagName))
         {

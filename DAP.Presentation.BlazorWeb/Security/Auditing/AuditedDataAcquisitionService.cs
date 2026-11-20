@@ -1,7 +1,6 @@
 using DAP.Core.Domain.Services;
 using DAP.Core.Shared.Catalog;
 using DAP.Core.Shared.Contracts;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace DAP.Presentation.BlazorWeb.Security.Auditing;
 
@@ -41,7 +40,7 @@ public sealed class AuditedDataAcquisitionService(
             request.Id?.ToString(),
             request.Name,
             _ => inner.UpsertCollectionPointAsync(request, cancellationToken),
-            detailFactory: result => new {result.Id, result.Name, result.IsEnabled},
+            detailFactory: result => new { result.Id, result.Name, result.IsEnabled },
             cancellationToken: cancellationToken);
     }
 
@@ -88,7 +87,7 @@ public sealed class AuditedDataAcquisitionService(
             request.Id?.ToString(),
             request.Name,
             _ => inner.UpsertManagedDataDefinitionAsync(request, cancellationToken),
-            detailFactory: result => new {result.Id, result.Name},
+            detailFactory: result => new { result.Id, result.Name },
             cancellationToken: cancellationToken);
     }
 

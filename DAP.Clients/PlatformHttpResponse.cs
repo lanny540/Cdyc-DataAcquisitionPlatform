@@ -18,7 +18,10 @@ internal static class PlatformHttpResponse
     /// <param name="cancellationToken">取消令牌。</param>
     public static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
-        if (response.IsSuccessStatusCode) return;
+        if (response.IsSuccessStatusCode)
+        {
+            return;
+        }
 
         throw new InvalidOperationException(await ReadErrorMessageAsync(response, cancellationToken));
     }
@@ -35,13 +38,18 @@ internal static class PlatformHttpResponse
     {
         string payload = await response.Content.ReadAsStringAsync(cancellationToken);
 
-        if (string.IsNullOrWhiteSpace(payload)) return DescribeStatusCode(response.StatusCode);
+        if (string.IsNullOrWhiteSpace(payload))
+        {
+            return DescribeStatusCode(response.StatusCode);
+        }
 
         try
         {
             using JsonDocument document = JsonDocument.Parse(payload);
             if (document.RootElement.TryGetProperty("message", out JsonElement message))
+            {
                 return message.GetString() ?? payload;
+            }
         }
         catch (JsonException)
         {
@@ -66,7 +74,7 @@ internal static class PlatformHttpResponse
             System.Net.HttpStatusCode.TooManyRequests => "请求过于频繁，请稍后再试。",
             System.Net.HttpStatusCode.RequestTimeout => "服务端处理超时，请稍后重试。",
             >= System.Net.HttpStatusCode.InternalServerError => "服务端处理失败，请查看服务端日志。",
-            _ => $"请求失败（{(int) statusCode}）。"
+            _ => $"请求失败（{(int)statusCode}）。"
         };
     }
 }

@@ -214,7 +214,10 @@ public sealed partial class EnergyReportPageViewModel : AutoRefreshPageViewModel
                     ?.Total)
                 .ToArray();
 
-            for (int index = 0; index < values.Length; index++) metricTotals[index] += values[index] ?? 0m;
+            for (int index = 0; index < values.Length; index++)
+            {
+                metricTotals[index] += values[index] ?? 0m;
+            }
 
             int periods = history.Trends.Count == 0 ? 0 : history.Trends.Max(trend => trend.Points.Count);
 
@@ -229,12 +232,14 @@ public sealed partial class EnergyReportPageViewModel : AutoRefreshPageViewModel
             foreach (EnergyMetricValueDto detail in history.DetailRows
                          .OrderByDescending(row => row.BucketStart)
                          .ThenBy(row => row.MetricName, StringComparer.Ordinal))
+            {
                 DetailRows.Add(new ReportDetailRowModel(
                     history.TeamName,
                     MetricFormat.Bucket(detail.BucketStart, detail.BucketEnd),
                     detail.MetricName,
                     MetricFormat.Value(detail.Value),
                     detail.Unit));
+            }
         }
 
         HasData = TeamRows.Count > 0;
@@ -291,18 +296,21 @@ public sealed partial class EnergyReportPageViewModel : AutoRefreshPageViewModel
         builder.AppendLine("班组,统计周期,指标,数值,单位");
 
         foreach (ReportDetailRowModel row in DetailRows)
+        {
             builder.AppendLine(string.Join(',',
                 Escape(row.TeamName),
                 Escape(row.Period),
                 Escape(row.MetricName),
                 Escape(row.Value),
                 Escape(row.Unit)));
+        }
 
         builder.AppendLine();
         builder.AppendLine("班组汇总");
         builder.AppendLine($"班组,{Column1},{Column2},{Column3},{Column4},周期数");
 
         foreach (TeamReportRowModel row in TeamRows)
+        {
             builder.AppendLine(string.Join(',',
                 Escape(row.TeamName),
                 Escape(row.V1),
@@ -310,6 +318,7 @@ public sealed partial class EnergyReportPageViewModel : AutoRefreshPageViewModel
                 Escape(row.V3),
                 Escape(row.V4),
                 Escape(row.Periods)));
+        }
 
         builder.AppendLine(string.Join(',', "合计", Escape(TotalV1), Escape(TotalV2), Escape(TotalV3),
             Escape(TotalV4), "--"));
@@ -322,7 +331,10 @@ public sealed partial class EnergyReportPageViewModel : AutoRefreshPageViewModel
     /// </summary>
     private static string Escape(string value)
     {
-        if (value.IndexOfAny([',', '"', '\n', '\r']) < 0) return value;
+        if (value.IndexOfAny([',', '"', '\n', '\r']) < 0)
+        {
+            return value;
+        }
 
         return $"\"{value.Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
     }

@@ -38,7 +38,7 @@ public class CollectionPointStateSynchronizerTests
 
         CollectionPoint point = await CreateService(database).SyncAsync(
             "CP-99", "新点位", "Modbus TCP", "192.168.10.99:502",
-            isEnabled: true, communicationStatus: "在线", lastError: null, updatedAt: Now);
+            true, "在线", null, Now);
 
         Assert.NotEqual(Guid.Empty, point.Id);
         Assert.Equal("CP-99", point.Code);
@@ -81,7 +81,7 @@ public class CollectionPointStateSynchronizerTests
 
         await CreateService(database).SyncAsync(
             "CP-01", "新名称", "Modbus TCP", "192.168.10.21:502",
-            isEnabled: true, communicationStatus: "在线", lastError: null, updatedAt: Now);
+            true, "在线", null, Now);
 
         CollectionPoint? persisted = FindPoint(database, "CP-01");
         Assert.NotNull(persisted);
@@ -122,7 +122,7 @@ public class CollectionPointStateSynchronizerTests
         // 即使调用方传入「离线」与错误信息：人工停用不能被仪表板算成故障。
         CollectionPoint point = await CreateService(database).SyncAsync(
             "CP-02", "二号点", "Modbus TCP", "192.168.10.22:502",
-            isEnabled: false, communicationStatus: "离线", lastError: "连接超时", updatedAt: Now);
+            false, "离线", "连接超时", Now);
 
         Assert.False(point.IsEnabled);
         Assert.Equal("停用", point.CommunicationStatus);
@@ -136,7 +136,7 @@ public class CollectionPointStateSynchronizerTests
 
         CollectionPoint point = await CreateService(database).SyncAsync(
             "CP-03", "三号点", "OPC UA", "opc.tcp://server",
-            isEnabled: true, communicationStatus: "离线", lastError: "读取失败", updatedAt: Now);
+            true, "离线", "读取失败", Now);
 
         Assert.True(point.IsEnabled);
         Assert.Equal("离线", point.CommunicationStatus);

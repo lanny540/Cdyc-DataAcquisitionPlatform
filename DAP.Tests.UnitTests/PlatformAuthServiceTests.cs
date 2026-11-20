@@ -1,11 +1,9 @@
-using System.Security.Claims;
 using DAP.Core.Domain.Entities;
 using DAP.Core.Domain.Services;
 using DAP.Core.Shared.Catalog;
 using DAP.Core.Shared.Contracts;
 using DAP.Infrastructure.DataAccess.Persistence;
 using DAP.Presentation.BlazorWeb.Security;
-using DAP.Presentation.BlazorWeb.Security.Auditing;
 using DAP.Presentation.BlazorWeb.Security.Directory;
 using DAP.Presentation.BlazorWeb.Security.External;
 using DAP.Tests.UnitTests.TestDoubles;
@@ -33,7 +31,11 @@ public sealed class PlatformAuthServiceTests
     private sealed class MutableTimeProvider : TimeProvider
     {
         public DateTimeOffset UtcNow;
-        public override DateTimeOffset GetUtcNow() => UtcNow;
+
+        public override DateTimeOffset GetUtcNow()
+        {
+            return UtcNow;
+        }
     }
 
     /// <summary>
@@ -83,10 +85,7 @@ public sealed class PlatformAuthServiceTests
 
     private static PlatformAuthOptions DefaultOptions()
     {
-        return new PlatformAuthOptions
-        {
-            Lockout = { MaxFailedAttempts = 3, LockoutMinutes = 15 }
-        };
+        return new PlatformAuthOptions { Lockout = { MaxFailedAttempts = 3, LockoutMinutes = 15 } };
     }
 
     // ---------- 种子辅助：所有非空字段显式赋值（SQLite 库已剥离 PG 默认值） ----------
@@ -95,8 +94,12 @@ public sealed class PlatformAuthServiceTests
     {
         Permission permission = new()
         {
-            Id = Guid.NewGuid(), Code = code, Name = code, SortOrder = 0,
-            CreatedAt = Now, UpdatedAt = Now
+            Id = Guid.NewGuid(),
+            Code = code,
+            Name = code,
+            SortOrder = 0,
+            CreatedAt = Now,
+            UpdatedAt = Now
         };
         db.Permissions.Add(permission);
         return permission;
@@ -108,13 +111,24 @@ public sealed class PlatformAuthServiceTests
     {
         Role role = new()
         {
-            Id = Guid.NewGuid(), Code = code, Name = code, PageLevel = pageLevel,
-            IsBuiltin = true, IsEnabled = enabled, SortOrder = 10,
-            CreatedAt = Now, UpdatedAt = Now
+            Id = Guid.NewGuid(),
+            Code = code,
+            Name = code,
+            PageLevel = pageLevel,
+            IsBuiltin = true,
+            IsEnabled = enabled,
+            SortOrder = 10,
+            CreatedAt = Now,
+            UpdatedAt = Now
         };
 
         foreach (Permission permission in permissions)
-            role.RolePermissions.Add(new RolePermission { RoleId = role.Id, PermissionId = permission.Id, Permission = permission });
+        {
+            role.RolePermissions.Add(new RolePermission
+            {
+                RoleId = role.Id, PermissionId = permission.Id, Permission = permission
+            });
+        }
 
         db.Roles.Add(role);
         return role;
@@ -151,8 +165,13 @@ public sealed class PlatformAuthServiceTests
     {
         Department department = new()
         {
-            Id = Guid.NewGuid(), Code = code, Name = code, ExternalCode = null,
-            IsEnabled = true, CreatedAt = Now, UpdatedAt = Now
+            Id = Guid.NewGuid(),
+            Code = code,
+            Name = code,
+            ExternalCode = null,
+            IsEnabled = true,
+            CreatedAt = Now,
+            UpdatedAt = Now
         };
         db.Departments.Add(department);
         return department;
@@ -164,9 +183,15 @@ public sealed class PlatformAuthServiceTests
     {
         BusinessDomain domain = new()
         {
-            Id = Guid.NewGuid(), Code = code, Name = code, SortOrder = sortOrder,
-            IsSystem = isSystem, IsEnabled = enabled, VisibleWhenEmpty = false,
-            CreatedAt = Now, UpdatedAt = Now
+            Id = Guid.NewGuid(),
+            Code = code,
+            Name = code,
+            SortOrder = sortOrder,
+            IsSystem = isSystem,
+            IsEnabled = enabled,
+            VisibleWhenEmpty = false,
+            CreatedAt = Now,
+            UpdatedAt = Now
         };
         db.BusinessDomains.Add(domain);
         return domain;
@@ -178,9 +203,17 @@ public sealed class PlatformAuthServiceTests
     {
         DomainPage page = new()
         {
-            Id = Guid.NewGuid(), PageKey = $"key-{route}", DomainId = domain.Id, Route = route,
-            Title = route, SortOrder = sortOrder, IsEnabled = enabled, IsOrphaned = orphaned,
-            Source = AuthorizationCatalog.PageSourceCode, CreatedAt = Now, UpdatedAt = Now
+            Id = Guid.NewGuid(),
+            PageKey = $"key-{route}",
+            DomainId = domain.Id,
+            Route = route,
+            Title = route,
+            SortOrder = sortOrder,
+            IsEnabled = enabled,
+            IsOrphaned = orphaned,
+            Source = AuthorizationCatalog.PageSourceCode,
+            CreatedAt = Now,
+            UpdatedAt = Now
         };
         db.DomainPages.Add(page);
         return page;
@@ -232,7 +265,7 @@ public sealed class PlatformAuthServiceTests
     {
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
-        db.AppUsers.Add(SeedUser("zhang3", password: null));
+        db.AppUsers.Add(SeedUser("zhang3", null));
         await db.SaveChangesAsync();
 
         PlatformAuthService service = CreateService(db, DefaultOptions(), new FixedTimeProvider(Now));
@@ -248,7 +281,7 @@ public sealed class PlatformAuthServiceTests
     {
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
-        AppUser user = SeedUser("admin", password: Password);
+        AppUser user = SeedUser("admin", Password);
         user.AccessFailedCount = 2;
         user.LastLoginAt = null;
         db.AppUsers.Add(user);
@@ -278,7 +311,7 @@ public sealed class PlatformAuthServiceTests
     {
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
-        db.AppUsers.Add(SeedUser("admin", password: Password));
+        db.AppUsers.Add(SeedUser("admin", Password));
         await db.SaveChangesAsync();
 
         PlatformAuthService service = CreateService(db, DefaultOptions(), new FixedTimeProvider(Now));
@@ -296,14 +329,16 @@ public sealed class PlatformAuthServiceTests
     {
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
-        db.AppUsers.Add(SeedUser("admin", password: Password));
+        db.AppUsers.Add(SeedUser("admin", Password));
         await db.SaveChangesAsync();
 
         PlatformAuthService service = CreateService(db, DefaultOptions(), new FixedTimeProvider(Now));
 
         AuthSignInResult? lockedResult = null;
         for (int attempt = 1; attempt <= 3; attempt++)
+        {
             lockedResult = await service.SignInAsync("admin", "WrongPass1");
+        }
 
         Assert.False(lockedResult!.Succeeded);
         Assert.Equal("密码连续错误 3 次，账号已锁定 15 分钟。", lockedResult.ErrorMessage);
@@ -320,7 +355,7 @@ public sealed class PlatformAuthServiceTests
     {
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
-        AppUser user = SeedUser("admin", password: Password);
+        AppUser user = SeedUser("admin", Password);
         user.LockoutEndAt = Now.AddMinutes(10);
         db.AppUsers.Add(user);
         await db.SaveChangesAsync();
@@ -337,7 +372,7 @@ public sealed class PlatformAuthServiceTests
     {
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
-        AppUser user = SeedUser("admin", password: Password);
+        AppUser user = SeedUser("admin", Password);
         user.LockoutEndAt = Now.AddMinutes(15);
         db.AppUsers.Add(user);
         await db.SaveChangesAsync();
@@ -359,7 +394,7 @@ public sealed class PlatformAuthServiceTests
     {
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
-        db.AppUsers.Add(SeedUser("admin", password: Password, enabled: false));
+        db.AppUsers.Add(SeedUser("admin", Password, enabled: false));
         await db.SaveChangesAsync();
 
         PlatformAuthService service = CreateService(db, DefaultOptions(), new FixedTimeProvider(Now));
@@ -375,7 +410,7 @@ public sealed class PlatformAuthServiceTests
     {
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
-        db.AppUsers.Add(SeedUser("admin", password: Password, enabled: false));
+        db.AppUsers.Add(SeedUser("admin", Password, enabled: false));
         await db.SaveChangesAsync();
 
         PlatformAuthService service = CreateService(db, DefaultOptions(), new FixedTimeProvider(Now));
@@ -390,7 +425,7 @@ public sealed class PlatformAuthServiceTests
     {
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
-        AppUser user = SeedUser("admin", password: Password);
+        AppUser user = SeedUser("admin", Password);
         user.MustChangePassword = true;
         db.AppUsers.Add(user);
         await db.SaveChangesAsync();
@@ -466,7 +501,7 @@ public sealed class PlatformAuthServiceTests
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
         // 本地已存在同名账号但没有本地密码（无法本地登录、也未绑定目录）。
-        db.AppUsers.Add(SeedUser("zhang3", password: null));
+        db.AppUsers.Add(SeedUser("zhang3", null));
         await db.SaveChangesAsync();
 
         LdapDirectoryUser directoryUser = new("ext-9", "zhang3", "张三", null, null, null, true);
@@ -491,13 +526,18 @@ public sealed class PlatformAuthServiceTests
     {
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
-        AppUser user = SeedUser("zhang3", password: null, enabled: false);
+        AppUser user = SeedUser("zhang3", null, enabled: false);
         user.DisabledSource = UserDisableSources.Manual;
         db.AppUsers.Add(user);
         db.ExternalIdentities.Add(new ExternalIdentity
         {
-            Id = Guid.NewGuid(), UserId = user.Id, Provider = DirectorySyncService.LdapProvider,
-            ExternalId = "ext-1", CreatedAt = Now, UpdatedAt = Now, LastSyncedAt = Now
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            Provider = DirectorySyncService.LdapProvider,
+            ExternalId = "ext-1",
+            CreatedAt = Now,
+            UpdatedAt = Now,
+            LastSyncedAt = Now
         });
         await db.SaveChangesAsync();
 
@@ -525,7 +565,7 @@ public sealed class PlatformAuthServiceTests
         SeedRole(db, AuthorizationCatalog.ViewerRole, AuthorizationCatalog.ViewAccessLevel, true);
         SeedRole(db, AuthorizationCatalog.TechnicianRole, AuthorizationCatalog.ConfigureAccessLevel,
             false, shiftManage);
-        AppUser user = SeedUser("admin", password: Password);
+        AppUser user = SeedUser("admin", Password);
         db.AppUsers.Add(user);
         AddUserRole(db, user, db.Roles.Local.Single(item => item.Code == AuthorizationCatalog.ViewerRole));
         AddUserRole(db, user, db.Roles.Local.Single(item => item.Code == AuthorizationCatalog.TechnicianRole));
@@ -552,7 +592,7 @@ public sealed class PlatformAuthServiceTests
             AuthorizationCatalog.ConfigureAccessLevel, true, shiftManage);
         Role departmentAdmin = SeedRole(db, AuthorizationCatalog.DepartmentAdminRole,
             AuthorizationCatalog.ConfigureAccessLevel, true, userManage, shiftManage);
-        AppUser user = SeedUser("admin", password: Password);
+        AppUser user = SeedUser("admin", Password);
         db.AppUsers.Add(user);
         AddUserRole(db, user, technician);
         AddUserRole(db, user, departmentAdmin);
@@ -580,8 +620,8 @@ public sealed class PlatformAuthServiceTests
         SeedDomain(db, AuthorizationCatalog.BanknotePrintingDomain, sortOrder: 20);
         SeedDomain(db, AuthorizationCatalog.EnergyDomain, sortOrder: 30);
         SeedDomain(db, AuthorizationCatalog.PlatformDomain, isSystem: true, sortOrder: 900);
-        SeedDomain(db, "disabled-domain", enabled: false, sortOrder: 950);
-        AppUser user = SeedUser("admin", password: Password);
+        SeedDomain(db, "disabled-domain", false, sortOrder: 950);
+        AppUser user = SeedUser("admin", Password);
         db.AppUsers.Add(user);
         AddUserRole(db, user, db.Roles.Local.Single(item => item.Code == AuthorizationCatalog.SuperAdminRole));
         await db.SaveChangesAsync();
@@ -594,8 +634,10 @@ public sealed class PlatformAuthServiceTests
         Assert.Equal(AuthorizationCatalog.SuperAdminPageLevel, result.User.PageLevel);
         // 超管可见全部启用域（含系统域），停用域不可见。
         Assert.Equal(
-            [AuthorizationCatalog.BanknotePaperDomain, AuthorizationCatalog.BanknotePrintingDomain,
-                AuthorizationCatalog.EnergyDomain, AuthorizationCatalog.PlatformDomain],
+            [
+                AuthorizationCatalog.BanknotePaperDomain, AuthorizationCatalog.BanknotePrintingDomain,
+                AuthorizationCatalog.EnergyDomain, AuthorizationCatalog.PlatformDomain
+            ],
             result.User.Domains);
     }
 
@@ -608,14 +650,15 @@ public sealed class PlatformAuthServiceTests
         Department department = SeedDepartment(db, "D001");
         BusinessDomain energy = SeedDomain(db, AuthorizationCatalog.EnergyDomain, sortOrder: 30);
         BusinessDomain paper = SeedDomain(db, AuthorizationCatalog.BanknotePaperDomain, sortOrder: 10);
-        SeedDomain(db, "disabled-domain", enabled: false);
+        SeedDomain(db, "disabled-domain", false);
         SeedDomain(db, AuthorizationCatalog.PlatformDomain, isSystem: true);
         SeedGrant(db, department, energy);
         SeedGrant(db, department, paper);
         SeedGrant(db, department, db.BusinessDomains.Local.Single(item => item.Code == "disabled-domain"));
-        SeedGrant(db, department, db.BusinessDomains.Local.Single(item => item.Code == AuthorizationCatalog.PlatformDomain));
+        SeedGrant(db, department,
+            db.BusinessDomains.Local.Single(item => item.Code == AuthorizationCatalog.PlatformDomain));
 
-        AppUser user = SeedUser("member", password: Password, departmentId: department.Id);
+        AppUser user = SeedUser("member", Password, department.Id);
         db.AppUsers.Add(user);
         AddUserRole(db, user, db.Roles.Local.Single(item => item.Code == AuthorizationCatalog.ViewerRole));
         await db.SaveChangesAsync();
@@ -638,7 +681,7 @@ public sealed class PlatformAuthServiceTests
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
         SeedRole(db, AuthorizationCatalog.ViewerRole, AuthorizationCatalog.ViewAccessLevel, true);
-        AppUser user = SeedUser("member", password: Password, departmentId: null);
+        AppUser user = SeedUser("member", Password, null);
         db.AppUsers.Add(user);
         AddUserRole(db, user, db.Roles.Local.Single(item => item.Code == AuthorizationCatalog.ViewerRole));
         await db.SaveChangesAsync();
@@ -660,8 +703,8 @@ public sealed class PlatformAuthServiceTests
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
         SeedRole(db, AuthorizationCatalog.ViewerRole, AuthorizationCatalog.ViewAccessLevel, true);
-        AppUser enabled = SeedUser("member", password: Password);
-        AppUser disabled = SeedUser("gone", password: Password, enabled: false);
+        AppUser enabled = SeedUser("member", Password);
+        AppUser disabled = SeedUser("gone", Password, enabled: false);
         db.AppUsers.Add(enabled);
         db.AppUsers.Add(disabled);
         AddUserRole(db, enabled, db.Roles.Local.Single(item => item.Code == AuthorizationCatalog.ViewerRole));
@@ -709,7 +752,7 @@ public sealed class PlatformAuthServiceTests
         BusinessDomain energy = SeedDomain(db, AuthorizationCatalog.EnergyDomain, sortOrder: 30);
         SeedPage(db, energy, "/energy/second", sortOrder: 20);
         SeedPage(db, paper, "/paper/second", sortOrder: 20);
-        SeedPage(db, paper, "/paper/disabled", enabled: false, sortOrder: 1);
+        SeedPage(db, paper, "/paper/disabled", false, sortOrder: 1);
         SeedPage(db, paper, "/paper/orphaned", orphaned: true, sortOrder: 1);
         SeedPage(db, paper, "/paper/first", sortOrder: 10);
         await db.SaveChangesAsync();
@@ -745,7 +788,7 @@ public sealed class PlatformAuthServiceTests
     {
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
-        BusinessDomain domain = SeedDomain(db, AuthorizationCatalog.EnergyDomain, enabled: false);
+        BusinessDomain domain = SeedDomain(db, AuthorizationCatalog.EnergyDomain, false);
         SeedPage(db, domain, "/energy/dashboard");
         await db.SaveChangesAsync();
 
@@ -765,7 +808,7 @@ public sealed class PlatformAuthServiceTests
     {
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
-        AppUser user = SeedUser("admin", password: Password);
+        AppUser user = SeedUser("admin", Password);
         db.AppUsers.Add(user);
         await db.SaveChangesAsync();
 
@@ -781,7 +824,7 @@ public sealed class PlatformAuthServiceTests
     {
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
-        AppUser user = SeedUser("admin", password: Password);
+        AppUser user = SeedUser("admin", Password);
         db.AppUsers.Add(user);
         await db.SaveChangesAsync();
 
@@ -797,7 +840,7 @@ public sealed class PlatformAuthServiceTests
     {
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
-        AppUser user = SeedUser("admin", password: Password);
+        AppUser user = SeedUser("admin", Password);
         db.AppUsers.Add(user);
         await db.SaveChangesAsync();
 
@@ -813,7 +856,7 @@ public sealed class PlatformAuthServiceTests
     {
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
-        AppUser user = SeedUser("zhang3", password: null);
+        AppUser user = SeedUser("zhang3", null);
         db.AppUsers.Add(user);
         await db.SaveChangesAsync();
 
@@ -829,7 +872,7 @@ public sealed class PlatformAuthServiceTests
     {
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
-        AppUser user = SeedUser("admin", password: Password, enabled: false);
+        AppUser user = SeedUser("admin", Password, enabled: false);
         db.AppUsers.Add(user);
         await db.SaveChangesAsync();
 
@@ -845,7 +888,7 @@ public sealed class PlatformAuthServiceTests
     {
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
-        AppUser user = SeedUser("admin", password: Password);
+        AppUser user = SeedUser("admin", Password);
         user.MustChangePassword = true;
         user.AccessFailedCount = 2;
         db.AppUsers.Add(user);
@@ -856,7 +899,8 @@ public sealed class PlatformAuthServiceTests
         // 改密前：老会话有效。
         Assert.True(await validator.IsSessionValidAsync(user.Id, oldStamp));
 
-        PlatformAuthService service = CreateService(db, DefaultOptions(), new FixedTimeProvider(Now), validator: validator);
+        PlatformAuthService service =
+            CreateService(db, DefaultOptions(), new FixedTimeProvider(Now), validator: validator);
         AuthOperationResultDto result = await service.ChangePasswordAsync(user.Id, Password, "NewPass@123");
 
         Assert.True(result.Succeeded, result.ErrorMessage);
@@ -882,7 +926,7 @@ public sealed class PlatformAuthServiceTests
     {
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
-        AppUser user = SeedUser("admin", password: Password);
+        AppUser user = SeedUser("admin", Password);
         db.AppUsers.Add(user);
         await db.SaveChangesAsync();
 
@@ -899,8 +943,8 @@ public sealed class PlatformAuthServiceTests
     {
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
-        AppUser enabled = SeedUser("member", password: Password);
-        AppUser disabled = SeedUser("gone", password: Password, enabled: false);
+        AppUser enabled = SeedUser("member", Password);
+        AppUser disabled = SeedUser("gone", Password, enabled: false);
         db.AppUsers.Add(enabled);
         db.AppUsers.Add(disabled);
         await db.SaveChangesAsync();
@@ -922,7 +966,7 @@ public sealed class PlatformAuthServiceTests
     {
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
-        AppUser user = SeedUser("member", password: Password);
+        AppUser user = SeedUser("member", Password);
         db.AppUsers.Add(user);
         await db.SaveChangesAsync();
         string stamp = user.SecurityStamp.ToString();
@@ -946,7 +990,9 @@ public sealed class PlatformAuthServiceTests
     [InlineData("", "请输入新密码。")]
     [InlineData("   ", "请输入新密码。")]
     [InlineData("ab1", "密码长度至少 8 位。")]
-    [InlineData("1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890", "密码长度不能超过 128 位。")]
+    [InlineData(
+        "1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890",
+        "密码长度不能超过 128 位。")]
     [InlineData("password", "密码需同时包含字母与数字。")]
     [InlineData("12345678", "密码需同时包含字母与数字。")]
     [InlineData("admin1234", "密码不能与账号相同。")]

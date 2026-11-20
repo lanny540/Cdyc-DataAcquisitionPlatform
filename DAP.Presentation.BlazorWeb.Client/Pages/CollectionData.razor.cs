@@ -1,5 +1,4 @@
 using DAP.Core.Shared.Contracts;
-using DAP.Presentation.BlazorWeb.Client.Services;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
@@ -95,7 +94,10 @@ public partial class CollectionData
     private async Task LoadInternalAsync(bool silent)
     {
         // 首载未结束时定时器可能已经跑到第一拍：两个请求并行会互相覆盖结果。
-        if (silent && (_isLoading || _isRefreshing)) return;
+        if (silent && (_isLoading || _isRefreshing))
+        {
+            return;
+        }
 
         if (silent)
         {
@@ -128,14 +130,21 @@ public partial class CollectionData
                 : $"采集记录加载失败：{UserFacingErrors.Describe(ex)}";
             _messageSeverity = silent ? Severity.Warning : Severity.Error;
 
-            if (!silent) _records = [];
+            if (!silent)
+            {
+                _records = [];
+            }
         }
         finally
         {
             if (silent)
+            {
                 _isRefreshing = false;
+            }
             else
+            {
                 _isLoading = false;
+            }
         }
     }
 

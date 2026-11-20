@@ -123,7 +123,7 @@ public sealed class ExternalIdentityConfiguration : IEntityTypeConfiguration<Ext
         builder.Property(item => item.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(item => item.UpdatedAt).HasColumnName("updated_at").IsRequired();
 
-        builder.HasIndex(item => new {item.Provider, item.ExternalId})
+        builder.HasIndex(item => new { item.Provider, item.ExternalId })
             .IsUnique()
             .HasDatabaseName("ux_external_identities_provider_external_id");
 

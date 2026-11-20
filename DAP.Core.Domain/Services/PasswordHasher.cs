@@ -46,12 +46,21 @@ public static class PasswordHasher
     /// <returns>匹配时返回 true。</returns>
     public static bool Verify(string? password, string? encodedHash)
     {
-        if (string.IsNullOrEmpty(password) || string.IsNullOrEmpty(encodedHash)) return false;
+        if (string.IsNullOrEmpty(password) || string.IsNullOrEmpty(encodedHash))
+        {
+            return false;
+        }
 
         string[] parts = encodedHash.Split('$');
-        if (parts.Length != 4 || !string.Equals(parts[0], Algorithm, StringComparison.Ordinal)) return false;
+        if (parts.Length != 4 || !string.Equals(parts[0], Algorithm, StringComparison.Ordinal))
+        {
+            return false;
+        }
 
-        if (!int.TryParse(parts[1], out int iterations) || iterations <= 0) return false;
+        if (!int.TryParse(parts[1], out int iterations) || iterations <= 0)
+        {
+            return false;
+        }
 
         byte[] salt;
         byte[] expectedKey;
@@ -66,7 +75,10 @@ public static class PasswordHasher
             return false;
         }
 
-        if (salt.Length == 0 || expectedKey.Length == 0) return false;
+        if (salt.Length == 0 || expectedKey.Length == 0)
+        {
+            return false;
+        }
 
         // 以库中记录的迭代次数重算：将来调高默认值后，旧哈希仍可校验通过。
         byte[] actualKey = Rfc2898DeriveBytes.Pbkdf2(

@@ -1,3 +1,4 @@
+using System.Globalization;
 using ClosedXML.Excel;
 using DAP.Core.Shared.Contracts;
 using DAP.Presentation.BlazorWeb.Services;
@@ -223,8 +224,10 @@ public class ShiftScheduleExcelParserTests
     /// </summary>
     private static void WriteDay(IXLWorksheet worksheet, int row, string date, string team, int startHour, int endHour)
     {
-        if (DateOnly.TryParse(date, out DateOnly parsed))
+        if (DateOnly.TryParse(date, CultureInfo.InvariantCulture, out DateOnly parsed))
+        {
             worksheet.Cell(row, 1).Value = parsed.ToDateTime(new TimeOnly(0, 0));
+        }
 
         worksheet.Cell(row, 2).Value = team;
 

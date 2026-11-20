@@ -320,7 +320,10 @@ public static class NavigationCatalog
                 : path.Equals(href, StringComparison.OrdinalIgnoreCase)
                   || path.StartsWith(href + "/", StringComparison.OrdinalIgnoreCase);
 
-            if (!isMatch || href.Length <= matchedLength) continue;
+            if (!isMatch || href.Length <= matchedLength)
+            {
+                continue;
+            }
 
             matched = item;
             matchedLength = href.Length;
@@ -337,11 +340,16 @@ public static class NavigationCatalog
 
         foreach (NavSection section in AllSections)
         {
-            foreach (NavItem item in section.QuickLinks) pages.Add(new NavPageDescriptor(item, section, null));
+            foreach (NavItem item in section.QuickLinks)
+            {
+                pages.Add(new NavPageDescriptor(item, section, null));
+            }
 
             foreach (NavGroup group in section.Groups)
             foreach (NavItem item in group.Items)
+            {
                 pages.Add(new NavPageDescriptor(item, section, group.Title));
+            }
         }
 
         return pages.ToArray();
@@ -389,7 +397,10 @@ public static class NavigationCatalog
                 : path.Equals(href, StringComparison.OrdinalIgnoreCase)
                   || path.StartsWith(href + "/", StringComparison.OrdinalIgnoreCase);
 
-            if (!isMatch || href.Length <= matchedLength) continue;
+            if (!isMatch || href.Length <= matchedLength)
+            {
+                continue;
+            }
 
             matched = section;
             matchedLength = href.Length;
@@ -414,12 +425,18 @@ public static class NavigationCatalog
     /// </summary>
     private static string Normalize(string? path)
     {
-        if (string.IsNullOrWhiteSpace(path)) return string.Empty;
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return string.Empty;
+        }
 
         string trimmed = path.Trim();
 
         int queryIndex = trimmed.IndexOfAny(['?', '#']);
-        if (queryIndex >= 0) trimmed = trimmed[..queryIndex];
+        if (queryIndex >= 0)
+        {
+            trimmed = trimmed[..queryIndex];
+        }
 
         return trimmed.Trim('/');
     }

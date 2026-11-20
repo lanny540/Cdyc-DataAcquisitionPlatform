@@ -1,5 +1,3 @@
-@using System.Globalization
-
 <svg class="load-chart" viewBox="0 0 720 240" role="img" xmlns="http://www.w3.org/2000/svg">
     <title>园区 24 小时总负荷曲线</title>
     <desc>按小时展示园区总负荷，并用虚线标出申报需量；负荷逼近需量时应当引起注意。</desc>
@@ -24,7 +22,7 @@
     {
         <line x1="@F(Left)" y1="@F(DemandY)" x2="@F(Right)" y2="@F(DemandY)" class="load-chart-demand"/>
         <SvgText X="@F(Left + 6)" Y="@F(DemandY - 8)" CssClass="load-chart-demand-label">
-            @($"申报需量 {FormatValue((double) DeclaredDemand!.Value)} {Unit}")
+            @($"申报需量 {FormatValue((double)DeclaredDemand!.Value)} {Unit}")
         </SvgText>
     }
 
@@ -32,7 +30,7 @@
     {
         @* 峰值只画点，不写字：峰值时刻前后的曲线正好从这一点向两侧下降，
            文字无论放哪一侧都会压在线上；具体数值由卡片右上角的摘要给出。 *@
-        <circle cx="@F(XOf(peak.Hour))" cy="@F(YOf((double) peak.LoadKw))" r="4" class="load-chart-peak"/>
+        <circle cx="@F(XOf(peak.Hour))" cy="@F(YOf((double)peak.LoadKw))" r="4" class="load-chart-peak"/>
     }
 
     @foreach ((string label, double x) in XTicks)

@@ -29,15 +29,27 @@ public sealed class UserSessionValidatorTests
         Guid enabledStamp = Guid.NewGuid();
         AppUser enabledUser = new()
         {
-            Id = Guid.NewGuid(), UserName = "user-a", DisplayName = "用户A",
-            DepartmentId = null, IsEnabled = true, MustChangePassword = false,
-            SecurityStamp = enabledStamp, CreatedAt = SeedTime, UpdatedAt = SeedTime
+            Id = Guid.NewGuid(),
+            UserName = "user-a",
+            DisplayName = "用户A",
+            DepartmentId = null,
+            IsEnabled = true,
+            MustChangePassword = false,
+            SecurityStamp = enabledStamp,
+            CreatedAt = SeedTime,
+            UpdatedAt = SeedTime
         };
         AppUser disabledUser = new()
         {
-            Id = Guid.NewGuid(), UserName = "user-b", DisplayName = "用户B",
-            DepartmentId = null, IsEnabled = false, MustChangePassword = false,
-            SecurityStamp = Guid.NewGuid(), CreatedAt = SeedTime, UpdatedAt = SeedTime
+            Id = Guid.NewGuid(),
+            UserName = "user-b",
+            DisplayName = "用户B",
+            DepartmentId = null,
+            IsEnabled = false,
+            MustChangePassword = false,
+            SecurityStamp = Guid.NewGuid(),
+            CreatedAt = SeedTime,
+            UpdatedAt = SeedTime
         };
 
         db.AppUsers.AddRange(enabledUser, disabledUser);
@@ -46,7 +58,9 @@ public sealed class UserSessionValidatorTests
     }
 
     private static UserSessionValidator CreateValidator(DataAcquisitionPlatformDbContext db, IMemoryCache cache)
-        => new(db, cache);
+    {
+        return new UserSessionValidator(db, cache);
+    }
 
     [Fact]
     public async Task IsSessionValidAsync_Empty_Stamp_Should_Return_False()
@@ -195,9 +209,15 @@ public sealed class UserSessionValidatorTests
         {
             setup.AppUsers.Add(new AppUser
             {
-                Id = missingUserId, UserName = "late-user", DisplayName = "后创建用户",
-                DepartmentId = null, IsEnabled = true, MustChangePassword = false,
-                SecurityStamp = Guid.NewGuid(), CreatedAt = SeedTime, UpdatedAt = SeedTime
+                Id = missingUserId,
+                UserName = "late-user",
+                DisplayName = "后创建用户",
+                DepartmentId = null,
+                IsEnabled = true,
+                MustChangePassword = false,
+                SecurityStamp = Guid.NewGuid(),
+                CreatedAt = SeedTime,
+                UpdatedAt = SeedTime
             });
             await setup.SaveChangesAsync();
         }

@@ -1,6 +1,5 @@
 using DAP.Core.Shared.Catalog;
 using DAP.Core.Shared.Contracts;
-using DAP.Presentation.BlazorWeb.Client.Services;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
@@ -57,7 +56,7 @@ public partial class ManagedDataDefinitions
             string.Equals(item.AcquisitionType, AcquisitionServerCatalog.Historian, StringComparison.Ordinal));
 
     private Color LatestExecutionColor =>
-        _lastExecutionResult is {Success: true} ? Color.Success : Color.Error;
+        _lastExecutionResult is { Success: true } ? Color.Success : Color.Error;
 
     private IEnumerable<string> TypeFilterOptions => _definitions
         .Select(item => item.AcquisitionType)
@@ -131,7 +130,10 @@ public partial class ManagedDataDefinitions
 
     private async Task ConfirmDeleteAsync()
     {
-        if (_pendingDeleteDefinition is null) return;
+        if (_pendingDeleteDefinition is null)
+        {
+            return;
+        }
 
         ManagedDataDefinitionDto definition = _pendingDeleteDefinition;
         _isDeleting = true;
@@ -193,7 +195,10 @@ public partial class ManagedDataDefinitions
                 ? await PlatformApiClient.CollectManagedDataDefinitionAsync(definition.Id)
                 : await PlatformApiClient.DebugReadManagedDataDefinitionAsync(definition.Id);
 
-            if (isCollect && _lastExecutionResult.Success) await LoadAsync();
+            if (isCollect && _lastExecutionResult.Success)
+            {
+                await LoadAsync();
+            }
 
             SetMessage(
                 _lastExecutionResult.Success

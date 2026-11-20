@@ -22,8 +22,7 @@ public sealed class AuditLogWriter(
 {
     private static readonly JsonSerializerOptions DetailOptions = new()
     {
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        WriteIndented = false
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, WriteIndented = false
     };
 
     /// <summary>

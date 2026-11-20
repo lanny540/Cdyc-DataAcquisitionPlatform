@@ -73,7 +73,10 @@ public abstract partial class EnergyPageViewModelBase : AutoRefreshPageViewModel
     /// </summary>
     partial void OnSelectedTeamChanged(TeamOption? value)
     {
-        if (_suppressTeamReload || value is null) return;
+        if (_suppressTeamReload || value is null)
+        {
+            return;
+        }
 
         _ = ReloadAsync();
     }
@@ -96,7 +99,10 @@ public abstract partial class EnergyPageViewModelBase : AutoRefreshPageViewModel
         {
             Teams.Clear();
 
-            foreach (ShiftTeamDto team in teams) Teams.Add(new TeamOption(team.TeamCode, team.TeamName));
+            foreach (ShiftTeamDto team in teams)
+            {
+                Teams.Add(new TeamOption(team.TeamCode, team.TeamName));
+            }
 
             HasTeams = Teams.Count > 0;
 
@@ -120,7 +126,10 @@ public abstract partial class EnergyPageViewModelBase : AutoRefreshPageViewModel
     {
         TeamOption? match = Teams.FirstOrDefault(team => team.Code == teamCode);
 
-        if (match is null || ReferenceEquals(match, SelectedTeam)) return;
+        if (match is null || ReferenceEquals(match, SelectedTeam))
+        {
+            return;
+        }
 
         _suppressTeamReload = true;
 

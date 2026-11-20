@@ -1,6 +1,4 @@
 using DAP.Core.Shared.Contracts;
-using DAP.Presentation.BlazorWeb.Client.Services;
-using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
 namespace DAP.Presentation.BlazorWeb.Client.Pages;
@@ -28,7 +26,10 @@ public partial class DomainConfig
     {
         _isLoading = true;
 
-        if (clearMessage) _message = null;
+        if (clearMessage)
+        {
+            _message = null;
+        }
 
         try
         {
@@ -51,7 +52,10 @@ public partial class DomainConfig
     /// </summary>
     private void RequestAccessLevelChangeAsync(AdminDomainPageDto page, int newLevel)
     {
-        if (newLevel == page.AccessLevel) return;
+        if (newLevel == page.AccessLevel)
+        {
+            return;
+        }
 
         string direction = newLevel > page.AccessLevel ? "放开" : "收紧";
 
@@ -325,6 +329,9 @@ public partial class DomainConfig
         Func<Task>? action = _pendingAction;
         _pendingAction = null;
 
-        if (action is not null) await action();
+        if (action is not null)
+        {
+            await action();
+        }
     }
 }

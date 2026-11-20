@@ -83,7 +83,9 @@ public sealed class PlatformAuthService(
         string normalizedUserName = NormalizeUserName(userName);
 
         if (normalizedUserName.Length == 0 || string.IsNullOrEmpty(password))
+        {
             return AuthSignInResult.Failed("请输入账号与密码。");
+        }
 
         AppUser? user = await UsersWithDetails()
             .FirstOrDefaultAsync(item => item.UserName == normalizedUserName, cancellationToken);
@@ -93,10 +95,15 @@ public sealed class PlatformAuthService(
         // 输任意密码就能区分「账号不存在」「账号已停用」「是域账号但目录没开」，
         // 文案再统一也没用。状态提示本身是有用的（否则离职员工会以为忘了密码），
         // 但只能在证明自己知道密码之后给。
-        if (user?.PasswordHash is {Length: > 0}) return await SignInLocalAsync(user, password, cancellationToken);
+        if (user?.PasswordHash is { Length: > 0 })
+        {
+            return await SignInLocalAsync(user, password, cancellationToken);
+        }
 
         if (_options.Ldap.Enabled)
+        {
             return await SignInWithDirectoryAsync(user, normalizedUserName, password, cancellationToken);
+        }
 
         // 账号不存在，或是没有本地密码的域账号但目录认证没启用：对外完全同一句话。
         PasswordHasher.Verify(password, DummyPasswordHash);
@@ -123,7 +130,7 @@ public sealed class PlatformAuthService(
 
         if (user.LockoutEndAt is { } lockoutEnd && lockoutEnd > now)
         {
-            int remainingMinutes = Math.Max(1, (int) Math.Ceiling((lockoutEnd - now).TotalMinutes));
+            int remainingMinutes = Math.Max(1, (int)Math.Ceiling((lockoutEnd - now).TotalMinutes));
             return AuthSignInResult.Failed($"登录失败次数过多，请在 {remainingMinutes} 分钟后重试。");
         }
 
@@ -191,7 +198,10 @@ public sealed class PlatformAuthService(
         AppUser? reloaded = await UsersWithDetails()
             .FirstOrDefaultAsync(item => item.Id == provision.User.Id, cancellationToken);
 
-        if (reloaded is null || !reloaded.IsEnabled) return AuthSignInResult.Failed("该账号已停用，请联系管理员。");
+        if (reloaded is null || !reloaded.IsEnabled)
+        {
+            return AuthSignInResult.Failed("该账号已停用，请联系管理员。");
+        }
 
         DateTimeOffset now = timeProvider.GetUtcNow();
         reloaded.LastLoginAt = now;
@@ -217,7 +227,10 @@ public sealed class PlatformAuthService(
         AppUser? user = await UsersWithDetails()
             .FirstOrDefaultAsync(item => item.Id == userId, cancellationToken);
 
-        if (user is null || !user.IsEnabled) return null;
+        if (user is null || !user.IsEnabled)
+        {
+            return null;
+        }
 
         return await BuildUserDtoAsync(user, cancellationToken);
     }
@@ -234,10 +247,16 @@ public sealed class PlatformAuthService(
         CancellationToken cancellationToken = default)
     {
         // 分支 1：超级管理员短路，不看域。
-        if (user.IsSuperAdmin) return "/platform-overview";
+        if (user.IsSuperAdmin)
+        {
+            return "/platform-overview";
+        }
 
         // 分支 4：没有任何可见域 —— 缺授权，找管理员。
-        if (user.Domains.Count == 0) return "/no-access";
+        if (user.Domains.Count == 0)
+        {
+            return "/no-access";
+        }
 
         List<Guid> domainIds = await db.BusinessDomains
             .Where(domain => user.Domains.Contains(domain.Code) && domain.IsEnabled)
@@ -275,20 +294,32 @@ public sealed class PlatformAuthService(
     {
         AppUser? user = await db.AppUsers.FirstOrDefaultAsync(item => item.Id == userId, cancellationToken);
 
-        if (user is null || !user.IsEnabled) return new AuthOperationResultDto(false, "账号不存在或已停用。");
+        if (user is null || !user.IsEnabled)
+        {
+            return new AuthOperationResultDto(false, "账号不存在或已停用。");
+        }
 
         // 域账号的密码在目录里，平台这一侧没有可校验的哈希，也不该在这里改。
         if (string.IsNullOrEmpty(user.PasswordHash))
+        {
             return new AuthOperationResultDto(false, "域账号的密码由目录统一管理，请通过域账号修改。");
+        }
 
         if (!PasswordHasher.Verify(currentPassword, user.PasswordHash))
+        {
             return new AuthOperationResultDto(false, "当前密码不正确。");
+        }
 
         string? error = ValidateNewPassword(user.UserName, newPassword);
-        if (error is not null) return new AuthOperationResultDto(false, error);
+        if (error is not null)
+        {
+            return new AuthOperationResultDto(false, error);
+        }
 
         if (string.Equals(currentPassword, newPassword, StringComparison.Ordinal))
+        {
             return new AuthOperationResultDto(false, "新密码不能与当前密码相同。");
+        }
 
         user.PasswordHash = PasswordHasher.Hash(newPassword!);
         user.MustChangePassword = false;
@@ -318,7 +349,7 @@ public sealed class PlatformAuthService(
         Guid? stamp = await db.AppUsers
             .AsNoTracking()
             .Where(user => user.Id == userId)
-            .Select(user => (Guid?) user.SecurityStamp)
+            .Select(user => (Guid?)user.SecurityStamp)
             .FirstOrDefaultAsync(cancellationToken);
 
         return stamp?.ToString();
@@ -332,13 +363,25 @@ public sealed class PlatformAuthService(
     /// <returns>不通过时的中文提示。</returns>
     public static string? ValidateNewPassword(string userName, string? password)
     {
-        if (string.IsNullOrWhiteSpace(password)) return "请输入新密码。";
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            return "请输入新密码。";
+        }
 
-        if (password.Length < 8) return "密码长度至少 8 位。";
+        if (password.Length < 8)
+        {
+            return "密码长度至少 8 位。";
+        }
 
-        if (password.Length > 128) return "密码长度不能超过 128 位。";
+        if (password.Length > 128)
+        {
+            return "密码长度不能超过 128 位。";
+        }
 
-        if (string.Equals(password, userName, StringComparison.OrdinalIgnoreCase)) return "密码不能与账号相同。";
+        if (string.Equals(password, userName, StringComparison.OrdinalIgnoreCase))
+        {
+            return "密码不能与账号相同。";
+        }
 
         bool hasLetter = password.Any(char.IsLetter);
         bool hasDigit = password.Any(char.IsDigit);
@@ -383,7 +426,7 @@ public sealed class PlatformAuthService(
     {
         List<Role> roles = user.UserRoles
             .Select(item => item.Role)
-            .Where(role => role is {IsEnabled: true})
+            .Where(role => role is { IsEnabled: true })
             .Select(role => role!)
             .OrderBy(role => role.SortOrder)
             .ToList();
@@ -428,7 +471,10 @@ public sealed class PlatformAuthService(
         CancellationToken cancellationToken)
     {
         // 没有部门的账号不可见任何业务域：域授权挂在部门上，单值传播。
-        if (departmentId is null) return [];
+        if (departmentId is null)
+        {
+            return [];
+        }
 
         return await db.DepartmentDomainGrants
             .Where(grant => grant.DepartmentId == departmentId

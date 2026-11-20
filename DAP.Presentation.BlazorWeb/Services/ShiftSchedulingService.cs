@@ -139,11 +139,11 @@ public sealed class InMemoryShiftSchedulingService : IShiftSchedulingService
                 _lastFileName = fileName;
             }
 
-            validation = validation with {Issues = allIssues};
+            validation = validation with { Issues = allIssues };
         }
         else
         {
-            validation = validation with {Issues = allIssues};
+            validation = validation with { Issues = allIssues };
         }
 
         return Task.FromResult(new ShiftScheduleImportResultDto(
@@ -199,7 +199,9 @@ public sealed class InMemoryShiftSchedulingService : IShiftSchedulingService
             .Where(item => item.WorkDate >= from && item.WorkDate <= to);
 
         if (!string.IsNullOrWhiteSpace(teamCode))
+        {
             rows = rows.Where(item => string.Equals(item.TeamCode, teamCode, StringComparison.OrdinalIgnoreCase));
+        }
 
         return Task.FromResult(ShiftRotationValidator.GroupByDate(rows.ToArray()));
     }

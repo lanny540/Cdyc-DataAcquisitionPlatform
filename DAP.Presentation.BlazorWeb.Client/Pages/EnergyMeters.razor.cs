@@ -1,4 +1,3 @@
-using DAP.Clients;
 using DAP.Core.Shared.Contracts;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
@@ -123,7 +122,10 @@ public partial class EnergyMeters
 
     private async Task SaveAsync()
     {
-        if (_isSaving) return;
+        if (_isSaving)
+        {
+            return;
+        }
 
         if (string.IsNullOrWhiteSpace(_editorCode))
         {
@@ -186,7 +188,10 @@ public partial class EnergyMeters
 
     private async Task DeleteAsync()
     {
-        if (_pendingDelete is not { } meter) return;
+        if (_pendingDelete is not { } meter)
+        {
+            return;
+        }
 
         _isConfirmOpen = false;
 
@@ -221,7 +226,7 @@ public partial class EnergyMeters
     private void BuildFactorRows()
     {
         _factorRows = (_dictionary?.Media ?? [])
-            .Select(medium => new MediumFactorRow {Medium = medium, CoalFactor = medium.CoalFactor})
+            .Select(medium => new MediumFactorRow { Medium = medium, CoalFactor = medium.CoalFactor })
             .ToList();
     }
 
@@ -281,7 +286,10 @@ public partial class EnergyMeters
 
     private async Task SaveOrgUnitAsync()
     {
-        if (_isSaving) return;
+        if (_isSaving)
+        {
+            return;
+        }
 
         _isSaving = true;
 

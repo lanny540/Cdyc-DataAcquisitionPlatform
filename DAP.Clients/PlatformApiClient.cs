@@ -60,7 +60,10 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
     {
         using HttpResponseMessage response =
             await httpClient.DeleteAsync($"/api/collection-points/{id}", cancellationToken);
-        if (response.StatusCode == HttpStatusCode.NotFound) return false;
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return false;
+        }
 
         await PlatformHttpResponse.EnsureSuccessAsync(response, cancellationToken);
         return true;
@@ -105,7 +108,10 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
     {
         using HttpResponseMessage response =
             await httpClient.DeleteAsync($"/api/managed-data-definitions/{id}", cancellationToken);
-        if (response.StatusCode == HttpStatusCode.NotFound) return false;
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return false;
+        }
 
         await PlatformHttpResponse.EnsureSuccessAsync(response, cancellationToken);
         return true;
@@ -229,8 +235,10 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
             await httpClient.PostAsJsonAsync("/api/acquisition-servers", request, cancellationToken);
 
         if (!response.IsSuccessStatusCode)
+        {
             throw new InvalidOperationException(
                 await PlatformHttpResponse.ReadErrorMessageAsync(response, cancellationToken));
+        }
 
         return await response.Content.ReadFromJsonAsync<AcquisitionServerDto>(cancellationToken) ??
                throw new InvalidOperationException("服务端未返回保存后的采集服务器配置。");
@@ -241,11 +249,16 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         using HttpResponseMessage response =
             await httpClient.DeleteAsync($"/api/acquisition-servers/{id}", cancellationToken);
 
-        if (response.IsSuccessStatusCode) return true;
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
 
         if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.BadRequest)
+        {
             throw new InvalidOperationException(
                 await PlatformHttpResponse.ReadErrorMessageAsync(response, cancellationToken));
+        }
 
         await PlatformHttpResponse.EnsureSuccessAsync(response, cancellationToken);
         return true;
@@ -262,8 +275,10 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
             await httpClient.PostAsJsonAsync(route, request, cancellationToken);
 
         if (!response.IsSuccessStatusCode)
+        {
             throw new InvalidOperationException(
                 await PlatformHttpResponse.ReadErrorMessageAsync(response, cancellationToken));
+        }
 
         return await response.Content.ReadFromJsonAsync<AcquisitionServerProbeResultDto>(cancellationToken) ??
                throw new InvalidOperationException("服务端未返回采集服务器测试结果。");
@@ -281,14 +296,14 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         CancellationToken cancellationToken = default)
     {
         return await httpClient.GetFromJsonAsync<IReadOnlyList<ShiftTeamDto>>(
-                   "/api/energy-metrics/teams", cancellationToken) ?? [];
+            "/api/energy-metrics/teams", cancellationToken) ?? [];
     }
 
     public async Task<IReadOnlyList<ShiftTeamDto>> GetShiftScheduleTeamsAsync(
         CancellationToken cancellationToken = default)
     {
         return await httpClient.GetFromJsonAsync<IReadOnlyList<ShiftTeamDto>>(
-                   "/api/shift-schedule-view/teams", cancellationToken) ?? [];
+            "/api/shift-schedule-view/teams", cancellationToken) ?? [];
     }
 
     public async Task<ShiftScheduleValidationDto> GetShiftScheduleValidationAsync(
@@ -320,7 +335,10 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
             ShiftScheduleImportResultDto? failure =
                 await TryReadImportResultAsync(response, cancellationToken);
 
-            if (failure is not null) return failure;
+            if (failure is not null)
+            {
+                return failure;
+            }
 
             throw new InvalidOperationException(
                 await PlatformHttpResponse.ReadErrorMessageAsync(response, cancellationToken));
@@ -345,7 +363,10 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         CancellationToken cancellationToken = default)
     {
         string route = $"/api/shift-schedule-view/calendar?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}";
-        if (!string.IsNullOrWhiteSpace(teamCode)) route += $"&teamCode={Uri.EscapeDataString(teamCode)}";
+        if (!string.IsNullOrWhiteSpace(teamCode))
+        {
+            route += $"&teamCode={Uri.EscapeDataString(teamCode)}";
+        }
 
         return await httpClient.GetFromJsonAsync<IReadOnlyList<DailyShiftScheduleDto>>(route, cancellationToken) ?? [];
     }
@@ -363,7 +384,10 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         using HttpResponseMessage response = await httpClient.GetAsync(route, cancellationToken);
 
         // 该班组在区间内没有排班属于正常情况，返回 null 而不是抛错。
-        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
 
         await PlatformHttpResponse.EnsureSuccessAsync(response, cancellationToken);
 
@@ -376,7 +400,10 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         CancellationToken cancellationToken = default)
     {
         string route = $"/api/energy-metrics/dashboard?trendDays={Math.Clamp(trendDays, 1, 60)}";
-        if (!string.IsNullOrWhiteSpace(teamCode)) route += $"&teamCode={Uri.EscapeDataString(teamCode)}";
+        if (!string.IsNullOrWhiteSpace(teamCode))
+        {
+            route += $"&teamCode={Uri.EscapeDataString(teamCode)}";
+        }
 
         return await httpClient.GetFromJsonAsync<EnergyDashboardDto>(route, cancellationToken)
                ?? throw new InvalidOperationException("服务端未返回能耗仪表板数据。");
@@ -416,7 +443,10 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         CancellationToken cancellationToken = default)
     {
         string route = $"/api/park-energy/overview?period={Uri.EscapeDataString(period)}";
-        if (demo) route += "&demo=true";
+        if (demo)
+        {
+            route += "&demo=true";
+        }
 
         return await httpClient.GetFromJsonAsync<ParkEnergyOverviewDto>(route, cancellationToken)
                ?? throw new InvalidOperationException("服务端未返回园区能源总览数据。");
@@ -455,7 +485,10 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         using HttpResponseMessage response =
             await httpClient.DeleteAsync($"/api/park-energy/meters/{id}", cancellationToken);
 
-        if (response.StatusCode == HttpStatusCode.NotFound) return false;
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return false;
+        }
 
         await PlatformHttpResponse.EnsureSuccessAsync(response, cancellationToken);
         return true;
@@ -530,7 +563,10 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         using HttpResponseMessage response = await httpClient.PostAsJsonAsync(
             "/api/admin/domains", request, cancellationToken);
 
-        if (response.IsSuccessStatusCode) return true;
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
 
         throw new InvalidOperationException(
             await PlatformHttpResponse.ReadErrorMessageAsync(response, cancellationToken));
@@ -544,7 +580,10 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         using HttpResponseMessage response = await httpClient.PutAsJsonAsync(
             $"/api/admin/domains/{domainId}", request, cancellationToken);
 
-        if (response.IsSuccessStatusCode) return true;
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
 
         throw new InvalidOperationException(
             await PlatformHttpResponse.ReadErrorMessageAsync(response, cancellationToken));
@@ -557,7 +596,10 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         using HttpResponseMessage response = await httpClient.DeleteAsync(
             $"/api/admin/domains/{domainId}", cancellationToken);
 
-        if (response.IsSuccessStatusCode) return true;
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
 
         throw new InvalidOperationException(
             await PlatformHttpResponse.ReadErrorMessageAsync(response, cancellationToken));
@@ -570,7 +612,10 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         using HttpResponseMessage response = await httpClient.DeleteAsync(
             $"/api/admin/domains/pages/{pageId}", cancellationToken);
 
-        if (response.IsSuccessStatusCode) return true;
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
 
         throw new InvalidOperationException(
             await PlatformHttpResponse.ReadErrorMessageAsync(response, cancellationToken));
@@ -584,7 +629,10 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         using HttpResponseMessage response = await httpClient.PutAsJsonAsync(
             $"/api/admin/domains/pages/{pageId}", request, cancellationToken);
 
-        if (response.IsSuccessStatusCode) return true;
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
 
         throw new InvalidOperationException(
             await PlatformHttpResponse.ReadErrorMessageAsync(response, cancellationToken));
@@ -595,7 +643,10 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         using HttpResponseMessage response = await httpClient.PostAsync(
             $"/api/admin/domains/pages/{pageId}/reset", null, cancellationToken);
 
-        if (response.IsSuccessStatusCode) return true;
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
 
         throw new InvalidOperationException(
             await PlatformHttpResponse.ReadErrorMessageAsync(response, cancellationToken));
@@ -617,7 +668,10 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         using HttpResponseMessage response = await httpClient.PostAsJsonAsync(
             "/api/admin/departments", request, cancellationToken);
 
-        if (response.IsSuccessStatusCode) return true;
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
 
         throw new InvalidOperationException(
             await PlatformHttpResponse.ReadErrorMessageAsync(response, cancellationToken));
@@ -631,7 +685,10 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         using HttpResponseMessage response = await httpClient.PutAsJsonAsync(
             $"/api/admin/departments/{departmentId}", request, cancellationToken);
 
-        if (response.IsSuccessStatusCode) return true;
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
 
         throw new InvalidOperationException(
             await PlatformHttpResponse.ReadErrorMessageAsync(response, cancellationToken));
@@ -645,7 +702,10 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         using HttpResponseMessage response = await httpClient.PutAsJsonAsync(
             $"/api/admin/departments/{departmentId}/grants", request, cancellationToken);
 
-        if (response.IsSuccessStatusCode) return true;
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
 
         throw new InvalidOperationException(
             await PlatformHttpResponse.ReadErrorMessageAsync(response, cancellationToken));
@@ -679,7 +739,10 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         using HttpResponseMessage response = await httpClient.PostAsJsonAsync(
             "/api/admin/users", request, cancellationToken);
 
-        if (response.IsSuccessStatusCode) return true;
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
 
         throw new InvalidOperationException(
             await PlatformHttpResponse.ReadErrorMessageAsync(response, cancellationToken));
@@ -693,7 +756,10 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         using HttpResponseMessage response = await httpClient.PutAsJsonAsync(
             $"/api/admin/users/{userId}", request, cancellationToken);
 
-        if (response.IsSuccessStatusCode) return true;
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
 
         throw new InvalidOperationException(
             await PlatformHttpResponse.ReadErrorMessageAsync(response, cancellationToken));
@@ -707,7 +773,10 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         using HttpResponseMessage response = await httpClient.PutAsJsonAsync(
             $"/api/admin/users/{userId}/department", request, cancellationToken);
 
-        if (response.IsSuccessStatusCode) return true;
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
 
         throw new InvalidOperationException(
             await PlatformHttpResponse.ReadErrorMessageAsync(response, cancellationToken));
@@ -721,7 +790,10 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         using HttpResponseMessage response = await httpClient.PutAsJsonAsync(
             $"/api/admin/users/{userId}/roles", request, cancellationToken);
 
-        if (response.IsSuccessStatusCode) return true;
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
 
         throw new InvalidOperationException(
             await PlatformHttpResponse.ReadErrorMessageAsync(response, cancellationToken));
@@ -735,7 +807,10 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         using HttpResponseMessage response = await httpClient.PostAsJsonAsync(
             $"/api/admin/users/{userId}/reset-password", request, cancellationToken);
 
-        if (response.IsSuccessStatusCode) return true;
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
 
         throw new InvalidOperationException(
             await PlatformHttpResponse.ReadErrorMessageAsync(response, cancellationToken));
@@ -748,7 +823,10 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         using HttpResponseMessage response = await httpClient.PostAsJsonAsync(
             "/api/admin/users/batch-status", request, cancellationToken);
 
-        if (response.IsSuccessStatusCode) return true;
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
 
         throw new InvalidOperationException(
             await PlatformHttpResponse.ReadErrorMessageAsync(response, cancellationToken));
@@ -761,7 +839,10 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         using HttpResponseMessage response = await httpClient.PostAsJsonAsync(
             "/api/admin/users/handover", request, cancellationToken);
 
-        if (response.IsSuccessStatusCode) return true;
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
 
         throw new InvalidOperationException(
             await PlatformHttpResponse.ReadErrorMessageAsync(response, cancellationToken));
@@ -851,16 +932,29 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
         List<string> query = [];
 
         if (from is { } fromValue)
+        {
             query.Add($"from={Uri.EscapeDataString(fromValue.ToString("O", CultureInfo.InvariantCulture))}");
+        }
 
         if (to is { } toValue)
+        {
             query.Add($"to={Uri.EscapeDataString(toValue.ToString("O", CultureInfo.InvariantCulture))}");
+        }
 
-        if (!string.IsNullOrWhiteSpace(userName)) query.Add($"userName={Uri.EscapeDataString(userName.Trim())}");
+        if (!string.IsNullOrWhiteSpace(userName))
+        {
+            query.Add($"userName={Uri.EscapeDataString(userName.Trim())}");
+        }
 
-        if (!string.IsNullOrWhiteSpace(targetType)) query.Add($"targetType={Uri.EscapeDataString(targetType.Trim())}");
+        if (!string.IsNullOrWhiteSpace(targetType))
+        {
+            query.Add($"targetType={Uri.EscapeDataString(targetType.Trim())}");
+        }
 
-        if (!string.IsNullOrWhiteSpace(result)) query.Add($"result={Uri.EscapeDataString(result.Trim())}");
+        if (!string.IsNullOrWhiteSpace(result))
+        {
+            query.Add($"result={Uri.EscapeDataString(result.Trim())}");
+        }
 
         return query;
     }

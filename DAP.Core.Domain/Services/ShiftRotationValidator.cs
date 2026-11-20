@@ -67,7 +67,8 @@ public static class ShiftRotationValidator
             .Select(group =>
             {
                 ShiftScheduleRowDto[] dayRows =
-                    group.OrderBy(item => item.StartTime).ThenBy(item => item.TeamCode).ToArray();
+                    group.OrderBy(item => item.StartTime).ThenBy(item => item.TeamCode, StringComparer.Ordinal)
+                        .ToArray();
 
                 string[] onDuty = dayRows
                     .Where(item => !item.IsRestDay)
@@ -83,7 +84,9 @@ public static class ShiftRotationValidator
                     .OrderBy(name => name, StringComparer.Ordinal)
                     .ToArray();
 
-                bool complete = dayRows.Count(item => !item.IsRestDay) == 24d / ShiftHours;
+                // 在岗班次数与要求班次数均为整数，直接整数比较，避免浮点相等判断。
+                const int requiredShifts = (int)(24d / ShiftHours);
+                bool complete = dayRows.Count(item => !item.IsRestDay) == requiredShifts;
 
                 return new DailyShiftScheduleDto(group.Key, dayRows, onDuty, rest, complete);
             })
@@ -123,12 +126,14 @@ public static class ShiftRotationValidator
         IReadOnlyCollection<ShiftScheduleRowDto> rows,
         List<ShiftScheduleIssueDto> issues)
     {
-        foreach (var group in rows.GroupBy(item => new {item.WorkDate, item.TeamCode})
+        foreach (var group in rows.GroupBy(item => new { item.WorkDate, item.TeamCode })
                      .Where(group => group.Count() > 1))
+        {
             issues.Add(new ShiftScheduleIssueDto(
                 0,
                 $"{group.Key.WorkDate:yyyy-MM-dd} 的班组 {group.Key.TeamCode} 出现了 {group.Count()} 条记录，同一自然日同一班组只能有一条排班。",
                 "error"));
+        }
     }
 
     private static void ValidateDuration(
@@ -136,11 +141,15 @@ public static class ShiftRotationValidator
         List<ShiftScheduleIssueDto> issues)
     {
         foreach (ShiftScheduleRowDto row in rows.Where(item => !item.IsRestDay))
+        {
             if (Math.Abs(row.DurationHours - ShiftHours) > DurationToleranceHours)
+            {
                 issues.Add(new ShiftScheduleIssueDto(
                     0,
                     $"{row.WorkDate:yyyy-MM-dd} 班组 {row.TeamName} 的班次时长为 {row.DurationHours:0.##} 小时，四班三运转要求每班 {ShiftHours:0} 小时。",
                     "error"));
+            }
+        }
     }
 
     private static IReadOnlyCollection<string> ValidateCoverage(
@@ -151,47 +160,16 @@ public static class ShiftRotationValidator
         DateOnly end = rows.Max(item => item.WorkDate);
 
         if (end.DayNumber - start.DayNumber + 1 > MaxDateSpanDays)
+        {
             issues.Add(new ShiftScheduleIssueDto(
                 0,
                 $"排班区间跨度 {end.DayNumber - start.DayNumber + 1} 天，超过单次导入上限 {MaxDateSpanDays} 天。",
                 "error"));
+        }
 
         foreach (IGrouping<DateOnly, ShiftScheduleRowDto> dayRows in rows.GroupBy(item => item.WorkDate))
         {
-            ShiftScheduleRowDto[] dutyRows = dayRows.Where(item => !item.IsRestDay).ToArray();
-
-            // 24 小时需要恰好三个 8 小时班次，多或少都不符合四班三运转。
-            int requiredShifts = (int) (24d / ShiftHours);
-            if (dutyRows.Length != requiredShifts)
-            {
-                issues.Add(new ShiftScheduleIssueDto(
-                    0,
-                    $"{dayRows.Key:yyyy-MM-dd} 有 {dutyRows.Length} 个在岗班次，四班三运转要求恰好 {requiredShifts} 个班次覆盖 24 小时。",
-                    "error"));
-                continue;
-            }
-
-            long expectedStartTicks = 0;
-            foreach (ShiftScheduleRowDto row in dutyRows.OrderBy(item => item.StartTime))
-            {
-                if (row.StartTime.Ticks != expectedStartTicks)
-                {
-                    issues.Add(new ShiftScheduleIssueDto(
-                        0,
-                        $"{dayRows.Key:yyyy-MM-dd} 存在班次空档或重叠：{row.StartTime:HH\\:mm} 之前未连续覆盖到该时刻。",
-                        "error"));
-                    break;
-                }
-
-                expectedStartTicks = row.StartTime.Ticks +
-                                     (long) Math.Round(row.DurationHours * TimeSpan.TicksPerHour);
-            }
-
-            if (expectedStartTicks < 24d * TimeSpan.TicksPerHour)
-                issues.Add(new ShiftScheduleIssueDto(
-                    0,
-                    $"{dayRows.Key:yyyy-MM-dd} 的排班未覆盖完整 24 小时，当日班次结束后仍有空档。",
-                    "error"));
+            ValidateDayCoverage(dayRows.Key, dayRows, issues);
         }
 
         return rows
@@ -199,6 +177,63 @@ public static class ShiftRotationValidator
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(code => code, StringComparer.Ordinal)
             .ToArray();
+    }
+
+    /// <summary>
+    /// 校验单个自然日的覆盖情况：恰好三个班次，并从 0 点连续覆盖到 24 点。
+    /// </summary>
+    private static void ValidateDayCoverage(
+        DateOnly workDate,
+        IEnumerable<ShiftScheduleRowDto> dayRows,
+        List<ShiftScheduleIssueDto> issues)
+    {
+        ShiftScheduleRowDto[] dutyRows = dayRows.Where(item => !item.IsRestDay).ToArray();
+
+        // 24 小时需要恰好三个 8 小时班次，多或少都不符合四班三运转。
+        int requiredShifts = (int)(24d / ShiftHours);
+        if (dutyRows.Length != requiredShifts)
+        {
+            issues.Add(new ShiftScheduleIssueDto(
+                0,
+                $"{workDate:yyyy-MM-dd} 有 {dutyRows.Length} 个在岗班次，四班三运转要求恰好 {requiredShifts} 个班次覆盖 24 小时。",
+                "error"));
+            return;
+        }
+
+        ValidateShiftContinuity(workDate, dutyRows, issues);
+    }
+
+    /// <summary>
+    /// 校验当日班次从 0 点起按开始时间无缝衔接，并覆盖到 24 点。
+    /// </summary>
+    private static void ValidateShiftContinuity(
+        DateOnly workDate,
+        ShiftScheduleRowDto[] dutyRows,
+        List<ShiftScheduleIssueDto> issues)
+    {
+        long expectedStartTicks = 0;
+        foreach (ShiftScheduleRowDto row in dutyRows.OrderBy(item => item.StartTime))
+        {
+            if (row.StartTime.Ticks != expectedStartTicks)
+            {
+                issues.Add(new ShiftScheduleIssueDto(
+                    0,
+                    $"{workDate:yyyy-MM-dd} 存在班次空档或重叠：{row.StartTime:HH\\:mm} 之前未连续覆盖到该时刻。",
+                    "error"));
+                break;
+            }
+
+            expectedStartTicks = row.StartTime.Ticks +
+                                 (long)Math.Round(row.DurationHours * TimeSpan.TicksPerHour);
+        }
+
+        if (expectedStartTicks < 24d * TimeSpan.TicksPerHour)
+        {
+            issues.Add(new ShiftScheduleIssueDto(
+                0,
+                $"{workDate:yyyy-MM-dd} 的排班未覆盖完整 24 小时，当日班次结束后仍有空档。",
+                "error"));
+        }
     }
 
     /// <summary>
@@ -210,13 +245,18 @@ public static class ShiftRotationValidator
         List<ShiftScheduleIssueDto> issues)
     {
         if (teams.Count < TeamsPerCycle)
+        {
             issues.Add(new ShiftScheduleIssueDto(
                 0,
                 $"仅识别到 {teams.Count} 个班组，四班三运转需要 {TeamsPerCycle} 个班组轮转。",
                 "warning"));
+        }
 
         int dutyDays = rows.Select(item => item.WorkDate).Distinct().Count();
-        if (dutyDays == 0) return;
+        if (dutyDays == 0)
+        {
+            return;
+        }
 
         Dictionary<string, int> restCounts = teams.ToDictionary(
             team => team,
@@ -228,11 +268,15 @@ public static class ShiftRotationValidator
         int tolerance = expectedRest > 0 ? 1 : 0;
 
         foreach (KeyValuePair<string, int> pair in restCounts.OrderBy(item => item.Key, StringComparer.Ordinal))
+        {
             if (Math.Abs(pair.Value - expectedRest) > tolerance)
+            {
                 issues.Add(new ShiftScheduleIssueDto(
                     0,
                     $"班组 {pair.Key} 轮休 {pair.Value} 天，与其他班组的轮休分配不均衡（期望约 {expectedRest} 天）。",
                     "warning"));
+            }
+        }
     }
 
     private static ShiftScheduleValidationDto BuildResult(
@@ -265,7 +309,10 @@ public static class ShiftRotationValidator
         IReadOnlyCollection<(string TeamName, string Code)> teams,
         IReadOnlyCollection<ShiftScheduleRowDto> rows)
     {
-        if (teams.Count == 0) return "暂无数据。";
+        if (teams.Count == 0)
+        {
+            return "暂无数据。";
+        }
 
         return string.Join(
             "、",

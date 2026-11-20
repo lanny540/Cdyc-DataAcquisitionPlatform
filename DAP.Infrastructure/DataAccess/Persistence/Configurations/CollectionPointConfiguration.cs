@@ -46,11 +46,11 @@ public sealed class CollectionPointConfiguration : IEntityTypeConfiguration<Coll
             .IsUnique()
             .HasDatabaseName("ux_collection_points_code");
 
-        builder.HasIndex(item => new {item.CommunicationStatus, item.UpdatedAt})
+        builder.HasIndex(item => new { item.CommunicationStatus, item.UpdatedAt })
             .IsDescending(false, true)
             .HasDatabaseName("ix_collection_points_status_updated_at");
 
-        builder.HasIndex(item => new {item.Source, item.UpdatedAt})
+        builder.HasIndex(item => new { item.Source, item.UpdatedAt })
             .IsDescending(false, true)
             .HasDatabaseName("ix_collection_points_source_updated_at");
     }

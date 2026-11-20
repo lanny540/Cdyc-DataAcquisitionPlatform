@@ -1,5 +1,4 @@
 using DAP.Core.Shared.Contracts;
-using DAP.Presentation.BlazorWeb.Client.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using MudBlazor;
@@ -128,7 +127,10 @@ public partial class ShiftSchedules
 
     private async Task ImportAsync()
     {
-        if (_selectedFile is null) return;
+        if (_selectedFile is null)
+        {
+            return;
+        }
 
         _isImporting = true;
         _importResult = null;
@@ -148,7 +150,10 @@ public partial class ShiftSchedules
                 : $"导入未通过校验，发现 {result.Validation.Issues.Count(item => item.Severity == "error")} 个错误，原有数据未被覆盖。";
             _messageSeverity = result.Succeeded ? Severity.Success : Severity.Error;
 
-            if (result.Succeeded) await LoadAsync();
+            if (result.Succeeded)
+            {
+                await LoadAsync();
+            }
         }
         catch (Exception ex)
         {

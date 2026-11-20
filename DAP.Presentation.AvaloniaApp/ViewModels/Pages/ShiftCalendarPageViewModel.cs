@@ -150,10 +150,7 @@ public sealed partial class ShiftCalendarPageViewModel : PageViewModelBase
             ? "本月没有排班记录"
             : $"本月已排班 {scheduled} 天，其中 {complete} 天满足四班三运转完整覆盖";
 
-        if (scheduled == 0)
-            SetMessage("当前区间内没有排班数据，请先在 Web 端「业务配置 → 排班时间管理」中导入排班表。");
-        else
-            SetMessage(null);
+        SetMessage(scheduled == 0 ? "当前区间内没有排班数据，请先在 Web 端「业务配置 → 排班时间管理」中导入排班表。" : null);
     }
 
     /// <summary>
@@ -162,7 +159,7 @@ public sealed partial class ShiftCalendarPageViewModel : PageViewModelBase
     private static DateOnly ResolveGridStart(DateOnly month)
     {
         DateOnly first = new(month.Year, month.Month, 1);
-        int offset = ((int) first.DayOfWeek + 6) % 7;
+        int offset = ((int)first.DayOfWeek + 6) % 7;
 
         return first.AddDays(-offset);
     }

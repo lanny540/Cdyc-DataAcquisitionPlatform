@@ -81,7 +81,7 @@ public sealed class RolePermissionConfiguration : IEntityTypeConfiguration<RoleP
     {
         builder.ToTable("role_permissions");
 
-        builder.HasKey(item => new {item.RoleId, item.PermissionId});
+        builder.HasKey(item => new { item.RoleId, item.PermissionId });
         builder.Property(item => item.RoleId).HasColumnName("role_id");
         builder.Property(item => item.PermissionId).HasColumnName("permission_id");
 
@@ -109,7 +109,7 @@ public sealed class UserRoleConfiguration : IEntityTypeConfiguration<UserRole>
     {
         builder.ToTable("user_roles");
 
-        builder.HasKey(item => new {item.UserId, item.RoleId});
+        builder.HasKey(item => new { item.UserId, item.RoleId });
         builder.Property(item => item.UserId).HasColumnName("user_id");
         builder.Property(item => item.RoleId).HasColumnName("role_id");
 
@@ -164,11 +164,11 @@ public sealed class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
             .IsDescending()
             .HasDatabaseName("ix_audit_logs_occurred_at");
 
-        builder.HasIndex(item => new {item.UserId, item.OccurredAt})
+        builder.HasIndex(item => new { item.UserId, item.OccurredAt })
             .IsDescending(false, true)
             .HasDatabaseName("ix_audit_logs_user_occurred_at");
 
-        builder.HasIndex(item => new {item.TargetType, item.TargetId})
+        builder.HasIndex(item => new { item.TargetType, item.TargetId })
             .HasDatabaseName("ix_audit_logs_target");
     }
 }

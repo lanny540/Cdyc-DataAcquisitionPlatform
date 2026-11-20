@@ -1,7 +1,6 @@
 using DAP.Core.Domain.Entities;
 using DAP.Infrastructure.DataAccess.Persistence;
 using DAP.Presentation.BlazorWeb.Services;
-using DAP.Tests.UnitTests.TestDoubles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -59,7 +58,8 @@ public sealed class EnergyDictionaryInitializerTests
 
         await using DataAcquisitionPlatformDbContext db2 = database.CreateContext();
         // 「只补不覆盖」：名称与启停状态都是用户的决定，重启不能盖回去。
-        Assert.Equal("电力", await db2.EnergyMedia.Where(item => item.Code == "ELEC").Select(item => item.Name).SingleAsync());
+        Assert.Equal("电力",
+            await db2.EnergyMedia.Where(item => item.Code == "ELEC").Select(item => item.Name).SingleAsync());
         EnergySystemType lightingAfter = await db2.EnergySystems.SingleAsync(item => item.Code == "LIGHTING");
         Assert.False(lightingAfter.IsEnabled);
         Assert.Equal(5, await db2.EnergyMedia.CountAsync());
@@ -94,7 +94,8 @@ public sealed class EnergyDictionaryInitializerTests
         EnergyMedium water = await db2.EnergyMedia.SingleAsync(item => item.Code == "WATER");
         Assert.Equal("水", water.Name);
         Assert.Equal(0.2571m, water.CoalFactor);
-        Assert.Equal("电力（改）", await db2.EnergyMedia.Where(item => item.Code == "ELEC").Select(item => item.Name).SingleAsync());
+        Assert.Equal("电力（改）",
+            await db2.EnergyMedia.Where(item => item.Code == "ELEC").Select(item => item.Name).SingleAsync());
         Assert.True(await db2.EnergySystems.AnyAsync(item => item.Code == "LIGHTING" && item.IsEnabled));
 
         EnergyOrgUnit newPark = await db2.EnergyOrgUnits.SingleAsync(unit => unit.Level == EnergyOrgUnit.ParkLevel);
@@ -122,7 +123,7 @@ public sealed class EnergyDictionaryInitializerTests
                 SortOrder = 10,
                 IsEnabled = true,
                 CreatedAt = DateTimeOffset.UtcNow,
-                UpdatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
             });
             await db.SaveChangesAsync();
         }
@@ -133,7 +134,8 @@ public sealed class EnergyDictionaryInitializerTests
         List<string> codes = await db2.EnergyMedia.Select(item => item.Code).ToListAsync();
         Assert.Equal(codes.Count, codes.Distinct(StringComparer.OrdinalIgnoreCase).Count());
         Assert.DoesNotContain(codes, code => code == "ELEC");
-        Assert.Equal("自定义电", await db2.EnergyMedia.Where(item => item.Code == "elec").Select(item => item.Name).SingleAsync());
+        Assert.Equal("自定义电",
+            await db2.EnergyMedia.Where(item => item.Code == "elec").Select(item => item.Name).SingleAsync());
         // 其余介质照常补齐。
         Assert.True(await db2.EnergyMedia.AnyAsync(item => item.Code == "WATER"));
     }

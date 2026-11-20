@@ -83,7 +83,7 @@ public class PlatformAdvisoryLock(
             hash *= prime;
         }
 
-        return unchecked((long) hash);
+        return unchecked((long)hash);
     }
 
     private sealed class Handle(
@@ -96,7 +96,10 @@ public class PlatformAdvisoryLock(
 
         public async ValueTask DisposeAsync()
         {
-            if (_released) return;
+            if (_released)
+            {
+                return;
+            }
 
             _released = true;
 

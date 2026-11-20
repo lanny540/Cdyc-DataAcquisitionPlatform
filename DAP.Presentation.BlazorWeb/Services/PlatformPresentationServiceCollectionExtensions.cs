@@ -164,12 +164,15 @@ internal sealed class ServerNavigationViewClient(
 {
     /// <inheritdoc />
     public async Task<NavigationDto?> LoadAsync(
-        System.Security.Claims.ClaimsPrincipal? principal,
+        ClaimsPrincipal? principal,
         CancellationToken cancellationToken = default)
     {
         ClaimsPrincipal? user = principal ?? httpContextAccessor.HttpContext?.User;
 
-        if (user?.Identity?.IsAuthenticated != true) return null;
+        if (user?.Identity?.IsAuthenticated != true)
+        {
+            return null;
+        }
 
         return await navigationViewService.BuildAsync(user, cancellationToken);
     }
@@ -362,7 +365,10 @@ internal sealed class ServerPlatformApiClient(
         (bool succeeded, string? errorMessage) =
             await acquisitionServerService.DeleteServerAsync(id, cancellationToken);
 
-        if (!succeeded) throw new InvalidOperationException(errorMessage ?? "删除采集服务器失败。");
+        if (!succeeded)
+        {
+            throw new InvalidOperationException(errorMessage ?? "删除采集服务器失败。");
+        }
 
         return true;
     }
@@ -447,7 +453,10 @@ internal sealed class ServerPlatformApiClient(
 
         ShiftScheduleRowDto[] rows = calendar.SelectMany(item => item.Rows).ToArray();
 
-        if (rows.Length == 0) return null;
+        if (rows.Length == 0)
+        {
+            return null;
+        }
 
         return new TeamShiftScheduleDto(
             rows[0].TeamCode,
@@ -692,18 +701,31 @@ internal sealed class ServerPlatformApiClient(
         List<string> query = [];
 
         if (from is { } fromValue)
+        {
             query.Add(
                 $"from={Uri.EscapeDataString(fromValue.ToString("O", System.Globalization.CultureInfo.InvariantCulture))}");
+        }
 
         if (to is { } toValue)
+        {
             query.Add(
                 $"to={Uri.EscapeDataString(toValue.ToString("O", System.Globalization.CultureInfo.InvariantCulture))}");
+        }
 
-        if (!string.IsNullOrWhiteSpace(userName)) query.Add($"userName={Uri.EscapeDataString(userName.Trim())}");
+        if (!string.IsNullOrWhiteSpace(userName))
+        {
+            query.Add($"userName={Uri.EscapeDataString(userName.Trim())}");
+        }
 
-        if (!string.IsNullOrWhiteSpace(targetType)) query.Add($"targetType={Uri.EscapeDataString(targetType.Trim())}");
+        if (!string.IsNullOrWhiteSpace(targetType))
+        {
+            query.Add($"targetType={Uri.EscapeDataString(targetType.Trim())}");
+        }
 
-        if (!string.IsNullOrWhiteSpace(result)) query.Add($"result={Uri.EscapeDataString(result.Trim())}");
+        if (!string.IsNullOrWhiteSpace(result))
+        {
+            query.Add($"result={Uri.EscapeDataString(result.Trim())}");
+        }
 
         return query.Count == 0
             ? "/api/audit-logs/export"
@@ -730,7 +752,10 @@ internal sealed class ServerPlatformApiClient(
         AuthOperationResultDto result =
             await directorySyncService.ResolveIssueAsync(issueId, null, cancellationToken);
 
-        if (!result.Succeeded) throw new InvalidOperationException(result.ErrorMessage ?? "操作失败。");
+        if (!result.Succeeded)
+        {
+            throw new InvalidOperationException(result.ErrorMessage ?? "操作失败。");
+        }
 
         return true;
     }
@@ -755,7 +780,10 @@ internal sealed class ServerPlatformApiClient(
     {
         AuthOperationResultDto result = await operation;
 
-        if (!result.Succeeded) throw new InvalidOperationException(result.ErrorMessage ?? "操作失败。");
+        if (!result.Succeeded)
+        {
+            throw new InvalidOperationException(result.ErrorMessage ?? "操作失败。");
+        }
 
         return true;
     }

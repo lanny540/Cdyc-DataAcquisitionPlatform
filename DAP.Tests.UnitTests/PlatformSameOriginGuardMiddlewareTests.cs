@@ -110,13 +110,13 @@ public class PlatformSameOriginGuardMiddlewareTests
 
         // Host 带端口而 Origin 是默认端口：不是同一来源。
         context.Request.Headers.Origin = "http://dap.cdyc.local";
-        Assert.False(DAP.Presentation.BlazorWeb.Security.PlatformSameOriginGuard.IsSameOrigin(context.Request));
+        Assert.False(PlatformSameOriginGuard.IsSameOrigin(context.Request));
 
         context.Request.Headers.Origin = "http://dap.cdyc.local:6000";
-        Assert.False(DAP.Presentation.BlazorWeb.Security.PlatformSameOriginGuard.IsSameOrigin(context.Request));
+        Assert.False(PlatformSameOriginGuard.IsSameOrigin(context.Request));
 
         context.Request.Headers.Origin = "http://dap.cdyc.local:5000";
-        Assert.True(DAP.Presentation.BlazorWeb.Security.PlatformSameOriginGuard.IsSameOrigin(context.Request));
+        Assert.True(PlatformSameOriginGuard.IsSameOrigin(context.Request));
     }
 
     [Fact]
@@ -127,7 +127,7 @@ public class PlatformSameOriginGuardMiddlewareTests
 
         // Uri.TryCreate 失败按跨源处理，不能因为解析不了就放行。
         context.Request.Headers.Origin = "::::not-a-uri";
-        Assert.False(DAP.Presentation.BlazorWeb.Security.PlatformSameOriginGuard.IsSameOrigin(context.Request));
+        Assert.False(PlatformSameOriginGuard.IsSameOrigin(context.Request));
     }
 
     [Fact]
@@ -137,6 +137,6 @@ public class PlatformSameOriginGuardMiddlewareTests
         context.Request.Host = new HostString("dap.cdyc.local");
 
         context.Request.Headers.Referer = "::::not-a-uri";
-        Assert.False(DAP.Presentation.BlazorWeb.Security.PlatformSameOriginGuard.IsSameOrigin(context.Request));
+        Assert.False(PlatformSameOriginGuard.IsSameOrigin(context.Request));
     }
 }

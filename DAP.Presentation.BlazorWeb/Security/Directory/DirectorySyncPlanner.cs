@@ -102,6 +102,7 @@ public static class DirectorySyncPlanner
         Guid? mappedDepartmentId)
     {
         if (local is null)
+        {
             return new DirectorySyncDecision(
                 DirectorySyncAction.Create,
                 record.DisplayName,
@@ -109,6 +110,7 @@ public static class DirectorySyncPlanner
                 mappedDepartmentId,
                 record.IsEnabled,
                 ["created"]);
+        }
 
         List<string> changed = [];
 

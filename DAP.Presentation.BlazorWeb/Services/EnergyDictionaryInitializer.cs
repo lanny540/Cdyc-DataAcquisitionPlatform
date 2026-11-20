@@ -68,7 +68,10 @@ public sealed class EnergyDictionaryInitializer(
 
         foreach (EnergyMediumSeed seed in EnergyDictionaryCatalog.Media)
         {
-            if (existing.Contains(seed.Code)) continue;
+            if (existing.Contains(seed.Code))
+            {
+                continue;
+            }
 
             db.EnergyMedia.Add(new EnergyMedium
             {
@@ -103,7 +106,10 @@ public sealed class EnergyDictionaryInitializer(
 
         foreach (EnergyCategorySeed seed in EnergyDictionaryCatalog.UsageTypes)
         {
-            if (existing.Contains(seed.Code)) continue;
+            if (existing.Contains(seed.Code))
+            {
+                continue;
+            }
 
             db.EnergyUsageTypes.Add(new EnergyUsageType
             {
@@ -136,7 +142,10 @@ public sealed class EnergyDictionaryInitializer(
 
         foreach (EnergyCategorySeed seed in EnergyDictionaryCatalog.Systems)
         {
-            if (existing.Contains(seed.Code)) continue;
+            if (existing.Contains(seed.Code))
+            {
+                continue;
+            }
 
             db.EnergySystems.Add(new EnergySystemType
             {
@@ -167,7 +176,10 @@ public sealed class EnergyDictionaryInitializer(
         bool hasRoot = await db.EnergyOrgUnits
             .AnyAsync(item => item.Level == EnergyOrgUnit.ParkLevel, cancellationToken);
 
-        if (hasRoot) return 0;
+        if (hasRoot)
+        {
+            return 0;
+        }
 
         db.EnergyOrgUnits.Add(new EnergyOrgUnit
         {

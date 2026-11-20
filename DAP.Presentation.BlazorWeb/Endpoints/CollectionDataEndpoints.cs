@@ -45,7 +45,10 @@ public static class CollectionDataEndpoints
                     CancellationToken cancellationToken) =>
                 {
                     IResult? validationError = ValidateIngestCollectionDataRequest(request);
-                    if (validationError is not null) return validationError;
+                    if (validationError is not null)
+                    {
+                        return validationError;
+                    }
 
                     CollectionDataRecordDto savedRecord =
                         await platformService.IngestCollectionDataAsync(request, cancellationToken);
@@ -64,10 +67,12 @@ public static class CollectionDataEndpoints
     {
         if (string.IsNullOrWhiteSpace(request.CollectionPointCode) ||
             string.IsNullOrWhiteSpace(request.MetricName))
+        {
             return Results.ValidationProblem(new Dictionary<string, string[]>
             {
                 ["CollectionData"] = ["采集点编码和指标名称不能为空。"]
             });
+        }
 
         return null;
     }

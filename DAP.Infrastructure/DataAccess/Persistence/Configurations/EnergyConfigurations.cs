@@ -272,7 +272,7 @@ public sealed class EnergyReadingConfiguration : IEntityTypeConfiguration<Energy
 
         // 同一块表在同一时刻只允许一条读数：重复写入会让差分量凭空翻倍，
         // 而且这种错误在报表上看起来完全正常，只是数值偏大。
-        builder.HasIndex(item => new {item.MeterId, item.ReadAt})
+        builder.HasIndex(item => new { item.MeterId, item.ReadAt })
             .IsUnique()
             .HasDatabaseName("ux_energy_readings_meter_read_at");
 

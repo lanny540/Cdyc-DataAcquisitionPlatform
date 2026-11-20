@@ -40,7 +40,7 @@ public static class AdminEndpoints
                     AuthOperationResultDto result = await service.CreateDomainAsync(request, cancellationToken);
                     return result.Succeeded
                         ? Results.NoContent()
-                        : Results.BadRequest(new {message = result.ErrorMessage});
+                        : Results.BadRequest(new { message = result.ErrorMessage });
                 })
             .WithName("CreateAdminDomain");
 
@@ -53,7 +53,7 @@ public static class AdminEndpoints
                         await service.UpdateDomainAsync(domainId, request, cancellationToken);
                     return result.Succeeded
                         ? Results.NoContent()
-                        : Results.BadRequest(new {message = result.ErrorMessage});
+                        : Results.BadRequest(new { message = result.ErrorMessage });
                 })
             .WithName("UpdateAdminDomain");
 
@@ -64,7 +64,7 @@ public static class AdminEndpoints
                     AuthOperationResultDto result = await service.DeleteDomainAsync(domainId, cancellationToken);
                     return result.Succeeded
                         ? Results.NoContent()
-                        : Results.BadRequest(new {message = result.ErrorMessage});
+                        : Results.BadRequest(new { message = result.ErrorMessage });
                 })
             .WithName("DeleteAdminDomain");
 
@@ -77,7 +77,7 @@ public static class AdminEndpoints
                         await service.UpdateDomainPageAsync(pageId, request, cancellationToken);
                     return result.Succeeded
                         ? Results.NoContent()
-                        : Results.BadRequest(new {message = result.ErrorMessage});
+                        : Results.BadRequest(new { message = result.ErrorMessage });
                 })
             .WithName("UpdateAdminDomainPage");
 
@@ -88,7 +88,7 @@ public static class AdminEndpoints
                     AuthOperationResultDto result = await service.ResetDomainPageAsync(pageId, cancellationToken);
                     return result.Succeeded
                         ? Results.NoContent()
-                        : Results.BadRequest(new {message = result.ErrorMessage});
+                        : Results.BadRequest(new { message = result.ErrorMessage });
                 })
             .WithName("ResetAdminDomainPage");
 
@@ -100,7 +100,7 @@ public static class AdminEndpoints
                     AuthOperationResultDto result = await service.DeleteDomainPageAsync(pageId, cancellationToken);
                     return result.Succeeded
                         ? Results.NoContent()
-                        : Results.BadRequest(new {message = result.ErrorMessage});
+                        : Results.BadRequest(new { message = result.ErrorMessage });
                 })
             .WithName("DeleteAdminDomainPage");
 
@@ -122,7 +122,7 @@ public static class AdminEndpoints
                     AuthOperationResultDto result = await service.CreateDepartmentAsync(request, cancellationToken);
                     return result.Succeeded
                         ? Results.NoContent()
-                        : Results.BadRequest(new {message = result.ErrorMessage});
+                        : Results.BadRequest(new { message = result.ErrorMessage });
                 })
             .WithName("CreateAdminDepartment");
 
@@ -135,7 +135,7 @@ public static class AdminEndpoints
                         await service.UpdateDepartmentAsync(departmentId, request, cancellationToken);
                     return result.Succeeded
                         ? Results.NoContent()
-                        : Results.BadRequest(new {message = result.ErrorMessage});
+                        : Results.BadRequest(new { message = result.ErrorMessage });
                 })
             .WithName("UpdateAdminDepartment");
 
@@ -148,7 +148,7 @@ public static class AdminEndpoints
                         await service.UpdateDepartmentGrantsAsync(departmentId, request, cancellationToken);
                     return result.Succeeded
                         ? Results.NoContent()
-                        : Results.BadRequest(new {message = result.ErrorMessage});
+                        : Results.BadRequest(new { message = result.ErrorMessage });
                 })
             .WithName("UpdateAdminDepartmentGrants");
 
@@ -178,7 +178,7 @@ public static class AdminEndpoints
                     AuthOperationResultDto result = await service.CreateUserAsync(request, cancellationToken);
                     return result.Succeeded
                         ? Results.NoContent()
-                        : Results.BadRequest(new {message = result.ErrorMessage});
+                        : Results.BadRequest(new { message = result.ErrorMessage });
                 })
             .WithName("CreateAdminUser");
 
@@ -191,7 +191,7 @@ public static class AdminEndpoints
                         await service.UpdateUserAsync(userId, request, cancellationToken);
                     return result.Succeeded
                         ? Results.NoContent()
-                        : Results.BadRequest(new {message = result.ErrorMessage});
+                        : Results.BadRequest(new { message = result.ErrorMessage });
                 })
             .WithName("UpdateAdminUser");
 
@@ -204,7 +204,7 @@ public static class AdminEndpoints
                         await service.UpdateUserDepartmentAsync(userId, request, cancellationToken);
                     return result.Succeeded
                         ? Results.NoContent()
-                        : Results.BadRequest(new {message = result.ErrorMessage});
+                        : Results.BadRequest(new { message = result.ErrorMessage });
                 })
             .WithName("UpdateAdminUserDepartment");
 
@@ -217,7 +217,7 @@ public static class AdminEndpoints
                         await service.UpdateUserRolesAsync(userId, request, cancellationToken);
                     return result.Succeeded
                         ? Results.NoContent()
-                        : Results.BadRequest(new {message = result.ErrorMessage});
+                        : Results.BadRequest(new { message = result.ErrorMessage });
                 })
             .WithName("UpdateAdminUserRoles");
 
@@ -230,7 +230,7 @@ public static class AdminEndpoints
                         await service.ResetPasswordAsync(userId, request, cancellationToken);
                     return result.Succeeded
                         ? Results.NoContent()
-                        : Results.BadRequest(new {message = result.ErrorMessage});
+                        : Results.BadRequest(new { message = result.ErrorMessage });
                 })
             .WithName("ResetAdminUserPassword");
 
@@ -242,7 +242,7 @@ public static class AdminEndpoints
                     AuthOperationResultDto result = await service.SetUsersEnabledAsync(request, cancellationToken);
                     return result.Succeeded
                         ? Results.NoContent()
-                        : Results.BadRequest(new {message = result.ErrorMessage});
+                        : Results.BadRequest(new { message = result.ErrorMessage });
                 })
             .WithName("SetAdminUsersEnabled");
 
@@ -254,7 +254,7 @@ public static class AdminEndpoints
                     AuthOperationResultDto result = await service.HandoverSuperAdminAsync(request, cancellationToken);
                     return result.Succeeded
                         ? Results.NoContent()
-                        : Results.BadRequest(new {message = result.ErrorMessage});
+                        : Results.BadRequest(new { message = result.ErrorMessage });
                 })
             .WithName("HandoverSuperAdmin");
 
@@ -316,7 +316,7 @@ public static class AdminEndpoints
 
                     return result.Succeeded
                         ? Results.Ok(result)
-                        : Results.BadRequest(new {message = result.Message});
+                        : Results.BadRequest(new { message = result.Message });
                 })
             .WithName("RunDirectorySync");
 
@@ -331,7 +331,7 @@ public static class AdminEndpoints
 
                     return result.Succeeded
                         ? Results.NoContent()
-                        : Results.BadRequest(new {message = result.ErrorMessage});
+                        : Results.BadRequest(new { message = result.ErrorMessage });
                 })
             .WithName("ResolveDirectorySyncIssue");
 

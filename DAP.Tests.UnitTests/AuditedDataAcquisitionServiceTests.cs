@@ -46,8 +46,8 @@ public class AuditedDataAcquisitionServiceTests
     private static ClaimsPrincipal CreatePrincipal(Guid userId, params string[] permissions)
     {
         List<Claim> claims = [new(AuthorizationCatalog.PlatformClaimTypes.UserId, userId.ToString())];
-        claims.AddRange(permissions.Select(
-            permission => new Claim(AuthorizationCatalog.PlatformClaimTypes.Permission, permission)));
+        claims.AddRange(permissions.Select(permission =>
+            new Claim(AuthorizationCatalog.PlatformClaimTypes.Permission, permission)));
 
         return new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuthentication"));
     }
@@ -140,8 +140,7 @@ public class AuditedDataAcquisitionServiceTests
         AuditedDataAcquisitionService service = CreateService(database, inner,
             CreateOperator(userId, principal));
 
-        await Assert.ThrowsAsync<ForbiddenAccessException>(
-            () => service.UpsertCollectionPointAsync(PointRequest()));
+        await Assert.ThrowsAsync<ForbiddenAccessException>(() => service.UpsertCollectionPointAsync(PointRequest()));
 
         // 拒绝时业务不执行：内存替身里只有种子点位。
         Assert.Single(await inner.GetCollectionPointsAsync());
@@ -208,8 +207,8 @@ public class AuditedDataAcquisitionServiceTests
         AuditedDataAcquisitionService service = CreateService(database, inner,
             CreateOperator(userId, principal));
 
-        await Assert.ThrowsAsync<ForbiddenAccessException>(
-            () => service.DeleteManagedDataDefinitionAsync(Guid.NewGuid()));
+        await Assert.ThrowsAsync<ForbiddenAccessException>(() =>
+            service.DeleteManagedDataDefinitionAsync(Guid.NewGuid()));
 
         AuditLog audit = Assert.Single(ReadAudits(database));
         Assert.Equal("managed_data.delete", audit.ActionCode);
@@ -221,10 +220,9 @@ public class AuditedDataAcquisitionServiceTests
     {
         using SqliteTestDatabase database = new();
         InMemoryDataAcquisitionPlatformService inner = new();
-        AuditedDataAcquisitionService service = CreateService(database, inner, user: null);
+        AuditedDataAcquisitionService service = CreateService(database, inner, null);
 
-        await Assert.ThrowsAsync<ForbiddenAccessException>(
-            () => service.UpsertCollectionPointAsync(PointRequest()));
+        await Assert.ThrowsAsync<ForbiddenAccessException>(() => service.UpsertCollectionPointAsync(PointRequest()));
 
         AuditLog audit = Assert.Single(ReadAudits(database));
         Assert.Equal("failed", audit.Result);
@@ -251,8 +249,10 @@ public class AuditedDataAcquisitionServiceTests
         await service.IngestCollectionDataAsync(new IngestCollectionDataRequest(
             "MB-01", "温度", 42.5m, "℃", FixedNow));
         await service.SyncLocalCollectionPointsAsync(new SyncCollectionPointsRequest(
-            [new LocalCollectionPointDto(
-                Guid.NewGuid(), "LOCAL-01", "本地点", "Modbus TCP", "127.0.0.1:502", true, "待同步", FixedNow)]));
+        [
+            new LocalCollectionPointDto(
+                Guid.NewGuid(), "LOCAL-01", "本地点", "Modbus TCP", "127.0.0.1:502", true, "待同步", FixedNow)
+        ]));
 
         Assert.Equal(2, (await inner.GetCollectionPointsAsync()).Count);
         Assert.Empty(ReadAudits(database));

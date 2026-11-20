@@ -1,5 +1,4 @@
 using DAP.Infrastructure.DataAccess.Persistence;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
@@ -48,8 +47,7 @@ internal static class HostingFakes
     {
         return new TestHostEnvironment
         {
-            EnvironmentName = Environments.Development,
-            ApplicationName = "DAP.Tests.UnitTests",
+            EnvironmentName = Environments.Development, ApplicationName = "DAP.Tests.UnitTests"
         };
     }
 
@@ -60,8 +58,7 @@ internal static class HostingFakes
     {
         return new TestHostEnvironment
         {
-            EnvironmentName = Environments.Production,
-            ApplicationName = "DAP.Tests.UnitTests",
+            EnvironmentName = Environments.Production, ApplicationName = "DAP.Tests.UnitTests"
         };
     }
 
@@ -81,10 +78,18 @@ internal static class HostingFakes
         public static readonly NullFileProvider Instance = new();
 
         public IDirectoryContents GetDirectoryContents(string subpath)
-            => NotFoundDirectoryContents.Singleton;
+        {
+            return NotFoundDirectoryContents.Singleton;
+        }
 
-        public IFileInfo GetFileInfo(string subpath) => new NotFoundFileInfo(subpath);
+        public IFileInfo GetFileInfo(string subpath)
+        {
+            return new NotFoundFileInfo(subpath);
+        }
 
-        public IChangeToken Watch(string filter) => NullChangeToken.Singleton;
+        public IChangeToken Watch(string filter)
+        {
+            return NullChangeToken.Singleton;
+        }
     }
 }

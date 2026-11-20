@@ -23,11 +23,17 @@ public static class RowSync
         ArgumentNullException.ThrowIfNull(target);
         ArgumentNullException.ThrowIfNull(desired);
 
-        if (TryApplyHeadShift(target, desired)) return;
+        if (TryApplyHeadShift(target, desired))
+        {
+            return;
+        }
 
         target.Clear();
 
-        foreach (T item in desired) target.Add(item);
+        foreach (T item in desired)
+        {
+            target.Add(item);
+        }
     }
 
     /// <summary>
@@ -38,7 +44,10 @@ public static class RowSync
     {
         if (target.Count == 0)
         {
-            foreach (T item in desired) target.Add(item);
+            foreach (T item in desired)
+            {
+                target.Add(item);
+            }
 
             return true;
         }
@@ -53,26 +62,41 @@ public static class RowSync
         int shift = -1;
 
         for (int i = 0; i < desired.Count; i++)
+        {
             if (EqualityComparer<T>.Default.Equals(desired[i], target[0]))
             {
                 shift = i;
                 break;
             }
+        }
 
         // 找不到锚点，或新增条数超出「旧集合 + 头部插入」能解释的范围 → 交给整表重建。
-        if (shift < 0 || desired.Count - shift > target.Count) return false;
+        if (shift < 0 || desired.Count - shift > target.Count)
+        {
+            return false;
+        }
 
         // 重叠区必须逐条一致，否则说明中间有缺行，不能只动头尾。
         int overlap = Math.Min(target.Count, desired.Count - shift);
 
         for (int i = 0; i < overlap; i++)
+        {
             if (!EqualityComparer<T>.Default.Equals(target[i], desired[shift + i]))
+            {
                 return false;
+            }
+        }
 
         // 倒序插入，保证新增记录在头部的相对顺序与接口返回一致。
-        for (int i = shift - 1; i >= 0; i--) target.Insert(0, desired[i]);
+        for (int i = shift - 1; i >= 0; i--)
+        {
+            target.Insert(0, desired[i]);
+        }
 
-        while (target.Count > desired.Count) target.RemoveAt(target.Count - 1);
+        while (target.Count > desired.Count)
+        {
+            target.RemoveAt(target.Count - 1);
+        }
 
         return true;
     }

@@ -1,7 +1,6 @@
 using DAP.Core.Shared.Catalog;
 using DAP.Core.Shared.Contracts;
 using DAP.Presentation.BlazorWeb.Services;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace DAP.Presentation.BlazorWeb.Security.Auditing;
 
@@ -32,7 +31,7 @@ public sealed class AuditedShiftSchedulingService(
             fileName,
             _ => inner.ImportAsync(fileName, stream, cancellationToken),
             result => result.Succeeded,
-            result => new {fileName, result.Succeeded, importedRows = result.Rows.Count},
+            result => new { fileName, result.Succeeded, importedRows = result.Rows.Count },
             cancellationToken,
             userContext);
     }

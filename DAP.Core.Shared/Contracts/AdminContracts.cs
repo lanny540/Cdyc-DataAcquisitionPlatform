@@ -1,5 +1,3 @@
-using DAP.Core.Shared.Catalog;
-
 namespace DAP.Core.Shared.Contracts;
 
 /// <summary>

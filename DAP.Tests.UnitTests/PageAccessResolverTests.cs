@@ -2,7 +2,6 @@ using DAP.Core.Domain.Entities;
 using DAP.Infrastructure.DataAccess.Persistence;
 using DAP.Presentation.BlazorWeb.Security;
 using DAP.Tests.UnitTests.TestDoubles;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace DAP.Tests.UnitTests;
@@ -29,13 +28,25 @@ public sealed class PageAccessResolverTests
 
         BusinessDomain energy = new()
         {
-            Id = Guid.NewGuid(), Code = "energy", Name = "能源", SortOrder = 30,
-            IsSystem = false, IsEnabled = true, CreatedAt = SeedTime, UpdatedAt = SeedTime
+            Id = Guid.NewGuid(),
+            Code = "energy",
+            Name = "能源",
+            SortOrder = 30,
+            IsSystem = false,
+            IsEnabled = true,
+            CreatedAt = SeedTime,
+            UpdatedAt = SeedTime
         };
         BusinessDomain disabled = new()
         {
-            Id = Guid.NewGuid(), Code = "disabled-domain", Name = "停用域", SortOrder = 40,
-            IsSystem = false, IsEnabled = false, CreatedAt = SeedTime, UpdatedAt = SeedTime
+            Id = Guid.NewGuid(),
+            Code = "disabled-domain",
+            Name = "停用域",
+            SortOrder = 40,
+            IsSystem = false,
+            IsEnabled = false,
+            CreatedAt = SeedTime,
+            UpdatedAt = SeedTime
         };
         db.BusinessDomains.AddRange(energy, disabled);
 
@@ -45,7 +56,7 @@ public sealed class PageAccessResolverTests
             Page(energy.Id, "energy", "/energy", 2),
             Page(energy.Id, "energy-history", "/energy/history", 1),
             // 已停用页面不参与判定。
-            Page(energy.Id, "admin-config", "/admin/config", 2, isEnabled: false),
+            Page(energy.Id, "admin-config", "/admin/config", 2, false),
             // 已下线页面不参与判定。
             Page(energy.Id, "orphan-page", "/orphan", 1, isOrphaned: true),
             // 所属域停用的页面不参与判定。
@@ -61,15 +72,25 @@ public sealed class PageAccessResolverTests
     {
         return new DomainPage
         {
-            Id = Guid.NewGuid(), PageKey = pageKey, DomainId = domainId, Route = route,
-            Title = pageKey, AccessLevel = accessLevel, SortOrder = 0,
-            IsEnabled = isEnabled, IsOrphaned = isOrphaned,
-            Source = "code", CreatedAt = SeedTime, UpdatedAt = SeedTime
+            Id = Guid.NewGuid(),
+            PageKey = pageKey,
+            DomainId = domainId,
+            Route = route,
+            Title = pageKey,
+            AccessLevel = accessLevel,
+            SortOrder = 0,
+            IsEnabled = isEnabled,
+            IsOrphaned = isOrphaned,
+            Source = "code",
+            CreatedAt = SeedTime,
+            UpdatedAt = SeedTime
         };
     }
 
     private static PageAccessResolver CreateResolver(DataAcquisitionPlatformDbContext db, IMemoryCache cache)
-        => new(db, cache);
+    {
+        return new PageAccessResolver(db, cache);
+    }
 
     [Theory]
     [InlineData("/")]

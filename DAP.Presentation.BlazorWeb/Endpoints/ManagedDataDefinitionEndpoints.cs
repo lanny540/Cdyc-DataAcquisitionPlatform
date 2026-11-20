@@ -46,7 +46,10 @@ public static class ManagedDataDefinitionEndpoints
                     CancellationToken cancellationToken) =>
                 {
                     IResult? validationError = ValidateManagedDataDefinitionRequest(request);
-                    if (validationError is not null) return validationError;
+                    if (validationError is not null)
+                    {
+                        return validationError;
+                    }
 
                     ManagedDataDefinitionDto savedDefinition =
                         await platformService.UpsertManagedDataDefinitionAsync(request, cancellationToken);
@@ -70,26 +73,51 @@ public static class ManagedDataDefinitionEndpoints
     {
         List<string> errors = [];
 
-        if (string.IsNullOrWhiteSpace(request.Code)) errors.Add("编码不能为空。");
+        if (string.IsNullOrWhiteSpace(request.Code))
+        {
+            errors.Add("编码不能为空。");
+        }
 
-        if (string.IsNullOrWhiteSpace(request.Name)) errors.Add("名称不能为空。");
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            errors.Add("名称不能为空。");
+        }
 
         // 选择采集服务器后，采集方式与连接地址由服务器决定，无需重复填写。
         if (!request.ServerConnectionId.HasValue && string.IsNullOrWhiteSpace(request.AcquisitionType))
+        {
             errors.Add("采集方式不能为空。");
+        }
 
         if (!request.ServerConnectionId.HasValue && string.IsNullOrWhiteSpace(request.ConnectionAddress))
+        {
             errors.Add("连接地址不能为空，请选择已配置地址的采集服务器。");
+        }
 
-        if (string.IsNullOrWhiteSpace(request.Identifier)) errors.Add("数据标识不能为空。");
+        if (string.IsNullOrWhiteSpace(request.Identifier))
+        {
+            errors.Add("数据标识不能为空。");
+        }
 
-        if (string.IsNullOrWhiteSpace(request.Department)) errors.Add("部门不能为空。");
+        if (string.IsNullOrWhiteSpace(request.Department))
+        {
+            errors.Add("部门不能为空。");
+        }
 
-        if (string.IsNullOrWhiteSpace(request.ProcessCode)) errors.Add("工序不能为空。");
+        if (string.IsNullOrWhiteSpace(request.ProcessCode))
+        {
+            errors.Add("工序不能为空。");
+        }
 
-        if (string.IsNullOrWhiteSpace(request.DataCategory)) errors.Add("数据类别不能为空。");
+        if (string.IsNullOrWhiteSpace(request.DataCategory))
+        {
+            errors.Add("数据类别不能为空。");
+        }
 
-        if (request.CollectionIntervalSeconds <= 0) errors.Add("采集频次必须大于 0 秒。");
+        if (request.CollectionIntervalSeconds <= 0)
+        {
+            errors.Add("采集频次必须大于 0 秒。");
+        }
 
         return errors.Count == 0
             ? null

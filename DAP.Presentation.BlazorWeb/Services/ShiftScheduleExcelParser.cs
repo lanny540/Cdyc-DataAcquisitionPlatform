@@ -60,8 +60,10 @@ public sealed class ShiftScheduleExcelParser
         int lastRow = Math.Min(usedRange.LastRow().RowNumber(), MaxScanRows);
 
         if (usedRange.LastRow().RowNumber() > MaxScanRows)
+        {
             parseIssues.Add(new ShiftScheduleIssueDto(
                 0, $"数据行超过 {MaxScanRows} 行，仅解析前 {MaxScanRows} 行。", "warning"));
+        }
 
         int headerRow = FindHeaderRow(usedRange, lastRow, out HeaderColumns columns, out string headerProblem);
 
@@ -74,7 +76,9 @@ public sealed class ShiftScheduleExcelParser
         Dictionary<string, string> teams = new(StringComparer.OrdinalIgnoreCase);
 
         for (int rowNumber = headerRow + 1; rowNumber <= lastRow; rowNumber++)
+        {
             ParseRow(worksheet, rowNumber, columns, teams, rows, parseIssues);
+        }
 
         return rows.Count;
     }
@@ -100,7 +104,10 @@ public sealed class ShiftScheduleExcelParser
             for (int column = firstColumn; column <= lastColumn; column++)
             {
                 string text = NormalizeHeaderText(usedRange.Cell(row, column).GetString());
-                if (text.Length == 0) continue;
+                if (text.Length == 0)
+                {
+                    continue;
+                }
 
                 candidate.DateColumn = MatchColumn(candidate.DateColumn, column, text, WorkDateKeywords);
                 candidate.TeamColumn = MatchColumn(candidate.TeamColumn, column, text, TeamKeywords);
@@ -131,21 +138,31 @@ public sealed class ShiftScheduleExcelParser
     /// </summary>
     private static string NormalizeHeaderText(string raw)
     {
-        if (string.IsNullOrWhiteSpace(raw)) return string.Empty;
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return string.Empty;
+        }
 
         Span<char> buffer = raw.Length <= 128 ? stackalloc char[raw.Length] : new char[raw.Length];
         int length = 0;
 
         foreach (char ch in raw)
+        {
             if (!char.IsWhiteSpace(ch) && ch != '　')
+            {
                 buffer[length++] = ch;
+            }
+        }
 
         return new string(buffer[..length]);
     }
 
     private static int MatchColumn(int current, int column, string text, string[] keywords)
     {
-        if (current > 0) return current;
+        if (current > 0)
+        {
+            return current;
+        }
 
         return keywords.Any(keyword => text.Contains(keyword, StringComparison.OrdinalIgnoreCase)) ? column : 0;
     }
@@ -180,7 +197,10 @@ public sealed class ShiftScheduleExcelParser
         IXLCell endCell = worksheet.Cell(rowNumber, columns.EndColumn);
 
         // 整行为空时视为 Excel 中的空行，直接跳过而不是报错。
-        if (dateCell.IsEmpty() && teamCell.IsEmpty() && startCell.IsEmpty() && endCell.IsEmpty()) return;
+        if (dateCell.IsEmpty() && teamCell.IsEmpty() && startCell.IsEmpty() && endCell.IsEmpty())
+        {
+            return;
+        }
 
         if (!TryReadDate(dateCell, out DateOnly workDate))
         {
@@ -222,7 +242,10 @@ public sealed class ShiftScheduleExcelParser
         }
 
         // 允许把跨天的班次写成 16:00 - 次日 00:00，这里统一折算为 24 小时内的时刻。
-        if (endTime < startTime) endTime = new TimeOnly(0, 0);
+        if (endTime < startTime)
+        {
+            endTime = new TimeOnly(0, 0);
+        }
 
         double durationHours = Math.Round((endTime - startTime).TotalHours, 2);
         if (durationHours <= 0)
@@ -301,7 +324,10 @@ public sealed class ShiftScheduleExcelParser
         }
 
         string text = cell.GetFormattedString().Trim();
-        if (text.Length == 0) return false;
+        if (text.Length == 0)
+        {
+            return false;
+        }
 
         string[] formats =
         [
@@ -354,13 +380,16 @@ public sealed class ShiftScheduleExcelParser
                 return true;
             }
 
-            int totalMinutes = (int) Math.Round(fraction * 24 * 60, MidpointRounding.AwayFromZero);
+            int totalMinutes = (int)Math.Round(fraction * 24 * 60, MidpointRounding.AwayFromZero);
             value = TimeOnly.FromTimeSpan(TimeSpan.FromMinutes(totalMinutes % (24 * 60)));
             return true;
         }
 
         string text = cell.GetFormattedString().Trim();
-        if (text.Length == 0) return false;
+        if (text.Length == 0)
+        {
+            return false;
+        }
 
         // 「24:00」是现场最常见的误填，Excel 会把它存成序列号 1.0（走上面的分支）；
         // 而当它以文本形式保留时，这里显式归一化为 00:00，避免直接报错打断整个导入。

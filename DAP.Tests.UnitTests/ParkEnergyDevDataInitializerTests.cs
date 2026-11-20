@@ -171,7 +171,7 @@ public sealed class ParkEnergyDevDataInitializerTests
                 IsCumulative = true,
                 IsEnabled = true,
                 CreatedAt = now,
-                UpdatedAt = now,
+                UpdatedAt = now
             });
             await db.SaveChangesAsync();
         }
@@ -295,10 +295,10 @@ public sealed class ParkEnergyDevDataInitializerTests
             HostingFakes.CreateDevelopmentEnvironment(),
             NullLogger<ParkEnergyQueryService>.Instance);
 
-        DAP.Core.Shared.Contracts.ParkEnergyOverviewDto overview =
+        Core.Shared.Contracts.ParkEnergyOverviewDto overview =
             await queryService.GetOverviewAsync("month");
 
-        Assert.Equal(DAP.Core.Shared.Contracts.ParkEnergyDataStatus.Live, overview.DataStatus);
+        Assert.Equal(Core.Shared.Contracts.ParkEnergyDataStatus.Live, overview.DataStatus);
         Assert.NotNull(overview.DataThrough);
         Assert.Equal(6, await CountEnabledElecMetersAsync(database));
         Assert.Contains(overview.Kpis, kpi => kpi.Key == "totalTce" && kpi.Value != "0");

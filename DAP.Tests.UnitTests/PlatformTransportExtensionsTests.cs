@@ -113,7 +113,7 @@ public class PlatformTransportExtensionsTests
             ("Auth:Cookie:RequireHttps", "true"));
 
         IReadOnlyList<(LogLevel Level, string Message)> warnings =
-            DAP.Presentation.BlazorWeb.Security.PlatformTransportExtensions.DescribeTransportWarnings(
+            PlatformTransportExtensions.DescribeTransportWarnings(
                 configuration, new TestWebHostEnvironment());
 
         (LogLevel level, string message) = Assert.Single(warnings);
@@ -128,7 +128,7 @@ public class PlatformTransportExtensionsTests
             ("Auth:Cookie:RequireHttps", "false"));
 
         IReadOnlyList<(LogLevel Level, string Message)> warnings =
-            DAP.Presentation.BlazorWeb.Security.PlatformTransportExtensions.DescribeTransportWarnings(
+            PlatformTransportExtensions.DescribeTransportWarnings(
                 configuration, new TestWebHostEnvironment());
 
         (LogLevel level, string message) = Assert.Single(warnings);
@@ -145,7 +145,7 @@ public class PlatformTransportExtensionsTests
         TestWebHostEnvironment environment = new() { EnvironmentName = Environments.Development };
 
         Assert.Empty(
-            DAP.Presentation.BlazorWeb.Security.PlatformTransportExtensions.DescribeTransportWarnings(
+            PlatformTransportExtensions.DescribeTransportWarnings(
                 configuration, environment));
     }
 
@@ -159,7 +159,7 @@ public class PlatformTransportExtensionsTests
         TestWebHostEnvironment environment = new() { EnvironmentName = Environments.Development };
 
         IReadOnlyList<(LogLevel Level, string Message)> warnings =
-            DAP.Presentation.BlazorWeb.Security.PlatformTransportExtensions.DescribeTransportWarnings(
+            PlatformTransportExtensions.DescribeTransportWarnings(
                 configuration, environment);
 
         (LogLevel level, string message) = Assert.Single(warnings);

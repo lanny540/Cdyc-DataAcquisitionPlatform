@@ -59,7 +59,7 @@ public class ForbiddenAccessExtensionsTests
     public async Task 页面路径抛越权异常_跳转到forbidden页()
     {
         HttpContext context = await InvokeAsync(_ =>
-            Task.FromException(new ForbiddenAccessException("越权")), path: "/shift-schedules");
+            Task.FromException(new ForbiddenAccessException("越权")), "/shift-schedules");
 
         Assert.Equal(StatusCodes.Status302Found, context.Response.StatusCode);
         Assert.Equal("/forbidden", context.Response.Headers.Location.ToString());
@@ -82,8 +82,8 @@ public class ForbiddenAccessExtensionsTests
     {
         InvalidOperationException thrown = new("业务异常");
 
-        InvalidOperationException caught = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => InvokeAsync(_ => Task.FromException(thrown)));
+        InvalidOperationException caught =
+            await Assert.ThrowsAsync<InvalidOperationException>(() => InvokeAsync(_ => Task.FromException(thrown)));
 
         Assert.Same(thrown, caught);
     }
