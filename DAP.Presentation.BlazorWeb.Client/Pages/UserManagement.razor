@@ -3,6 +3,199 @@
 <PageTitle>用户与角色</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
+    @if (_isEditorOpen)
+    {
+        @* —— 整页编辑视图：账号新建/编辑，与采集服务器页一致，替代原抽屉弹窗 —— *@
+        <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.h4">@(_isCreating ? "新建用户" : $"编辑 {_editorUserName}")</MudText>
+                    <MudText Typo="Typo.body1">
+                        账号必须是员工个人；角色决定页面等级与可执行的操作，变更在用户下一次登录时生效。
+                    </MudText>
+                </MudStack>
+                <MudButton Variant="Variant.Text" Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="CancelEditor">
+                    返回列表
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
+        }
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-info pa-4" Elevation="0">
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.h6">账号信息</MudText>
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" md="6">
+                        <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="登录账号" @bind-Value="_editorUserName" Immediate="true"
+                                      Disabled="@(!_isCreating)" Counter="32" MaxLength="32"
+                                      HelperText="3–32 位小写字母、数字、点、下划线或连字符"/>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="姓名" @bind-Value="_editorDisplayName" Immediate="true"
+                                      Counter="64" MaxLength="64"/>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="邮箱（可空）" @bind-Value="_editorEmail" Immediate="true"
+                                      Counter="128" MaxLength="128"/>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        @if (_isSuperAdmin && !_editingSuperAdmin)
+                        {
+                            <MudSelect Margin="Margin.Dense" Variant="Variant.Outlined" T="Guid?" Label="所属部门" @bind-Value="_editorDepartmentId" Clearable="true">
+                                @foreach (AdminDepartmentDto department in _departments)
+                                {
+                                    <MudSelectItem T="Guid?" Value="@((Guid?)department.Id)">@department.Name</MudSelectItem>
+                                }
+                            </MudSelect>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Class="platform-config-hint">
+                                所属部门：@(_editorDepartmentName ?? "未归属")
+                                @(_isSuperAdmin ? "（超级管理员账号不可调整部门）" : "（跨部门调动由超级管理员执行）")
+                            </MudText>
+                        }
+                    </MudItem>
+                </MudGrid>
+                <MudSelect Margin="Margin.Dense" Variant="Variant.Outlined" T="Guid" Label="角色" @bind-SelectedValues="_editorRoleIds" MultiSelection="true">
+                    @foreach (AdminRoleDto role in _roles)
+                    {
+                        <MudSelectItem T="Guid" Value="@role.Id">
+                            @($"{role.Name}（{(role.PageLevel >= 99 ? "全部页面" : role.PageLevel >= 2 ? "含配置类" : "只看查看类")}）")
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                @if (_isCreating)
+                {
+                    <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="初始密码" @bind-Value="_editorPassword" Immediate="true"
+                                  InputType="InputType.Password"
+                                  HelperText="至少 8 位，需同时包含字母与数字；首次登录强制修改"/>
+                }
+                else if (!_editingSuperAdmin)
+                {
+                    <MudSwitch T="bool" Label="启用账号" @bind-Value="_editorEnabled" Color="Color.Primary"/>
+                }
+            </MudStack>
+        </MudPaper>
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-success pa-4" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
+                      Wrap="Wrap.Wrap" Spacing="2">
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    保存后账号与角色变更立即写入服务端，角色在该用户下次登录时生效。
+                </MudText>
+                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" Justify="Justify.FlexEnd">
+                    <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="CancelEditor">取消</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_isSaving"
+                               OnClick="SaveEditorAsync">
+                        保存
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    }
+    else if (_isResetOpen)
+    {
+        @* —— 整页视图：重置密码，重置后强制改密、原密码立即失效 —— *@
+        <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.h4">重置 @_resetUserName 的密码</MudText>
+                    <MudText Typo="Typo.body1">重置后原密码立即失效，该账号下次登录必须先修改密码。</MudText>
+                </MudStack>
+                <MudButton Variant="Variant.Text" Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => _isResetOpen = false)">
+                    返回列表
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
+        }
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-warning pa-4" Elevation="0">
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.h6">新密码</MudText>
+                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="新密码" @bind-Value="_resetPassword" Immediate="true"
+                              InputType="InputType.Password" HelperText="至少 8 位，需同时包含字母与数字"/>
+            </MudStack>
+        </MudPaper>
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-success pa-4" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
+                      Wrap="Wrap.Wrap" Spacing="2">
+                <MudText Typo="Typo.body2" Color="Color.Secondary">请将新密码当面或通过安全渠道告知本人。</MudText>
+                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" Justify="Justify.FlexEnd">
+                    <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="@(() => _isResetOpen = false)">取消</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Warning" Disabled="_isSaving"
+                               OnClick="ResetPasswordAsync">
+                        确认重置
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    }
+    else if (_isHandoverOpen)
+    {
+        @* —— 整页视图：移交超管；移交后当前会话退出，需用接任账号登录 —— *@
+        <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.h4">移交超级管理员</MudText>
+                    <MudText Typo="Typo.body1">
+                        超管全局唯一。移交会在同一事务内先降级当前账号、再升级接任账号，
+                        完成后当前会话立即退出，请用接任账号登录。
+                    </MudText>
+                </MudStack>
+                <MudButton Variant="Variant.Text" Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => _isHandoverOpen = false)">
+                    返回列表
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
+        }
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-warning pa-4" Elevation="0">
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.h6">接任账号</MudText>
+                <MudSelect Margin="Margin.Dense" Variant="Variant.Outlined" T="Guid" Label="接任账号" @bind-Value="_handoverUserId">
+                    @foreach (AdminUserDto user in HandoverCandidates)
+                    {
+                        <MudSelectItem T="Guid" Value="@user.Id">
+                            @($"{user.DisplayName}（{user.UserName}）")
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            </MudStack>
+        </MudPaper>
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-success pa-4" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
+                      Wrap="Wrap.Wrap" Spacing="2">
+                <MudText Typo="Typo.body2" Color="Color.Secondary">移交操作不可撤销，请确认接任账号选择正确。</MudText>
+                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" Justify="Justify.FlexEnd">
+                    <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="@(() => _isHandoverOpen = false)">取消</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Error" Disabled="_isSaving"
+                               OnClick="HandoverAsync">
+                        确认移交
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    }
+    else
+    {
     <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
                   Spacing="3">
@@ -15,7 +208,7 @@
             </MudStack>
             <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd"
-                           OnClick="OpenCreateDialog">
+                           OnClick="OpenCreateEditor">
                     新建用户
                 </MudButton>
                 <MudButton Variant="Variant.Outlined" Color="Color.Success" Disabled="@(_selected.Count == 0)"
@@ -29,7 +222,7 @@
                 @if (_isSuperAdmin)
                 {
                     <MudButton Variant="Variant.Text" Color="Color.Error"
-                               StartIcon="@Icons.Material.Filled.SwapHoriz" OnClick="OpenHandoverDialog">
+                               StartIcon="@Icons.Material.Filled.SwapHoriz" OnClick="OpenHandover">
                         移交超管
                     </MudButton>
                 }
@@ -130,11 +323,11 @@
                     </MudTd>
                     <MudTd Style="text-align: right;">
                         <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
-                                   OnClick="@(() => OpenEditDialog(context))">
+                                   OnClick="@(() => OpenEditUser(context))">
                             编辑
                         </MudButton>
                         <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Warning"
-                                   OnClick="@(() => OpenResetPasswordDialog(context))">
+                                   OnClick="@(() => OpenResetPassword(context))">
                             重置密码
                         </MudButton>
                     </MudTd>
@@ -223,120 +416,8 @@
             }
         </MudPaper>
     }
+    }
 </MudStack>
 
 @* 移交超管后自动提交的登出表单：与顶栏登出走同一原生 POST 路径（电路里没有 HttpContext）。 *@
 <form id="platform-handover-logout" method="post" action="/api/auth/logout" class="d-none"></form>
-
-@* 账号编辑：新建时含初始密码，编辑时账号不可改（登录标识）。 *@
-<MudDialog @bind-Visible="_isEditorOpen" Options="PlatformDialogs.EditorSheet"
-           AriaLabel="@(_isCreating ? "新建用户" : "编辑用户")">
-    <DialogContent>
-        <MudStack Spacing="3" Class="platform-sheet">
-            <section class="platform-sheet-section platform-accent-info">
-                <MudText Typo="Typo.h6">@(_isCreating ? "新建用户" : $"编辑 {_editorUserName}")</MudText>
-                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="登录账号" @bind-Value="_editorUserName" Immediate="true"
-                              Disabled="@(!_isCreating)" Counter="32" MaxLength="32"
-                              HelperText="3–32 位小写字母、数字、点、下划线或连字符"/>
-                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="姓名" @bind-Value="_editorDisplayName" Immediate="true"
-                              Counter="64" MaxLength="64"/>
-                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="邮箱（可空）" @bind-Value="_editorEmail" Immediate="true"
-                              Counter="128" MaxLength="128"/>
-                @if (_isSuperAdmin && !_editingSuperAdmin)
-                {
-                    <MudSelect Margin="Margin.Dense" Variant="Variant.Outlined" T="Guid?" Label="所属部门" @bind-Value="_editorDepartmentId" Clearable="true">
-                        @foreach (AdminDepartmentDto department in _departments)
-                        {
-                            <MudSelectItem T="Guid?" Value="@((Guid?)department.Id)">@department.Name</MudSelectItem>
-                        }
-                    </MudSelect>
-                }
-                else
-                {
-                    <MudText Typo="Typo.body2" Class="platform-config-hint">
-                        所属部门：@(_editorDepartmentName ?? "未归属")
-                        @(_isSuperAdmin ? "（超级管理员账号不可调整部门）" : "（跨部门调动由超级管理员执行）")
-                    </MudText>
-                }
-                <MudSelect Margin="Margin.Dense" Variant="Variant.Outlined" T="Guid" Label="角色" @bind-SelectedValues="_editorRoleIds" MultiSelection="true">
-                    @foreach (AdminRoleDto role in _roles)
-                    {
-                        <MudSelectItem T="Guid" Value="@role.Id">
-                            @($"{role.Name}（{(role.PageLevel >= 99 ? "全部页面" : role.PageLevel >= 2 ? "含配置类" : "只看查看类")}）")
-                        </MudSelectItem>
-                    }
-                </MudSelect>
-                @if (_isCreating)
-                {
-                    <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="初始密码" @bind-Value="_editorPassword" Immediate="true"
-                                  InputType="InputType.Password"
-                                  HelperText="至少 8 位，需同时包含字母与数字；首次登录强制修改"/>
-                }
-                else if (!_editingSuperAdmin)
-                {
-                    <MudSwitch T="bool" Label="启用账号" @bind-Value="_editorEnabled" Color="Color.Primary"/>
-                }
-            </section>
-            <MudStack Row="true" Justify="Justify.SpaceBetween">
-                <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="CloseEditor">取消</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_isSaving"
-                           OnClick="SaveEditorAsync">
-                    保存
-                </MudButton>
-            </MudStack>
-        </MudStack>
-    </DialogContent>
-</MudDialog>
-
-@* 重置密码：重置后强制改密，原密码立即失效。 *@
-<MudDialog @bind-Visible="_isResetOpen" Options="PlatformDialogs.EditorSheet" AriaLabel="重置密码">
-    <DialogContent>
-        <MudStack Spacing="3" Class="platform-sheet">
-            <section class="platform-sheet-section platform-accent-warning">
-                <MudText Typo="Typo.h6">重置 @_resetUserName 的密码</MudText>
-                <MudText Typo="Typo.body2">
-                    重置后原密码立即失效，该账号下次登录必须先修改密码。
-                </MudText>
-                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="新密码" @bind-Value="_resetPassword" Immediate="true"
-                              InputType="InputType.Password" HelperText="至少 8 位，需同时包含字母与数字"/>
-            </section>
-            <MudStack Row="true" Justify="Justify.SpaceBetween">
-                <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="@(() => _isResetOpen = false)">取消</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Warning" Disabled="_isSaving"
-                           OnClick="ResetPasswordAsync">
-                    确认重置
-                </MudButton>
-            </MudStack>
-        </MudStack>
-    </DialogContent>
-</MudDialog>
-
-@* 移交超管：超管全局唯一，只能移交。移交后当前会话退出，需用接任账号登录。 *@
-<MudDialog @bind-Visible="_isHandoverOpen" Options="PlatformDialogs.EditorSheet" AriaLabel="移交超管">
-    <DialogContent>
-        <MudStack Spacing="3" Class="platform-sheet">
-            <section class="platform-sheet-section platform-accent-warning">
-                <MudText Typo="Typo.h6">移交超级管理员</MudText>
-                <MudText Typo="Typo.body2">
-                    超管全局唯一。移交会在同一事务内先降级当前账号、再升级接任账号，
-                    完成后当前会话立即退出，请用接任账号登录。
-                </MudText>
-                <MudSelect Margin="Margin.Dense" Variant="Variant.Outlined" T="Guid" Label="接任账号" @bind-Value="_handoverUserId">
-                    @foreach (AdminUserDto user in HandoverCandidates)
-                    {
-                        <MudSelectItem T="Guid" Value="@user.Id">
-                            @($"{user.DisplayName}（{user.UserName}）")
-                        </MudSelectItem>
-                    }
-                </MudSelect>
-            </section>
-            <MudStack Row="true" Justify="Justify.SpaceBetween">
-                <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="@(() => _isHandoverOpen = false)">取消</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Error" Disabled="_isSaving"
-                           OnClick="HandoverAsync">
-                    确认移交
-                </MudButton>
-            </MudStack>
-        </MudStack>
-    </DialogContent>
-</MudDialog>

@@ -1,3 +1,4 @@
+using DAP.Core.Shared.Catalog;
 using DAP.Core.Shared.Contracts;
 using MudBlazor;
 
@@ -14,6 +15,7 @@ public partial class DomainConfig
     protected override async Task OnInitializedAsync()
     {
         await LoadAsync(false);
+        await LoadScreenHubCardsAsync();
     }
 
     /// <summary>
@@ -332,6 +334,145 @@ public partial class DomainConfig
         if (action is not null)
         {
             await action();
+        }
+    }
+
+    /// <summary>
+    /// 卡片主色键到中文名的映射，供编辑表单下拉展示；与 ScreenHubCatalog.Accents 对齐。
+    /// </summary>
+    private static readonly Dictionary<string, string> AccentLabels = new(StringComparer.Ordinal)
+    {
+        ["primary"] = "品牌红",
+        ["secondary"] = "青灰",
+        ["tertiary"] = "琥珀",
+        ["success"] = "绿",
+        ["warning"] = "橙",
+        ["error"] = "深酒红",
+        ["info"] = "蓝"
+    };
+
+    private string AccentLabel(string accent)
+    {
+        return AccentLabels.TryGetValue(accent, out string? label) ? label : accent;
+    }
+
+    private async Task LoadScreenHubCardsAsync()
+    {
+        try
+        {
+            _screenHubCards = await Api.GetScreenHubAdminCardsAsync();
+        }
+        catch (Exception ex)
+        {
+            _message = $"大屏导航卡加载失败：{UserFacingErrors.Describe(ex)}";
+            _messageSeverity = Severity.Error;
+        }
+    }
+
+    private void OpenCreateCard()
+    {
+        _isCreatingCard = true;
+        _editingCardId = Guid.Empty;
+        _editorCardTitle = string.Empty;
+        _editorCardDescription = string.Empty;
+        _editorCardRoute = string.Empty;
+        _editorCardIconKey = ScreenHubCatalog.IconKeys[0];
+        _editorCardAccent = ScreenHubCatalog.Accents[0];
+        _editorCardEnabled = true;
+        _isCardEditorOpen = true;
+    }
+
+    private void OpenCardEditor(ScreenHubCardDto card)
+    {
+        _isCreatingCard = false;
+        _editingCardId = card.Id;
+        _editorCardTitle = card.Title;
+        _editorCardDescription = card.Description;
+        _editorCardRoute = card.Route;
+        _editorCardIconKey = card.IconKey;
+        _editorCardAccent = card.Accent;
+        _editorCardEnabled = card.IsEnabled;
+        _isCardEditorOpen = true;
+    }
+
+    private void CloseCardEditor()
+    {
+        _isCardEditorOpen = false;
+    }
+
+    private async Task SaveCardAsync()
+    {
+        _isSaving = true;
+
+        try
+        {
+            ScreenHubCardUpsertRequest request = new(
+                _editorCardTitle,
+                _editorCardDescription,
+                _editorCardRoute,
+                _editorCardIconKey,
+                _editorCardAccent,
+                _editorCardEnabled);
+
+            if (_isCreatingCard)
+            {
+                await Api.CreateScreenHubCardAsync(request);
+                _message = $"已创建大屏入口「{_editorCardTitle.Trim()}」，根路由页立即生效。";
+            }
+            else
+            {
+                await Api.UpdateScreenHubCardAsync(_editingCardId, request);
+                _message = $"已更新大屏入口「{_editorCardTitle.Trim()}」。";
+            }
+
+            _messageSeverity = Severity.Success;
+            _isCardEditorOpen = false;
+            await LoadScreenHubCardsAsync();
+        }
+        catch (Exception ex)
+        {
+            _message = UserFacingErrors.Describe(ex);
+            _messageSeverity = Severity.Error;
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void RequestDeleteCardAsync(ScreenHubCardDto card)
+    {
+        OpenConfirm(
+            "确认删除大屏入口",
+            $"删除「{card.Title}」（{card.Route}）后，根路由导航页将不再展示该入口。此操作不可恢复。",
+            async () =>
+            {
+                try
+                {
+                    await Api.DeleteScreenHubCardAsync(card.Id);
+                    _message = $"已删除大屏入口「{card.Title}」。";
+                    _messageSeverity = Severity.Success;
+                    await LoadScreenHubCardsAsync();
+                }
+                catch (Exception ex)
+                {
+                    _message = UserFacingErrors.Describe(ex);
+                    _messageSeverity = Severity.Error;
+                }
+            });
+    }
+
+    private async Task MoveCardAsync(ScreenHubCardDto card, string direction)
+    {
+        try
+        {
+            await Api.MoveScreenHubCardAsync(card.Id, direction);
+            await LoadScreenHubCardsAsync();
+        }
+        catch (Exception ex)
+        {
+            _message = UserFacingErrors.Describe(ex);
+            _messageSeverity = Severity.Error;
         }
     }
 }

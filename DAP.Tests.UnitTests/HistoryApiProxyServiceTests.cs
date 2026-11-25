@@ -118,7 +118,9 @@ public class HistoryApiProxyServiceTests
                 "http://127.0.0.1:1",
                 "admin",
                 "Pa55word",
-                IgnoreServerCertificateErrors: true));
+                IgnoreServerCertificateErrors: true,
+                OAuthUsername: "HIS81.admin",
+                OAuthPassword: "Pa55word"));
 
         Assert.False(response.Success);
         Assert.Contains("无法连接到采集服务器", response.ErrorMessage, StringComparison.Ordinal);

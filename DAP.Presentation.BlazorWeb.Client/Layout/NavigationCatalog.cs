@@ -137,8 +137,7 @@ public static class NavigationCatalog
             [
                 new NavGroup("能耗指标",
                 [
-                    // 根路由交给能耗仪表板：启动应用即落在「数据指标」，而不是平台管理。
-                    new NavItem("能耗仪表板", "/", Icons.Material.Filled.QueryStats, AccentSuccess,
+                    new NavItem("能耗仪表板", "/energy-dashboard", Icons.Material.Filled.QueryStats, AccentSuccess,
                         "energy-dashboard"),
                     new NavItem("历史指标", "/energy-history", Icons.Material.Filled.Timeline, AccentTertiary,
                         "energy-history"),
@@ -151,9 +150,7 @@ public static class NavigationCatalog
                         "energy-report")
                 ])
             ]),
-        // 能源是园区级模块，与「数据指标」里的钞纸班组能耗并列而不重叠：
-        // 那边看工序（班组 × 四项指标 × 班次），这边看经营（介质 × 组织 × 用途 × 系统）。
-        // 路由前缀必须是 /park-energy：/energy-report 已被钞纸的班组报表占用。
+
         new(
             Energy,
             "能源",
@@ -355,8 +352,8 @@ public static class NavigationCatalog
     }
 
     /// <summary>
-    /// 默认模块为「数据指标」：应用根路由（/）即其落地页「能耗仪表板」，
-    /// 因此启动后顶栏默认选中它；未知路由同样回落到这里。
+    /// 默认模块为「数据指标」：应用根路由（/）是大屏导航枢纽页，不归属任何模块，
+    /// 顶栏保持默认选中「数据指标」；未知路由同样回落到这里。
     /// </summary>
     public static NavSection DefaultSection => AllSections[0];
 

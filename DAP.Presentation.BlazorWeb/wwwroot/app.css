@@ -1701,6 +1701,60 @@ textarea:focus-visible, [role="button"]:focus-visible,
     }
 }
 
+/* ===== 大屏导航枢纽页（根路由）=====
+   与统计卡同一语言：白卡 + MD2 投影，色彩只由圆形图标底块承载；
+   悬停时投影抬升 + 轻微上浮，给出「整卡可点」的暗示。 */
+.screen-hub-card {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 170px;
+    cursor: pointer;
+    transition: box-shadow .2s ease, transform .2s ease;
+}
+
+.screen-hub-card:hover {
+    box-shadow: 0 5px 5px -3px rgba(0, 0, 0, .2), 0 8px 10px 1px rgba(0, 0, 0, .14), 0 3px 14px 2px rgba(0, 0, 0, .12);
+    transform: translateY(-2px);
+}
+
+.screen-hub-card .screen-hub-card-icon {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 14px;
+}
+
+.screen-hub-card .screen-hub-card-icon .mud-icon-root {
+    font-size: 24px;
+}
+
+.screen-hub-card .screen-hub-card-title {
+    color: var(--platform-text);
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.screen-hub-card .screen-hub-card-description {
+    color: var(--platform-text-muted);
+    flex: 1;
+    margin-bottom: 14px;
+}
+
+.screen-hub-card .screen-hub-card-footer {
+    margin-top: auto;
+}
+
+.screen-hub-card .screen-hub-card-enter {
+    color: var(--card-accent, var(--md-primary));
+    font-weight: 600;
+}
+
+.screen-hub-card .screen-hub-card-arrow {
+    color: var(--card-accent, var(--md-primary));
+}
+
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
         scroll-behavior: auto !important;

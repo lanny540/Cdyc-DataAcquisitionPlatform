@@ -157,6 +157,69 @@ public class EnergyMetricServiceTests
     }
 
     [Fact]
+    public async Task GetHistoryAsync_Should_Aggregate_By_Week_Buckets()
+    {
+        DeterministicEnergyMetricService service = CreateService();
+        DateOnly from = Today.AddDays(-29);
+
+        EnergyHistoryDto daily = await service.GetHistoryAsync("TEAM-甲", "day", from, Today);
+        EnergyHistoryDto weekly = await service.GetHistoryAsync("TEAM-甲", "week", from, Today);
+
+        // 回归：切换统计口径必须真的改变分桶——30 天区间按周应为 5 桶，
+        // 而不是无视口径仍输出 30 个日桶（此前班组汇总表切口径毫无变化即此缺陷）。
+        EnergyTrendDto dailyTrend = daily.Trends.First();
+        EnergyTrendDto weeklyTrend = weekly.Trends.First();
+        Assert.Equal(30, dailyTrend.Points.Count);
+        Assert.Equal(5, weeklyTrend.Points.Count);
+
+        // 周桶横轴标签应带起止日期（MM-dd~MM-dd）。
+        Assert.Contains("~", weeklyTrend.Points.First().Label, StringComparison.Ordinal);
+
+        // 总量口径一致：同一区间逐日求和与按周聚合的合计相等。
+        Assert.Equal(dailyTrend.Total, weeklyTrend.Total);
+
+        // 末桶不足一周时截断到区间末尾；明细行应携带桶的起止日期（周桶跨越多天）。
+        EnergyTrendPointDto lastPoint = weeklyTrend.Points.Last();
+        Assert.Equal(Today, lastPoint.BucketEnd);
+        Assert.Contains(weekly.DetailRows, row => row.BucketEnd > row.BucketStart);
+        Assert.Equal(Today, weekly.DetailRows.Max(row => row.BucketEnd));
+    }
+
+    [Fact]
+    public async Task GetHistoryAsync_Should_Aggregate_By_Calendar_Month_Buckets()
+    {
+        DeterministicEnergyMetricService service = CreateService();
+
+        EnergyHistoryDto history = await service.GetHistoryAsync("TEAM-甲", "month",
+            new DateOnly(2026, 10, 27), new DateOnly(2026, 12, 15));
+
+        // 月口径先对齐到自然月边界，再按自然月分桶（与对比接口的月语义一致）。
+        EnergyTrendDto trend = history.Trends.First();
+        Assert.Equal("month", history.Granularity);
+        Assert.Equal(new DateOnly(2026, 10, 1), history.RangeStart);
+        Assert.Equal(new DateOnly(2026, 12, 31), history.RangeEnd);
+        Assert.Equal(3, trend.Points.Count);
+        Assert.Equal("2026-10", trend.Points.First().Label);
+        Assert.Equal("2026-11", trend.Points.Skip(1).First().Label);
+        Assert.Equal("2026-12", trend.Points.Last().Label);
+        Assert.Equal(new DateOnly(2026, 12, 31), trend.Points.Last().BucketEnd);
+    }
+
+    [Fact]
+    public async Task GetComparisonAsync_Should_Expand_Week_To_Natural_Week()
+    {
+        DeterministicEnergyMetricService service = CreateService();
+
+        // 2026-10-21 是周三：按周口径应展开为所在自然周（周一 10-19 ~ 周日 10-25），
+        // 而不是与日口径一样只统计参考日当天。
+        EnergyComparisonDto comparison = await service.GetComparisonAsync("week", new DateOnly(2026, 10, 21));
+
+        Assert.Equal("week", comparison.Granularity);
+        Assert.Equal(new DateOnly(2026, 10, 19), comparison.RangeStart);
+        Assert.Equal(new DateOnly(2026, 10, 25), comparison.RangeEnd);
+    }
+
+    [Fact]
     public async Task GetMetricsAsync_Should_Expose_Four_Descriptors_With_Units()
     {
         DeterministicEnergyMetricService service = CreateService();

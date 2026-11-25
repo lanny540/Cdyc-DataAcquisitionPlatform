@@ -84,7 +84,7 @@ public class NavigationCatalogTests
     /// 能耗类页面是纯展示，保持查看等级，否则普通用户进不了自家数据看板。
     /// </summary>
     [Theory]
-    [InlineData("/")]
+    [InlineData("/energy-dashboard")]
     [InlineData("/energy-history")]
     [InlineData("/energy-comparison")]
     [InlineData("/energy-report")]
@@ -106,12 +106,23 @@ public class NavigationCatalogTests
     }
 
     /// <summary>
-    /// 默认落地必须是能耗仪表板：应用启动即落在「数据指标」，而不是平台管理。
+    /// 默认模块落地页是能耗仪表板：根路由（/）已改为大屏导航枢纽页（不进导航目录、
+    /// 不参与域授权），顶栏默认选中「数据指标」后落到它的第一个页面。
     /// </summary>
     [Fact]
     public void Default_Section_Should_Land_On_Energy_Dashboard()
     {
-        Assert.Equal("/", NavigationCatalog.DefaultSection.LandingHref);
+        Assert.Equal("/energy-dashboard", NavigationCatalog.DefaultSection.LandingHref);
+    }
+
+    /// <summary>
+    /// 根路由（/）不属于任何导航页面：它是由 screen_hub_cards 驱动的大屏导航枢纽页，
+    /// 未登记进 domain_pages 才能让所有登录用户免域授权直达。
+    /// </summary>
+    [Fact]
+    public void Root_Route_Should_Not_Be_Registered_As_Navigation_Page()
+    {
+        Assert.DoesNotContain(NavigationCatalog.Pages, page => page.Item.Href == "/");
     }
 
     /// <summary>

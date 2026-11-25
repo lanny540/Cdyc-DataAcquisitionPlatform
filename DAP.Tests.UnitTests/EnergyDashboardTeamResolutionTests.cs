@@ -108,6 +108,55 @@ public sealed class EnergyDashboardTeamResolutionTests
         Assert.Equal("manual", dashboard.TeamResolution);
     }
 
+    [Fact]
+    public async Task Manual_Selection_Of_OnDuty_Team_Should_Stay_OnDuty()
+    {
+        // 回归：用户先自动落在在岗班组（徽标「当前班组」），切走再手动切回后，
+        // 徽标错误显示「非在岗」——根因是手动指定一律返回 manual，
+        // 服务端不检查所选班组是否恰好在岗。手动切回在岗班组必须保持 on-duty。
+        IShiftSchedulingService service = ServiceWithRows(
+            Row("TEAM-甲", new DateOnly(2026, 11, 3), new TimeOnly(8, 0), new TimeOnly(16, 0)));
+        DeterministicEnergyMetricService energy = new(service, FixedClock(12));
+
+        EnergyDashboardDto dashboard = await energy.GetDashboardAsync(teamCode: "TEAM-甲");
+
+        Assert.Equal("TEAM-甲", dashboard.TeamCode);
+        Assert.Equal("on-duty", dashboard.TeamResolution);
+    }
+
+    [Fact]
+    public async Task Manual_Selection_Outside_Shift_Window_Should_Stay_Manual()
+    {
+        // 12:00 不在任何班次内（甲班 8-16 与乙班 16-24 之间的空档属于另一天场景——
+        // 这里甲班班次是 13:00-16:00，12:00 在班次开始之前）：手动选中也不算在岗。
+        DateOnly today = new(2026, 11, 3);
+
+        IShiftSchedulingService service = ServiceWithRows(
+            Row("TEAM-甲", today, new TimeOnly(13, 0), new TimeOnly(16, 0)));
+        DeterministicEnergyMetricService energy = new(service, FixedClock(12));
+
+        EnergyDashboardDto dashboard = await energy.GetDashboardAsync(teamCode: "TEAM-甲");
+
+        Assert.Equal("TEAM-甲", dashboard.TeamCode);
+        Assert.Equal("manual", dashboard.TeamResolution);
+    }
+
+    [Fact]
+    public async Task Manual_Selection_Of_RestDay_Team_Should_Stay_Manual()
+    {
+        // 当日轮休的班组即使被手动选中，也不得标成在岗。
+        DateOnly today = new(2026, 11, 3);
+
+        IShiftSchedulingService service = ServiceWithRows(
+            Row("TEAM-甲", today, new TimeOnly(8, 0), new TimeOnly(16, 0), true));
+        DeterministicEnergyMetricService energy = new(service, FixedClock(12));
+
+        EnergyDashboardDto dashboard = await energy.GetDashboardAsync(teamCode: "TEAM-甲");
+
+        Assert.Equal("TEAM-甲", dashboard.TeamCode);
+        Assert.Equal("manual", dashboard.TeamResolution);
+    }
+
     /// <summary>
     /// 固定时钟，避免真实时间导致测试结果随运行时刻漂移。
     /// </summary>

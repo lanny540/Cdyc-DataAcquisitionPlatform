@@ -3,16 +3,17 @@
 -- ----------------------------------------------------------------------------
 -- 生成方式：dotnet ef migrations script --idempotent
 --           （EF Core 10.0.14 / dotnet-ef 10.0.15，2026-11-25 重新生成）
--- 迁移数量：11 个，覆盖至 20261119034448_SoftDeleteManagedDataDefinitions，
---           23 张业务表；本次重生成纳入 20261117000000_AddShiftScheduleSnapshot
---           建表语句的分号修正（结构无变化）。
+-- 迁移数量：12 个，覆盖至 20261125000000_AddScreenHubCards，
+--           24 张业务表；本次重生成纳入大屏导航枢纽页的 screen_hub_cards
+--           建表迁移（含 sort_order 索引与标题/路由 CHECK 约束）。
 -- 数据库　：PostgreSQL 13 及以上（用到 gen_random_uuid() 与 jsonb）
 -- 幂等性　：可重复执行。已应用的迁移记录在 __EFMigrationsHistory，重跑自动跳过。
 -- 执行方式：
 --   psql -h <主机> -p 5432 -U <账号> -d <库名> -v ON_ERROR_STOP=1 -f 01_schema.sql
 -- 说明　　：本脚本只建结构，不含业务数据。
 --           基础字典见 02_seed_reference.sql，执行后可用 03_verify.sql 核对。
---           初始超管账号、领域页面由应用启动时自动写入，不要手工插入。
+--           初始超管账号、领域页面、大屏导航默认卡由应用启动时自动写入，
+--           不要手工插入。
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
     "MigrationId" character varying(150) NOT NULL,
@@ -1101,6 +1102,38 @@ BEGIN
     IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261119034448_SoftDeleteManagedDataDefinitions') THEN
     INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
     VALUES ('20261119034448_SoftDeleteManagedDataDefinitions', '10.0.14');
+    END IF;
+END $EF$;
+COMMIT;
+
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261125000000_AddScreenHubCards') THEN
+    CREATE TABLE screen_hub_cards (
+        id uuid PRIMARY KEY,
+        title text NOT NULL,
+        description text NOT NULL,
+        route text NOT NULL,
+        icon_key text NOT NULL,
+        accent text NOT NULL,
+        sort_order integer NOT NULL,
+        is_enabled boolean NOT NULL,
+        created_at timestamp with time zone NOT NULL,
+        updated_at timestamp with time zone NOT NULL,
+        CONSTRAINT ck_screen_hub_cards_title_not_blank CHECK (btrim(title) <> ''),
+        CONSTRAINT ck_screen_hub_cards_route_not_blank CHECK (btrim(route) <> '')
+    );
+    CREATE INDEX ix_screen_hub_cards_sort_order ON screen_hub_cards (sort_order);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261125000000_AddScreenHubCards') THEN
+    INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+    VALUES ('20261125000000_AddScreenHubCards', '10.0.14');
     END IF;
 END $EF$;
 COMMIT;

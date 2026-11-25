@@ -3,6 +3,217 @@
 <PageTitle>域与页面配置</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
+    @if (_isDomainEditorOpen)
+    {
+        @* —— 整页编辑视图：域新建/编辑，与采集服务器页一致，替代原抽屉弹窗。编码创建后不可改 —— *@
+        <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.h4">@(_isCreatingDomain ? "新建域" : "编辑域")</MudText>
+                    <MudText Typo="Typo.body1">域编码创建后不可修改，授权与页面代码都引用它。</MudText>
+                </MudStack>
+                <MudButton Variant="Variant.Text" Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="CloseDomainEditor">
+                    返回列表
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
+        }
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-secondary pa-4" Elevation="0">
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.h6">域信息</MudText>
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" md="6">
+                        <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="域编码" @bind-Value="_editorDomainCode"
+                                      Disabled="@(!_isCreatingDomain)" Immediate="true"
+                                      HelperText="小写字母开头，可含数字与连字符；创建后不可改，页面代码按它声明归属"/>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="显示名称" @bind-Value="_editorDomainName" Immediate="true"
+                                      Counter="32" MaxLength="32"/>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudNumericField Margin="Margin.Dense" Variant="Variant.Outlined" T="int" Label="顶栏排序（小的在前）" @bind-Value="_editorDomainSortOrder"
+                                         Min="0" Max="999"/>
+                    </MudItem>
+                </MudGrid>
+                <MudSwitch T="bool" Label="启用该域" @bind-Value="_editorDomainEnabled"
+                           Color="Color.Primary"/>
+                <MudSwitch T="bool" Label="空域也展示给普通用户" @bind-Value="_editorDomainVisibleWhenEmpty"
+                           Color="Color.Primary"/>
+                <MudSwitch T="bool" Label="标记为系统域" @bind-Value="_editorDomainIsSystem"
+                           Color="Color.Primary"/>
+                <MudText Typo="Typo.body2" Class="platform-config-hint">
+                    系统域不参与部门授权矩阵，固定归超级管理员；把业务域标成系统域后，普通用户将看不到它。
+                </MudText>
+            </MudStack>
+        </MudPaper>
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-success pa-4" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
+                      Wrap="Wrap.Wrap" Spacing="2">
+                <MudText Typo="Typo.body2" Color="Color.Secondary">保存后导航分组立即按新配置生效。</MudText>
+                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" Justify="Justify.FlexEnd">
+                    <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="CloseDomainEditor">取消</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_isSaving"
+                               OnClick="SaveDomainAsync">
+                        保存
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    }
+    else if (_isPageEditorOpen)
+    {
+        @* —— 整页编辑视图：页面配置。路由与页面标识键由代码声明，不在可改范围 —— *@
+        <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.h4">编辑页面配置</MudText>
+                    <MudText Typo="Typo.body1">
+                        路由 @_editorPageRoute · 页面标识 @_editorPageKey（均由代码声明，不可改）
+                    </MudText>
+                </MudStack>
+                <MudButton Variant="Variant.Text" Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="ClosePageEditor">
+                    返回列表
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
+        }
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-secondary pa-4" Elevation="0">
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.h6">页面信息</MudText>
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" md="6">
+                        <MudSelect Margin="Margin.Dense" Variant="Variant.Outlined" T="Guid" Label="所属域" @bind-Value="_editorPageDomainId">
+                            @foreach (AdminDomainDto domain in _domains)
+                            {
+                                <MudSelectItem T="Guid" Value="@domain.Id">@($"{domain.Name}（{domain.Code}）")</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="显示名称" @bind-Value="_editorPageTitle" Immediate="true"
+                                      Counter="64" MaxLength="64"/>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="分组标题（留空表示直接挂在域下）"
+                                      @bind-Value="_editorPageGroupTitle" Immediate="true" Counter="32" MaxLength="32"/>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudNumericField Margin="Margin.Dense" Variant="Variant.Outlined" T="int" Label="域内排序（小的在前）" @bind-Value="_editorPageSortOrder"
+                                         Min="0" Max="999"/>
+                    </MudItem>
+                </MudGrid>
+            </MudStack>
+        </MudPaper>
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-success pa-4" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
+                      Wrap="Wrap.Wrap" Spacing="2">
+                <MudText Typo="Typo.body2" Color="Color.Secondary">保存后该页面在菜单中的归属与排序立即生效。</MudText>
+                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" Justify="Justify.FlexEnd">
+                    <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="ClosePageEditor">取消</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_isSaving"
+                               OnClick="SavePageAsync">
+                        保存
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    }
+    else if (_isCardEditorOpen)
+    {
+        @* —— 整页编辑视图：大屏导航卡（根路由入口）新建/编辑 —— *@
+        <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.h4">@(_isCreatingCard ? "新增大屏入口" : "编辑大屏入口")</MudText>
+                    <MudText Typo="Typo.body1">
+                        大屏入口卡片展示在应用根路由的导航页上，对所有登录用户开放；保存后立即生效。
+                    </MudText>
+                </MudStack>
+                <MudButton Variant="Variant.Text" Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="CloseCardEditor">
+                    返回列表
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
+        }
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-info pa-4" Elevation="0">
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.h6">入口信息</MudText>
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" md="6">
+                        <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="入口标题"
+                                      @bind-Value="_editorCardTitle" Immediate="true" Counter="32" MaxLength="32"
+                                      HelperText="1–32 字，展示在卡片上"/>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="目标路由"
+                                      @bind-Value="_editorCardRoute" Immediate="true"
+                                      HelperText="站内相对地址，以 / 开头，例如 /energy-dashboard"/>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudSelect Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="图标"
+                                   @bind-Value="_editorCardIconKey">
+                            @foreach (string iconKey in ScreenHubCatalog.IconKeys)
+                            {
+                                <MudSelectItem T="string" Value="@iconKey">@ScreenHubIcons.Label(iconKey)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudSelect Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="卡片主色"
+                                   @bind-Value="_editorCardAccent">
+                            @foreach (string accent in ScreenHubCatalog.Accents)
+                            {
+                                <MudSelectItem T="string" Value="@accent">@AccentLabel(accent)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="一句话说明"
+                                      @bind-Value="_editorCardDescription" Immediate="true" Lines="2" Counter="256"
+                                      MaxLength="256" HelperText="不超过 256 字"/>
+                    </MudItem>
+                </MudGrid>
+                <MudSwitch T="bool" Label="启用该入口" @bind-Value="_editorCardEnabled" Color="Color.Primary"/>
+            </MudStack>
+        </MudPaper>
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-success pa-4" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
+                      Wrap="Wrap.Wrap" Spacing="2">
+                <MudText Typo="Typo.body2" Color="Color.Secondary">保存后根路由导航页立即按新配置展示。</MudText>
+                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" Justify="Justify.FlexEnd">
+                    <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="CloseCardEditor">取消</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_isSaving"
+                               OnClick="SaveCardAsync">
+                        保存
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    }
+    else
+    {
     <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
                   Spacing="3">
@@ -172,6 +383,88 @@
                 }
             </MudPaper>
         }
+
+        @* —— 大屏导航卡管理：根路由枢纽页的入口卡片，独立于域与页面授权体系 —— *@
+        <MudPaper Class="platform-section-card--tinted platform-accent-info pa-4" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
+                      Wrap="Wrap.Wrap" Spacing="2">
+                <MudStack Spacing="1">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudText Typo="Typo.h6">大屏导航卡</MudText>
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">根路由入口</MudChip>
+                    </MudStack>
+                    <MudText Typo="Typo.body2">
+                        应用根路由是大屏导航枢纽页，这里的卡片决定它展示哪些模块入口；对所有登录用户开放。
+                    </MudText>
+                </MudStack>
+                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateCard">
+                    新增入口
+                </MudButton>
+            </MudStack>
+
+            @if (_screenHubCards.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Class="mt-2">
+                    还没有配置任何大屏入口，根路由页将以代码内置的默认入口渲染。
+                </MudText>
+            }
+            else
+            {
+                <MudTable Items="@_screenHubCards" Hover="true" Dense="true" Class="platform-data-table mt-2"
+                          Breakpoint="Breakpoint.Sm">
+                    <HeaderContent>
+                        <MudTh>入口</MudTh>
+                        <MudTh>目标路由</MudTh>
+                        <MudTh>图标</MudTh>
+                        <MudTh>主色</MudTh>
+                        <MudTh>状态</MudTh>
+                        <MudTh Style="text-align: right;">操作</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="入口">
+                            <span class="platform-table-primary">@context.Title</span>
+                        </MudTd>
+                        <MudTd DataLabel="目标路由"><code>@context.Route</code></MudTd>
+                        <MudTd DataLabel="图标">@ScreenHubIcons.Label(context.IconKey)</MudTd>
+                        <MudTd DataLabel="主色">@AccentLabel(context.Accent)</MudTd>
+                        <MudTd DataLabel="状态">
+                            @if (context.IsEnabled)
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Success">
+                                    展示中
+                                </MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning">
+                                    已停用
+                                </MudChip>
+                            }
+                        </MudTd>
+                        <MudTd Style="text-align: right;">
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Secondary"
+                                       OnClick="@(() => MoveCardAsync(context, "up"))">
+                                上移
+                            </MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Secondary"
+                                       OnClick="@(() => MoveCardAsync(context, "down"))">
+                                下移
+                            </MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                                       OnClick="@(() => OpenCardEditor(context))">
+                                编辑
+                            </MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error"
+                                       OnClick="@(() => RequestDeleteCardAsync(context))">
+                                删除
+                            </MudButton>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        </MudPaper>
+    }
     }
 </MudStack>
 
@@ -193,74 +486,6 @@
         <MudButton Color="Color.Secondary" OnClick="CancelConfirm" Variant="Variant.Text">取消</MudButton>
         <MudButton OnClick="AcceptConfirmAsync" Variant="Variant.Filled" Color="Color.Primary">确认</MudButton>
     </DialogActions>
-</MudDialog>
-
-@* 域编辑：编码创建后不可改（授权与代码都引用它），其余字段可改。 *@
-<MudDialog @bind-Visible="_isDomainEditorOpen" Options="PlatformDialogs.EditorSheet"
-           AriaLabel="@(_isCreatingDomain ? "新建域" : "编辑域")">
-    <DialogContent>
-        <MudStack Spacing="3" Class="platform-sheet">
-            <section class="platform-sheet-section platform-accent-secondary">
-                <MudText Typo="Typo.h6">@(_isCreatingDomain ? "新建域" : "编辑域")</MudText>
-                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="域编码" @bind-Value="_editorDomainCode"
-                              Disabled="@(!_isCreatingDomain)" Immediate="true"
-                              HelperText="小写字母开头，可含数字与连字符；创建后不可改，页面代码按它声明归属"/>
-                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="显示名称" @bind-Value="_editorDomainName" Immediate="true"
-                              Counter="32" MaxLength="32"/>
-                <MudNumericField Margin="Margin.Dense" Variant="Variant.Outlined" T="int" Label="顶栏排序（小的在前）" @bind-Value="_editorDomainSortOrder"
-                                 Min="0" Max="999"/>
-                <MudSwitch T="bool" Label="启用该域" @bind-Value="_editorDomainEnabled"
-                           Color="Color.Primary"/>
-                <MudSwitch T="bool" Label="空域也展示给普通用户" @bind-Value="_editorDomainVisibleWhenEmpty"
-                           Color="Color.Primary"/>
-                <MudSwitch T="bool" Label="标记为系统域" @bind-Value="_editorDomainIsSystem"
-                           Color="Color.Primary"/>
-                <MudText Typo="Typo.body2" Class="platform-config-hint">
-                    系统域不参与部门授权矩阵，固定归超级管理员；把业务域标成系统域后，普通用户将看不到它。
-                </MudText>
-            </section>
-            <MudStack Row="true" Justify="Justify.SpaceBetween">
-                <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="CloseDomainEditor">取消</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_isSaving"
-                           OnClick="SaveDomainAsync">
-                    保存
-                </MudButton>
-            </MudStack>
-        </MudStack>
-    </DialogContent>
-</MudDialog>
-
-@* 页面编辑：路由与页面标识键不在可改范围（由代码声明），改错了菜单会指向 404。 *@
-<MudDialog @bind-Visible="_isPageEditorOpen" Options="PlatformDialogs.EditorSheet" AriaLabel="编辑页面配置">
-    <DialogContent>
-        <MudStack Spacing="3" Class="platform-sheet">
-            <section class="platform-sheet-section platform-accent-secondary">
-                <MudText Typo="Typo.h6">编辑页面配置</MudText>
-                <MudText Typo="Typo.body2" Class="platform-config-hint">
-                    路由 @_editorPageRoute · 页面标识 @_editorPageKey（均由代码声明，不可改）
-                </MudText>
-                <MudSelect Margin="Margin.Dense" Variant="Variant.Outlined" T="Guid" Label="所属域" @bind-Value="_editorPageDomainId">
-                    @foreach (AdminDomainDto domain in _domains)
-                    {
-                        <MudSelectItem T="Guid" Value="@domain.Id">@($"{domain.Name}（{domain.Code}）")</MudSelectItem>
-                    }
-                </MudSelect>
-                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="显示名称" @bind-Value="_editorPageTitle" Immediate="true"
-                              Counter="64" MaxLength="64"/>
-                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="分组标题（留空表示直接挂在域下）"
-                              @bind-Value="_editorPageGroupTitle" Immediate="true" Counter="32" MaxLength="32"/>
-                <MudNumericField Margin="Margin.Dense" Variant="Variant.Outlined" T="int" Label="域内排序（小的在前）" @bind-Value="_editorPageSortOrder"
-                                 Min="0" Max="999"/>
-            </section>
-            <MudStack Row="true" Justify="Justify.SpaceBetween">
-                <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="ClosePageEditor">取消</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_isSaving"
-                           OnClick="SavePageAsync">
-                    保存
-                </MudButton>
-            </MudStack>
-        </MudStack>
-    </DialogContent>
 </MudDialog>
 
 @code {
@@ -295,4 +520,16 @@
     private string _editorPageTitle = string.Empty;
     private string _editorPageGroupTitle = string.Empty;
     private int _editorPageSortOrder;
+
+    private IReadOnlyList<ScreenHubCardDto> _screenHubCards = [];
+
+    private bool _isCardEditorOpen;
+    private bool _isCreatingCard;
+    private Guid _editingCardId;
+    private string _editorCardTitle = string.Empty;
+    private string _editorCardDescription = string.Empty;
+    private string _editorCardRoute = string.Empty;
+    private string _editorCardIconKey = string.Empty;
+    private string _editorCardAccent = string.Empty;
+    private bool _editorCardEnabled = true;
 }

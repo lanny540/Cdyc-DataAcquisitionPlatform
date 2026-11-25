@@ -10,4 +10,8 @@
     <ProjectReference Include="..\DAP.Core.Shared\DAP.Core.Shared.csproj"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="DAP.Tests.UnitTests"/>
+  </ItemGroup>
+
 </Project>

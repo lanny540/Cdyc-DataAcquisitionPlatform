@@ -7,7 +7,8 @@ using MudBlazor;
 namespace DAP.Presentation.BlazorWeb.Client.Components;
 
 /// <summary>
-/// 采集节点编辑抽屉，供节点列表页与节点详情页共用。
+/// 采集节点整页编辑视图，供节点列表页与节点详情页共用。
+/// 与采集服务器页一致：不再使用抽屉弹窗，由父页面按编辑状态条件渲染整页表单。
 /// 表单以「先选采集服务器、再补点位信息」为前提，字段由 <see cref="AcquisitionServerCatalog"/> 驱动。
 /// </summary>
 public partial class ManagedDataDefinitionEditor : ComponentBase, IAsyncDisposable
@@ -16,28 +17,17 @@ public partial class ManagedDataDefinitionEditor : ComponentBase, IAsyncDisposab
 
     [Inject] private IPlatformApiClient PlatformApiClient { get; set; } = null!;
 
-    /// <summary>抽屉是否可见。</summary>
-    [Parameter]
-    public bool Visible { get; set; }
-
-    /// <summary>可见性变化回调，供父组件双向绑定。</summary>
-    [Parameter]
-    public EventCallback<bool> VisibleChanged { get; set; }
-
     /// <summary>正在编辑的节点标识，为空表示新增。</summary>
     [Parameter]
     public Guid? DefinitionId { get; set; }
 
-    /// <summary>
-    /// 节点标识变化回调。与 <see cref="DefinitionId"/> 配对，
-    /// 使父组件可以用 <c>@bind-DefinitionId</c> 写法切换编辑目标。
-    /// </summary>
-    [Parameter]
-    public EventCallback<Guid?> DefinitionIdChanged { get; set; }
-
-    /// <summary>保存成功回调，参数为保存后的节点。</summary>
+    /// <summary>保存成功回调，参数为保存后的节点；父页面收到后应关闭编辑视图并刷新列表。</summary>
     [Parameter]
     public EventCallback<ManagedDataDefinitionDto> OnSaved { get; set; }
+
+    /// <summary>取消编辑回调；父页面收到后应关闭编辑视图回到列表。</summary>
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
 
     private readonly List<AcquisitionServerDto> _servers = [];
     private readonly List<AcquisitionServerTypeDescriptor> _serverTypes = [];
@@ -46,6 +36,7 @@ public partial class ManagedDataDefinitionEditor : ComponentBase, IAsyncDisposab
     private readonly Dictionary<string, string> _nodeConfiguration = new(StringComparer.OrdinalIgnoreCase);
 
     private Guid? _definitionId;
+    private bool _initialized;
     private bool _isLoading;
     private bool _isSaving;
     private bool _isTestingConnection;
@@ -93,16 +84,18 @@ public partial class ManagedDataDefinitionEditor : ComponentBase, IAsyncDisposab
     private string BusinessTagsPreviewJson => BuildJson(CreateCustomDictionary(_businessTagRows));
 
     /// <summary>
-    /// 抽屉每次由隐藏变为可见时，按 <see cref="DefinitionId"/> 载入最新表单内容。
+    /// 首次渲染或编辑目标变化时载入最新表单内容。
+    /// 组件由父页面按编辑状态条件渲染：进入编辑视图即重建实例，离开即销毁。
     /// </summary>
     protected override async Task OnParametersSetAsync()
     {
-        if (!Visible)
+        if (_initialized && _definitionId == DefinitionId)
         {
             return;
         }
 
         _definitionId = DefinitionId;
+        _initialized = true;
         await LoadCatalogAsync();
         await LoadEditorStateAsync();
     }
@@ -278,7 +271,6 @@ public partial class ManagedDataDefinitionEditor : ComponentBase, IAsyncDisposab
             ManagedDataDefinitionDto saved =
                 await PlatformApiClient.UpsertManagedDataDefinitionAsync(request);
 
-            await VisibleChanged.InvokeAsync(false);
             await OnSaved.InvokeAsync(saved);
         }
         catch (Exception ex)
@@ -316,9 +308,10 @@ public partial class ManagedDataDefinitionEditor : ComponentBase, IAsyncDisposab
         }
     }
 
-    private async Task Close()
+    /// <summary>取消编辑，由父页面关闭编辑视图回到列表。</summary>
+    private Task Cancel()
     {
-        await VisibleChanged.InvokeAsync(false);
+        return OnCancel.InvokeAsync();
     }
 
     private ManagedDataDefinitionUpsertRequest? BuildCurrentRequest()
@@ -333,6 +326,32 @@ public partial class ManagedDataDefinitionEditor : ComponentBase, IAsyncDisposab
         if (string.IsNullOrWhiteSpace(_identifier))
         {
             _validationMessage = $"{CurrentServerType?.IdentifierLabel ?? "数据标识"}不能为空。";
+            return null;
+        }
+
+        // 与服务端 ValidateManagedDataDefinitionRequest 的必填项保持一致，
+        // 能在表单层直接给出原因的就不留到 400 校验错误。
+        if (string.IsNullOrWhiteSpace(_name))
+        {
+            _validationMessage = "数据名称不能为空。";
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(_department))
+        {
+            _validationMessage = "归属部门不能为空。";
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(_processCode))
+        {
+            _validationMessage = "工程编号（工序）不能为空。";
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(_dataCategory))
+        {
+            _validationMessage = "数据类别不能为空。";
             return null;
         }
 

@@ -19,84 +19,133 @@
 
 ### 新增
 
-- 新增 `scripts/sql/` 数据库部署脚本，用于生产环境未安装 `dotnet ef` 时手工建库：
-  - `01_schema.sql`：由 `dotnet ef migrations script --idempotent` 生成，覆盖 11 个迁移、23 张表，可重复执行。
-  - `02_seed_reference.sql`：职能域、权限点、内置角色、角色权限、能源介质/用途/系统的幂等种子。
-  - `03_verify.sql`：部署后核对迁移版本、表完整性、字典行数与外键悬空。
+- 排班表导入支持**现场业务标准宽表格式**（A 列自然日 + 夜班/白班/中班三列班组编号）：
+  - 表头 B/C/D 列为「夜班（0-8）」「白班（8-16）」「中班（16-24）」（每天 24 小时制三班），
+    数据区单元格填班组编号 **1–4**，映射为 班组-甲 / 班组-乙 / 班组-丙 / 班组-丁；
+    每行展开为 3 条固定班次记录（夜班 00:00–08:00、白班 08:00–16:00、中班 16:00–24:00，
+    每班 8 小时）。
+  - 班组编号超出 1–4 或日期无法识别按 error 处理，文件不入库以保护已有数据；
+    旧版四列格式（自然日 / 班组名称 / 上班时间 / 下班时间）保持兼容，按表头自动识别。
+  - 上传页的格式说明与填写示例同步改为宽表口径。
+  - 新增宽表解析与导入链路单元测试（编号映射、越界报错、表头前置标题行、日期列推断）。
+
+- **根路由改为大屏导航枢纽页**，支持管理员配置入口卡片：
+  - 新页面 `ScreensHub`（`@page "/"`）：按 `screen_hub_cards` 表渲染启用中的入口卡片
+    （圆形 accent 图标底块 + 标题 + 说明 + 整卡可点跳转），无配置或读取失败时以代码内置
+    默认卡兜底；该页不参与域授权，所有登录用户可达。
+  - 钞纸班组能耗仪表板改挂 `/energy-dashboard`（原 `@page "/"` 移除），左侧菜单同步更新；
+    启动对账按 PageKey 自动把库中该页的路由刷新为新地址。
+  - 数据层新增 `screen_hub_cards` 表（迁移 `20261125000000_AddScreenHubCards`，
+    部署脚本 `scripts/sql/01_schema.sql` 已重新生成，12 迁移 24 表；
+    `03_verify.sql` 同步期望值并新增大屏卡核对段，`02_seed_reference.sql` 补充
+    「导航卡由启动种子写入、勿手工插入」说明）；启动时空表自动补入三张默认卡
+    （班组能耗仪表板 / 园区能源总览 / 平台概览），只补不覆盖。
+  - 后台管理：「域与页面配置」页新增「大屏导航卡」分区（列表 / 上移 / 下移 / 编辑 / 删除 /
+    启停，整页编辑视图），端点归 `action.domain.manage` 权限，全部操作写审计。
+  - 图标与主色走白名单（`ScreenHubCatalog`）：图标键 20 个（前端映射 MudBlazor 常量）、
+    主色键 7 个（对应 platform-accent-* 类）；路由限定站内相对地址。
+  - 单元测试新增校验规则与目录一致性 8 例，导航目录用例同步根路由行为。
 
 ### 变更
 
-- UI 视觉语言整体切换为 **Material Design 2 · 品牌红 + 琥珀（示意稿定稿）**（覆盖下方此前的浅色红金方案；
-  用户目检后由企业蓝靛、经典紫两轮改定，最终以 `MD2_仪表板改版示意` 视觉稿为准）：
-  - 七色色板再次整体换色：primary 改为亮红 `#D32F2F`（Red 700，配白字，strong `#A31515` / soft `#F4B5B5` /
-    tint `#FFCDD2`），tertiary 强调色改为琥珀 `#FFB300`（strong `#8F4400` / soft `#FFD54F` / tint `#FFE082`，
-    填充底配深褐字 `#3E2A00`），info 改 `#1976D2`、success 改 `#2E7D32`、secondary 改 `#455A64`；
-    旧品牌红变量体系 `--platform-brand*` / `DapBrand*` 退役，语义由 primary（同色值）承接。
-  - MD2 示意稿卡片语言：红色实底顶栏（主色+白字+4dp 投影）、页面底改中性灰 `#FAFAFA`、
-    **灰底白卡加 MD2 投影**（统计卡/区块卡/面板不再铺 tint 底纹、不再加左侧色条与顶部色带）、
-    页面头部改无色块白底直排标题（hero 不再有 tint 色块）、统计卡图标底块改**圆形实色 + On 档图标**、
-    表格表头去底纹（中性灰字 + 12% 黑分隔线）、图表容器去渐变底纹、排班日历中性化、
-    100 阶浅底徽章保留、黑色透明度阶文字（.87/.60/.54）、4dp 圆角。
-  - 桌面端同步：`MetricCardModel` 新增 `AccentOn` 档（圆形图标底块前景，琥珀底为深褐），
-    指标卡/趋势卡/柱状卡/报表汇总卡改白卡，六页 hero 去 tint 底，DataGrid 表头透明。
-  - 页面头部不再一页一色：22 页 hero 统一 `platform-accent-primary`（桌面 6 页同步 `DapPrimaryTintBrush`），
-    页面个性由卡片 accent 表达；`DESIGN_SYSTEM.md` 的「页面主色分配」表改为登记卡片主色。
-  - 次要文字加深至 `#4F4F4F`（原 `#616161` 在 tint 底纹上对比不足 4.5:1），双端同步。
-  - 守卫测试改版：颜色清单更新为新七色；`Neutral_And_Brand_Palette_...` 更名
-    `Neutral_Palette_Should_Meet_Contrast_Baselines`（删除品牌红段）；`Error_Should_Be_Distinguishable_From_Brand_Red`
-    改为 `Error_Should_Be_Distinguishable_From_Accent`（对 primary 与 tertiary 双查 ΔE ≥ 20，
-    当前亮红 vs 深酒红 ΔE ≈ 73.8、琥珀 vs 深酒红 ΔE ≈ 192）；
-    `Data_Containers_Should_Not_Use_Primary_Accent` 改为 `Desktop_Data_Containers_Should_Not_Use_Primary_Pale_Brushes`
-    （MD2 下 primary 参与正常 accent 轮换，桌面保留淡色底纹禁令并豁免 page-hero）。
-  - `docs/DESIGN_SYSTEM.md` 与 `AGENTS.md` 同步改写为 MD2 口径。
-  - 示意稿定稿后 Web 端全站扫尾（用户确认满意后按同风格复查 25 页 + 全部 scoped CSS）：
-    顶栏品牌标识由主色→强调色渐变改**白圆底 + 主色红图标**（与统计卡圆形图标底块同语言）、
-    表单抽屉分节卡去左侧色条、深色代码/日志面板去渐变改纯色、登录卡去 1px 描边（保留顶部品牌红条）、
-    数字孪生车间面板去 14px 圆角与描边改 4dp 白卡投影、受管数据详情趋势图面板去 accent 描边与
-    tint 渐变底改白卡、重连弹窗图标底块圆形化；同步清理「主色紫/强调青」等历次改版残留注释。
-- UI 整体由深色主题改为**浅色红金配色**（Material Design 3），解决深色下文字不明显、边框不好看的问题：
-  - 七色色板整体换血并各增一档对比文字（`-on`）：primary 改为金色 `#F7B500`（配深字 `#3E2A00`），
-    error 取深酒红 `#8E1B1E`（与品牌红 `#D32F2F` 拉开明度，色差 ΔE 25），strong 回归加深档，soft/tint 改为淡色容器；新增品牌红 `--platform-brand*`。
-  - 红金分工：金色承担主按钮、开关、选中、输入焦点；品牌红仅用于顶栏激活、抽屉选中、品牌标识与登录入口，
-    页面不得引用（守卫测试强制）；红色的内容语义完全留给 error。
-  - 卡片恢复整卡铺色：统计卡/区块卡铺 tint 底纹并配本色 soft 描边，头条 KPI 铺 soft；卡内表格保持白色表面。
-  - 中性色提亮对比：正文 `#1A1D21`（16.9:1）、次要文字 6.9:1、弱化文字 4.56:1、输入框边框 3.04:1。
-  - Web 端 `IsDarkMode="false"`，`PlatformTheme` 只保留浅色面板；`app.css` 新增「金色主色的文字态修正」，
-    把 MudBlazor 直接取 primary 当前景色的描边/文字按钮、聚焦态输入标签与边框改为加深档。
-  - 桌面端同步：`App.axaml` 改 `RequestedThemeVariant="Light"`，`DapPalette.axaml`/`SemiBrandOverride.axaml`
-    换浅色色板并新增 `Dap*OnBrush` 与 `DapBrand*Brush`，指标卡/区块卡铺 tint 底，导航选中取品牌红，
-    主按钮补金底深字前景。
-  - 守卫测试同步：对比文字改读 `-on` 档，新增中性色/品牌红对比度守卫与「保持浅色主题、品牌红不进内容区」守卫；
-    `DESIGN_SYSTEM.md`、`AGENTS.md` 与 README 截图同步更新。
-  - 错误色重新定稿为深酒红 `#8E1B1E`（Strong `#5C0E10`）：第一版取 M3 基线 `#B3261E`，与品牌红 `#D32F2F`
-    色差只有 ΔE 10；现靠明度拉开（ΔE ≈ 25），亮红＝导航、暗红＝错误。新增守卫 `Error_Should_Be_Distinguishable_From_Brand_Red`（ΔE ≥ 20）。
-  - **组件风格全站统一**（外观由动作角色决定，页面强调色不再参与；规范见 `DESIGN_SYSTEM.md` 3.10）：
-  - 按钮：主操作＝Primary 填充（新建/查询/保存/导入），次操作＝Secondary 描边（刷新/重置/导出/测试），取消/关闭/返回＝
-      Secondary 文字，破坏性确认＝Error 填充；清掉各页面自定的蓝/紫/深灰蓝/琥珀填充按钮，仪表板视图切换改为
-      「选中金色填充 / 未选中深灰蓝描边」，表格行内操作统一为小号文字按钮。
-  - 输入类组件统一为 Outlined + Dense（权限管理五页原为下划线形态）；开关统一 Primary；徽章统一 Outlined；
-      筛选栏宽度口径统一，MudSelect 外层补 `:has()` 约束使其不再撑满整行。
-  - 桌面端：五处「刷新」由金色主按钮改为 `ghost` 次按钮（次色文字），「生成报表 / 登录」保持金色主按钮。
-  - 新增守卫 `Components_Should_Follow_Unified_Style`；`docs/screenshots` 全部重拍为浅色版（20 张，移除 `dark-*.png`），
-      README 新增「界面预览」图集并引用年度口径总览。
-  - **数据容器不再取金色**：能耗仪表板「综合能耗合计」头条卡原铺金色 soft（`#FFD67A`），在蓝/绿/橙/紫四张淡色
-      指标卡上方显得突兀；改为中性蓝灰 secondary，并把全站同色的统计卡、区块卡、面板一并改为 secondary
-      （平台概览「采集点总数」、排班「班组数量」、对比「综合能耗最高 / 对比明细」、报表汇总、采集点管理、
-      排班日历、History API 测试、采集服务器等 18 处）。桌面端仪表板汇总卡、报表/对比汇总区块与指标卡同步。
-      平台概览、排班时间管理、班组能耗报表 3 页的标题带改为 secondary，采集节点详情改为 tertiary（随所属的「点位数据管理」），
-      抽屉导航图标主色与桌面端报表页同步；全站页面主色不再有 primary（仅登录入口保留），空状态图标块保留金色。
-      新增守卫 `Data_Containers_Should_Not_Use_Primary_Accent`。
-- 取消「生产环境默认初始口令拒启」闸门：`AuthDataInitializer` 不再在 Production 下因
-  `Auth:BootstrapAdmin:Password` 为内置默认值（`Admin@123456`）而拒绝启动，允许生产直接以
-  初始口令创建超管，由「首登强制改密」（`MustChangePassword=true`）兜底。口令复杂度校验保留不变。
-- 采集服务器「新增/编辑」由抽屉弹窗改为整页表单视图：列表与表单在同一页面按状态切换，表单占满内容区
-  （字段按大屏三列布局），切换后自动回到页顶；同时修复保存/删除成功提示被列表刷新立即清空的问题。
+- 左侧菜单抽屉头部不再显示「共 N 个功能页面」页面计数；空域（未上线板块）的
+  「该板块尚未上线」提示保留，便于超管核对域配置。
 
 ### 修复
 
-- 采集服务器自动生成的编码含小写字符：`ResolveCode` 以地址拼接后缀时保留了 `http` 等小写字母，
-  违反 `server_connections` 的全大写 CHECK 约束（`ck_server_connections_code_upper`），
-  导致新增服务器时 INSERT 被数据库拒绝，页面只显示兜底文案「服务端处理失败，请查看服务端日志」。
-  现生成结果统一转大写，手工录入的编码本就会转大写，不受影响。
-- `20261117000000_AddShiftScheduleSnapshot` 的原生 SQL 缺少结尾分号，导致幂等脚本在 `DO` 块内生成 `) END IF;`，
-  手工执行建表脚本会语法中断。补上分号后重新生成脚本。
+- 修复能耗仪表板**手动切回在岗班组后徽标错误显示「非在岗」**的问题：服务端对手动指定
+  的班组一律返回 `manual`，页面把 `on-duty` 作为在岗唯一依据——于是自动解析落在在岗班组
+  （徽标「当前班组」）、切走再手动切回后徽标变成「查看班组（非在岗）」。现服务端按班次窗口
+  判定所选班组此刻是否在岗（命中今日排班、非轮休、当前时刻在起止时间内）：在岗仍返回
+  `on-duty`，非在岗保持 `manual`。新增 3 例班组解析回归（在岗切回/班次窗口外/轮休班组）。
+- 修复班组能耗报表**切换统计口径（按日/按周/按月）数据毫无变化**的问题：分桶宽度此前
+  只由区间跨度推导（`ResolveBucketLength` 完全忽略 granularity，且 400 桶上限内一律单日桶），
+  口径参数形同虚设——同一 30 天区间按日与按周输出完全相同的 30 个日桶。现按口径分桶：
+  按日为单日桶、按周为自区间起点连续 7 天的桶（末桶截断）、按月为自然月桶；桶内仍为
+  逐日求和，因此同一区间的合计在不同口径下保持一致（正确的口径语义），变化的是周期数、
+  明细行与曲线形态。趋势点契约 `EnergyTrendPointDto` 增加 `BucketEnd`（可空，向后兼容），
+  周/月口径的明细行携带完整起止日期。既有测试只覆盖 day 口径，新增周/月分桶与合计一致性
+  共 3 例回归。
+- 修复班组横向对比**按周口径退化为单日对比**的问题：参考日当天与周口径此前得到同一天，
+  现展开为所在自然周（周一为一周起点）；月口径保持对齐自然月。
+- 修复班组能耗报表页在排班导入后**一直显示加载转圈**的问题：报表按「班组 × 指标」
+  渲染班组汇总表时，行单元格在 `RowTemplate` 的 `@for` 循环里用循环变量 `i` 直接
+  索引 `context.Values[i]`；MudTd 内容是延迟执行的 RenderFragment，执行时 `i` 已越过
+  数组边界抛 `IndexOutOfRangeException`（WASM 渲染器每次渲染都崩，加载遮罩永远不消失）。
+  此前未暴露是因为排班未导入时走空状态分支，表格从未渲染过。修复为循环体内立即取值
+  到逐次迭代局部变量，内容 lambda 捕获局部值而非循环变量。
+- 修复从根路由（大屏导航枢纽页）点击入口卡片跳转后**左侧菜单需要再点一次才出现**的问题：
+  枢纽页按设计收起抽屉聚焦卡片，但跳入具体模块后抽屉保持收起。现在路由变化进入新模块
+  （与当前高亮域不同）且抽屉处于收起状态时自动展开；同模块内的跳转保持用户手动收起的状态。
+
+### 变更
+
+- **取消排班「四班三运转校验」功能**（按业务要求）：真实台账直接给出值班事实，导入只做
+  格式解析——删除 `ShiftRotationValidator.Validate` 与 `/api/shift-schedules/validation` 端点、
+  `IPlatformApiClient.GetShiftScheduleValidationAsync`；排班时间管理页移除「校验状态」统计卡
+  与「校验报告」区块；导入按解析错误判定入库，统计信息（自然日数 / 班组数 / 完整覆盖天数）
+  直接汇总展示。`ShiftRotationValidator` 保留日历分组与班组汇总两个查询辅助。
+
+- GE Historian 对接固定为 **OAuth password 授权模式**：现场实测 GE Historian UAA 的
+  `historian_public_rest_api` Client 不允许 client_credentials 授权（上游报
+  `Unauthorized grant type: client_credentials`），平台不再提供授权模式选项，统一走 password 授权，
+  避免维护服务器信息时出现多余选择。
+  - 采集服务器目录（`AcquisitionServerCatalog`）为 Historian 类型新增两个可选字段：
+    `oauthUsername`（GE 默认格式 `<Historian 主机名>.admin`）与 `oauthPassword`
+    （Password 字段，密文存储）；ClientId 默认值由误导性的 `admin` 改为 GE 默认的
+    `historian_public_rest_api`。
+  - `HistoryApiProxyService` 的令牌请求固定发送
+    `grant_type=password&username=...&password=...`（Basic 头仍为 ClientId/ClientSecret）；
+    缺用户名/密码时直接给中文提示，令牌失败消息提示核对四项凭据。
+  - 数据库解析（`ServerConnectionSettings.ToHistorianOptions`）与探测服务同步传递新字段。
+  - 测试夹具同步：password 表单断言、缺参提示、既有用例补齐 OAuth 用户名/密码。
+
+- 点位数据管理页的新增/编辑从右侧抽屉弹窗改为**整页编辑视图**（与采集服务器页同一模式），随后**全站推广**：
+  - 共享组件 `ManagedDataDefinitionEditor` 重构为整页表单（hero 标题 + 返回列表按钮 +
+    基础信息 / 采集信息 / 业务标识分区卡 + JSON 预览 + 底部操作条），不再使用 `MudDialog` /
+    `platform-sheet`；`Visible`/`VisibleChanged` 参数移除，改由父页面按 `_isEditorOpen`
+    条件渲染，新增 `OnCancel` 回调。
+  - 其余页面同步整页化：采集点管理（编辑）、用户管理（账号编辑 / 重置密码 / 移交超管三视图）、
+    能源计量点（计量点编辑 / 组织节点新增两视图）、部门与授权（部门编辑）、域与页面配置
+    （域编辑 / 页面编辑两视图）、班组排班（Excel 上传）、系统审计（变更详情查看）、
+    节点详情（节点配置查看）——共 7 页 9 处抽屉全部替换。
+  - `PlatformDialogs` 删除已无使用者的 `EditorSheet` / `DetailSheet`，仅保留 `Confirm`；
+    `platform-sheet` 样式类与 `DESIGN_SYSTEM.md` / `AGENTS.md` 中抽屉条目同步退役，
+    新增页面检查清单改为整页编辑口径。
+  - `ui.spec.mjs` 全部改为整页编辑断言（不再断言 `.platform-sheet`），并删除抽屉专用 helper。
+
+### 修复
+
+- 修复排班时间管理页**无法选择文件上传**的问题（两处叠加缺陷）：
+  - MudBlazor 9 的 `MudFileUpload` 使用 `CustomContent` 自定义上传区后，点击不再自动打开
+    文件选择器——上传区改为显式调用 `OpenFilePickerAsync`（拖拽仍由 DragAndDrop 处理）；
+  - 浏览器上传的 `IBrowserFile` 流不可 seek，ClosedXML/ZipArchive 打开即失败（表现为
+    「文件解析失败」，浏览器链路必现）——导入前先把流缓冲进 `MemoryStream`，
+    统一页面直调与 HTTP 两条链路的流形态。
+  - 导入失败的解析问题明细（行号 + 原因，前 10 条）现在直接展示在上传视图中，
+    不再只显示错误计数。
+  - 已用 Playwright 端到端验证：点击上传区弹出文件选择器、上传真实宽表排班表、
+    导入成功 246 条（82 天 × 3 班）。
+
+- 修复根路由（大屏导航枢纽页）仍高亮第一个顶栏板块并显示其左侧菜单的问题：
+  根路由不属于任何模块，现在顶栏不高亮任何板块、左侧抽屉自动收起，
+  抽屉头显示「平台大屏导航 · 点击顶栏板块进入对应功能页面」的导航说明。
+
+- 修复迁移体系：`AddScreenHubCards` 手写迁移补齐 EF Designer 模型快照
+  （手写迁移此前无快照，`dotnet ef database update` 报 PendingModelChangesWarning
+  拒绝应用），本地开发库迁移已应用、`screen_hub_cards` 表就绪；
+  生产部署按 `scripts/sql/01_schema.sql`（幂等）执行即可。
+
+- 修复长表格式跨天班次工时计算错误：16:00–00:00 此前被折算为 24 小时，
+  现按「当日剩余 + 次日」正确计算为 8 小时。
+
+- 修复采集节点保存 400 时错误原因被吞的问题：服务端校验错误采用 RFC 7807
+  `ValidationProblem` 格式（`errors` 字典），客户端错误解析只认 `message` 字段，
+  界面只剩「请求失败（400）」。
+  - `PlatformHttpResponse.ReadErrorMessageAsync` 支持 RFC 7807：自动拼接 `errors` 字典
+    中的校验消息（如「名称不能为空。 工序不能为空。」），支持 `detail` 字段；
+    英文 `title` 不回显，非 JSON 响应仍回落状态码描述。
+  - 节点编辑器表单前置校验与服务端必填项对齐：数据名称、归属部门、工程编号、数据类别
+    缺项时提交前即提示，不再走到 400。
+  - 连接测试结果 `StatusMessage` 与 `ErrorMessage` 同文时不再重复渲染。
+  - 新增 `PlatformHttpResponseTests` 6 例，`DAP.Clients` 增加对测试项目的 `InternalsVisibleTo`。

@@ -58,17 +58,6 @@ public static class ShiftSchedulingEndpoints
                 })
             .WithName("GetShiftScheduleStatus");
 
-        group.MapGet(
-                "/validation",
-                async (IShiftSchedulingService service, CancellationToken cancellationToken) =>
-                {
-                    IReadOnlyCollection<ShiftScheduleRowDto> rows =
-                        await service.GetAllRowsAsync(cancellationToken);
-
-                    return Results.Ok(ShiftRotationValidator.Validate(rows));
-                })
-            .WithName("GetShiftScheduleValidation");
-
         group.MapPost(
                 "/import",
                 async (HttpRequest request, IShiftSchedulingService service, CancellationToken cancellationToken) =>

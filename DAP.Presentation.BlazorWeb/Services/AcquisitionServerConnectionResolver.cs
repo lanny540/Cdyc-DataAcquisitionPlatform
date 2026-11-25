@@ -64,7 +64,9 @@ public sealed record ServerConnectionSettings(
             GetValue("currentValuePath"),
             GetValue("rawDataPathPrefix"),
             GetInteger("timeoutSeconds"),
-            GetBoolean("ignoreCertificateErrors"));
+            GetBoolean("ignoreCertificateErrors"),
+            GetValue("oauthUsername"),
+            GetValue("oauthPassword"));
     }
 
     private string GetValue(string key)

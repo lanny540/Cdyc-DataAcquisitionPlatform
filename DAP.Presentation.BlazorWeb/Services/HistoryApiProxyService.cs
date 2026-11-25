@@ -52,6 +52,7 @@ public sealed class HistoryApiProxyService(
     private const string HttpClientName = "HistoryApi";
     private const string TokenCacheKey = "history-api-access-token";
     private const int MinimumTimeoutSeconds = 5;
+    private const string PasswordGrant = "password";
     private readonly AcquisitionServerRuntimeOptions _runtimeOptions = runtimeOptions.Value;
 
     public Task<HistoryApiQueryResponse> GetCurrentValueAsync(
@@ -305,10 +306,7 @@ public sealed class HistoryApiProxyService(
         string oauthTokenPath = ResolvePath(connectionOptions.OAuthTokenPath, "oauthTokenPath");
         using HttpRequestMessage request = new(HttpMethod.Post, NormalizePath(oauthTokenPath))
         {
-            Content = new FormUrlEncodedContent(
-            [
-                new KeyValuePair<string, string>("grant_type", "client_credentials")
-            ])
+            Content = new FormUrlEncodedContent(BuildTokenRequestBody(connectionOptions))
         };
 
         request.Headers.Authorization = new AuthenticationHeaderValue(
@@ -329,7 +327,8 @@ public sealed class HistoryApiProxyService(
                 payload);
 
             throw new InvalidOperationException(
-                $"获取 OAuth Token 失败，上游返回 {(int)response.StatusCode} {response.ReasonPhrase}。");
+                $"获取 OAuth Token 失败，上游返回 {(int)response.StatusCode} {response.ReasonPhrase}。" +
+                " 请核对采集服务器配置中的 ClientId、ClientSecret、OAuth 用户名与 OAuth 密码。");
         }
 
         HistoryApiTokenResponse? tokenResponse =
@@ -345,6 +344,31 @@ public sealed class HistoryApiProxyService(
         memoryCache.Set(tokenCacheKey, cacheEntry, expiresAt);
 
         return tokenResponse.AccessToken;
+    }
+
+    /// <summary>
+    /// 构造换取令牌的表单体。固定使用 password 授权模式：
+    /// 现场 GE Historian UAA 的 <c>historian_public_rest_api</c> 等 Client
+    /// 仅允许 password 授权（client_credentials 会被拒绝），Basic 头仍为 ClientId/ClientSecret。
+    /// </summary>
+    private List<KeyValuePair<string, string>> BuildTokenRequestBody(
+        HistoryApiConnectionOptions connectionOptions)
+    {
+        string oauthUsername = connectionOptions.OAuthUsername?.Trim() ?? string.Empty;
+        string oauthPassword = connectionOptions.OAuthPassword?.Trim() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(oauthUsername) || string.IsNullOrWhiteSpace(oauthPassword))
+        {
+            throw new InvalidOperationException(
+                "请在采集服务器配置中填写 OAuth 用户名与 OAuth 密码（password 授权模式必需）。");
+        }
+
+        return
+        [
+            new KeyValuePair<string, string>("grant_type", PasswordGrant),
+            new KeyValuePair<string, string>("username", oauthUsername),
+            new KeyValuePair<string, string>("password", oauthPassword)
+        ];
     }
 
     private static void ValidateConfiguration(string resolvedBaseAddress, HistoryApiConnectionOptions connectionOptions)
@@ -436,6 +460,8 @@ public sealed class HistoryApiProxyService(
 /// <param name="RawDataPathPrefix">原始数据路径前缀。</param>
 /// <param name="RequestTimeoutSeconds">请求超时秒数。</param>
 /// <param name="IgnoreServerCertificateErrors">是否忽略服务端证书错误。</param>
+/// <param name="OAuthUsername">password 授权模式的用户名。</param>
+/// <param name="OAuthPassword">password 授权模式的密码。</param>
 public sealed record HistoryApiConnectionOptions(
     string? BaseAddress,
     string? ClientId = null,
@@ -445,7 +471,9 @@ public sealed record HistoryApiConnectionOptions(
     string? CurrentValuePath = null,
     string? RawDataPathPrefix = null,
     int? RequestTimeoutSeconds = null,
-    bool? IgnoreServerCertificateErrors = null);
+    bool? IgnoreServerCertificateErrors = null,
+    string? OAuthUsername = null,
+    string? OAuthPassword = null);
 
 internal sealed record HistoryApiTokenCacheEntry(string AccessToken, DateTimeOffset ExpiresAt);
 

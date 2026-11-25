@@ -7,7 +7,7 @@ namespace DAP.Presentation.BlazorWeb.Client.Pages;
 
 /// <summary>
 /// 表示后台数据节点配置页面的交互逻辑。
-/// 节点配置以选择采集服务器为前提，编辑表单由 Components/ManagedDataDefinitionEditor 承载。
+/// 节点配置以选择采集服务器为前提，编辑表单由 Components/ManagedDataDefinitionEditor 以整页视图承载（非弹层）。
 /// </summary>
 public partial class ManagedDataDefinitions
 {
@@ -94,7 +94,7 @@ public partial class ManagedDataDefinitions
         }
     }
 
-    /// <summary>打开共享编辑抽屉并载入指定节点的最新配置。</summary>
+    /// <summary>进入整页编辑视图并载入指定节点的最新配置。</summary>
     private async Task EditAsync(ManagedDataDefinitionDto definition)
     {
         _editingId = definition.Id;
@@ -102,15 +102,24 @@ public partial class ManagedDataDefinitions
         await InvokeAsync(StateHasChanged);
     }
 
-    private void OpenCreateDrawer()
+    private void OpenCreateEditor()
     {
         _editingId = null;
         _message = null;
         _isEditorOpen = true;
     }
 
+    /// <summary>取消编辑或保存成功后关闭整页编辑视图，回到列表。</summary>
+    private void CancelEditor()
+    {
+        _isEditorOpen = false;
+        _editingId = null;
+    }
+
     private async Task OnEditorSaved(ManagedDataDefinitionDto saved)
     {
+        _isEditorOpen = false;
+        _editingId = null;
         _message = $"采集节点 {saved.Code} 已保存。";
         _messageSeverity = Severity.Success;
         await LoadAsync();

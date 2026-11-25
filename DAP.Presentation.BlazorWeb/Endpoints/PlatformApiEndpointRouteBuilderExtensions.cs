@@ -16,6 +16,7 @@ public static class PlatformApiEndpointRouteBuilderExtensions
         endpoints.MapAuthEndpoints();
         endpoints.MapNavigationEndpoints();
         endpoints.MapAdminEndpoints();
+        endpoints.MapScreenHubEndpoints();
         endpoints.MapConnectionDiagnosticsEndpoints();
         endpoints.MapAcquisitionServerEndpoints();
         endpoints.MapDashboardEndpoints();

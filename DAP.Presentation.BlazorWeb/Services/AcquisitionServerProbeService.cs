@@ -113,7 +113,9 @@ public sealed class AcquisitionServerProbeService(
             GetValue(configuration, "currentValuePath", string.Empty),
             GetValue(configuration, "rawDataPathPrefix", string.Empty),
             GetIntValue(configuration, "timeoutSeconds", DefaultTimeoutSeconds),
-            IsTrue(GetValue(configuration, "ignoreCertificateErrors", "false")));
+            IsTrue(GetValue(configuration, "ignoreCertificateErrors", "false")),
+            GetValue(configuration, "oauthUsername", string.Empty),
+            GetValue(configuration, "oauthPassword", string.Empty));
 
         HistoryApiQueryResponse response = await historyApiProxyService.GetCurrentValueAsync(
             new HistoryCurrentValueQueryRequest(identifier), connectionOptions, cancellationToken);

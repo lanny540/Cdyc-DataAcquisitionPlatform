@@ -94,10 +94,27 @@
                Breakpoint="Breakpoint.Md"
                Class="platform-drawer">
         <MudDrawerHeader Class="platform-drawer-header">
-            <MudStack Spacing="0" Class="platform-drawer-heading">
-                <MudText Typo="Typo.subtitle2" Class="platform-drawer-title">@ActiveDomain?.Name</MudText>
-                <MudText Typo="Typo.caption" Class="platform-drawer-subtitle">@DrawerSubtitle</MudText>
-            </MudStack>
+            @if (IsHubRoute)
+            {
+                @* 根路由是大屏导航枢纽页，不属于任何模块：抽屉给出导航说明而不是空的域标题。 *@
+                <MudStack Spacing="0" Class="platform-drawer-heading">
+                    <MudText Typo="Typo.subtitle2" Class="platform-drawer-title">平台大屏导航</MudText>
+                    <MudText Typo="Typo.caption" Class="platform-drawer-subtitle">
+                        点击顶栏板块进入对应功能页面
+                    </MudText>
+                </MudStack>
+            }
+            else if (ActiveDomain is not null)
+            {
+                <MudStack Spacing="0" Class="platform-drawer-heading">
+                    <MudText Typo="Typo.subtitle2" Class="platform-drawer-title">@ActiveDomain.Name</MudText>
+                    @if (ActiveDomain.IsEmpty)
+                    {
+                        @* 空域（未上线板块）保留显式说明，便于超管核对配置；正常域不再显示页面计数。 *@
+                        <MudText Typo="Typo.caption" Class="platform-drawer-subtitle">该板块尚未上线</MudText>
+                    }
+                </MudStack>
+            }
         </MudDrawerHeader>
         @if (ActiveDomain is not null)
         {
@@ -135,15 +152,6 @@
     private NavigationDomainDto? ActiveDomain => _navigation?.Domains
         .FirstOrDefault(domain => string.Equals(domain.Code, _activeDomainCode, StringComparison.Ordinal));
 
-    /// <summary>
-    /// 抽屉副标题：空域显式说明「未上线」，正常域给出页面计数。
-    /// </summary>
-    private string DrawerSubtitle => ActiveDomain is null
-        ? string.Empty
-        : ActiveDomain.IsEmpty
-            ? "该板块尚未上线"
-            : $"共 {ActiveDomain.Groups.Sum(group => group.Pages.Count)} 个功能页面";
-
     private string CurrentPath => Nav.ToBaseRelativePath(Nav.Uri);
 
     protected override async Task OnInitializedAsync()
@@ -168,12 +176,25 @@
         }
 
         // 刷新页面或直接输入地址时，按路由反推所属域，避免顶栏高亮与内容错位。
-        _activeDomainCode = ResolveDomain(CurrentPath)?.Code
-                            ?? _navigation?.Domains.FirstOrDefault()?.Code
-                            ?? string.Empty;
+        // 根路由是大屏导航枢纽页，不属于任何模块：顶栏不高亮，抽屉收起保持视野干净。
+        _activeDomainCode = IsHubRoute
+            ? string.Empty
+            : ResolveDomain(CurrentPath)?.Code
+              ?? _navigation?.Domains.FirstOrDefault()?.Code
+              ?? string.Empty;
+
+        if (IsHubRoute)
+        {
+            _drawerOpen = false;
+        }
 
         Nav.LocationChanged += OnLocationChanged;
     }
+
+    /// <summary>
+    /// 当前是否处于根路由（大屏导航枢纽页）。
+    /// </summary>
+    private bool IsHubRoute => string.IsNullOrEmpty(Normalize(CurrentPath));
 
     /// <summary>
     /// 顶栏一级导航的样式类。激活态由 platform-topnav-item--active 表达，不在此处写色值。
@@ -192,9 +213,24 @@
 
     /// <summary>
     /// 路由变化时同步顶栏高亮：左侧菜单点击、浏览器前进后退都会走到这里。
+    /// 根路由（大屏导航枢纽页）不属于任何模块，清空顶栏高亮并收起抽屉。
     /// </summary>
     private void OnLocationChanged(object? sender, LocationChangedEventArgs args)
     {
+        string path = Normalize(Nav.ToBaseRelativePath(args.Location));
+
+        if (path.Length == 0)
+        {
+            if (_activeDomainCode.Length > 0 || _drawerOpen)
+            {
+                _activeDomainCode = string.Empty;
+                _drawerOpen = false;
+                _ = InvokeAsync(StateHasChanged);
+            }
+
+            return;
+        }
+
         NavigationDomainDto? domain = ResolveDomain(Nav.ToBaseRelativePath(args.Location));
 
         if (domain is null || string.Equals(domain.Code, _activeDomainCode, StringComparison.Ordinal))
@@ -203,6 +239,15 @@
         }
 
         _activeDomainCode = domain.Code;
+
+        // 从枢纽页（抽屉已收起）或其它模块进入新模块时自动展开左侧菜单：
+        // 枢纽页聚焦入口卡片而收起抽屉，点击卡片落到具体模块后菜单应直接可用，
+        // 不应要求用户再点一次顶栏。同模块内的跳转保持用户手动收起的状态。
+        if (!_drawerOpen)
+        {
+            _drawerOpen = true;
+        }
+
         _ = InvokeAsync(StateHasChanged);
     }
 

@@ -119,3 +119,47 @@ public sealed record AdminDepartmentUpsertRequest(string Code, string Name, stri
 /// </summary>
 /// <param name="DomainIds">授予的业务域标识集合。系统域不允许出现在此列表。</param>
 public sealed record AdminDepartmentGrantsRequest(IReadOnlyList<Guid> DomainIds);
+
+/// <summary>
+/// 表示大屏导航枢纽页（根路由）上的一张跳转卡片。
+/// </summary>
+/// <param name="Id">卡片标识。</param>
+/// <param name="Title">卡片标题。</param>
+/// <param name="Description">一句话说明。</param>
+/// <param name="Route">目标路由（站内相对地址，以 / 开头）。</param>
+/// <param name="IconKey">图标键。</param>
+/// <param name="Accent">卡片主色键。</param>
+/// <param name="SortOrder">显示顺序，小的在前。</param>
+/// <param name="IsEnabled">是否启用。</param>
+public sealed record ScreenHubCardDto(
+    Guid Id,
+    string Title,
+    string Description,
+    string Route,
+    string IconKey,
+    string Accent,
+    int SortOrder,
+    bool IsEnabled);
+
+/// <summary>
+/// 表示新建或修改大屏导航卡的请求。
+/// </summary>
+/// <param name="Title">卡片标题，1–32 字。</param>
+/// <param name="Description">一句话说明，不超过 256 字。</param>
+/// <param name="Route">目标路由，站内相对地址。</param>
+/// <param name="IconKey">图标键，取值见 ScreenHubCatalog.IconKeys。</param>
+/// <param name="Accent">卡片主色键，取值见 ScreenHubCatalog.Accents。</param>
+/// <param name="IsEnabled">是否启用。</param>
+public sealed record ScreenHubCardUpsertRequest(
+    string Title,
+    string Description,
+    string Route,
+    string IconKey,
+    string Accent,
+    bool IsEnabled);
+
+/// <summary>
+/// 表示移动大屏导航卡排序的请求。
+/// </summary>
+/// <param name="Direction">移动方向：up 上移 / down 下移。</param>
+public sealed record ScreenHubCardMoveRequest(string Direction);

@@ -262,15 +262,22 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
         _isInfoDrawerOpen = false;
     }
 
-    /// <summary>打开共享编辑抽屉，节点标识由路由参数 Id 提供。</summary>
+    /// <summary>进入整页编辑视图（与采集服务器页一致），节点标识由路由参数 Id 提供。</summary>
     private void OpenEditor()
     {
         _isEditorOpen = true;
     }
 
-    /// <summary>编辑保存成功后刷新详情，让当前值、历史趋势与配置摘要立即反映最新配置。</summary>
+    /// <summary>取消编辑，关闭整页编辑视图回到详情。</summary>
+    private void CloseEditor()
+    {
+        _isEditorOpen = false;
+    }
+
+    /// <summary>编辑保存成功后关闭编辑视图并刷新详情，让当前值、历史趋势与配置摘要立即反映最新配置。</summary>
     private async Task OnEditorSaved(ManagedDataDefinitionDto saved)
     {
+        _isEditorOpen = false;
         _message = $"采集节点 {saved.Code} 已保存。";
         _messageSeverity = Severity.Success;
         await LoadAsync(true);

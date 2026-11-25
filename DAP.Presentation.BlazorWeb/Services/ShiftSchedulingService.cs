@@ -86,7 +86,7 @@ public sealed class InMemoryShiftSchedulingService : IShiftSchedulingService
     private string? _lastFileName;
 
     /// <inheritdoc />
-    public Task<ShiftScheduleImportResultDto> ImportAsync(
+    public async Task<ShiftScheduleImportResultDto> ImportAsync(
         string fileName,
         Stream stream,
         CancellationToken cancellationToken = default)
@@ -98,39 +98,46 @@ public sealed class InMemoryShiftSchedulingService : IShiftSchedulingService
 
         try
         {
-            _parser.Parse(fileName, stream, out parsedRows, out parseIssues);
+            // 浏览器上传的 IBrowserFile 流不可 seek（ZipArchive 必须要求 seek），
+            // 先缓冲进 MemoryStream 统一两条链路（页面直调 / HTTP 端点）的流形态。
+            using MemoryStream buffered = new();
+            await stream.CopyToAsync(buffered, cancellationToken);
+            buffered.Position = 0;
+
+            _parser.Parse(fileName, buffered, out parsedRows, out parseIssues);
         }
         catch (ShiftScheduleFormatException ex)
         {
-            return Task.FromResult(new ShiftScheduleImportResultDto(
+            return new ShiftScheduleImportResultDto(
                 false,
                 fileName,
                 [],
                 new ShiftScheduleValidationDto(false, 0, 0, 0, 0, "暂无数据。",
                     [new ShiftScheduleIssueDto(0, ex.Message, "error")]),
-                DateTimeOffset.UtcNow));
+                DateTimeOffset.UtcNow);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             // ClosedXML 在遇到加密或损坏文件时会抛出多种底层异常（类型随版本变化），
             // 这里统一转成可读中文提示，不把框架原始文案透传给界面。
-            return Task.FromResult(new ShiftScheduleImportResultDto(
+            return new ShiftScheduleImportResultDto(
                 false,
                 fileName,
                 [],
                 new ShiftScheduleValidationDto(false, 0, 0, 0, 0, "暂无数据。",
                     [new ShiftScheduleIssueDto(0, "文件解析失败，请确认是有效的 .xlsx 或 .xls 文件。", "error")]),
-                DateTimeOffset.UtcNow));
+                DateTimeOffset.UtcNow);
         }
 
-        ShiftScheduleValidationDto validation = ShiftRotationValidator.Validate(parsedRows);
-
-        List<ShiftScheduleIssueDto> allIssues = [.. parseIssues, .. validation.Issues];
         bool hasParseError = parseIssues.Any(item =>
             string.Equals(item.Severity, "error", StringComparison.OrdinalIgnoreCase));
 
-        // 只有全部通过校验才覆盖旧数据，避免坏文件把可用排班清空。
-        if (validation.IsValid && !hasParseError)
+        // 只按解析结果判定：出现 error 级解析问题不覆盖旧数据，
+        // 避免「日期列读不出、班组编号越界」这类坏文件把可用排班清空。
+        // 四班三运转轮转校验已按业务要求取消，导入不再拦截合法的真实台账。
+        ShiftScheduleValidationDto validation = BuildSummary(parsedRows, parseIssues, isValid: !hasParseError);
+
+        if (!hasParseError)
         {
             lock (_gate)
             {
@@ -138,20 +145,40 @@ public sealed class InMemoryShiftSchedulingService : IShiftSchedulingService
                 _lastImportedAt = DateTimeOffset.UtcNow;
                 _lastFileName = fileName;
             }
-
-            validation = validation with { Issues = allIssues };
-        }
-        else
-        {
-            validation = validation with { Issues = allIssues };
         }
 
-        return Task.FromResult(new ShiftScheduleImportResultDto(
-            validation.IsValid && !hasParseError,
+        return new ShiftScheduleImportResultDto(
+            !hasParseError,
             fileName,
-            validation.IsValid && !hasParseError ? parsedRows : [],
+            !hasParseError ? parsedRows : [],
             validation,
-            DateTimeOffset.UtcNow));
+            DateTimeOffset.UtcNow);
+    }
+
+    /// <summary>
+    /// 汇总导入结果的基础统计（班组数、自然日数、完整覆盖天数）。
+    ///
+    /// 「完整覆盖」按「当天班次合计时长 ≥ 24 小时」判定，供状态展示；
+    /// 不再执行四班三运转轮转校验。
+    /// </summary>
+    private static ShiftScheduleValidationDto BuildSummary(
+        IReadOnlyCollection<ShiftScheduleRowDto> rows,
+        IReadOnlyCollection<ShiftScheduleIssueDto> issues,
+        bool isValid)
+    {
+        int dutyDays = rows.Select(item => item.WorkDate).Distinct().Count();
+        int teams = rows.Select(item => item.TeamCode).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+        int coverageDays = rows
+            .GroupBy(item => item.WorkDate)
+            .Count(group => group.Sum(item => item.DurationHours) >= 24d);
+
+        string summary = rows.Count == 0
+            ? "暂无数据。"
+            : isValid
+                ? $"已导入 {rows.Count} 条班次记录，覆盖 {dutyDays} 个自然日。"
+                : "解析存在问题，本次文件未入库。";
+
+        return new ShiftScheduleValidationDto(isValid, rows.Count, dutyDays, teams, coverageDays, summary, issues);
     }
 
     /// <inheritdoc />

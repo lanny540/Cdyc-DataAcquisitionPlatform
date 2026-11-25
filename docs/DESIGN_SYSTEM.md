@@ -213,12 +213,12 @@ MD2 的状态徽章是「100 阶浅底 + 深色字」，不再用描边。app.cs
 - `platform-stat-card--filled`：头条 KPI 专用标记（同为白卡，数值近黑最大号）
 - `platform-page-hero platform-accent-<色>`：页面头部（无色块白底直排，accent 类名仅作标记）
 - `platform-empty-state platform-accent-<色>`：空状态
-- `platform-sheet platform-accent-<色>`：抽屉（子分区可各自再取色）
+- ~~`platform-sheet`~~：已全站退役（新增/编辑改整页编辑视图，见 3.4）
 
 ### 2.3 页面主色分配
 
 **页面头部全站统一 primary**（MD2 经典样式：一致的页头，页面个性由卡片表达）。
-hero 之外，每个页面在 accent 体系内登记一个**卡片主色**，用于区块卡、抽屉与图表：
+hero 之外，每个页面在 accent 体系内登记一个**卡片主色**，用于区块卡与图表：
 
 | 页面                                                              | 菜单归属                 | 卡片主色 |
 |-------------------------------------------------------------------|--------------------------|----------|
@@ -354,11 +354,13 @@ private static readonly string[] MetricAccents =
 
 禁止用 `MudStack Class="pa-10"` + 灰色 `MudIcon` 手搓空状态。
 
-### 3.4 抽屉与对话框
+### 3.4 表单视图与对话框
 
-- 抽屉容器加 `platform-sheet platform-accent-<色>`
-- 表单分区用 `platform-sheet-section` + **各自不同的** accent 类
-- 对话框行为配置统一走 `Common/PlatformDialogs.cs`，禁止页面内联声明 `DialogOptions`
+- **新增/编辑表单一律整页编辑视图**（与采集服务器页一致）：列表与表单在同一页面按状态切换，
+  表单包含 hero（标题 + 返回列表按钮）、提示/校验 alert、`platform-section-card--tinted`
+  分区卡（各自不同 accent）与底部操作条（取消 / 次操作 / 主操作）。禁止新用 `MudDialog` 做表单抽屉
+  （`platform-sheet` 体系已全站退役）。
+- 对话框行为配置统一走 `Common/PlatformDialogs.cs`（现仅 `Confirm` 居中确认框），禁止页面内联声明 `DialogOptions`
 
 ### 3.5 代码/日志面板
 
@@ -645,7 +647,7 @@ app.TryGetResource("SemiColorXxx", ThemeVariant.Light, out var v);
 - [ ] 区块卡/面板为白卡 + 投影，无底纹无色条（`--banded` 已退役）
 - [ ] 表格带 `platform-data-table`（表头中性灰字 + 12% 黑分隔线）
 - [ ] 空状态用 `platform-empty-state`
-- [ ] 抽屉用 `platform-sheet` + 分区 accent；对话框走 `PlatformDialogs`
+- [ ] 新增/编辑表单为整页编辑视图（hero + 分区卡 + 操作条，参照采集服务器页）；确认对话框走 `PlatformDialogs`
 - [ ] 全文件无硬编码色值，无 `--platform-brand` / `DapBrand` 引用（品牌红体系已退役，语义由 primary 承接）
 - [ ] 按钮按 3.10 的角色写：主操作 Primary 填充、次操作 Secondary 描边、取消 Secondary 文字、危险 Error；行内 Text + Small
 - [ ] 输入类组件 `Variant.Outlined` + `Margin.Dense`，开关 `Color.Primary`，徽章与提示条 `Variant.Outlined`

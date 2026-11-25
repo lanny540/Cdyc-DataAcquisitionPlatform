@@ -153,6 +153,39 @@ public class HistoryApiProxyRequestTests
         Assert.NotNull(handler.LastRequest);
     }
 
+    [Fact]
+    public async Task GetCurrentValueAsync_Should_Always_Send_Password_Grant_Form()
+    {
+        RecordingHandler handler = new(BusinessOnly(_ => JsonResponse("""{"value":1}""")));
+        HistoryApiProxyService service = CreateService(handler);
+
+        await service.GetCurrentValueAsync(
+            new HistoryCurrentValueQueryRequest("TAG001"),
+            Conn("https://hist.example.com",
+                oauthUsername: "HIS81.admin",
+                oauthPassword: "web-admin-secret"));
+
+        // GE Historian UAA 的 REST API Client 仅允许 password 授权，
+        // 平台固定发送 grant_type=password 与用户名密码，Basic 头仍为 ClientId/ClientSecret。
+        Assert.Contains("grant_type=password", handler.LastTokenForm, StringComparison.Ordinal);
+        Assert.Contains("HIS81.admin", handler.LastTokenForm, StringComparison.Ordinal);
+        Assert.Contains("web-admin-secret", handler.LastTokenForm, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetCurrentValueAsync_When_Password_Grant_Missing_User_Should_Report_Readably()
+    {
+        RecordingHandler handler = new(BusinessOnly(_ => JsonResponse("""{"value":1}""")));
+        HistoryApiProxyService service = CreateService(handler);
+
+        HistoryApiQueryResponse response = await service.GetCurrentValueAsync(
+            new HistoryCurrentValueQueryRequest("TAG001"),
+            Conn("https://hist.example.com", oauthUsername: null, oauthPassword: null));
+
+        Assert.False(response.Success);
+        Assert.Contains("OAuth 用户名", response.ErrorMessage, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(0, false)]
     [InlineData(1, true)]
@@ -180,7 +213,9 @@ public class HistoryApiProxyRequestTests
         string? clientSecret = "test-secret",
         string? currentValuePath = null,
         string? rawDataPathPrefix = null,
-        int? requestTimeoutSeconds = null)
+        int? requestTimeoutSeconds = null,
+        string? oauthUsername = "test-admin",
+        string? oauthPassword = "test-secret")
     {
         return new HistoryApiConnectionOptions(
             baseAddress,
@@ -191,7 +226,9 @@ public class HistoryApiProxyRequestTests
             currentValuePath,
             rawDataPathPrefix,
             requestTimeoutSeconds,
-            false);
+            false,
+            oauthUsername,
+            oauthPassword);
     }
 
     private static HistoryApiProxyService CreateService(HttpMessageHandler handler)
@@ -234,6 +271,8 @@ public class HistoryApiProxyRequestTests
 
     /// <summary>
     /// 记录发出的请求，并按委托返回预设响应或抛出预设异常。
+    /// 取令牌是首个请求且带表单体，HttpClient 发送后表单可能被释放，
+    /// 因此在转发前就把表单内容复制下来供断言使用。
     /// </summary>
     private sealed class RecordingHandler(Func<HttpRequestMessage, HttpResponseMessage> responder)
         : HttpMessageHandler
@@ -242,16 +281,24 @@ public class HistoryApiProxyRequestTests
 
         public Uri? LastRequestUri { get; private set; }
 
-        protected override Task<HttpResponseMessage> SendAsync(
+        public string LastTokenForm { get; private set; } = string.Empty;
+
+        protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
             LastRequest = request;
             LastRequestUri = request.RequestUri;
 
+            if (request.Content is not null &&
+                request.RequestUri!.AbsolutePath.Contains("/oauth/", StringComparison.OrdinalIgnoreCase))
+            {
+                LastTokenForm = await request.Content.ReadAsStringAsync(cancellationToken);
+            }
+
             if (responder(request) is { } response)
             {
-                return Task.FromResult(response);
+                return response;
             }
 
             throw new InvalidOperationException("测试处理器未配置响应。");

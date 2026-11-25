@@ -101,9 +101,6 @@ public interface IPlatformApiClient
     /// </summary>
     Task<IReadOnlyList<ShiftTeamDto>> GetShiftScheduleTeamsAsync(CancellationToken cancellationToken = default);
 
-    Task<ShiftScheduleValidationDto> GetShiftScheduleValidationAsync(
-        CancellationToken cancellationToken = default);
-
     Task<ShiftScheduleImportResultDto> ImportShiftScheduleAsync(
         Stream excelStream,
         string fileName,
@@ -227,6 +224,29 @@ public interface IPlatformApiClient
         CancellationToken cancellationToken = default);
 
     Task<bool> ResetAdminDomainPageAsync(Guid pageId, CancellationToken cancellationToken = default);
+
+    /// <summary>获取启用中的大屏导航卡（根路由枢纽页渲染用），按显示顺序排列。</summary>
+    Task<IReadOnlyList<ScreenHubCardDto>> GetScreenHubCardsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>获取全部大屏导航卡（含停用，管理列表用）。</summary>
+    Task<IReadOnlyList<ScreenHubCardDto>> GetScreenHubAdminCardsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>新建大屏导航卡。</summary>
+    Task<bool> CreateScreenHubCardAsync(
+        ScreenHubCardUpsertRequest request,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>修改大屏导航卡。</summary>
+    Task<bool> UpdateScreenHubCardAsync(
+        Guid cardId,
+        ScreenHubCardUpsertRequest request,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>删除大屏导航卡。</summary>
+    Task<bool> DeleteScreenHubCardAsync(Guid cardId, CancellationToken cancellationToken = default);
+
+    /// <summary>上移 / 下移大屏导航卡（direction：up / down）。</summary>
+    Task<bool> MoveScreenHubCardAsync(Guid cardId, string direction, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<AdminDepartmentDto>> GetAdminDepartmentsAsync(
         CancellationToken cancellationToken = default);

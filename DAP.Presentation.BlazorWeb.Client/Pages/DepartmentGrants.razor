@@ -3,6 +3,65 @@
 <PageTitle>部门与授权</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
+    @if (_isEditorOpen)
+    {
+        @* —— 整页编辑视图：部门新建/编辑，与采集服务器页一致，替代原抽屉弹窗。编码创建后不可改（授权数据引用它） —— *@
+        <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.h4">@(_isCreating ? "新建部门" : "编辑部门")</MudText>
+                    <MudText Typo="Typo.body1">部门之间平级、无层级，编码创建后不可修改（授权数据引用它）。</MudText>
+                </MudStack>
+                <MudButton Variant="Variant.Text" Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="CloseEditor">
+                    返回列表
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
+        }
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-tertiary pa-4" Elevation="0">
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.h6">部门信息</MudText>
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" md="6">
+                        <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="部门编码" @bind-Value="_editorCode" Disabled="@(!_isCreating)"
+                                      Immediate="true" Counter="32" MaxLength="32"/>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="部门名称" @bind-Value="_editorName" Immediate="true"
+                                      Counter="64" MaxLength="64"/>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="外部目录编码（LDAP/OIDC 对应值，可空）" @bind-Value="_editorExternalCode"
+                                      Immediate="true" Counter="64" MaxLength="64"/>
+                    </MudItem>
+                </MudGrid>
+                <MudSwitch T="bool" Label="启用部门" @bind-Value="_editorEnabled" Color="Color.Primary"/>
+            </MudStack>
+        </MudPaper>
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-success pa-4" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
+                      Wrap="Wrap.Wrap" Spacing="2">
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    保存后可在授权矩阵中勾选该部门可见的职能域。
+                </MudText>
+                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" Justify="Justify.FlexEnd">
+                    <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="CloseEditor">取消</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_isSaving"
+                               OnClick="SaveDepartmentAsync">保存
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    }
+    else
+    {
     <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
             <MudStack Spacing="1">
@@ -99,30 +158,5 @@
             </MudTable>
         </MudPaper>
     }
+    }
 </MudStack>
-
-@* 部门编辑对话框：新建与编辑共用，编码创建后不可改（授权数据引用它）。 *@
-<MudDialog @bind-Visible="_isEditorOpen"
-           Options="PlatformDialogs.EditorSheet"
-           AriaLabel="@(_isCreating ? "新建部门" : "编辑部门")">
-    <DialogContent>
-        <MudStack Spacing="3" Class="platform-sheet">
-            <section class="platform-sheet-section platform-accent-tertiary">
-                <MudText Typo="Typo.h6">@(_isCreating ? "新建部门" : "编辑部门")</MudText>
-                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="部门编码" @bind-Value="_editorCode" Disabled="@(!_isCreating)"
-                              Immediate="true" Counter="32" MaxLength="32"/>
-                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="部门名称" @bind-Value="_editorName" Immediate="true"
-                              Counter="64" MaxLength="64"/>
-                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="外部目录编码（LDAP/OIDC 对应值，可空）" @bind-Value="_editorExternalCode"
-                              Immediate="true" Counter="64" MaxLength="64"/>
-                <MudSwitch T="bool" Label="启用部门" @bind-Value="_editorEnabled" Color="Color.Primary"/>
-            </section>
-            <MudStack Row="true" Justify="Justify.SpaceBetween">
-                <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="CloseEditor">取消</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_isSaving"
-                           OnClick="SaveDepartmentAsync">保存
-                </MudButton>
-            </MudStack>
-        </MudStack>
-    </DialogContent>
-</MudDialog>

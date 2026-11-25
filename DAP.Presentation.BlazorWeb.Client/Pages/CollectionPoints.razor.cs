@@ -5,7 +5,7 @@ using MudBlazor;
 namespace DAP.Presentation.BlazorWeb.Client.Pages;
 
 /// <summary>
-/// 表示采集点管理页面的交互逻辑。
+/// 表示采集点管理页面的交互逻辑。编辑器为整页视图（非弹层）：列表与表单在同一页面上切换。
 /// </summary>
 public partial class CollectionPoints
 {
@@ -34,8 +34,8 @@ public partial class CollectionPoints
     private string EditorTitle => _editingId.HasValue ? "编辑采集点" : "新增采集点";
 
     private string EditorDescription => _editingId.HasValue
-        ? "右侧抽屉内直接修改采集点关键配置，保存后立即回写到服务端。"
-        : "在抽屉中录入新的采集点信息，创建完成后会同步刷新列表。";
+        ? "在整页表单中直接修改采集点关键配置，保存后立即回写到服务端。"
+        : "在整页表单中录入新的采集点信息，创建完成后会同步刷新列表。";
 
     private string SaveButtonText => _editingId.HasValue ? "保存更改" : "创建采集点";
 
@@ -186,7 +186,7 @@ public partial class CollectionPoints
         _isEnabled = true;
     }
 
-    private void OpenCreateDrawer()
+    private void OpenCreateEditor()
     {
         ResetEditor();
         _message = null;
@@ -196,11 +196,6 @@ public partial class CollectionPoints
     private void CancelEditor()
     {
         ResetEditor();
-        _isEditorOpen = false;
-    }
-
-    private void CloseEditor()
-    {
         _isEditorOpen = false;
     }
 }

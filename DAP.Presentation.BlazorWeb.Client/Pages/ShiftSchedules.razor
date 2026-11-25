@@ -3,12 +3,185 @@
 <PageTitle>班组排班管理</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
+    @if (_isImportOpen)
+    {
+        @* —— 整页视图：上传班组排班表，与采集服务器页一致，替代原抽屉弹窗 —— *@
+        <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.h4">上传班组排班表</MudText>
+                    <MudText Typo="Typo.body1">支持 .xlsx 与 .xls，解析成功后立即入库。</MudText>
+                </MudStack>
+                <MudButton Variant="Variant.Text" Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="CloseImportDialog">
+                    返回列表
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
+        }
+
+        <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
+            表格 A 列为自然日（日期），B/C/D 三列分别为「夜班（0-8）」「白班（8-16）」「中班（16-24）」，
+            单元格填写班组编号 1–4：1=班组-甲、2=班组-乙、3=班组-丙、4=班组-丁。
+        </MudAlert>
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-info pa-4"
+                  Elevation="0">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.h6" Class="platform-card-title">填写示例</MudText>
+                <MudTable Items="_sampleRows" Dense="true" Hover="false" Class="platform-data-table">
+                    <HeaderContent>
+                        <MudTh>自然日（A 列）</MudTh>
+                        <MudTh>夜班（0-8）</MudTh>
+                        <MudTh>白班（8-16）</MudTh>
+                        <MudTh>中班（16-24）</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="自然日">
+                            <MudText Typo="Typo.body2" Class="platform-inline-code">@context.Date</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="夜班">
+                            <MudText Typo="Typo.body2">@context.Night</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="白班">
+                            <MudText Typo="Typo.body2">@context.Day</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="中班">
+                            <MudText Typo="Typo.body2">@context.Middle</MudText>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+                <MudText Typo="Typo.body2" Class="platform-card-description">
+                    B/C/D 列填写 <b>1–4</b> 的班组编号，分别对应 班组-甲 / 班组-乙 / 班组-丙 / 班组-丁；
+                    三列班次固定为夜班 00:00–08:00、白班 08:00–16:00、中班 16:00–24:00，每天三班覆盖 24 小时。
+                    系统同时兼容旧版四列格式（自然日 / 班组名称 / 上班时间 / 下班时间）。
+                </MudText>
+            </MudStack>
+        </MudPaper>
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-secondary pa-4"
+                  Elevation="0">
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.h6">选择文件</MudText>
+                @* MudBlazor 9 的 MudFileUpload 使用 CustomContent 后点击不再自动打开文件选择器，
+                   整个上传区包一层 @onclick 显式调 OpenFilePickerAsync；拖拽仍由 DragAndDrop 处理。 *@
+                <MudFileUpload @ref="_fileUpload" T="IBrowserFile"
+                               FilesChanged="OnFileSelected"
+                               Accept=".xlsx,.xls,.xlsm"
+                               MaximumFileCount="1"
+                               MaxFileSize="@MaxUploadBytes"
+                               DragAndDrop="true">
+                    <CustomContent>
+                        <MudStack AlignItems="AlignItems.Center" Spacing="1" Class="pa-4"
+                                  @onclick="OpenFilePickerAsync" style="cursor: pointer;">
+                            <MudIcon Icon="@Icons.Material.Filled.CloudUpload" Size="Size.Large"/>
+                            <MudText Typo="Typo.body1">点击选择或拖拽 Excel 文件到此处</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                支持 .xlsx / .xls / .xlsm，单个文件不超过 @($"{MaxUploadBytes / 1024 / 1024} MB")
+                            </MudText>
+                        </MudStack>
+                    </CustomContent>
+                </MudFileUpload>
+
+                @if (_selectedFile is not null)
+                {
+                    <MudPaper
+                        Class="platform-section-card platform-section-card--tinted platform-accent-success pa-3"
+                        Elevation="0">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
+                                  Spacing="2">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <span class="platform-section-icon">
+                                    <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small"/>
+                                </span>
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.body1"
+                                             Class="platform-table-primary">@_selectedFile.Name</MudText>
+                                    <MudText Typo="Typo.caption" Class="platform-card-description">
+                                        @($"{_selectedFile.Size / 1024.0:0.##} KB")
+                                    </MudText>
+                                </MudStack>
+                            </MudStack>
+                            <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Filled.Close" Color="Color.Secondary"
+                                           Size="Size.Small"
+                                           OnClick="ClearSelectedFile" aria-label="移除已选文件"/>
+                        </MudStack>
+                    </MudPaper>
+                }
+
+                @if (_importResult is not null)
+                {
+                    <MudAlert Severity="@(_importResult.Succeeded ? Severity.Success : Severity.Error)"
+                              Dense="true" Variant="Variant.Outlined">
+                        @if (_importResult.Succeeded)
+                        {
+                            <text>
+                                导入成功：共 @_importResult.Rows.Count 条排班记录，覆盖 @_importResult.Validation.DutyDays 个自然日，
+                                识别到 @_importResult.Validation.Teams 个班组。
+                            </text>
+                        }
+                        else
+                        {
+                            <text>
+                                导入未成功，共 @(_importResult.Validation.Issues.Count(i => i.Severity == "error")) 个解析错误。
+                                为避免覆盖已有可用数据，本次文件未入库，请修正后重新上传。
+                            </text>
+                        }
+                    </MudAlert>
+
+                    @* 解析问题明细：只列出前 10 条，帮用户直接定位出错的行。 *@
+                    @if (_importResult.Validation.Issues.Count > 0)
+                    {
+                        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-warning pa-3"
+                                  Elevation="0">
+                            <MudText Typo="Typo.subtitle2" Class="mb-2">
+                                解析问题明细（前 @Math.Min(10, _importResult.Validation.Issues.Count) 条）
+                            </MudText>
+                            @foreach (ShiftScheduleIssueDto issue in _importResult.Validation.Issues.Take(10))
+                            {
+                                <MudText Typo="Typo.body2">
+                                    @(issue.RowNumber > 0 ? $"第 {issue.RowNumber} 行：" : "整体：")@issue.Message
+                                </MudText>
+                            }
+                        </MudPaper>
+                    }
+                }
+            </MudStack>
+        </MudPaper>
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-success pa-4" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
+                      Wrap="Wrap.Wrap" Spacing="2">
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    导入会检查文件格式；解析出错的文件不会入库。
+                </MudText>
+                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" Justify="Justify.FlexEnd">
+                    <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="CloseImportDialog">
+                        关闭
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                               StartIcon="@(_isImporting ? Icons.Material.Filled.HourglassTop : Icons.Material.Filled.Upload)"
+                               Disabled="@(_selectedFile is null || _isImporting)"
+                               OnClick="ImportAsync">
+                        @(_isImporting ? "导入中..." : "开始导入")
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    }
+    else
+    {
     <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
             <MudStack Spacing="0">
                 <MudText Typo="Typo.h4" GutterBottom="true">班组排班时间管理</MudText>
                 <MudText Typo="Typo.body1">
-                    上传包含自然日、班组名称、上班时间与下班时间的 Excel 台账，系统按四班三运转规则校验后入库。
+                    上传班组排班台账（A 列自然日 + 夜班/白班/中班三列班组编号），解析成功后立即入库，
+                    供排班日历与能耗页面使用。
                 </MudText>
                 <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mt-2">
                     <MudChip T="string" Variant="Variant.Outlined" Color="Color.Primary">
@@ -53,7 +226,7 @@
     }
 
     <MudGrid Spacing="3">
-        <MudItem xs="12" sm="6" lg="3">
+        <MudItem xs="12" sm="6" lg="4">
             <MudPaper Class="platform-stat-card platform-stat-card--tinted platform-accent-secondary pa-4" Elevation="0">
                 <div class="platform-stat-header">
                     <span class="platform-section-icon">
@@ -62,10 +235,10 @@
                     <MudText Typo="Typo.caption">班组数量</MudText>
                 </div>
                 <MudText Typo="Typo.h3">@(_status?.Teams.Count ?? 0)</MudText>
-                <MudText Typo="Typo.body2" Class="home-stat-supporting">四班三运转需 4 个班组轮转</MudText>
+                <MudText Typo="Typo.body2" Class="home-stat-supporting">按班组编号 1–4 对应班组-甲乙丙丁</MudText>
             </MudPaper>
         </MudItem>
-        <MudItem xs="12" sm="6" lg="3">
+        <MudItem xs="12" sm="6" lg="4">
             <MudPaper Class="platform-stat-card platform-stat-card--tinted platform-accent-info pa-4" Elevation="0">
                 <div class="platform-stat-header">
                     <span class="platform-section-icon">
@@ -77,7 +250,7 @@
                 <MudText Typo="Typo.body2" Class="home-stat-supporting">已覆盖的自然日数量</MudText>
             </MudPaper>
         </MudItem>
-        <MudItem xs="12" sm="6" lg="3">
+        <MudItem xs="12" sm="6" lg="4">
             <MudPaper Class="platform-stat-card platform-stat-card--tinted platform-accent-success pa-4" Elevation="0">
                 <div class="platform-stat-header">
                     <span class="platform-section-icon">
@@ -86,84 +259,10 @@
                     <MudText Typo="Typo.caption">班次总数</MudText>
                 </div>
                 <MudText Typo="Typo.h3">@(_status?.TotalRows ?? 0)</MudText>
-                <MudText Typo="Typo.body2" Class="home-stat-supporting">含轮休记录在内的全部行数</MudText>
-            </MudPaper>
-        </MudItem>
-        <MudItem xs="12" sm="6" lg="3">
-            <MudPaper Class="platform-stat-card platform-stat-card--tinted platform-accent-warning pa-4" Elevation="0">
-                <div class="platform-stat-header">
-                    <span class="platform-section-icon">
-                        <MudIcon Icon="@Icons.Material.Filled.Rule" Size="Size.Small"/>
-                    </span>
-                    <MudText Typo="Typo.caption">校验状态</MudText>
-                </div>
-                <MudText Typo="Typo.h3">@(_lastValidation?.IsValid == true ? "通过" : "未通过")</MudText>
-                <MudText Typo="Typo.body2" Class="home-stat-supporting">四班三运转规则校验结论</MudText>
+                <MudText Typo="Typo.body2" Class="home-stat-supporting">已入库的班次记录总数</MudText>
             </MudPaper>
         </MudItem>
     </MudGrid>
-
-    @if (_lastValidation is not null)
-    {
-        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-success pa-4"
-                  Elevation="0">
-            <MudStack Spacing="2">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                    <span class="platform-section-icon">
-                        <MudIcon Icon="@Icons.Material.Filled.Verified" Size="Size.Small"/>
-                    </span>
-                    <MudStack Spacing="0">
-                        <MudText Typo="Typo.h6" Class="platform-card-title">四班三运转校验报告</MudText>
-                        <MudText Typo="Typo.body2" Class="platform-card-description">
-                            @($"{_lastValidation.DutyDays} 天排班，{_lastValidation.Teams} 个班组，{_lastValidation.CoverageDays} 天完整覆盖 24 小时。")
-                        </MudText>
-                    </MudStack>
-                </MudStack>
-
-                <div class="platform-summary platform-accent-info">
-                    <MudText Typo="Typo.caption">轮休分布</MudText>
-                    <MudText Typo="Typo.body2">@_lastValidation.RestBalanceDescription</MudText>
-                </div>
-
-                @if (_lastValidation.Issues.Count == 0)
-                {
-                    <MudAlert Severity="Severity.Success" Dense="true" Variant="Variant.Outlined">
-                        全部记录符合四班三运转要求：每班 8 小时、班次连续无空档、轮休均衡。
-                    </MudAlert>
-                }
-                else
-                {
-                    <MudTable Items="_sortedIssues"
-                              Dense="true" Hover="true" RowsPerPage="8" Class="platform-data-table">
-                        <HeaderContent>
-                            <MudTh>级别</MudTh>
-                            <MudTh>位置</MudTh>
-                            <MudTh>问题描述</MudTh>
-                        </HeaderContent>
-                        <RowTemplate>
-                            <MudTd DataLabel="级别">
-                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
-                                         Color="@(context.Severity == "error" ? Color.Error : Color.Warning)">
-                                    @(context.Severity == "error" ? "错误" : "提示")
-                                </MudChip>
-                            </MudTd>
-                            <MudTd DataLabel="位置">
-                                <MudText Typo="Typo.body2" Class="platform-inline-code">
-                                    @(context.RowNumber > 0 ? $"第 {context.RowNumber} 行" : "整体校验")
-                                </MudText>
-                            </MudTd>
-                            <MudTd DataLabel="问题描述">
-                                <MudText Typo="Typo.body2">@context.Message</MudText>
-                            </MudTd>
-                        </RowTemplate>
-                        <PagerContent>
-                            <MudTablePager PageSizeOptions="@(new[] { 8, 20 })" RowsPerPageString="每页条数"/>
-                        </PagerContent>
-                    </MudTable>
-                }
-            </MudStack>
-        </MudPaper>
-    }
 
     <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-info" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="2"
@@ -254,7 +353,7 @@
                         </span>
                         <MudText Typo="Typo.h6">还没有排班数据</MudText>
                         <MudText Typo="Typo.body2" Color="Color.Secondary">
-                            点击右上角「上传 Excel」导入班组排班台账，导入后会自动执行四班三运转校验。
+                            点击右上角「上传 Excel」导入班组排班台账，导入后即可在排班日历与能耗页面使用。
                         </MudText>
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-2"
                                    OnClick="OpenImportDialog">
@@ -268,141 +367,7 @@
             </PagerContent>
         </MudTable>
     </MudPaper>
-
-    <MudDialog @bind-Visible="_isImportOpen" Options="PlatformDialogs.EditorSheet" AriaLabel="上传班组排班表">
-        <DialogContent>
-            <MudStack Class="platform-sheet platform-accent-primary" Spacing="0">
-                <MudStack Class="platform-sheet-header" Row="true" AlignItems="AlignItems.Start"
-                          Justify="Justify.SpaceBetween" Spacing="2">
-                    <MudStack Spacing="0">
-                        <MudText Typo="Typo.h5">上传班组排班表</MudText>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">
-                            支持 .xlsx 与 .xls，表头顺序可任意调整。
-                        </MudText>
-                    </MudStack>
-                    <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Filled.Close" Color="Color.Secondary" OnClick="CloseImportDialog"
-                                   aria-label="关闭上传面板"/>
-                </MudStack>
-
-                <MudStack Class="platform-sheet-body" Spacing="2">
-                    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
-                        表格需包含「自然日」「班组名称」「上班时间」「下班时间」四列。班组名称含「休」字或时间列填写「休」时，该行按轮休处理。
-                    </MudAlert>
-
-                    <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-info pa-4"
-                              Elevation="0">
-                        <MudStack Spacing="1">
-                            <MudText Typo="Typo.h6" Class="platform-card-title">填写示例</MudText>
-                            <MudTable Items="_sampleRows" Dense="true" Hover="false" Class="platform-data-table">
-                                <HeaderContent>
-                                    <MudTh>自然日</MudTh>
-                                    <MudTh>班组名称</MudTh>
-                                    <MudTh>上班时间</MudTh>
-                                    <MudTh>下班时间</MudTh>
-                                </HeaderContent>
-                                <RowTemplate>
-                                    <MudTd DataLabel="自然日">
-                                        <MudText Typo="Typo.body2" Class="platform-inline-code">@context.Date</MudText>
-                                    </MudTd>
-                                    <MudTd DataLabel="班组名称">
-                                        <MudText Typo="Typo.body2">@context.Team</MudText>
-                                    </MudTd>
-                                    <MudTd DataLabel="上班时间">
-                                        <MudText Typo="Typo.body2" Class="platform-timestamp">@context.Start</MudText>
-                                    </MudTd>
-                                    <MudTd DataLabel="下班时间">
-                                        <MudText Typo="Typo.body2" Class="platform-timestamp">@context.End</MudText>
-                                    </MudTd>
-                                </RowTemplate>
-                            </MudTable>
-                            <MudText Typo="Typo.body2" Class="platform-card-description">
-                                全天需要 3 个班次连续覆盖 24 小时，例如 00:00-08:00、08:00-16:00、16:00-00:00；
-                                轮休班组填写「休息」即可。跨天班次的下班时间请写 <b>00:00</b> 而非 <b>24:00</b>，
-                                后者在部分 Excel 版本中会被存成日期序列号导致解析失败。
-                            </MudText>
-                        </MudStack>
-                    </MudPaper>
-
-                    <MudFileUpload T="IBrowserFile"
-                                   FilesChanged="OnFileSelected"
-                                   Accept=".xlsx,.xls,.xlsm"
-                                   MaximumFileCount="1"
-                                   MaxFileSize="@MaxUploadBytes"
-                                   DragAndDrop="true">
-                        <CustomContent Context="file">
-                            <MudStack AlignItems="AlignItems.Center" Spacing="1" Class="pa-4">
-                                <MudIcon Icon="@Icons.Material.Filled.CloudUpload" Size="Size.Large"/>
-                                <MudText Typo="Typo.body1">点击选择或拖拽 Excel 文件到此处</MudText>
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">
-                                    单个文件不超过 @($"{MaxUploadBytes / 1024 / 1024} MB")
-                                </MudText>
-                            </MudStack>
-                        </CustomContent>
-                    </MudFileUpload>
-
-                    @if (_selectedFile is not null)
-                    {
-                        <MudPaper
-                            Class="platform-section-card platform-section-card--tinted platform-accent-success pa-3"
-                            Elevation="0">
-                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
-                                      Spacing="2">
-                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                    <span class="platform-section-icon">
-                                        <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small"/>
-                                    </span>
-                                    <MudStack Spacing="0">
-                                        <MudText Typo="Typo.body1"
-                                                 Class="platform-table-primary">@_selectedFile.Name</MudText>
-                                        <MudText Typo="Typo.caption" Class="platform-card-description">
-                                            @($"{_selectedFile.Size / 1024.0:0.##} KB")
-                                        </MudText>
-                                    </MudStack>
-                                </MudStack>
-                                <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Filled.Close" Color="Color.Secondary"
-                                               Size="Size.Small"
-                                               OnClick="ClearSelectedFile" aria-label="移除已选文件"/>
-                            </MudStack>
-                        </MudPaper>
-                    }
-
-                    @if (_importResult is not null)
-                    {
-                        <MudAlert Severity="@(_importResult.Succeeded ? Severity.Success : Severity.Error)"
-                                  Dense="true" Variant="Variant.Outlined">
-                            @if (_importResult.Succeeded)
-                            {
-                                <text>
-                                    导入成功：共 @_importResult.Rows.Count 条排班记录，覆盖 @_importResult.Validation.DutyDays 个自然日，
-                                    识别到 @_importResult.Validation.Teams 个班组。
-                                </text>
-                            }
-                            else
-                            {
-                                <text>
-                                    导入未通过校验，共 @(_importResult.Validation.Issues.Count(i => i.Severity == "error")) 个错误。
-                                    为避免覆盖已有可用数据，本次文件未入库，请修正后重新上传。
-                                </text>
-                            }
-                        </MudAlert>
-                    }
-                </MudStack>
-            </MudStack>
-        </DialogContent>
-        <DialogActions>
-            <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd" Wrap="Wrap.Wrap" Class="w-100">
-                <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="CloseImportDialog">
-                    关闭
-                </MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                           StartIcon="@(_isImporting ? Icons.Material.Filled.HourglassTop : Icons.Material.Filled.Upload)"
-                           Disabled="@(_selectedFile is null || _isImporting)"
-                           OnClick="ImportAsync">
-                    @(_isImporting ? "导入中..." : "开始导入")
-                </MudButton>
-            </MudStack>
-        </DialogActions>
-    </MudDialog>
+    }
 
     <MudDialog @bind-Visible="_isClearConfirmOpen" Options="PlatformDialogs.Confirm" AriaLabel="确认清空排班数据">
         <DialogContent>

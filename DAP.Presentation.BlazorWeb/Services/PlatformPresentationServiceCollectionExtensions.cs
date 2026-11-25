@@ -127,6 +127,9 @@ public static class PlatformPresentationServiceCollectionExtensions
         services.AddScoped<AdminDomainService>();
         services.AddScoped<AdminUserService>();
         services.AddScoped<AdminAuditService>();
+        // 大屏导航卡（根路由枢纽页）：读端点只要求登录，管理端点复用域配置权限。
+        services.AddScoped<ScreenHubAdminService>();
+        services.AddHostedService<ScreenHubCardInitializer>();
         services.AddHostedService<AuditRetentionService>();
         services.AddScoped<IDataAcquisitionPlatformService>(sp => new Security.Auditing.AuditedDataAcquisitionService(
             sp.GetRequiredService<DataAcquisitionPlatformService>(),
@@ -211,6 +214,7 @@ internal sealed class ServerPlatformApiClient(
     AdminDomainService adminDomainService,
     AdminUserService adminUserService,
     AdminAuditService adminAuditService,
+    ScreenHubAdminService screenHubAdminService,
     Security.Directory.DirectorySyncService directorySyncService,
     Microsoft.Extensions.Options.IOptions<PlatformAuthOptions> authOptions) : IPlatformApiClient
 {
@@ -407,15 +411,6 @@ internal sealed class ServerPlatformApiClient(
         return status.Teams.ToArray();
     }
 
-    public async Task<ShiftScheduleValidationDto> GetShiftScheduleValidationAsync(
-        CancellationToken cancellationToken = default)
-    {
-        IReadOnlyCollection<ShiftScheduleRowDto> rows =
-            await shiftSchedulingService.GetAllRowsAsync(cancellationToken);
-
-        return ShiftRotationValidator.Validate(rows);
-    }
-
     public async Task<ShiftScheduleImportResultDto> ImportShiftScheduleAsync(
         Stream excelStream,
         string fileName,
@@ -580,6 +575,46 @@ internal sealed class ServerPlatformApiClient(
     public Task<bool> ResetAdminDomainPageAsync(Guid pageId, CancellationToken cancellationToken = default)
     {
         return SucceedAsync(adminDomainService.ResetDomainPageAsync(pageId, cancellationToken));
+    }
+
+    public async Task<IReadOnlyList<ScreenHubCardDto>> GetScreenHubCardsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return await screenHubAdminService.GetVisibleCardsAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ScreenHubCardDto>> GetScreenHubAdminCardsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return await screenHubAdminService.GetAdminCardsAsync(cancellationToken);
+    }
+
+    public Task<bool> CreateScreenHubCardAsync(
+        ScreenHubCardUpsertRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return SucceedAsync(screenHubAdminService.CreateCardAsync(request, cancellationToken));
+    }
+
+    public Task<bool> UpdateScreenHubCardAsync(
+        Guid cardId,
+        ScreenHubCardUpsertRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return SucceedAsync(screenHubAdminService.UpdateCardAsync(cardId, request, cancellationToken));
+    }
+
+    public Task<bool> DeleteScreenHubCardAsync(Guid cardId, CancellationToken cancellationToken = default)
+    {
+        return SucceedAsync(screenHubAdminService.DeleteCardAsync(cardId, cancellationToken));
+    }
+
+    public Task<bool> MoveScreenHubCardAsync(
+        Guid cardId,
+        string direction,
+        CancellationToken cancellationToken = default)
+    {
+        return SucceedAsync(screenHubAdminService.MoveCardAsync(cardId, direction, cancellationToken));
     }
 
     public Task<IReadOnlyList<AdminDepartmentDto>> GetAdminDepartmentsAsync(

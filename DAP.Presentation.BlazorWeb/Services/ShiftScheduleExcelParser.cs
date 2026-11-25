@@ -6,8 +6,11 @@ namespace DAP.Presentation.BlazorWeb.Services;
 /// <summary>
 /// 班组排班表 Excel 解析器。
 ///
-/// 现场台账的表头写法不统一，这里按关键字模糊匹配，允许列顺序任意调整。
-/// 时间列支持三种常见写法：Excel 数值型时间、日期型时间、纯文本 "08:00" 或 "8:00"。
+/// 支持「宽表」与「长表」两种真实台账格式，按表头自动识别：
+/// 宽表（现场业务标准格式）——A 列自然日，B/C/D 三列表头为「夜班（0-8）」「白班（8-16）」
+/// 「中班（16-24）」，单元格填班组编号 1–4（1=班组-甲、2=班组-乙、3=班组-丙、4=班组-丁），
+/// 每行展开为 3 条班次记录；
+/// 长表（兼容旧版）——「自然日 / 班组名称 / 上班时间 / 下班时间」四列，列顺序可任意调整。
 /// </summary>
 public sealed class ShiftScheduleExcelParser
 {
@@ -22,6 +25,28 @@ public sealed class ShiftScheduleExcelParser
     private static readonly string[] TeamKeywords = ["班组", "班次名称", "班组名称", "team", "班组名"];
     private static readonly string[] StartKeywords = ["上班", "开始", "start", "出勤"];
     private static readonly string[] EndKeywords = ["下班", "结束", "end", "收工"];
+
+    /// <summary>宽表表头的班次列关键字：命中全部三个即判定为宽表格式。</summary>
+    private static readonly string[] NightShiftKeywords = ["夜班"];
+    private static readonly string[] DayShiftKeywords = ["白班"];
+    private static readonly string[] MiddleShiftKeywords = ["中班"];
+
+    /// <summary>
+    /// 宽表班次列的固定时间：表头标注「夜班（0-8）/白班（8-16）/中班（16-24）」
+    /// 指每天 24 小时制，三班首尾相接。中班结束时刻 24:00 统一存为 00:00（跨天约定）。
+    /// </summary>
+    private static readonly (string ShiftName, TimeOnly Start, TimeOnly End, double Hours)[] FixedShifts =
+    [
+        ("夜班", new TimeOnly(0, 0), new TimeOnly(8, 0), 8d),
+        ("白班", new TimeOnly(8, 0), new TimeOnly(16, 0), 8d),
+        ("中班", new TimeOnly(16, 0), new TimeOnly(0, 0), 8d)
+    ];
+
+    /// <summary>
+    /// 宽表班组编号到名称的默认映射：1=班组-甲、2=班组-乙、3=班组-丙、4=班组-丁。
+    /// 编号超出 1–4 视为脏数据报错，避免静默生成现场不认识的班组。
+    /// </summary>
+    internal static readonly string[] DefaultTeamNames = ["班组-甲", "班组-乙", "班组-丙", "班组-丁"];
 
     /// <summary>
     /// 解析上传的 Excel 排班表。
@@ -65,6 +90,13 @@ public sealed class ShiftScheduleExcelParser
                 0, $"数据行超过 {MaxScanRows} 行，仅解析前 {MaxScanRows} 行。", "warning"));
         }
 
+        // 宽表（夜班/白班/中班三列班组编号）是现场业务的标准格式，优先识别。
+        if (TryFindWideHeaderRow(worksheet, usedRange, lastRow,
+                out int wideHeaderRow, out WideHeaderColumns wideColumns))
+        {
+            return ParseWideRows(worksheet, wideHeaderRow, lastRow, wideColumns, rows, parseIssues);
+        }
+
         int headerRow = FindHeaderRow(usedRange, lastRow, out HeaderColumns columns, out string headerProblem);
 
         if (!string.IsNullOrEmpty(headerProblem))
@@ -81,6 +113,208 @@ public sealed class ShiftScheduleExcelParser
         }
 
         return rows.Count;
+    }
+
+    /// <summary>
+    /// 宽表表头列定位结果：三个班次列 + 从数据区推断出的自然日列。
+    /// </summary>
+    private sealed class WideHeaderColumns(
+        int dateColumn,
+        int nightColumn,
+        int dayColumn,
+        int middleColumn)
+    {
+        public int DateColumn { get; } = dateColumn;
+        public int NightColumn { get; } = nightColumn;
+        public int DayColumn { get; } = dayColumn;
+        public int MiddleColumn { get; } = middleColumn;
+    }
+
+    /// <summary>
+    /// 探测宽表表头：某行同时含「夜班」「白班」「中班」三个班次标注即命中。
+    ///
+    /// 宽表的日期列在表头里往往是空单元格（如真实台账的 A1 为空），
+    /// 因此日期列不在表头阶段定位，而是在解析前按「数据区最先出现日期值的列」推断。
+    /// </summary>
+    private static bool TryFindWideHeaderRow(
+        IXLWorksheet worksheet,
+        IXLRange usedRange,
+        int lastRow,
+        out int headerRow,
+        out WideHeaderColumns columns)
+    {
+        headerRow = 0;
+        columns = new WideHeaderColumns(0, 0, 0, 0);
+
+        int firstColumn = usedRange.FirstColumn().ColumnNumber();
+        int lastColumn = usedRange.LastColumn().ColumnNumber();
+        int firstRow = usedRange.FirstRow().RowNumber();
+
+        for (int row = firstRow; row <= Math.Min(lastRow, firstRow + 4); row++)
+        {
+            int nightColumn = 0;
+            int dayColumn = 0;
+            int middleColumn = 0;
+
+            for (int column = firstColumn; column <= lastColumn; column++)
+            {
+                string text = NormalizeHeaderText(worksheet.Cell(row, column).GetString());
+
+                nightColumn = MatchColumn(nightColumn, column, text, NightShiftKeywords);
+                dayColumn = MatchColumn(dayColumn, column, text, DayShiftKeywords);
+                middleColumn = MatchColumn(middleColumn, column, text, MiddleShiftKeywords);
+            }
+
+            if (nightColumn > 0 && dayColumn > 0 && middleColumn > 0)
+            {
+                headerRow = row;
+                columns = new WideHeaderColumns(
+                    ResolveWideDateColumn(worksheet, row, lastRow, nightColumn, dayColumn, middleColumn),
+                    nightColumn, dayColumn, middleColumn);
+
+                // 日期列推断失败（数据区没有可识别日期）时不判为宽表，
+                // 让调用方落到长表探测给出统一的表头错误。
+                return columns.DateColumn > 0;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 推断宽表的自然日列：取三个班次列之外、数据区前几行中第一个可识别出日期的列。
+    /// 真实台账的日期列表头是空单元格，不能靠表头文本定位。
+    /// </summary>
+    private static int ResolveWideDateColumn(
+        IXLWorksheet worksheet,
+        int headerRow,
+        int lastRow,
+        params int[] shiftColumns)
+    {
+        int firstColumn = worksheet.RangeUsed()!.FirstColumn().ColumnNumber();
+        int lastColumn = worksheet.RangeUsed()!.LastColumn().ColumnNumber();
+        int sampleRows = Math.Min(lastRow, headerRow + 5);
+
+        for (int column = firstColumn; column <= lastColumn; column++)
+        {
+            if (shiftColumns.Contains(column))
+            {
+                continue;
+            }
+
+            for (int row = headerRow + 1; row <= sampleRows; row++)
+            {
+                if (!worksheet.Cell(row, column).IsEmpty() && TryReadDate(worksheet.Cell(row, column), out _))
+                {
+                    return column;
+                }
+            }
+        }
+
+        return 0;
+    }
+
+    /// <summary>
+    /// 解析宽表数据区：每行按「日期 + 三个班次列的班组编号」展开为 3 条班次记录。
+    /// </summary>
+    private static int ParseWideRows(
+        IXLWorksheet worksheet,
+        int headerRow,
+        int lastRow,
+        WideHeaderColumns columns,
+        List<ShiftScheduleRowDto> rows,
+        List<ShiftScheduleIssueDto> issues)
+    {
+        // 班次列与 FixedShifts 索引的对应关系：B=夜班(0)、C=白班(1)、D=中班(2)。
+        (int ColumnNumber, int ShiftIndex)[] shiftColumnPairs =
+        [
+            (columns.NightColumn, 0),
+            (columns.DayColumn, 1),
+            (columns.MiddleColumn, 2)
+        ];
+
+        for (int rowNumber = headerRow + 1; rowNumber <= lastRow; rowNumber++)
+        {
+            IXLCell dateCell = worksheet.Cell(rowNumber, columns.DateColumn);
+
+            if (dateCell.IsEmpty() &&
+                shiftColumnPairs.All(pair => worksheet.Cell(rowNumber, pair.Item1).IsEmpty()))
+            {
+                // 整行为空：Excel 常见的尾部空行，直接跳过。
+                continue;
+            }
+
+            if (!TryReadDate(dateCell, out DateOnly workDate))
+            {
+                issues.Add(new ShiftScheduleIssueDto(rowNumber,
+                    $"自然日无法识别：\"{dateCell.GetFormattedString()}\"，请使用日期格式（如 2026年10月11日）。", "error"));
+                continue;
+            }
+
+            foreach ((int columnNumber, int shiftIndex) in shiftColumnPairs)
+            {
+                IXLCell cell = worksheet.Cell(rowNumber, columnNumber);
+                (string shiftName, TimeOnly start, TimeOnly end, double hours) = FixedShifts[shiftIndex];
+
+                if (cell.IsEmpty())
+                {
+                    // 某个班次没人值班：如实按空处理并给出提示，不阻塞其他列。
+                    issues.Add(new ShiftScheduleIssueDto(rowNumber,
+                        $"{shiftName}（{start:HH\\:mm}-{(hours > 0 && end == TimeOnly.MinValue ? "24:00" : $"{end:HH\\:mm}")}）班组编号为空。",
+                        "warning"));
+                    continue;
+                }
+
+                if (!TryReadTeamNumber(cell, out int teamNumber))
+                {
+                    issues.Add(new ShiftScheduleIssueDto(rowNumber,
+                        $"{shiftName}列的班组编号无法识别：\"{cell.GetFormattedString()}\"，请填写 1–4 的数字" +
+                        $"（1={DefaultTeamNames[0]}、2={DefaultTeamNames[1]}、3={DefaultTeamNames[2]}、4={DefaultTeamNames[3]}）。",
+                        "error"));
+                    continue;
+                }
+
+                if (teamNumber < 1 || teamNumber > DefaultTeamNames.Length)
+                {
+                    issues.Add(new ShiftScheduleIssueDto(rowNumber,
+                        $"{shiftName}列的班组编号 {teamNumber} 超出范围，只支持 1–4" +
+                        $"（1={DefaultTeamNames[0]}、2={DefaultTeamNames[1]}、3={DefaultTeamNames[2]}、4={DefaultTeamNames[3]}）。",
+                        "error"));
+                    continue;
+                }
+
+                string teamName = DefaultTeamNames[teamNumber - 1];
+                rows.Add(new ShiftScheduleRowDto(
+                    workDate,
+                    NormalizeTeamCode(teamName),
+                    teamName,
+                    shiftName,
+                    start,
+                    end,
+                    false,
+                    hours));
+            }
+        }
+
+        return rows.Count;
+    }
+
+    /// <summary>
+    /// 读取宽表的班组编号：Excel 数字单元格（1、1.0）或纯数字文本（"1"）都接受。
+    /// </summary>
+    private static bool TryReadTeamNumber(IXLCell cell, out int teamNumber)
+    {
+        teamNumber = 0;
+
+        if (cell.TryGetValue<double>(out double value) && value == Math.Floor(value))
+        {
+            teamNumber = (int)value;
+            return true;
+        }
+
+        string text = cell.GetFormattedString().Trim();
+
+        return int.TryParse(text, out teamNumber);
     }
 
     private static int FindHeaderRow(
@@ -247,7 +481,11 @@ public sealed class ShiftScheduleExcelParser
             endTime = new TimeOnly(0, 0);
         }
 
-        double durationHours = Math.Round((endTime - startTime).TotalHours, 2);
+        // 跨天班次的工时 = 当日剩余小时 + 次日小时：16:00-00:00 是 8 小时而非 24 小时。
+        double durationHours = endTime < startTime
+            ? Math.Round(
+                (TimeSpan.FromHours(24) - startTime.ToTimeSpan() + endTime.ToTimeSpan()).TotalHours, 2)
+            : Math.Round((endTime - startTime).TotalHours, 2);
         if (durationHours <= 0)
         {
             durationHours = 24d;

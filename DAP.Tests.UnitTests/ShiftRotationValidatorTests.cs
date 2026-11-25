@@ -4,93 +4,12 @@ using DAP.Core.Shared.Contracts;
 namespace DAP.Tests.UnitTests;
 
 /// <summary>
-/// 四班三运转校验测试：确保排班导入会拦住不符合「每班 8 小时、连续覆盖、四班轮休」的数据。
+/// 排班分组与汇总工具测试。
+///
+/// 四班三运转轮转校验已按业务要求取消，这里只覆盖日历分组与班组汇总的查询行为。
 /// </summary>
 public class ShiftRotationValidatorTests
 {
-    [Fact]
-    public void Validate_Should_Pass_For_Standard_FourShiftThreeRotation()
-    {
-        ShiftScheduleRowDto[] rows = BuildFourDaySchedule();
-
-        ShiftScheduleValidationDto result = ShiftRotationValidator.Validate(rows);
-
-        Assert.True(result.IsValid, string.Join(" ", result.Issues.Select(item => item.Message)));
-        Assert.Equal(4, result.Teams);
-        Assert.Equal(4, result.DutyDays);
-        Assert.Equal(4, result.CoverageDays);
-        Assert.Equal(16, result.TotalRows);
-    }
-
-    [Fact]
-    public void Validate_Should_Fail_When_Shift_Is_Not_Eight_Hours()
-    {
-        ShiftScheduleRowDto[] rows = BuildFourDaySchedule()
-            .Select(item => item is { IsRestDay: false } && item.StartTime == new TimeOnly(8, 0)
-                ? item with { EndTime = new TimeOnly(15, 0), DurationHours = 7d }
-                : item)
-            .ToArray();
-
-        ShiftScheduleValidationDto result = ShiftRotationValidator.Validate(rows);
-
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Issues, issue => issue.Message.Contains("每班 8 小时", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void Validate_Should_Fail_When_Day_Has_Gap_Between_Shifts()
-    {
-        // 第一个班次结束后留出 1 小时空档，导致 24 小时未被连续覆盖。
-        ShiftScheduleRowDto[] rows = BuildFourDaySchedule()
-            .Select(item => item is { IsRestDay: false } && item.StartTime == new TimeOnly(8, 0)
-                ? item with { StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(17, 0) }
-                : item)
-            .ToArray();
-
-        ShiftScheduleValidationDto result = ShiftRotationValidator.Validate(rows);
-
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Issues, issue => issue.Message.Contains("空档或重叠", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void Validate_Should_Fail_When_Team_Has_Two_Rows_On_Same_Day()
-    {
-        DateOnly date = new(2026, 10, 20);
-        ShiftScheduleRowDto duplicate =
-            new(date, "TEAM-甲", "甲班", "中班", new TimeOnly(8, 0), new TimeOnly(16, 0), false, 8d);
-
-        ShiftScheduleRowDto[] rows = [.. BuildFourDaySchedule(), duplicate];
-
-        ShiftScheduleValidationDto result = ShiftRotationValidator.Validate(rows);
-
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Issues, issue => issue.Message.Contains("只能有一条排班", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void Validate_Should_Fail_When_Day_Has_Less_Than_Three_Shifts()
-    {
-        // 删掉丙班的全部记录后，当天只剩两个班次在岗。
-        ShiftScheduleRowDto[] rows = BuildFourDaySchedule()
-            .Where(item => item.TeamCode != "TEAM-丙")
-            .ToArray();
-
-        ShiftScheduleValidationDto result = ShiftRotationValidator.Validate(rows);
-
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Issues, issue => issue.Message.Contains("恰好 3 个班次", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void Validate_Should_Return_Error_For_Empty_Input()
-    {
-        ShiftScheduleValidationDto result = ShiftRotationValidator.Validate([]);
-
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Issues, issue => issue.Message.Contains("没有任何有效数据行", StringComparison.Ordinal));
-    }
-
     [Fact]
     public void GroupByDate_Should_Separate_Duty_And_Rest_Teams()
     {
@@ -121,7 +40,7 @@ public class ShiftRotationValidatorTests
     }
 
     /// <summary>
-    /// 构造 4 天 × 4 个班组的合规排班：
+    /// 构造 4 天 × 4 个班组的排班：
     /// 甲 00:00-08:00、乙 08:00-16:00、丙 16:00-24:00，丁轮休，逐日轮换休息组。
     /// </summary>
     private static ShiftScheduleRowDto[] BuildFourDaySchedule()

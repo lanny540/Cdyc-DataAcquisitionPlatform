@@ -135,7 +135,17 @@ public sealed class DeterministicEnergyMetricService(
             current = teams.FirstOrDefault(team =>
                           string.Equals(team.TeamCode, teamCode, StringComparison.OrdinalIgnoreCase))
                       ?? new ShiftTeamDto(teamCode!, ResolveTeamName(teamCode!));
-            resolution = "manual";
+
+            // 手动选中的班组若恰好处于在岗班次内，仍按在岗呈现：徽标语义是
+            // 「该班组此刻是否在岗」，与选择方式无关——用户切回在岗班组
+            // 不应看到"非在岗"（此前手动指定一律返回 manual，正是这个 bug）。
+            resolution = IsTeamOnDuty(
+                    current.TeamCode,
+                    today,
+                    timeProvider.GetLocalNow().TimeOfDay,
+                    scheduleRows)
+                ? "on-duty"
+                : "manual";
         }
         else
         {
@@ -158,7 +168,7 @@ public sealed class DeterministicEnergyMetricService(
 
         DateOnly rangeStart = today.AddDays(-(days - 1));
 
-        EnergyTrendDto[] trends = BuildTrends(current, rangeStart, today);
+        EnergyTrendDto[] trends = BuildTrends(current, "day", rangeStart, today);
 
         EnergyMetricValueDto[] totals = trends
             .Select(trend => new EnergyMetricValueDto(
@@ -210,7 +220,8 @@ public sealed class DeterministicEnergyMetricService(
 
         (DateOnly start, DateOnly end, string normalized) = NormalizeRange(granularity, rangeStart, rangeEnd);
 
-        EnergyTrendDto[] trends = BuildTrends(new ShiftTeamDto(teamCode, ResolveTeamName(teamCode)), start, end);
+        EnergyTrendDto[] trends = BuildTrends(
+            new ShiftTeamDto(teamCode, ResolveTeamName(teamCode)), normalized, start, end);
 
         List<EnergyMetricValueDto> detailRows = [];
         foreach (EnergyTrendDto trend in trends)
@@ -223,7 +234,7 @@ public sealed class DeterministicEnergyMetricService(
                 trend.MetricName,
                 trend.Unit,
                 point.BucketStart,
-                point.BucketStart,
+                point.BucketEnd ?? point.BucketStart,
                 point.Value));
         }
 
@@ -261,6 +272,16 @@ public sealed class DeterministicEnergyMetricService(
         }
 
         (DateOnly start, DateOnly end, string normalized) = NormalizeRange(granularity, referenceDate, referenceDate);
+
+        // 周口径对比整个自然周（周一为一周起点）：此前参考日当天与周口径得到同一天，
+        // 「按周对比」实际退化为单日对比。月口径已由 NormalizeRange 对齐到自然月。
+        if (normalized == "week")
+        {
+            DateOnly weekStart = GetWeekStart(referenceDate);
+            start = weekStart;
+            end = weekStart.AddDays(6);
+        }
+
         string label = ResolveBucketLabel(normalized, start, end);
 
         TeamEnergyComparisonDto[] comparisons = teams
@@ -320,10 +341,9 @@ public sealed class DeterministicEnergyMetricService(
             Math.Round(teamRows.Sum(item => item.DurationHours), 2));
     }
 
-    private static EnergyTrendDto[] BuildTrends(ShiftTeamDto team, DateOnly start, DateOnly end)
+    private static EnergyTrendDto[] BuildTrends(ShiftTeamDto team, string granularity, DateOnly start, DateOnly end)
     {
-        List<DateOnly> buckets = EnumerateBuckets(start, end).ToList();
-        int bucketLength = ResolveBucketLength(start, end);
+        List<(DateOnly Start, DateOnly End)> buckets = EnumerateBuckets(granularity, start, end);
         Dictionary<string, List<EnergyTrendPointDto>> points = new(StringComparer.Ordinal);
 
         foreach (EnergyMetricDescriptorDto metric in MetricCatalog)
@@ -331,12 +351,16 @@ public sealed class DeterministicEnergyMetricService(
             points[metric.MetricCode] = [];
         }
 
-        foreach (DateOnly bucket in buckets)
+        foreach ((DateOnly bucketStart, DateOnly bucketEnd) in buckets)
         foreach (EnergyMetricDescriptorDto metric in MetricCatalog)
         {
-            double value = ComputeBucketValue(team.TeamCode, metric.MetricCode, bucket, bucketLength, end);
+            double value = ComputeBucketValue(team.TeamCode, metric.MetricCode, bucketStart, bucketEnd);
             points[metric.MetricCode]
-                .Add(new EnergyTrendPointDto(bucket, FormatBucketLabel(bucket, start, end), ToDecimal(value)));
+                .Add(new EnergyTrendPointDto(
+                    bucketStart,
+                    FormatBucketLabel(granularity, bucketStart, bucketEnd),
+                    ToDecimal(value),
+                    bucketEnd));
         }
 
         return MetricCatalog.Select((metric, index) =>
@@ -435,19 +459,11 @@ public sealed class DeterministicEnergyMetricService(
     private static double ComputeBucketValue(
         string teamCode,
         string metricCode,
-        DateOnly bucket,
-        int bucketLength,
-        DateOnly rangeEnd)
+        DateOnly bucketStart,
+        DateOnly bucketEnd)
     {
-        // 末桶不足一整桶宽时截断到区间末尾。
-        DateOnly bucketEnd = bucket.AddDays(bucketLength - 1);
-        if (bucketEnd > rangeEnd)
-        {
-            bucketEnd = rangeEnd;
-        }
-
         double sum = 0d;
-        for (DateOnly day = bucket; day <= bucketEnd; day = day.AddDays(1))
+        for (DateOnly day = bucketStart; day <= bucketEnd; day = day.AddDays(1))
         {
             sum += ComputeDailyValue(teamCode, metricCode, day);
         }
@@ -466,71 +482,89 @@ public sealed class DeterministicEnergyMetricService(
         return sum;
     }
 
-    private static DateOnly ResolveBucketEnd(DateOnly bucket, DateOnly rangeStart, DateOnly rangeEnd)
+    /// <summary>
+    /// 按统计口径把区间切成连续的桶，返回每个桶的起止日期。
+    /// 按日为单日桶；按周为自区间起点起连续 7 天的桶（末桶不足一周时截断）；
+    /// 按月为自然月桶。任何口径下桶内都是「逐日求和」，总量口径彼此一致。
+    /// </summary>
+    private static List<(DateOnly Start, DateOnly End)> EnumerateBuckets(
+        string granularity, DateOnly start, DateOnly end)
     {
-        int spanDays = rangeEnd.DayNumber - rangeStart.DayNumber;
-        int bucketLength = spanDays <= 30 ? 1 : spanDays <= 120 ? 7 : 30;
+        List<(DateOnly Start, DateOnly End)> buckets = [];
 
-        DateOnly candidate = bucket.AddDays(bucketLength - 1);
-        return candidate > rangeEnd ? rangeEnd : candidate;
-    }
-
-    private static IEnumerable<DateOnly> EnumerateBuckets(DateOnly start, DateOnly end)
-    {
-        int spanDays = end.DayNumber - start.DayNumber + 1;
-
-        if (spanDays <= 0)
+        if (end < start)
         {
-            yield return start;
-            yield break;
+            buckets.Add((start, start));
+            return buckets;
         }
 
-        int bucketLength = ResolveBucketLength(start, end);
-        DateOnly cursor = start;
+        if (granularity == "month")
+        {
+            // 自然月桶：月边界由 NormalizeRange 对齐，这里按月步进并在区间末尾截断。
+            for (DateOnly cursor = new(start.Year, start.Month, 1); cursor <= end; cursor = cursor.AddMonths(1))
+            {
+                DateOnly monthEnd = new(cursor.Year, cursor.Month, DateTime.DaysInMonth(cursor.Year, cursor.Month));
+                buckets.Add((cursor, monthEnd > end ? end : monthEnd));
+            }
+
+            return buckets;
+        }
+
+        int bucketLength = ResolveBucketLength(granularity, start, end);
+        DateOnly current = start;
 
         // 按步长整齐分桶：每个桶覆盖连续 bucketLength 天，桶内求和。
         // 早期版本用「等分跳过」的方式生成桶，会让最后一个桶吃掉整段区间，
         // 既破坏总量口径，也会在曲线上产生虚假的归零跌落。
-        while (cursor <= end)
+        while (current <= end)
         {
-            yield return cursor;
+            DateOnly bucketEnd = current.AddDays(bucketLength - 1);
+            buckets.Add((current, bucketEnd > end ? end : bucketEnd));
 
-            DateOnly next = cursor.AddDays(bucketLength);
-            if (next <= cursor)
+            DateOnly next = current.AddDays(bucketLength);
+            if (next <= current)
             {
-                yield break;
+                break;
             }
 
-            cursor = next;
+            current = next;
         }
+
+        return buckets;
     }
 
     /// <summary>
-    /// 依据区间长度选择桶宽，桶数始终受 <see cref="MaxBucketCount"/> 约束，
-    /// 保证 X 轴标签数量不会多到挤成一团。
+    /// 依据统计口径选择桶宽：按日为 1 天，按周为 7 天；区间过长时按粒度的整数倍加宽，
+    /// 保证桶数始终受 <see cref="MaxBucketCount"/> 约束（周桶保持完整 7 天的倍数）。
     /// </summary>
-    private static int ResolveBucketLength(DateOnly start, DateOnly end)
+    private static int ResolveBucketLength(string granularity, DateOnly start, DateOnly end)
     {
         int spanDays = end.DayNumber - start.DayNumber + 1;
+        int naturalLength = granularity == "week" ? 7 : 1;
+        int bucketCount = (int)Math.Ceiling(spanDays / (double)naturalLength);
 
-        if (spanDays <= MaxBucketCount)
+        if (bucketCount <= MaxBucketCount)
         {
-            return 1;
+            return naturalLength;
         }
 
-        return Math.Max(1, (int)Math.Ceiling(spanDays / (double)MaxBucketCount));
+        int widenFactor = (int)Math.Ceiling(bucketCount / (double)MaxBucketCount);
+        return naturalLength * widenFactor;
     }
 
-    private static string FormatBucketLabel(DateOnly bucket, DateOnly rangeStart, DateOnly rangeEnd)
+    /// <summary>
+    /// 横轴标签：按周显示「起~止」，按月显示年月，按日显示单日；
+    /// 跨多日的加宽桶只标起点日（仅超长区间会出现）。
+    /// </summary>
+    private static string FormatBucketLabel(string granularity, DateOnly bucketStart, DateOnly bucketEnd)
     {
-        int spanDays = rangeEnd.DayNumber - rangeStart.DayNumber + 1;
-
-        return spanDays switch
+        return granularity switch
         {
-            <= 1 => bucket.ToString("yyyy-MM-dd"),
-            <= 45 => bucket.ToString("MM-dd"),
-            <= 120 => $"{bucket:MM-dd} 周",
-            _ => bucket.ToString("yyyy-MM")
+            "week" => $"{bucketStart:MM-dd}~{bucketEnd:MM-dd}",
+            "month" => bucketStart.ToString("yyyy-MM"),
+            _ => bucketStart == bucketEnd
+                ? bucketStart.ToString("yyyy-MM-dd")
+                : bucketStart.ToString("MM-dd")
         };
     }
 
@@ -590,6 +624,35 @@ public sealed class DeterministicEnergyMetricService(
             .Select(group => new ShiftTeamDto(group.Key, group.First().TeamName))
             .OrderBy(item => item.TeamName, StringComparer.Ordinal)
             .ToArray();
+    }
+
+    /// <summary>
+    /// 求参考日所在自然周的第一天（周一为一周起点）。
+    /// </summary>
+    private static DateOnly GetWeekStart(DateOnly date)
+    {
+        // DayOfWeek：Sunday=0、Monday=1…Saturday=6；周日按一周之末处理，回退 6 天。
+        int offset = date.DayOfWeek == DayOfWeek.Sunday ? 6 : (int)date.DayOfWeek - 1;
+        return date.AddDays(-offset);
+    }
+
+    /// <summary>
+    /// 判断指定班组当前时刻是否处于在岗班次内：命中今日排班、非轮休、
+    /// 且当前时刻落在该班组的班次窗口（起止时间）内。
+    /// </summary>
+    private static bool IsTeamOnDuty(
+        string teamCode,
+        DateOnly today,
+        TimeSpan now,
+        IReadOnlyCollection<ShiftScheduleRowDto> scheduleRows)
+    {
+        return scheduleRows.Any(item =>
+            string.Equals(item.TeamCode, teamCode, StringComparison.OrdinalIgnoreCase) &&
+            item.WorkDate == today &&
+            !item.IsRestDay &&
+            item.StartTime.Ticks <= now.Ticks &&
+            now.Ticks < item.StartTime.Ticks +
+            (long)Math.Round(item.DurationHours * TimeSpan.TicksPerHour));
     }
 
     /// <summary>

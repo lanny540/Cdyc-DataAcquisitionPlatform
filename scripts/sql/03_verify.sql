@@ -5,12 +5,12 @@
 -- 执行方式：psql -h <主机> -p 5432 -U <账号> -d <库名> -f 03_verify.sql
 -- ============================================================================
 
-\echo '=== 1. 迁移版本（期望 11 行，末行为 20261119034448_SoftDeleteManagedDataDefinitions）==='
+\echo '=== 1. 迁移版本（期望 12 行，末行为 20261125000000_AddScreenHubCards）==='
 SELECT "MigrationId", "ProductVersion"
 FROM "__EFMigrationsHistory"
 ORDER BY "MigrationId";
 
-\echo '=== 2. 业务表完整性（期望 23 张全部为 t）==='
+\echo '=== 2. 业务表完整性（期望 24 张全部为 t）==='
 -- 若部署在非 public schema，请把下面的 'public.' 换成实际 schema 名
 SELECT tbl AS "表名", (to_regclass('public.' || tbl) IS NOT NULL) AS "已存在"
 FROM unnest(ARRAY[
@@ -36,7 +36,8 @@ FROM unnest(ARRAY[
     'energy_usage_types',
     'energy_meters',
     'energy_readings',
-    'shift_schedule_snapshot'
+    'shift_schedule_snapshot',
+    'screen_hub_cards'
 ]) AS x(tbl)
 ORDER BY tbl;
 
@@ -98,3 +99,9 @@ WHERE m.id IS NULL;
 SELECT conname AS "约束名", pg_get_constraintdef(oid) AS "定义"
 FROM pg_constraint
 WHERE conrelid = 'shift_schedule_snapshot'::regclass;
+
+\echo '=== 9. 大屏导航卡（应用首次启动后自动补入默认卡，期望 3 行且全部启用；管理员后续增删改属正常）==='
+SELECT count(*) AS "卡片数",
+       count(*) FILTER (WHERE is_enabled) AS "启用数",
+       count(*) FILTER (WHERE btrim(title) = '') AS "空标题行数"
+FROM screen_hub_cards;

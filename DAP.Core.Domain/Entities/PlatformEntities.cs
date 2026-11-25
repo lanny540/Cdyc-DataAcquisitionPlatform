@@ -278,3 +278,62 @@ public sealed class ServerConnection
     /// </summary>
     public ICollection<ManagedDataDefinition> DataDefinitions { get; set; } = [];
 }
+
+/// <summary>
+/// 表示大屏导航枢纽页（根路由）上的一张跳转卡片。
+///
+/// 管理员在「域与页面配置」页维护卡片的标题、说明、目标路由、图标与主色，
+/// 根路由页按排序渲染启用中的卡片。种子内容由 <c>ScreenHubCatalog.DefaultCards</c> 提供。
+/// </summary>
+public sealed class ScreenHubCard
+{
+    /// <summary>
+    /// 获取或设置卡片标识。
+    /// </summary>
+    public Guid Id { get; set; }
+
+    /// <summary>
+    /// 获取或设置卡片标题。
+    /// </summary>
+    public string Title { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 获取或设置一句话说明。
+    /// </summary>
+    public string Description { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 获取或设置目标路由（站内相对地址，以 / 开头）。
+    /// </summary>
+    public string Route { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 获取或设置图标键（白名单见 ScreenHubCatalog.IconKeys）。
+    /// </summary>
+    public string IconKey { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 获取或设置卡片主色键（白名单见 ScreenHubCatalog.Accents）。
+    /// </summary>
+    public string Accent { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 获取或设置显示顺序，小的在前。
+    /// </summary>
+    public int SortOrder { get; set; }
+
+    /// <summary>
+    /// 获取或设置是否启用。停用后卡片不出现在根路由枢纽页。
+    /// </summary>
+    public bool IsEnabled { get; set; } = true;
+
+    /// <summary>
+    /// 获取或设置创建时间。
+    /// </summary>
+    public DateTimeOffset CreatedAt { get; set; }
+
+    /// <summary>
+    /// 获取或设置最后更新时间。
+    /// </summary>
+    public DateTimeOffset UpdatedAt { get; set; }
+}

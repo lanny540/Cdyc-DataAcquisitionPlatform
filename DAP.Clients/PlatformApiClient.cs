@@ -306,14 +306,6 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
             "/api/shift-schedule-view/teams", cancellationToken) ?? [];
     }
 
-    public async Task<ShiftScheduleValidationDto> GetShiftScheduleValidationAsync(
-        CancellationToken cancellationToken = default)
-    {
-        return await httpClient.GetFromJsonAsync<ShiftScheduleValidationDto>(
-                   "/api/shift-schedules/validation", cancellationToken)
-               ?? new ShiftScheduleValidationDto(false, 0, 0, 0, 0, "暂无数据。", []);
-    }
-
     public async Task<ShiftScheduleImportResultDto> ImportShiftScheduleAsync(
         Stream excelStream,
         string fileName,
@@ -642,6 +634,88 @@ public sealed class PlatformApiClient(HttpClient httpClient) : IPlatformApiClien
     {
         using HttpResponseMessage response = await httpClient.PostAsync(
             $"/api/admin/domains/pages/{pageId}/reset", null, cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+
+        throw new InvalidOperationException(
+            await PlatformHttpResponse.ReadErrorMessageAsync(response, cancellationToken));
+    }
+
+    public async Task<IReadOnlyList<ScreenHubCardDto>> GetScreenHubCardsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<ScreenHubCardDto>? cards =
+            await httpClient.GetFromJsonAsync<IReadOnlyList<ScreenHubCardDto>>("/api/screen-hub/cards",
+                cancellationToken);
+        return cards ?? [];
+    }
+
+    public async Task<IReadOnlyList<ScreenHubCardDto>> GetScreenHubAdminCardsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<ScreenHubCardDto>? cards =
+            await httpClient.GetFromJsonAsync<IReadOnlyList<ScreenHubCardDto>>("/api/admin/screen-hub-cards",
+                cancellationToken);
+        return cards ?? [];
+    }
+
+    public async Task<bool> CreateScreenHubCardAsync(
+        ScreenHubCardUpsertRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await httpClient.PostAsJsonAsync(
+            "/api/admin/screen-hub-cards", request, cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+
+        throw new InvalidOperationException(
+            await PlatformHttpResponse.ReadErrorMessageAsync(response, cancellationToken));
+    }
+
+    public async Task<bool> UpdateScreenHubCardAsync(
+        Guid cardId,
+        ScreenHubCardUpsertRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await httpClient.PutAsJsonAsync(
+            $"/api/admin/screen-hub-cards/{cardId}", request, cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+
+        throw new InvalidOperationException(
+            await PlatformHttpResponse.ReadErrorMessageAsync(response, cancellationToken));
+    }
+
+    public async Task<bool> DeleteScreenHubCardAsync(Guid cardId, CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await httpClient.DeleteAsync(
+            $"/api/admin/screen-hub-cards/{cardId}", cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+
+        throw new InvalidOperationException(
+            await PlatformHttpResponse.ReadErrorMessageAsync(response, cancellationToken));
+    }
+
+    public async Task<bool> MoveScreenHubCardAsync(
+        Guid cardId,
+        string direction,
+        CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await httpClient.PutAsJsonAsync(
+            $"/api/admin/screen-hub-cards/{cardId}/move", new ScreenHubCardMoveRequest(direction), cancellationToken);
 
         if (response.IsSuccessStatusCode)
         {

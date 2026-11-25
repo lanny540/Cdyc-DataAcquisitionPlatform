@@ -3,6 +3,191 @@
 <PageTitle>计量点台账</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
+    @if (_isEditorOpen)
+    {
+        <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.h4">@(_editingId is null ? "新建计量点" : "编辑计量点")</MudText>
+                    <MudText Typo="Typo.body1">每块表登记介质、组织、用途与设备系统四项标签，读数进来才有归属。</MudText>
+                </MudStack>
+                <MudButton Variant="Variant.Text" Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => _isEditorOpen = false)">
+                    返回列表
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+
+        @if (_message is not null)
+        {
+            <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined" CloseIconClicked="ClearMessage"
+                      ShowCloseIcon="true">
+                @_message
+            </MudAlert>
+        }
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-secondary pa-4" Elevation="0">
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.h6">基本信息</MudText>
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" md="6">
+                        <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="计量点编码" @bind-Value="_editorCode" Immediate="true"
+                                      HelperText="全园区唯一，与外部能源平台推送时使用的编码一致"/>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="名称" @bind-Value="_editorName" Immediate="true"/>
+                    </MudItem>
+                </MudGrid>
+            </MudStack>
+        </MudPaper>
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-info pa-4" Elevation="0">
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.h6">分类标签</MudText>
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" md="6">
+                        <MudSelect Margin="Margin.Dense" T="Guid?" Label="介质" @bind-Value="_editorMediumId" Variant="Variant.Outlined"
+                                   Dense="true" HelperText="决定单位与折标煤系数">
+                            @foreach (EnergyMediumDto item in _dictionary?.Media ?? [])
+                            {
+                                <MudSelectItem T="Guid?" Value="@item.Id">@MediumLabel(item)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudSelect Margin="Margin.Dense" T="Guid?" Label="组织" @bind-Value="_editorOrgUnitId" Variant="Variant.Outlined"
+                                   Dense="true" HelperText="园区 → 部门 → 工序，选能覆盖到的最细层级">
+                            @foreach (EnergyOrgUnitDto unit in _dictionary?.OrgUnits ?? [])
+                            {
+                                <MudSelectItem T="Guid?" Value="@unit.Id">@OrgLabel(unit)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudSelect Margin="Margin.Dense" T="Guid?" Label="用能用途" @bind-Value="_editorUsageTypeId" Variant="Variant.Outlined"
+                                   Dense="true" HelperText="回答「这笔能源为谁服务」，跟随所在区域">
+                            @foreach (EnergyDictionaryItemDto item in _dictionary?.UsageTypes ?? [])
+                            {
+                                <MudSelectItem T="Guid?" Value="@item.Id">@item.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudSelect Margin="Margin.Dense" T="Guid?" Label="设备系统" @bind-Value="_editorSystemTypeId" Variant="Variant.Outlined"
+                                   Dense="true" HelperText="回答「什么设备在用」，照明归这里不归用途">
+                            @foreach (EnergyDictionaryItemDto item in _dictionary?.Systems ?? [])
+                            {
+                                <MudSelectItem T="Guid?" Value="@item.Id">@item.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                </MudGrid>
+            </MudStack>
+        </MudPaper>
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-tertiary pa-4" Elevation="0">
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.h6">取数方式</MudText>
+                <MudSwitch T="bool" @bind-Value="_editorCumulative" Color="Color.Primary"
+                           Label="读数为累计示数（电表类）；关闭表示读数本身即区间用量（流量计类）"/>
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" md="6">
+                        <MudNumericField T="decimal" Label="倍率" @bind-Value="_editorRatio" Variant="Variant.Outlined"
+                                         Margin="Margin.Dense" Min="0.01m" HelperText="读数乘倍率才是实际用量"/>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudSelect Margin="Margin.Dense" T="Guid?" Label="上级计量点" @bind-Value="_editorParentId" Variant="Variant.Outlined"
+                                   Dense="true" Clearable="true"
+                                   HelperText="用于总分表平衡校验，差额会单列为损耗">
+                            @foreach (EnergyMeterDto meter in _meters.Where(item => item.Id != _editingId))
+                            {
+                                <MudSelectItem T="Guid?" Value="@meter.Id">@($"{meter.Code} · {meter.Name}")</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                </MudGrid>
+                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="备注" @bind-Value="_editorRemark" Immediate="true"
+                              Lines="2"/>
+                <MudSwitch T="bool" @bind-Value="_editorEnabled" Color="Color.Primary" Label="启用"/>
+            </MudStack>
+        </MudPaper>
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-success pa-4" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
+                      Wrap="Wrap.Wrap" Spacing="2">
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    保存后计量点立即进入台账，能源平台按「计量点编码 + 抄见时刻」推送读数。
+                </MudText>
+                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" Justify="Justify.FlexEnd">
+                    <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="@(() => _isEditorOpen = false)">取消</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_isSaving">
+                        保存
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    }
+    else if (_isOrgEditorOpen)
+    {
+        @* —— 整页视图：新增组织节点 —— *@
+        <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.h4">新增组织节点</MudText>
+                    <MudText Typo="Typo.body1">组织树用于能耗归属：园区 → 部门 → 工序，节点建好后计量点才能挂上去。</MudText>
+                </MudStack>
+                <MudButton Variant="Variant.Text" Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => _isOrgEditorOpen = false)">
+                    返回列表
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+
+        @if (_message is not null)
+        {
+            <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined" CloseIconClicked="ClearMessage"
+                      ShowCloseIcon="true">
+                @_message
+            </MudAlert>
+        }
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-secondary pa-4" Elevation="0">
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.h6">节点信息</MudText>
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" md="6">
+                        <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="节点编码" @bind-Value="_orgCode" Immediate="true"
+                                      HelperText="全园区唯一，建议用 DEPT-xxx / PROC-xxx"/>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="名称" @bind-Value="_orgName" Immediate="true"/>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="上级" Value="@_orgParentLabel" ReadOnly="true"/>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="层级" Value="@LevelLabel(_orgLevel)" ReadOnly="true"/>
+                    </MudItem>
+                </MudGrid>
+            </MudStack>
+        </MudPaper>
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-success pa-4" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
+                      Wrap="Wrap.Wrap" Spacing="2">
+                <MudText Typo="Typo.body2" Color="Color.Secondary">保存后节点出现在组织树中，可在其下继续挂子节点。</MudText>
+                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" Justify="Justify.FlexEnd">
+                    <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="@(() => _isOrgEditorOpen = false)">取消</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveOrgUnitAsync"
+                               Disabled="_isSaving">
+                        保存
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    }
+    else
+    {
     <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
                   Spacing="3">
@@ -222,117 +407,25 @@
         正式环境的读数由能源平台推送至 <code>POST /api/park-energy/readings</code>，按「计量点编码 + 抄见时刻」幂等写入；
         同一时刻重复推送会覆盖而不是累加。已有读数的计量点不允许删除，请改为停用。
     </MudText>
-</MudStack>
 
-<MudDialog @bind-Visible="_isEditorOpen" Options="PlatformDialogs.EditorSheet"
-           AriaLabel="@(_editingId is null ? "新建计量点" : "编辑计量点")">
-    <DialogContent>
-        <MudStack Spacing="3" Class="platform-sheet">
-            <section class="platform-sheet-section platform-accent-secondary">
-                <MudText Typo="Typo.h6">@(_editingId is null ? "新建计量点" : "编辑计量点")</MudText>
-                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="计量点编码" @bind-Value="_editorCode" Immediate="true"
-                              HelperText="全园区唯一，与外部能源平台推送时使用的编码一致"/>
-                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="名称" @bind-Value="_editorName" Immediate="true"/>
-            </section>
-
-            <section class="platform-sheet-section platform-accent-secondary">
-                <MudText Typo="Typo.subtitle2">分类标签</MudText>
-                <MudSelect Margin="Margin.Dense" T="Guid?" Label="介质" @bind-Value="_editorMediumId" Variant="Variant.Outlined"
-                           Dense="true" HelperText="决定单位与折标煤系数">
-                    @foreach (EnergyMediumDto item in _dictionary?.Media ?? [])
-                    {
-                        <MudSelectItem T="Guid?" Value="@item.Id">@MediumLabel(item)</MudSelectItem>
-                    }
-                </MudSelect>
-                <MudSelect Margin="Margin.Dense" T="Guid?" Label="组织" @bind-Value="_editorOrgUnitId" Variant="Variant.Outlined"
-                           Dense="true" HelperText="园区 → 部门 → 工序，选能覆盖到的最细层级">
-                    @foreach (EnergyOrgUnitDto unit in _dictionary?.OrgUnits ?? [])
-                    {
-                        <MudSelectItem T="Guid?" Value="@unit.Id">@OrgLabel(unit)</MudSelectItem>
-                    }
-                </MudSelect>
-                <MudSelect Margin="Margin.Dense" T="Guid?" Label="用能用途" @bind-Value="_editorUsageTypeId" Variant="Variant.Outlined"
-                           Dense="true" HelperText="回答「这笔能源为谁服务」，跟随所在区域">
-                    @foreach (EnergyDictionaryItemDto item in _dictionary?.UsageTypes ?? [])
-                    {
-                        <MudSelectItem T="Guid?" Value="@item.Id">@item.Name</MudSelectItem>
-                    }
-                </MudSelect>
-                <MudSelect Margin="Margin.Dense" T="Guid?" Label="设备系统" @bind-Value="_editorSystemTypeId" Variant="Variant.Outlined"
-                           Dense="true" HelperText="回答「什么设备在用」，照明归这里不归用途">
-                    @foreach (EnergyDictionaryItemDto item in _dictionary?.Systems ?? [])
-                    {
-                        <MudSelectItem T="Guid?" Value="@item.Id">@item.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </section>
-
-            <section class="platform-sheet-section platform-accent-secondary">
-                <MudText Typo="Typo.subtitle2">取数方式</MudText>
-                <MudSwitch T="bool" @bind-Value="_editorCumulative" Color="Color.Primary"
-                           Label="读数为累计示数（电表类）；关闭表示读数本身即区间用量（流量计类）"/>
-                <MudNumericField T="decimal" Label="倍率" @bind-Value="_editorRatio" Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" Min="0.01m" HelperText="读数乘倍率才是实际用量"/>
-                <MudSelect Margin="Margin.Dense" T="Guid?" Label="上级计量点" @bind-Value="_editorParentId" Variant="Variant.Outlined"
-                           Dense="true" Clearable="true"
-                           HelperText="用于总分表平衡校验，差额会单列为损耗">
-                    @foreach (EnergyMeterDto meter in _meters.Where(item => item.Id != _editingId))
-                    {
-                        <MudSelectItem T="Guid?" Value="@meter.Id">@($"{meter.Code} · {meter.Name}")</MudSelectItem>
-                    }
-                </MudSelect>
-                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="备注" @bind-Value="_editorRemark" Immediate="true"
-                              Lines="2"/>
-                <MudSwitch T="bool" @bind-Value="_editorEnabled" Color="Color.Primary" Label="启用"/>
-            </section>
-        </MudStack>
-    </DialogContent>
-    <DialogActions>
-        <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="@(() => _isEditorOpen = false)">取消</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_isSaving">
-            保存
-        </MudButton>
-    </DialogActions>
-</MudDialog>
-
-<MudDialog @bind-Visible="_isOrgEditorOpen" Options="PlatformDialogs.EditorSheet" AriaLabel="新增组织节点">
-    <DialogContent>
-        <MudStack Spacing="3" Class="platform-sheet">
-            <section class="platform-sheet-section platform-accent-secondary">
-                <MudText Typo="Typo.h6">新增组织节点</MudText>
-                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="节点编码" @bind-Value="_orgCode" Immediate="true"
-                              HelperText="全园区唯一，建议用 DEPT-xxx / PROC-xxx"/>
-                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="名称" @bind-Value="_orgName" Immediate="true"/>
-                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="上级" Value="@_orgParentLabel" ReadOnly="true"/>
-                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="层级" Value="@LevelLabel(_orgLevel)" ReadOnly="true"/>
-            </section>
-        </MudStack>
-    </DialogContent>
-    <DialogActions>
-        <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="@(() => _isOrgEditorOpen = false)">取消</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveOrgUnitAsync"
-                   Disabled="_isSaving">
-            保存
-        </MudButton>
-    </DialogActions>
-</MudDialog>
-
-<MudDialog @bind-Visible="_isConfirmOpen" Options="PlatformDialogs.Confirm" AriaLabel="删除计量点">
-    <DialogContent>
-        <MudStack Spacing="2">
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                <MudAvatar Size="Size.Medium" Class="platform-dialog-icon-warning">
-                    <MudIcon Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small"/>
-                </MudAvatar>
-                <MudText Typo="Typo.h6">删除计量点</MudText>
+    <MudDialog @bind-Visible="_isConfirmOpen" Options="PlatformDialogs.Confirm" AriaLabel="删除计量点">
+        <DialogContent>
+            <MudStack Spacing="2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudAvatar Size="Size.Medium" Class="platform-dialog-icon-warning">
+                        <MudIcon Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small"/>
+                    </MudAvatar>
+                    <MudText Typo="Typo.h6">删除计量点</MudText>
+                </MudStack>
+                <MudText Typo="Typo.body2">
+                    确认删除「@_pendingDelete?.Name」？已有读数的计量点会被服务端拒绝，需要改为停用。
+                </MudText>
             </MudStack>
-            <MudText Typo="Typo.body2">
-                确认删除「@_pendingDelete?.Name」？已有读数的计量点会被服务端拒绝，需要改为停用。
-            </MudText>
-        </MudStack>
-    </DialogContent>
-    <DialogActions>
-        <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="@(() => _isConfirmOpen = false)">取消</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="DeleteAsync">删除</MudButton>
-    </DialogActions>
-</MudDialog>
+        </DialogContent>
+        <DialogActions>
+            <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="@(() => _isConfirmOpen = false)">取消</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="DeleteAsync">删除</MudButton>
+        </DialogActions>
+    </MudDialog>
+    }
+</MudStack>

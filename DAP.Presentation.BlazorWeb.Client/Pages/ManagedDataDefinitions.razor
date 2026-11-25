@@ -3,400 +3,405 @@
 <PageTitle>点位数据管理</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
-    <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
-            <MudStack Spacing="1">
-                @* 与左侧菜单同名：菜单「点位数据管理」，页面原标题是「后台数据管理」。 *@
-                <MudText Typo="Typo.h4">点位数据管理</MudText>
-                <MudText Typo="Typo.body1" Class="managed-data-hero-description">
-                    统一维护采集定义、业务标识与协议参数，支持调试读取和采集入库。
-                </MudText>
-                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mt-3">
-                    <MudChip T="string" Variant="Variant.Outlined"
-                             Color="Color.Info">@($"{_definitions.Count} 条已登记数据")</MudChip>
-                    <MudChip T="string" Variant="Variant.Outlined"
-                             Color="Color.Success">@($"{EnabledDefinitionCount} 条启用中")</MudChip>
-                    <MudChip T="string" Variant="Variant.Outlined"
-                             Color="Color.Primary">@($"{ModbusDefinitionCount} 条 Modbus")</MudChip>
-                    <MudChip T="string" Variant="Variant.Outlined"
-                             Color="Color.Secondary">@($"{HistorianDefinitionCount} 条 Historian API")</MudChip>
-                </MudStack>
-            </MudStack>
-
-            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
-                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Refresh"
-                           OnClick="LoadAsync">
-                    刷新列表
-                </MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                           OnClick="OpenCreateDrawer">
-                    新增后台数据
-                </MudButton>
-            </MudStack>
-        </MudStack>
-    </MudPaper>
-
-    @if (!string.IsNullOrWhiteSpace(_message))
+    @if (_isEditorOpen)
     {
-        <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
+        <ManagedDataDefinitionEditor DefinitionId="_editingId"
+                                     OnSaved="OnEditorSaved"
+                                     OnCancel="CancelEditor"/>
     }
-
-    <MudDialog @bind-Visible="_isDeleteConfirmOpen"
-               Options="PlatformDialogs.Confirm"
-               AriaLabel="确认删除后台数据定义">
-        <DialogContent>
-            <MudStack Spacing="2">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                    <MudAvatar Size="Size.Medium" Class="platform-dialog-icon-error">
-                        <MudIcon Icon="@Icons.Material.Filled.WarningAmber" Size="Size.Small"/>
-                    </MudAvatar>
-                    <MudText Typo="Typo.h6">确认删除后台数据定义</MudText>
+    else
+    {
+        @* —— 列表视图 —— *@
+        <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
+                <MudStack Spacing="1">
+                    @* 与左侧菜单同名：菜单「点位数据管理」，页面原标题是「后台数据管理」。 *@
+                    <MudText Typo="Typo.h4">点位数据管理</MudText>
+                    <MudText Typo="Typo.body1" Class="managed-data-hero-description">
+                        统一维护采集定义、业务标识与协议参数，支持调试读取和采集入库。
+                    </MudText>
+                    <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mt-3">
+                        <MudChip T="string" Variant="Variant.Outlined"
+                                 Color="Color.Info">@($"{_definitions.Count} 条已登记数据")</MudChip>
+                        <MudChip T="string" Variant="Variant.Outlined"
+                                 Color="Color.Success">@($"{EnabledDefinitionCount} 条启用中")</MudChip>
+                        <MudChip T="string" Variant="Variant.Outlined"
+                                 Color="Color.Primary">@($"{ModbusDefinitionCount} 条 Modbus")</MudChip>
+                        <MudChip T="string" Variant="Variant.Outlined"
+                                 Color="Color.Secondary">@($"{HistorianDefinitionCount} 条 Historian API")</MudChip>
+                    </MudStack>
                 </MudStack>
 
-                @if (_pendingDeleteDefinition is not null)
-                {
-                    <MudText Typo="Typo.body1">
-                        即将删除后台数据定义 <b>@_pendingDeleteDefinition.Code</b>（@_pendingDeleteDefinition.Name）。
-                    </MudText>
-                }
-
-                <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Outlined">
-                    删除后节点将归档并停止自动采集；关联采集点会停用，历史采集记录保留。
-                </MudAlert>
-            </MudStack>
-        </DialogContent>
-        <DialogActions>
-            <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd" Class="w-100">
-                <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="CancelDelete" Disabled="_isDeleting">
-                    取消
-                </MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="ConfirmDeleteAsync"
-                           Disabled="_isDeleting"
-                           StartIcon="@(_isDeleting ? Icons.Material.Filled.HourglassTop : null)">
-                    @(_isDeleting ? "删除中..." : "确认删除")
-                </MudButton>
-            </MudStack>
-        </DialogActions>
-    </MudDialog>
-
-    <MudPaper
-        Class="platform-section-card platform-section-card--tinted platform-accent-tertiary managed-data-filter-card pa-4"
-        Elevation="0">
-        <div class="platform-card-header platform-card-header--tight">
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                <span class="platform-section-icon">
-                    <MudIcon Icon="@Icons.Material.Filled.FilterAlt" Size="Size.Small"/>
-                </span>
-                <MudStack Spacing="0">
-                    <MudText Typo="Typo.subtitle1" Class="platform-card-title">快速筛选</MudText>
-                    <MudText Typo="Typo.body2" Class="platform-card-description">
-                        按编码、名称、部门和采集方式快速收敛当前工作清单。
-                    </MudText>
+                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Refresh"
+                               OnClick="LoadAsync">
+                        刷新列表
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="OpenCreateEditor">
+                        新增后台数据
+                    </MudButton>
                 </MudStack>
             </MudStack>
-            <MudChip T="string" Variant="Variant.Outlined" Color="Color.Default">
-                默认按采集方式与编码排序
-            </MudChip>
-        </div>
+        </MudPaper>
 
-        <MudGrid Spacing="2">
-            <MudItem xs="12" md="8" lg="9">
-                <MudTextField Margin="Margin.Dense" Label="搜索编码、名称、部门、工序、数据标识"
-                              Variant="Variant.Outlined"
-                              Immediate="true"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.Search"
-                              @bind-Value="_searchTerm"/>
-            </MudItem>
-            <MudItem xs="12" md="4" lg="3">
-                <MudSelect T="string" Margin="Margin.Dense" Label="采集方式筛选" Variant="Variant.Outlined"
-                           @bind-Value="_typeFilter">
-                    @foreach (string item in TypeFilterOptions)
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
+        }
+
+        <MudDialog @bind-Visible="_isDeleteConfirmOpen"
+                   Options="PlatformDialogs.Confirm"
+                   AriaLabel="确认删除后台数据定义">
+            <DialogContent>
+                <MudStack Spacing="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudAvatar Size="Size.Medium" Class="platform-dialog-icon-error">
+                            <MudIcon Icon="@Icons.Material.Filled.WarningAmber" Size="Size.Small"/>
+                        </MudAvatar>
+                        <MudText Typo="Typo.h6">确认删除后台数据定义</MudText>
+                    </MudStack>
+
+                    @if (_pendingDeleteDefinition is not null)
                     {
-                        <MudSelectItem T="string" Value="@item">@item</MudSelectItem>
+                        <MudText Typo="Typo.body1">
+                            即将删除后台数据定义 <b>@_pendingDeleteDefinition.Code</b>（@_pendingDeleteDefinition.Name）。
+                        </MudText>
                     }
-                </MudSelect>
-            </MudItem>
-        </MudGrid>
-    </MudPaper>
 
-    <MudPaper
-        Class="platform-section-card platform-section-card--tinted platform-accent-secondary managed-data-table-card"
-        Elevation="0">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="2"
-                  Class="pa-4">
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                <span class="platform-section-icon">
-                    <MudIcon Icon="@Icons.Material.Filled.TableRows" Size="Size.Small"/>
-                </span>
-                <MudStack Spacing="0">
-                    <MudText Typo="Typo.h6" Class="platform-card-title">后台数据定义列表</MudText>
-                    <MudText Typo="Typo.body2" Class="platform-card-description">
-                        列表按采集方式和编码排序，支持快速定位不同部门、工序和能源类别的数据定义。
-                    </MudText>
+                    <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Outlined">
+                        删除后节点将归档并停止自动采集；关联采集点会停用，历史采集记录保留。
+                    </MudAlert>
                 </MudStack>
-            </MudStack>
-            <MudChip T="string" Variant="Variant.Outlined" Color="Color.Default">
-                当前筛选结果 @FilteredDefinitions.Count() 条
-            </MudChip>
-        </MudStack>
+            </DialogContent>
+            <DialogActions>
+                <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd" Class="w-100">
+                    <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="CancelDelete" Disabled="_isDeleting">
+                        取消
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="ConfirmDeleteAsync"
+                               Disabled="_isDeleting"
+                               StartIcon="@(_isDeleting ? Icons.Material.Filled.HourglassTop : null)">
+                        @(_isDeleting ? "删除中..." : "确认删除")
+                    </MudButton>
+                </MudStack>
+            </DialogActions>
+        </MudDialog>
 
-        <MudDivider/>
-
-        <MudTable Items="FilteredDefinitions"
-                  Dense="true"
-                  Hover="true"
-                  Loading="_isLoading"
-                  RowsPerPage="10"
-                  Breakpoint="Breakpoint.Sm"
-                  Class="platform-data-table managed-data-table">
-            <HeaderContent>
-                <MudTh>编码</MudTh>
-                <MudTh>数据名称</MudTh>
-                <MudTh>采集方式</MudTh>
-                <MudTh>数据标识</MudTh>
-                <MudTh>部门 / 工序</MudTh>
-                <MudTh>数据类别</MudTh>
-                <MudTh>采集频次</MudTh>
-                <MudTh>状态</MudTh>
-                <MudTh>更新时间</MudTh>
-                <MudTh Style="width: 200px;">操作</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd DataLabel="编码">
-                    <MudText Typo="Typo.body1" Class="platform-table-primary platform-inline-code managed-data-code">
-                        @context.Code
-                    </MudText>
-                </MudTd>
-                <MudTd DataLabel="数据名称">
-                    <MudStack Spacing="0" Class="managed-data-name-block">
-                        <MudText Typo="Typo.body1" Class="platform-table-primary">@context.Name</MudText>
-                        <MudText Typo="Typo.caption" Class="platform-table-secondary managed-data-address">
-                            @context.ConnectionAddress
-                        </MudText>
-                    </MudStack>
-                </MudTd>
-                <MudTd DataLabel="采集方式">
-                    <MudChip T="string" Variant="Variant.Outlined" Color="@GetTypeChipColor(context.AcquisitionType)"
-                             Size="Size.Small" Class="managed-data-chip">
-                        @context.AcquisitionType
-                    </MudChip>
-                </MudTd>
-                <MudTd DataLabel="数据标识">
-                    <MudText Typo="Typo.body2"
-                             Class="platform-inline-code managed-data-monospace managed-data-identifier">
-                        @context.Identifier
-                    </MudText>
-                </MudTd>
-                <MudTd DataLabel="部门 / 工序">
-                    <MudStack Spacing="0">
-                        <MudText Typo="Typo.body2" Class="platform-table-primary">@context.Department</MudText>
-                        <MudText Typo="Typo.caption" Class="platform-table-secondary platform-inline-code">
-                            @context.ProcessCode
-                        </MudText>
-                    </MudStack>
-                </MudTd>
-                <MudTd DataLabel="数据类别">
-                    <MudChip T="string" Variant="Variant.Outlined" Color="Color.Info"
-                             Size="Size.Small" Class="managed-data-chip">@context.DataCategory</MudChip>
-                </MudTd>
-                <MudTd DataLabel="采集频次">
-                    <MudStack Spacing="0">
-                        <MudText Typo="Typo.body2" Class="platform-table-primary">
-                            @($"{context.CollectionIntervalSeconds} 秒")
-                        </MudText>
-                        <MudText Typo="Typo.caption" Class="platform-table-secondary">
-                            @GetIntervalDisplayText(context.CollectionIntervalSeconds)
-                        </MudText>
-                    </MudStack>
-                </MudTd>
-                <MudTd DataLabel="状态">
-                    <MudChip T="string" Variant="Variant.Outlined"
-                             Color="@(context.IsEnabled ? Color.Success : Color.Warning)" Size="Size.Small"
-                             Class="managed-data-chip">
-                        @(context.IsEnabled ? "启用" : "停用")
-                    </MudChip>
-                </MudTd>
-                <MudTd DataLabel="更新时间">
-                    <MudText Typo="Typo.body2" Class="platform-timestamp managed-data-timestamp">
-                        @context.UpdatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
-                    </MudText>
-                </MudTd>
-                <MudTd DataLabel="操作" Class="table-action-cell">
-                    <div class="table-action-grid managed-data-action-grid">
-                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
-                                   Class="table-action-button"
-                                   FullWidth="true"
-                                   StartIcon="@Icons.Material.Filled.Visibility"
-                                   OnClick="@(() => OpenDetails(context))">
-                            详情
-                        </MudButton>
-                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Info"
-                                   Class="table-action-button"
-                                   FullWidth="true"
-                                   StartIcon="@Icons.Material.Filled.PlayCircleOutline"
-                                   Disabled="IsExecuting"
-                                   OnClick="@(() => DebugReadAsync(context))">
-                            @(IsExecutingDefinition(context.Id, false) ? "读取中" : "调试")
-                        </MudButton>
-                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Success"
-                                   Class="table-action-button"
-                                   FullWidth="true"
-                                   StartIcon="@Icons.Material.Filled.CloudDownload"
-                                   Disabled="IsExecuting || !context.IsEnabled"
-                                   OnClick="@(() => CollectAsync(context))">
-                            @(IsExecutingDefinition(context.Id, true) ? "采集中" : "入库")
-                        </MudButton>
-                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
-                                   Class="table-action-button"
-                                   FullWidth="true"
-                                   StartIcon="@Icons.Material.Filled.Edit"
-                                   OnClick="@(() => EditAsync(context))">
-                            编辑
-                        </MudButton>
-                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error"
-                                   Class="table-action-button"
-                                   FullWidth="true"
-                                   StartIcon="@Icons.Material.Filled.DeleteOutline"
-                                   OnClick="@(() => RequestDelete(context))">
-                            删除
-                        </MudButton>
-                    </div>
-                </MudTd>
-            </RowTemplate>
-            <NoRecordsContent>
-                <div class="platform-empty-state platform-accent-primary">
-                    <span class="platform-empty-icon">
-                        <MudIcon Icon="@Icons.Material.Filled.Storage" Size="Size.Large"/>
-                    </span>
-                    <MudText Typo="Typo.h6">当前还没有符合条件的后台数据定义</MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">
-                        可以直接新增 Modbus、Historian API 等数据定义，也可以调整筛选条件后再查看。
-                    </MudText>
-                </div>
-            </NoRecordsContent>
-            <PagerContent>
-                <MudTablePager PageSizeOptions="@(new[] { 10, 20, 50 })" RowsPerPageString="每页条数"/>
-            </PagerContent>
-        </MudTable>
-    </MudPaper>
-
-    <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-secondary pa-4" Elevation="0">
-        <MudStack Spacing="3">
-            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap">
+        <MudPaper
+            Class="platform-section-card platform-section-card--tinted platform-accent-tertiary managed-data-filter-card pa-4"
+            Elevation="0">
+            <div class="platform-card-header platform-card-header--tight">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                     <span class="platform-section-icon">
-                        <MudIcon Icon="@Icons.Material.Filled.Terminal" Size="Size.Small"/>
+                        <MudIcon Icon="@Icons.Material.Filled.FilterAlt" Size="Size.Small"/>
                     </span>
                     <MudStack Spacing="0">
-                        <MudText Typo="Typo.h6">最近一次执行结果</MudText>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">
-                            支持查看最近一次调试读取或采集入库的执行状态、解析值和原始 JSON 返回。
+                        <MudText Typo="Typo.subtitle1" Class="platform-card-title">快速筛选</MudText>
+                        <MudText Typo="Typo.body2" Class="platform-card-description">
+                            按编码、名称、部门和采集方式快速收敛当前工作清单。
                         </MudText>
                     </MudStack>
                 </MudStack>
+                <MudChip T="string" Variant="Variant.Outlined" Color="Color.Default">
+                    默认按采集方式与编码排序
+                </MudChip>
+            </div>
 
-                @if (_lastExecutionResult is not null)
-                {
-                    <MudChip T="string" Variant="Variant.Outlined" Color="@LatestExecutionColor">
-                        @(_lastExecutionResult.Success ? "执行成功" : "执行失败")
-                    </MudChip>
-                }
+            <MudGrid Spacing="2">
+                <MudItem xs="12" md="8" lg="9">
+                    <MudTextField Margin="Margin.Dense" Label="搜索编码、名称、部门、工序、数据标识"
+                                  Variant="Variant.Outlined"
+                                  Immediate="true"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Search"
+                                  @bind-Value="_searchTerm"/>
+                </MudItem>
+                <MudItem xs="12" md="4" lg="3">
+                    <MudSelect T="string" Margin="Margin.Dense" Label="采集方式筛选" Variant="Variant.Outlined"
+                               @bind-Value="_typeFilter">
+                        @foreach (string item in TypeFilterOptions)
+                        {
+                            <MudSelectItem T="string" Value="@item">@item</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        <MudPaper
+            Class="platform-section-card platform-section-card--tinted platform-accent-secondary managed-data-table-card"
+            Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="2"
+                      Class="pa-4">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <span class="platform-section-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.TableRows" Size="Size.Small"/>
+                    </span>
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.h6" Class="platform-card-title">后台数据定义列表</MudText>
+                        <MudText Typo="Typo.body2" Class="platform-card-description">
+                            列表按采集方式和编码排序，支持快速定位不同部门、工序和能源类别的数据定义。
+                        </MudText>
+                    </MudStack>
+                </MudStack>
+                <MudChip T="string" Variant="Variant.Outlined" Color="Color.Default">
+                    当前筛选结果 @FilteredDefinitions.Count() 条
+                </MudChip>
             </MudStack>
 
-            @if (_lastExecutionResult is null)
-            {
-                <MudStack AlignItems="AlignItems.Center" Class="platform-empty-state platform-accent-primary">
-                    <span class="platform-empty-icon">
-                        <MudIcon Icon="@Icons.Material.Filled.PlayCircleOutline" Size="Size.Large"/>
-                    </span>
-                    <MudText Typo="Typo.h6">还没有执行记录</MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">
-                        从列表中选择一条后台数据定义，执行“调试读取”或“采集入库”后，这里会展示详细结果。
-                    </MudText>
+            <MudDivider/>
+
+            <MudTable Items="FilteredDefinitions"
+                      Dense="true"
+                      Hover="true"
+                      Loading="_isLoading"
+                      RowsPerPage="10"
+                      Breakpoint="Breakpoint.Sm"
+                      Class="platform-data-table managed-data-table">
+                <HeaderContent>
+                    <MudTh>编码</MudTh>
+                    <MudTh>数据名称</MudTh>
+                    <MudTh>采集方式</MudTh>
+                    <MudTh>数据标识</MudTh>
+                    <MudTh>部门 / 工序</MudTh>
+                    <MudTh>数据类别</MudTh>
+                    <MudTh>采集频次</MudTh>
+                    <MudTh>状态</MudTh>
+                    <MudTh>更新时间</MudTh>
+                    <MudTh Style="width: 200px;">操作</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="编码">
+                        <MudText Typo="Typo.body1" Class="platform-table-primary platform-inline-code managed-data-code">
+                            @context.Code
+                        </MudText>
+                    </MudTd>
+                    <MudTd DataLabel="数据名称">
+                        <MudStack Spacing="0" Class="managed-data-name-block">
+                            <MudText Typo="Typo.body1" Class="platform-table-primary">@context.Name</MudText>
+                            <MudText Typo="Typo.caption" Class="platform-table-secondary managed-data-address">
+                                @context.ConnectionAddress
+                            </MudText>
+                        </MudStack>
+                    </MudTd>
+                    <MudTd DataLabel="采集方式">
+                        <MudChip T="string" Variant="Variant.Outlined" Color="@GetTypeChipColor(context.AcquisitionType)"
+                                 Size="Size.Small" Class="managed-data-chip">
+                            @context.AcquisitionType
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="数据标识">
+                        <MudText Typo="Typo.body2"
+                                 Class="platform-inline-code managed-data-monospace managed-data-identifier">
+                            @context.Identifier
+                        </MudText>
+                    </MudTd>
+                    <MudTd DataLabel="部门 / 工序">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.body2" Class="platform-table-primary">@context.Department</MudText>
+                            <MudText Typo="Typo.caption" Class="platform-table-secondary platform-inline-code">
+                                @context.ProcessCode
+                            </MudText>
+                        </MudStack>
+                    </MudTd>
+                    <MudTd DataLabel="数据类别">
+                        <MudChip T="string" Variant="Variant.Outlined" Color="Color.Info"
+                                 Size="Size.Small" Class="managed-data-chip">@context.DataCategory</MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="采集频次">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.body2" Class="platform-table-primary">
+                                @($"{context.CollectionIntervalSeconds} 秒")
+                            </MudText>
+                            <MudText Typo="Typo.caption" Class="platform-table-secondary">
+                                @GetIntervalDisplayText(context.CollectionIntervalSeconds)
+                            </MudText>
+                        </MudStack>
+                    </MudTd>
+                    <MudTd DataLabel="状态">
+                        <MudChip T="string" Variant="Variant.Outlined"
+                                 Color="@(context.IsEnabled ? Color.Success : Color.Warning)" Size="Size.Small"
+                                 Class="managed-data-chip">
+                            @(context.IsEnabled ? "启用" : "停用")
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="更新时间">
+                        <MudText Typo="Typo.body2" Class="platform-timestamp managed-data-timestamp">
+                            @context.UpdatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+                        </MudText>
+                    </MudTd>
+                    <MudTd DataLabel="操作" Class="table-action-cell">
+                        <div class="table-action-grid managed-data-action-grid">
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                                       Class="table-action-button"
+                                       FullWidth="true"
+                                       StartIcon="@Icons.Material.Filled.Visibility"
+                                       OnClick="@(() => OpenDetails(context))">
+                                详情
+                            </MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Info"
+                                       Class="table-action-button"
+                                       FullWidth="true"
+                                       StartIcon="@Icons.Material.Filled.PlayCircleOutline"
+                                       Disabled="IsExecuting"
+                                       OnClick="@(() => DebugReadAsync(context))">
+                                @(IsExecutingDefinition(context.Id, false) ? "读取中" : "调试")
+                            </MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Success"
+                                       Class="table-action-button"
+                                       FullWidth="true"
+                                       StartIcon="@Icons.Material.Filled.CloudDownload"
+                                       Disabled="IsExecuting || !context.IsEnabled"
+                                       OnClick="@(() => CollectAsync(context))">
+                                @(IsExecutingDefinition(context.Id, true) ? "采集中" : "入库")
+                            </MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                                       Class="table-action-button"
+                                       FullWidth="true"
+                                       StartIcon="@Icons.Material.Filled.Edit"
+                                       OnClick="@(() => EditAsync(context))">
+                                编辑
+                            </MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error"
+                                       Class="table-action-button"
+                                       FullWidth="true"
+                                       StartIcon="@Icons.Material.Filled.DeleteOutline"
+                                       OnClick="@(() => RequestDelete(context))">
+                                删除
+                            </MudButton>
+                        </div>
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <div class="platform-empty-state platform-accent-primary">
+                        <span class="platform-empty-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.Storage" Size="Size.Large"/>
+                        </span>
+                        <MudText Typo="Typo.h6">当前还没有符合条件的后台数据定义</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            可以直接新增 Modbus、Historian API 等数据定义，也可以调整筛选条件后再查看。
+                        </MudText>
+                    </div>
+                </NoRecordsContent>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="@(new[] { 10, 20, 50 })" RowsPerPageString="每页条数"/>
+                </PagerContent>
+            </MudTable>
+        </MudPaper>
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-secondary pa-4" Elevation="0">
+            <MudStack Spacing="3">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <span class="platform-section-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.Terminal" Size="Size.Small"/>
+                        </span>
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h6">最近一次执行结果</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                支持查看最近一次调试读取或采集入库的执行状态、解析值和原始 JSON 返回。
+                            </MudText>
+                        </MudStack>
+                    </MudStack>
+
+                    @if (_lastExecutionResult is not null)
+                    {
+                        <MudChip T="string" Variant="Variant.Outlined" Color="@LatestExecutionColor">
+                            @(_lastExecutionResult.Success ? "执行成功" : "执行失败")
+                        </MudChip>
+                    }
                 </MudStack>
-            }
-            else
-            {
-                <MudGrid>
-                    <MudItem xs="12" md="3">
-                        <MudPaper
-                            Class="platform-stat-card platform-stat-card--tinted platform-accent-tertiary managed-data-result-metric pa-4"
-                            Elevation="0">
-                            <MudText Typo="Typo.caption">执行对象</MudText>
-                            <MudText Typo="Typo.h6">@_lastExecutionResult.Code</MudText>
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">@_lastExecutionResult.Name</MudText>
-                        </MudPaper>
-                    </MudItem>
-                    <MudItem xs="12" md="3">
-                        <MudPaper
-                            Class="platform-stat-card platform-stat-card--tinted platform-accent-secondary managed-data-result-metric pa-4"
-                            Elevation="0">
-                            <MudText Typo="Typo.caption">执行模式</MudText>
-                            <MudText Typo="Typo.h6">@_lastExecutionResult.ExecutionMode</MudText>
-                            <MudText Typo="Typo.body2"
-                                     Color="Color.Secondary">@_lastExecutionResult.SourceQueryType</MudText>
-                        </MudPaper>
-                    </MudItem>
-                    <MudItem xs="12" md="3">
-                        <MudPaper
-                            Class="platform-stat-card platform-stat-card--tinted platform-accent-success managed-data-result-metric pa-4"
-                            Elevation="0">
-                            <MudText Typo="Typo.caption">解析值</MudText>
-                            <MudText Typo="Typo.h6">@(_lastExecutionResult.ParsedValue?.ToString() ?? "--")</MudText>
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">@_lastExecutionResult.Unit</MudText>
-                        </MudPaper>
-                    </MudItem>
-                    <MudItem xs="12" md="3">
-                        <MudPaper
-                            Class="platform-stat-card platform-stat-card--tinted platform-accent-info managed-data-result-metric pa-4"
-                            Elevation="0">
-                            <MudText Typo="Typo.caption">样本时间</MudText>
-                            <MudText
-                                Typo="Typo.body1">@(_lastExecutionResult.SampledAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "--")</MudText>
-                            <MudText Typo="Typo.body2"
-                                     Color="Color.Secondary">@_lastExecutionResult.ExecutedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</MudText>
-                        </MudPaper>
-                    </MudItem>
-                </MudGrid>
 
-                <MudPaper Class="platform-summary" Elevation="0">
-                    <MudText Typo="Typo.caption" Class="managed-data-summary-label">执行摘要</MudText>
-                    <MudText Typo="Typo.body2">@_lastExecutionResult.StatusMessage</MudText>
-                </MudPaper>
-
-                <MudPaper Class="platform-summary" Elevation="0">
-                    <MudText Typo="Typo.caption" Class="managed-data-summary-label">访问目标</MudText>
-                    <MudText Typo="Typo.body2"
-                             Class="platform-monospace">@_lastExecutionResult.RequestTarget</MudText>
-                </MudPaper>
-
-                @if (_lastExecutionResult.SavedRecord is not null)
+                @if (_lastExecutionResult is null)
                 {
-                    <MudAlert Severity="Severity.Success" Dense="true" Variant="Variant.Outlined">
-                        已入库到采集数据表：采集点编码 <b>@_lastExecutionResult.SavedRecord.CollectionPointCode</b>，
-                        指标名称 <b>@_lastExecutionResult.SavedRecord.MetricName</b>，
-                        值 <b>@_lastExecutionResult.SavedRecord.Value</b>。
-                    </MudAlert>
+                    <MudStack AlignItems="AlignItems.Center" Class="platform-empty-state platform-accent-primary">
+                        <span class="platform-empty-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.PlayCircleOutline" Size="Size.Large"/>
+                        </span>
+                        <MudText Typo="Typo.h6">还没有执行记录</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            从列表中选择一条后台数据定义，执行“调试读取”或“采集入库”后，这里会展示详细结果。
+                        </MudText>
+                    </MudStack>
                 }
-
-                @if (!string.IsNullOrWhiteSpace(_lastExecutionResult.ErrorMessage) && !_lastExecutionResult.Success)
+                else
                 {
-                    <MudAlert Severity="Severity.Error" Dense="true" Variant="Variant.Outlined">
-                        @_lastExecutionResult.ErrorMessage
-                    </MudAlert>
+                    <MudGrid>
+                        <MudItem xs="12" md="3">
+                            <MudPaper
+                                Class="platform-stat-card platform-stat-card--tinted platform-accent-tertiary managed-data-result-metric pa-4"
+                                Elevation="0">
+                                <MudText Typo="Typo.caption">执行对象</MudText>
+                                <MudText Typo="Typo.h6">@_lastExecutionResult.Code</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">@_lastExecutionResult.Name</MudText>
+                            </MudPaper>
+                        </MudItem>
+                        <MudItem xs="12" md="3">
+                            <MudPaper
+                                Class="platform-stat-card platform-stat-card--tinted platform-accent-secondary managed-data-result-metric pa-4"
+                                Elevation="0">
+                                <MudText Typo="Typo.caption">执行模式</MudText>
+                                <MudText Typo="Typo.h6">@_lastExecutionResult.ExecutionMode</MudText>
+                                <MudText Typo="Typo.body2"
+                                         Color="Color.Secondary">@_lastExecutionResult.SourceQueryType</MudText>
+                            </MudPaper>
+                        </MudItem>
+                        <MudItem xs="12" md="3">
+                            <MudPaper
+                                Class="platform-stat-card platform-stat-card--tinted platform-accent-success managed-data-result-metric pa-4"
+                                Elevation="0">
+                                <MudText Typo="Typo.caption">解析值</MudText>
+                                <MudText Typo="Typo.h6">@(_lastExecutionResult.ParsedValue?.ToString() ?? "--")</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">@_lastExecutionResult.Unit</MudText>
+                            </MudPaper>
+                        </MudItem>
+                        <MudItem xs="12" md="3">
+                            <MudPaper
+                                Class="platform-stat-card platform-stat-card--tinted platform-accent-info managed-data-result-metric pa-4"
+                                Elevation="0">
+                                <MudText Typo="Typo.caption">样本时间</MudText>
+                                <MudText
+                                    Typo="Typo.body1">@(_lastExecutionResult.SampledAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "--")</MudText>
+                                <MudText Typo="Typo.body2"
+                                         Color="Color.Secondary">@_lastExecutionResult.ExecutedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</MudText>
+                            </MudPaper>
+                        </MudItem>
+                    </MudGrid>
+
+                    <MudPaper Class="platform-summary" Elevation="0">
+                        <MudText Typo="Typo.caption" Class="managed-data-summary-label">执行摘要</MudText>
+                        <MudText Typo="Typo.body2">@_lastExecutionResult.StatusMessage</MudText>
+                    </MudPaper>
+
+                    <MudPaper Class="platform-summary" Elevation="0">
+                        <MudText Typo="Typo.caption" Class="managed-data-summary-label">访问目标</MudText>
+                        <MudText Typo="Typo.body2"
+                                 Class="platform-monospace">@_lastExecutionResult.RequestTarget</MudText>
+                    </MudPaper>
+
+                    @if (_lastExecutionResult.SavedRecord is not null)
+                    {
+                        <MudAlert Severity="Severity.Success" Dense="true" Variant="Variant.Outlined">
+                            已入库到采集数据表：采集点编码 <b>@_lastExecutionResult.SavedRecord.CollectionPointCode</b>，
+                            指标名称 <b>@_lastExecutionResult.SavedRecord.MetricName</b>，
+                            值 <b>@_lastExecutionResult.SavedRecord.Value</b>。
+                        </MudAlert>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(_lastExecutionResult.ErrorMessage) && !_lastExecutionResult.Success)
+                    {
+                        <MudAlert Severity="Severity.Error" Dense="true" Variant="Variant.Outlined">
+                            @_lastExecutionResult.ErrorMessage
+                        </MudAlert>
+                    }
+
+                    <MudPaper Class="platform-code-panel" Elevation="0">
+                        <div class="platform-code-heading">原始 JSON 响应</div>
+                        <pre class="platform-code-content">@_lastExecutionResult.PayloadJson</pre>
+                    </MudPaper>
                 }
-
-                <MudPaper Class="platform-code-panel" Elevation="0">
-                    <div class="platform-code-heading">原始 JSON 响应</div>
-                    <pre class="platform-code-content">@_lastExecutionResult.PayloadJson</pre>
-                </MudPaper>
-            }
-        </MudStack>
-    </MudPaper>
-
-    @* 节点编辑抽屉由共享组件承载，列表页与详情页共用同一套表单逻辑。 *@
-    <ManagedDataDefinitionEditor @bind-Visible="_isEditorOpen"
-                                 DefinitionId="_editingId"
-                                 OnSaved="OnEditorSaved"/>
+            </MudStack>
+        </MudPaper>
+    }
 </MudStack>

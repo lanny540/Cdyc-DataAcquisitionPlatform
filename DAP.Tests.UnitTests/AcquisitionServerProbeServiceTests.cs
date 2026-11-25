@@ -73,7 +73,7 @@ public sealed class AcquisitionServerProbeServiceTests
         AcquisitionServerProbeResultDto result = await service.ProbeAsync(
             AcquisitionServerCatalogKeys.Historian,
             "http://10.9.3.54:8080",
-            new Dictionary<string, string> { ["clientId"] = "admin", ["clientSecret"] = "Pa55word" },
+            new Dictionary<string, string> { ["clientId"] = "admin", ["clientSecret"] = "Pa55word", ["oauthUsername"] = "HIS81.admin", ["oauthPassword"] = "Pa55word" },
             "tag001");
 
         Assert.True(result.Success);
@@ -92,7 +92,7 @@ public sealed class AcquisitionServerProbeServiceTests
             "http://10.9.3.54:8080",
             new Dictionary<string, string>
             {
-                ["clientId"] = "admin", ["clientSecret"] = "Pa55word", ["currentValuePath"] = "/custom/current"
+                ["clientId"] = "admin", ["clientSecret"] = "Pa55word", ["oauthUsername"] = "HIS81.admin", ["oauthPassword"] = "Pa55word", ["currentValuePath"] = "/custom/current"
             },
             "t");
 
@@ -368,7 +368,7 @@ public sealed class AcquisitionServerProbeServiceTests
         AcquisitionServerProbeResultDto result = await service.ProbeAsync(
             AcquisitionServerCatalogKeys.Historian,
             "http://10.9.3.54:8080",
-            new Dictionary<string, string> { ["clientId"] = "admin", ["clientSecret"] = "Pa55word" },
+            new Dictionary<string, string> { ["clientId"] = "admin", ["clientSecret"] = "Pa55word", ["oauthUsername"] = "HIS81.admin", ["oauthPassword"] = "Pa55word" },
             "tag-none");
 
         // 数组里没有匹配的 tagName 时，退化为取第一个数值，而不是直接失败。

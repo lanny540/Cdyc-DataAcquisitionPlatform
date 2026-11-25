@@ -122,8 +122,8 @@
 | 区块卡/面板 | `platform-section-card--tinted` / `platform-panel--tinted`（白卡 + MD2 投影，无底纹无色条；卡内表格/抽屉同为白色表面）                    |
 | 表格        | `platform-data-table`                                                                                                                                            |
 | 空状态      | `platform-empty-state` + `platform-empty-icon`                                                                                                                   |
-| 抽屉        | `platform-sheet` + `platform-sheet-section`（各分区不同 accent）                                                                                                 |
-| 对话框      | `Common/PlatformDialogs.cs`（禁止内联声明 `DialogOptions`）                                                                                                      |
+| 新增/编辑表单 | **整页编辑视图**（与采集服务器页一致）：列表与表单同页按 `_isEditorOpen` 等状态切换；hero 标题 + 「返回列表」按钮 + `platform-section-card--tinted` 分区卡 + 底部操作条；**禁止新用 `MudDialog` 做表单抽屉**（`platform-sheet` 体系已退役） |
+| 对话框      | `Common/PlatformDialogs.cs`（禁止内联声明 `DialogOptions`）；仅保留删除等二次确认用途                                                                                                      |
 | 代码面板    | `platform-code-panel` / `platform-code-heading` / `platform-code-content`                                                                                        |
 | 图表        | `platform-chart-panel` + `platform-chart-frame`（系列色随卡片 accent，见下）                                                                                     |
 | 月历        | `platform-calendar` + `platform-calendar-cell`（MudBlazor 9.12 无独立日历组件）                                                                                  |

@@ -1,0 +1,116 @@
+@page "/"
+@inject IPlatformApiClient PlatformApiClient
+@inject NavigationManager Navigation
+
+<PageTitle>平台大屏导航</PageTitle>
+
+<MudStack Class="platform-page-shell" Spacing="2">
+    <MudPaper Class="platform-page-hero pa-4" Elevation="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.h4">平台大屏导航</MudText>
+                <MudText Typo="Typo.body1">
+                    选择一个大屏入口直达对应模块的展示页面；入口卡片由平台管理员在「域与页面配置」中维护。
+                </MudText>
+            </MudStack>
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Refresh"
+                       OnClick="LoadAsync">
+                刷新入口
+            </MudButton>
+        </MudStack>
+    </MudPaper>
+
+    @if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Outlined">@_errorMessage</MudAlert>
+    }
+
+    @if (_isLoading)
+    {
+        <MudPaper Class="platform-panel pa-10" Elevation="0">
+            <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+                <MudText Typo="Typo.body1">正在加载大屏入口...</MudText>
+            </MudStack>
+        </MudPaper>
+    }
+    else
+    {
+        <MudGrid Spacing="3">
+            @foreach (ScreenHubCardView card in _cards)
+            {
+                <MudItem xs="12" sm="6" lg="4" key="@card.Key">
+                    <MudPaper Class="@($"screen-hub-card platform-section-card--tinted platform-accent-{card.Accent} pa-5")"
+                              Elevation="0" @onclick="() => NavigateTo(card.Route)">
+                        <span class="platform-section-icon screen-hub-card-icon">
+                            <MudIcon Icon="@ScreenHubIcons.Resolve(card.IconKey)"/>
+                        </span>
+                        <MudText Typo="Typo.h5" Class="screen-hub-card-title">@card.Title</MudText>
+                        <MudText Typo="Typo.body2" Class="screen-hub-card-description">@card.Description</MudText>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="screen-hub-card-footer">
+                            <MudText Typo="Typo.body2" Class="screen-hub-card-enter">进入大屏</MudText>
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small"
+                                     Class="screen-hub-card-arrow"/>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+</MudStack>
+
+@code {
+    /// <summary>
+    /// 枢纽页卡片视图：库中配置与代码内置默认卡统一到此结构渲染。
+    /// </summary>
+    private sealed record ScreenHubCardView(string Key, string Title, string Description, string Route,
+        string IconKey, string Accent);
+
+    private List<ScreenHubCardView> _cards = [];
+    private bool _isLoading = true;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            IReadOnlyList<ScreenHubCardDto> configured =
+                await PlatformApiClient.GetScreenHubCardsAsync();
+
+            // 库里没有启用卡时用代码内置默认卡兜底：新库种子未跑完、管理员全停用
+            // 都不该让根路由变成一张白板。
+            _cards = configured.Count > 0
+                ? configured.Select(card => new ScreenHubCardView(
+                        card.Id.ToString(), card.Title, card.Description, card.Route, card.IconKey, card.Accent))
+                    .ToList()
+                : ScreenHubCatalog.DefaultCards.Select(card => new ScreenHubCardView(
+                        card.Route, card.Title, card.Description, card.Route, card.IconKey, card.Accent))
+                    .ToList();
+        }
+        catch (Exception ex)
+        {
+            // 读取失败同样兜底渲染默认卡，导航枢纽不能因为后端抖动而不可用。
+            _errorMessage = $"大屏入口加载失败，已展示默认入口：{UserFacingErrors.Describe(ex)}";
+            _cards = ScreenHubCatalog.DefaultCards.Select(card => new ScreenHubCardView(
+                    card.Route, card.Title, card.Description, card.Route, card.IconKey, card.Accent))
+                .ToList();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void NavigateTo(string route)
+    {
+        Navigation.NavigateTo(route);
+    }
+}

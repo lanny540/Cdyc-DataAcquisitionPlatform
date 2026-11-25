@@ -52,6 +52,35 @@ public class InMemoryShiftSchedulingServiceTests
         Assert.All(rows, row => Assert.Equal(new DateOnly(2026, 11, 1), row.WorkDate));
     }
 
+    [Fact]
+    public async Task ImportAsync_With_Wide_Format_Should_Map_Team_Numbers()
+    {
+        // 宽表（现场业务标准格式）：A 列日期，夜班/白班/中班三列填班组编号 1-4。
+        using MemoryStream stream = BuildWideSchedule();
+
+        ShiftScheduleImportResultDto result = await _service.ImportAsync("排班表.xlsx", stream);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(3, result.Rows.Count);
+        Assert.All(result.Rows, row =>
+        {
+            Assert.False(row.IsRestDay);
+            Assert.Equal(8d, row.DurationHours);
+        });
+
+        // 编号映射：1=班组-甲、2=班组-乙、3=班组-丙、4=班组-丁；三班固定时间。
+        // 构造数据 B=3、C=2、D=1：夜班由班组-丙值守、白班组-乙、中班组-甲。
+        Assert.Contains(result.Rows, row =>
+            row.TeamName == "班组-丙" && row.ShiftName == "夜班" &&
+            row.StartTime == new TimeOnly(0, 0) && row.EndTime == new TimeOnly(8, 0));
+        Assert.Contains(result.Rows, row =>
+            row.TeamName == "班组-乙" && row.ShiftName == "白班" &&
+            row.StartTime == new TimeOnly(8, 0) && row.EndTime == new TimeOnly(16, 0));
+        Assert.Contains(result.Rows, row =>
+            row.TeamName == "班组-甲" && row.ShiftName == "中班" &&
+            row.StartTime == new TimeOnly(16, 0) && row.EndTime == new TimeOnly(0, 0));
+    }
+
     #endregion
 
     #region 导入：数据保护（关键约束）
@@ -62,7 +91,7 @@ public class InMemoryShiftSchedulingServiceTests
         await _service.ImportAsync("正常表.xlsx", BuildValidSchedule());
         IReadOnlyCollection<ShiftScheduleRowDto> before = await _service.GetAllRowsAsync();
 
-        // 构造不合法的排班：当天只有 2 个班次，未覆盖 24 小时
+        // 构造解析不通过的文件：日期列写入了无法识别的文本
         using MemoryStream bad = BuildInvalidSchedule();
         ShiftScheduleImportResultDto result = await _service.ImportAsync("坏表.xlsx", bad);
 
@@ -347,6 +376,35 @@ public class InMemoryShiftSchedulingServiceTests
         return BuildSchedule([Day1, Day1.AddDays(1), Day1.AddDays(2), Day1.AddDays(3)]);
     }
 
+    /// <summary>
+    /// 构造宽表格式工作簿：A 列日期（表头为空），夜班/白班/中班三列填班组编号。
+    /// 与现场真实台账一致。
+    /// </summary>
+    private static MemoryStream BuildWideSchedule()
+    {
+        MemoryStream stream = new();
+
+        using (XLWorkbook workbook = new())
+        {
+            IXLWorksheet worksheet = workbook.Worksheets.Add("Sheet1");
+
+            // A1 为空（真实台账如此），表头只在 B/C/D 三列
+            worksheet.Cell(1, 2).Value = "夜班（0-8）";
+            worksheet.Cell(1, 3).Value = "白班（8-16）";
+            worksheet.Cell(1, 4).Value = "中班（16-24）";
+
+            worksheet.Cell(2, 1).Value = Day1.ToDateTime(new TimeOnly(0, 0));
+            worksheet.Cell(2, 2).Value = 3;
+            worksheet.Cell(2, 3).Value = 2;
+            worksheet.Cell(2, 4).Value = 1;
+
+            workbook.SaveAs(stream);
+        }
+
+        stream.Position = 0;
+        return stream;
+    }
+
     private static MemoryStream BuildSchedule(DateOnly[] dates)
     {
         MemoryStream stream = new();
@@ -413,17 +471,12 @@ public class InMemoryShiftSchedulingServiceTests
             worksheet.Cell(1, 3).Value = "上班时间";
             worksheet.Cell(1, 4).Value = "下班时间";
 
-            worksheet.Cell(2, 1).Value = Day1.ToDateTime(new TimeOnly(0, 0));
+            // 日期列写入了无法识别的文本，解析阶段即报 error
+            worksheet.Cell(2, 1).Value = "这不是日期";
             worksheet.Cell(2, 2).Value = "甲班";
             worksheet.Cell(2, 3).Value = new TimeSpan(0, 0, 0);
             worksheet.Cell(2, 4).Value = new TimeSpan(8, 0, 0);
 
-            worksheet.Cell(3, 1).Value = Day1.ToDateTime(new TimeOnly(0, 0));
-            worksheet.Cell(3, 2).Value = "乙班";
-            worksheet.Cell(3, 3).Value = new TimeSpan(8, 0, 0);
-            worksheet.Cell(3, 4).Value = new TimeSpan(16, 0, 0);
-
-            // 缺 16:00-24:00 班次，当日覆盖不完整
             workbook.SaveAs(stream);
         }
 

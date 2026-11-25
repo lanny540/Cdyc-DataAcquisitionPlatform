@@ -40,7 +40,8 @@ public sealed record EnergyMetricValueDto(
 /// <param name="BucketStart">统计区间起点。</param>
 /// <param name="Label">横轴标签。</param>
 /// <param name="Value">指标数值。</param>
-public sealed record EnergyTrendPointDto(DateOnly BucketStart, string Label, decimal Value);
+/// <param name="BucketEnd">统计区间终点；按日口径与起点相同，按周/按月口径为该桶的结束日。</param>
+public sealed record EnergyTrendPointDto(DateOnly BucketStart, string Label, decimal Value, DateOnly? BucketEnd = null);
 
 /// <summary>
 /// 表示单个指标的趋势序列。

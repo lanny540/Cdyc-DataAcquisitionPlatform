@@ -16,6 +16,99 @@ public class ShiftScheduleExcelParserTests
     private readonly ShiftScheduleExcelParser _parser = new();
 
     [Fact]
+    public void Parse_Should_Read_Wide_Format_With_Team_Numbers()
+    {
+        // 宽表（现场业务标准格式）：A 列日期、B/C/D 三列班组编号 1-4，
+        // 每行展开为夜班 0-8 / 白班 8-16 / 中班 16-24 三条班次记录。
+        using MemoryStream stream = BuildWorkbook((worksheet, _) =>
+        {
+            worksheet.Cell(1, 2).Value = "夜班（0-8）";
+            worksheet.Cell(1, 3).Value = "白班（8-16）";
+            worksheet.Cell(1, 4).Value = "中班（16-24）";
+
+            worksheet.Cell(2, 1).Value = new DateTime(2026, 10, 11);
+            worksheet.Cell(2, 2).Value = 3;
+            worksheet.Cell(2, 3).Value = 2;
+            worksheet.Cell(2, 4).Value = 1;
+        });
+
+        _parser.Parse("排班表.xlsx", stream, out List<ShiftScheduleRowDto> rows,
+            out List<ShiftScheduleIssueDto> issues);
+
+        Assert.Empty(issues);
+        Assert.Equal(3, rows.Count);
+
+        ShiftScheduleRowDto night = rows.Single(item => item.ShiftName == "夜班");
+        Assert.Equal(new DateOnly(2026, 10, 11), night.WorkDate);
+        Assert.Equal("班组-丙", night.TeamName);
+        Assert.Equal(new TimeOnly(0, 0), night.StartTime);
+        Assert.Equal(new TimeOnly(8, 0), night.EndTime);
+        Assert.Equal(8d, night.DurationHours);
+
+        ShiftScheduleRowDto day = rows.Single(item => item.ShiftName == "白班");
+        Assert.Equal("班组-乙", day.TeamName);
+        Assert.Equal(new TimeOnly(8, 0), day.StartTime);
+        Assert.Equal(new TimeOnly(16, 0), day.EndTime);
+
+        ShiftScheduleRowDto middle = rows.Single(item => item.ShiftName == "中班");
+        Assert.Equal("班组-甲", middle.TeamName);
+        Assert.Equal(new TimeOnly(16, 0), middle.StartTime);
+        // 中班结束时刻 24:00 统一存为 00:00（跨天约定），工时仍为 8 小时。
+        Assert.Equal(new TimeOnly(0, 0), middle.EndTime);
+        Assert.Equal(8d, middle.DurationHours);
+    }
+
+    [Fact]
+    public void Parse_Should_Report_Team_Number_Out_Of_Range()
+    {
+        // 班组编号超出 1-4 视为脏数据，按 error 处理而不是静默生成未知班组。
+        using MemoryStream stream = BuildWorkbook((worksheet, _) =>
+        {
+            worksheet.Cell(1, 2).Value = "夜班（0-8）";
+            worksheet.Cell(1, 3).Value = "白班（8-16）";
+            worksheet.Cell(1, 4).Value = "中班（16-24）";
+
+            worksheet.Cell(2, 1).Value = new DateTime(2026, 10, 11);
+            worksheet.Cell(2, 2).Value = 5;
+            worksheet.Cell(2, 3).Value = 2;
+            worksheet.Cell(2, 4).Value = 1;
+        });
+
+        _parser.Parse("排班表.xlsx", stream, out List<ShiftScheduleRowDto> rows,
+            out List<ShiftScheduleIssueDto> issues);
+
+        ShiftScheduleIssueDto issue = Assert.Single(issues);
+        Assert.Equal("error", issue.Severity);
+        Assert.Contains("1–4", issue.Message, StringComparison.Ordinal);
+        Assert.Equal(2, rows.Count);
+    }
+
+    [Fact]
+    public void Parse_Should_Accept_Wide_Format_With_Leading_Title_Row()
+    {
+        // 表头上方允许有标题行；日期列表头为空时按数据区日期值推断。
+        using MemoryStream stream = BuildWorkbook((worksheet, _) =>
+        {
+            worksheet.Cell(1, 1).Value = "XX 工房排班表";
+            worksheet.Cell(2, 2).Value = "夜班（0-8）";
+            worksheet.Cell(2, 3).Value = "白班（8-16）";
+            worksheet.Cell(2, 4).Value = "中班（16-24）";
+
+            worksheet.Cell(3, 1).Value = new DateTime(2026, 10, 11);
+            worksheet.Cell(3, 2).Value = 4;
+            worksheet.Cell(3, 3).Value = 3;
+            worksheet.Cell(3, 4).Value = 2;
+        });
+
+        _parser.Parse("排班表.xlsx", stream, out List<ShiftScheduleRowDto> rows,
+            out List<ShiftScheduleIssueDto> issues);
+
+        Assert.Empty(issues);
+        Assert.Equal(3, rows.Count);
+        Assert.Equal("班组-丁", rows[0].TeamName);
+    }
+
+    [Fact]
     public void Parse_Should_Accept_Header_Preceded_By_Title_Row()
     {
         using MemoryStream stream = BuildWorkbook((worksheet, culture) =>

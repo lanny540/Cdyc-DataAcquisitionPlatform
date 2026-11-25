@@ -17,9 +17,19 @@ public partial class ShiftSchedules
 
     [Inject] private IPlatformApiClient PlatformApiClient { get; set; } = null!;
 
+    /// <summary>
+    /// 文件上传组件引用：MudBlazor 9 中 CustomContent 自定义上传区不再自动响应点击，
+    /// 需要持有引用并显式调用 <see cref="MudBlazor.MudFileUpload{T}.OpenFilePickerAsync"/>。
+    /// </summary>
+    private MudFileUpload<IBrowserFile>? _fileUpload;
+
+    private Task OpenFilePickerAsync()
+    {
+        return _fileUpload?.OpenFilePickerAsync() ?? Task.CompletedTask;
+    }
+
     private ShiftScheduleStatusDto? _status;
     private ShiftScheduleImportResultDto? _importResult;
-    private ShiftScheduleValidationDto? _lastValidation;
     private IReadOnlyCollection<ShiftScheduleRowDto> _rows = [];
     private IBrowserFile? _selectedFile;
     private string? _teamFilter;
@@ -32,28 +42,18 @@ public partial class ShiftSchedules
     private Severity _messageSeverity = Severity.Info;
 
     /// <summary>
-    /// 抽屉中的填写示例，仅用于说明表结构，不参与业务逻辑。
+    /// 上传视图中的填写示例（宽表格式），仅用于说明表结构，不参与业务逻辑。
     /// </summary>
     private readonly ScheduleSampleRow[] _sampleRows =
     [
-        new("2026-10-20", "甲班", "00:00", "08:00"),
-        new("2026-10-20", "乙班", "08:00", "16:00"),
-        // 跨天班次的下班时间写 00:00：Excel 中 24:00 会被存成日期序列号，解析时必然失败
-        new("2026-10-20", "丙班", "16:00", "00:00"),
-        new("2026-10-20", "丁班", "休息", "休息")
+        new("2026-10-11", "3", "2", "1"),
+        new("2026-10-12", "3", "2", "1"),
+        new("2026-10-13", "4", "3", "2")
     ];
 
-    private sealed record ScheduleSampleRow(string Date, string Team, string Start, string End);
+    private sealed record ScheduleSampleRow(string Date, string Night, string Day, string Middle);
 
     private int DutyDayCount => _rows.Select(item => item.WorkDate).Distinct().Count();
-
-    /// <summary>
-    /// 错误优先展示，提示类问题排在后面，方便用户先看到阻断性问题。
-    /// </summary>
-    private IReadOnlyCollection<ShiftScheduleIssueDto> _sortedIssues =>
-        _lastValidation?.Issues
-            .OrderBy(item => string.Equals(item.Severity, "error", StringComparison.OrdinalIgnoreCase) ? 0 : 1)
-            .ToArray() ?? [];
 
     private IReadOnlyCollection<ShiftScheduleRowDto> _visibleRows =>
         string.IsNullOrWhiteSpace(_teamFilter)
@@ -74,7 +74,6 @@ public partial class ShiftSchedules
         try
         {
             _status = await PlatformApiClient.GetShiftScheduleStatusAsync();
-            _lastValidation = await PlatformApiClient.GetShiftScheduleValidationAsync();
 
             DateOnly today = DateOnly.FromDateTime(DateTime.Today);
             IReadOnlyList<DailyShiftScheduleDto> calendar =
@@ -143,11 +142,10 @@ public partial class ShiftSchedules
                 await PlatformApiClient.ImportShiftScheduleAsync(stream, _selectedFile.Name);
 
             _importResult = result;
-            _lastValidation = result.Validation;
 
             _message = result.Succeeded
                 ? $"已导入 {result.Rows.Count} 条排班记录。"
-                : $"导入未通过校验，发现 {result.Validation.Issues.Count(item => item.Severity == "error")} 个错误，原有数据未被覆盖。";
+                : $"导入未成功，发现 {result.Validation.Issues.Count(item => item.Severity == "error")} 个解析错误，原有数据未被覆盖。";
             _messageSeverity = result.Succeeded ? Severity.Success : Severity.Error;
 
             if (result.Succeeded)
@@ -183,7 +181,6 @@ public partial class ShiftSchedules
         try
         {
             await PlatformApiClient.ClearShiftSchedulesAsync();
-            _lastValidation = null;
             _message = "排班数据已清空。";
             _messageSeverity = Severity.Success;
             await LoadAsync();

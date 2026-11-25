@@ -127,6 +127,11 @@ public sealed class DataAcquisitionPlatformDbContext : DbContext
     /// </summary>
     public DbSet<EnergyReading> EnergyReadings => Set<EnergyReading>();
 
+    /// <summary>
+    /// 获取大屏导航卡集合。
+    /// </summary>
+    public DbSet<ScreenHubCard> ScreenHubCards => Set<ScreenHubCard>();
+
 
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)

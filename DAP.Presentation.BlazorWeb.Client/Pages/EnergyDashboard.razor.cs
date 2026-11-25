@@ -93,7 +93,8 @@ public partial class EnergyDashboard
     private Severity _messageSeverity = Severity.Info;
 
     /// <summary>
-    /// 是否严格解析出在岗班组。轮休 / 排班未导入 / 手动切换都算非在岗，
+    /// 是否严格解析出在岗班组。轮休 / 排班未导入算非在岗；手动切换到非在岗班组也算非在岗，
+    /// 但手动切回处于在岗班次的班组时恢复在岗徽标（服务端按班次窗口判定，与选择方式无关）。
     /// 页面据此切换提示文案，绝不把猜测的班组当成在岗事实（docs/AUTH_DESIGN.md 6.6）。
     /// </summary>
     private bool IsOnDuty => _dashboard?.TeamResolution is "on-duty";

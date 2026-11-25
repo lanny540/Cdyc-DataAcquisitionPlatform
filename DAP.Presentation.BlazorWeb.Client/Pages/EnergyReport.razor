@@ -150,8 +150,11 @@
                     </MudTd>
                     @for (int i = 0; i < context.Values.Length; i++)
                     {
+                        // 立即取值到逐次迭代局部变量：MudTd 内容是延迟执行的 RenderFragment，
+                        // 若直接在内联 lambda 里用循环变量 i 索引，执行时 i 已越过数组边界（IndexOutOfRange）。
+                        decimal? cellValue = context.Values[i];
                         <MudTd DataLabel="指标">
-                            <MudText Typo="Typo.body2">@FormatNullable(context.Values[i])</MudText>
+                            <MudText Typo="Typo.body2">@FormatNullable(cellValue)</MudText>
                         </MudTd>
                     }
                     <MudTd DataLabel="统计周期">

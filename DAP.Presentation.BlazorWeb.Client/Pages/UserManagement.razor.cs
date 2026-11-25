@@ -207,7 +207,7 @@ public partial class UserManagement
         await LoadAsync();
     }
 
-    private void OpenCreateDialog()
+    private void OpenCreateEditor()
     {
         _isCreating = true;
         _editingSuperAdmin = false;
@@ -223,7 +223,7 @@ public partial class UserManagement
         _isEditorOpen = true;
     }
 
-    private void OpenEditDialog(AdminUserDto user)
+    private void OpenEditUser(AdminUserDto user)
     {
         _isCreating = false;
         _editingSuperAdmin = user.IsSuperAdmin;
@@ -239,7 +239,7 @@ public partial class UserManagement
         _isEditorOpen = true;
     }
 
-    private void CloseEditor()
+    private void CancelEditor()
     {
         _isEditorOpen = false;
     }
@@ -295,7 +295,7 @@ public partial class UserManagement
         }
     }
 
-    private void OpenResetPasswordDialog(AdminUserDto user)
+    private void OpenResetPassword(AdminUserDto user)
     {
         _resetUserId = user.Id;
         _resetUserName = user.UserName;
@@ -348,7 +348,7 @@ public partial class UserManagement
         }
     }
 
-    private void OpenHandoverDialog()
+    private void OpenHandover()
     {
         _handoverUserId = Guid.Empty;
         _isHandoverOpen = true;

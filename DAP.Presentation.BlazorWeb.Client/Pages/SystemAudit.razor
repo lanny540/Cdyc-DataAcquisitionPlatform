@@ -3,6 +3,40 @@
 <PageTitle>系统审计</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
+    @if (_isDetailOpen)
+    {
+        @* —— 整页查看视图：审计变更详情，与采集服务器页一致，替代原抽屉弹窗 —— *@
+        <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.h4">变更详情</MudText>
+                    <MudText Typo="Typo.body1">@_detailTitle</MudText>
+                </MudStack>
+                <MudButton Variant="Variant.Text" Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => _isDetailOpen = false)">
+                    返回列表
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-warning pa-4" Elevation="0">
+            <MudText Typo="Typo.h6" Class="mb-2">请求与响应明细</MudText>
+            <pre class="platform-code-content">@_detailContent</pre>
+        </MudPaper>
+
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-success pa-4" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
+                      Wrap="Wrap.Wrap" Spacing="2">
+                <MudText Typo="Typo.body2" Color="Color.Secondary">审计日志只读，默认保留 180 天。</MudText>
+                <MudButton Variant="Variant.Text" Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => _isDetailOpen = false)">
+                    返回列表
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+    }
+    else
+    {
     <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
                   Spacing="3">
@@ -116,19 +150,5 @@
             </MudStack>
         }
     </MudPaper>
+    }
 </MudStack>
-
-<MudDialog @bind-Visible="_isDetailOpen" Options="PlatformDialogs.EditorSheet" AriaLabel="审计详情">
-    <DialogContent>
-        <MudStack Spacing="3" Class="platform-sheet">
-            <section class="platform-sheet-section platform-accent-warning">
-                <MudText Typo="Typo.h6">变更详情</MudText>
-                <MudText Typo="Typo.body2">@_detailTitle</MudText>
-                <pre class="platform-code-content">@_detailContent</pre>
-            </section>
-            <MudStack Row="true" Style="justify-content: flex-end;">
-                <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="@(() => _isDetailOpen = false)">关闭</MudButton>
-            </MudStack>
-        </MudStack>
-    </DialogContent>
-</MudDialog>
