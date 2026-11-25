@@ -19,6 +19,28 @@ Web（Blazor）与跨平台桌面（Avalonia）双终端展示方案。
 | 认证与权限 | 本地账号登录、域授权矩阵、页面等级与权限点、用户与角色、系统审计、部门管理员、LDAP/AD 同步、OIDC 统一登录、车间 IP 白名单免登录 |
 | 桌面客户端 | Avalonia 只读客户端：能耗四页、实时采集数据、排班日历，与 Web 共用账号与接口契约                                                |
 
+## 界面预览
+
+全站为浅色主题，采用 Material Design 3 红金配色：金色承担一切操作（主按钮、开关、输入焦点），品牌红只出现在顶栏与
+导航选中态，卡片整卡铺淡色底纹。按钮、输入框、开关、徽章在全站按同一套角色规则取色：主操作金色填充、次操作深灰蓝描边、
+取消为文字按钮、危险操作深酒红（规范见 `docs/DESIGN_SYSTEM.md` 3.10，由守卫测试强制）。
+
+|                                                                                             |                                                                                           |
+|---------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------|
+| ![能耗仪表板](docs/screenshots/dashboard.png)                                               | ![实时采集数据](docs/screenshots/collection-data.png)                                     |
+| ![历史指标](docs/screenshots/energy-history.png)                                           | ![班组横向对比](docs/screenshots/energy-comparison.png)                                   |
+| ![班组能耗报表](docs/screenshots/energy-report.png)                                       | ![排班时间管理](docs/screenshots/shift-schedules.png)                                     |
+| ![排班日历](docs/screenshots/shift-calendar.png)                                           | ![平台概览](docs/screenshots/platform-overview.png)                                       |
+| ![用户与角色](docs/screenshots/user-management.png)                                       | ![新建用户抽屉](docs/screenshots/user-management-dialog.png)                             |
+| ![域与页面配置](docs/screenshots/domain-config.png)                                       | ![部门与授权](docs/screenshots/department-grants.png)                                     |
+| ![点位配置](docs/screenshots/collection-points.png)                                       | ![系统审计](docs/screenshots/system-audit.png)                                             |
+
+删除确认框里的「确认删除」是深酒红（错误色），与顶栏激活模块的亮红（品牌色）靠明度区分：
+
+![删除确认](docs/screenshots/dialog-delete-confirm.png)
+
+![登录页](docs/screenshots/login.png)
+
 ## 界面预览：钞纸机数字孪生
 
 能耗仪表板页提供「数据看板 / 数字孪生」两个视图。孪生视图是一张等轴测的车间三维示意图：
@@ -39,6 +61,10 @@ Web（Blazor）与跨平台桌面（Avalonia）双终端展示方案。
 按组织看排名、按系统看分项。
 
 ![园区能源总览](docs/screenshots/park-energy-live.png)
+
+切换统计期间为「本年」：
+
+![园区能源总览（本年）](docs/screenshots/park-energy-year.png)
 
 数据链路：
 
@@ -122,7 +148,8 @@ Web（Blazor）与跨平台桌面（Avalonia）双终端展示方案。
 
 ## 设计规范
 
-全项目 UI 采用 **Material Design 3** 设计体系，整体为深色主题，Web 端与桌面端共用同一套品牌色板。
+全项目 UI 采用 **Material Design 3** 设计体系，整体为浅色红金配色：金色承担主按钮与选中态等操作，
+品牌红用于顶栏与导航，卡片整块铺淡色底纹。Web 端与桌面端共用同一套品牌色板。
 
 | 文档                                             | 用途                                                         |
 |--------------------------------------------------|--------------------------------------------------------------|

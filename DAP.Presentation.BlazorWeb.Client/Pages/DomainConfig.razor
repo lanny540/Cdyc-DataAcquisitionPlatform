@@ -3,7 +3,7 @@
 <PageTitle>域与页面配置</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
-    <MudPaper Class="platform-page-hero platform-accent-secondary pa-4" Elevation="0">
+    <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
                   Spacing="3">
             <MudStack Spacing="1">
@@ -13,7 +13,7 @@
                     调整过的页面标记为「后台修改」，启动对账不再覆盖；「恢复默认」可还原为代码声明的配置。
                 </MudText>
             </MudStack>
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Add"
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
                        OnClick="OpenCreateDomain">
                 新建域
             </MudButton>
@@ -42,29 +42,29 @@
                           Wrap="Wrap.Wrap" Spacing="2">
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
                         <MudText Typo="Typo.h6">@current.Name</MudText>
-                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@current.Code</MudChip>
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@current.Code</MudChip>
                         @if (!current.IsEnabled)
                         {
-                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Warning">
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning">
                                 已停用
                             </MudChip>
                         }
                         @if (current.IsSystem)
                         {
-                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text">系统域 · 不参与授权矩阵
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">系统域 · 不参与授权矩阵
                             </MudChip>
                         }
                         @if (current.VisibleWhenEmpty)
                         {
-                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text">空域对普通用户可见</MudChip>
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">空域对普通用户可见</MudChip>
                         }
                         @if (current.Pages.Count == 0)
                         {
-                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text">空域（未上线）</MudChip>
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">空域（未上线）</MudChip>
                         }
                     </MudStack>
                     <MudStack Row="true" Spacing="1">
-                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Secondary"
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
                                    OnClick="@(() => OpenDomainEditor(current))">
                             编辑域
                         </MudButton>
@@ -113,9 +113,9 @@
                                 }
                                 else
                                 {
-                                    <MudSelect T="int" Value="@context.AccessLevel"
+                                    <MudSelect Variant="Variant.Outlined" Margin="Margin.Dense" T="int" Value="@context.AccessLevel"
                                                ValueChanged="@(value => RequestAccessLevelChangeAsync(context, value))"
-                                               Dense="true" Variant="Variant.Text" Style="min-width: 96px;">
+                                               Dense="true" Style="min-width: 96px;">
                                         <MudSelectItem T="int" Value="1">1 · 查看</MudSelectItem>
                                         <MudSelectItem T="int" Value="2">2 · 配置</MudSelectItem>
                                     </MudSelect>
@@ -124,19 +124,19 @@
                             <MudTd DataLabel="状态">
                                 @if (context.IsOrphaned)
                                 {
-                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text">已下线</MudChip>
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">已下线</MudChip>
                                 }
                                 else
                                 {
                                     <MudSwitch T="bool" Value="@context.IsEnabled"
                                                ValueChanged="@(value => RequestToggleAsync(context, value))"
-                                               Color="Color.Secondary" Size="Size.Small"/>
+                                               Color="Color.Primary" Size="Size.Small"/>
                                 }
                             </MudTd>
                             <MudTd DataLabel="来源">
                                 @if (context.Source == "override")
                                 {
-                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text">后台修改</MudChip>
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">后台修改</MudChip>
                                 }
                                 else
                                 {
@@ -154,7 +154,7 @@
                                 }
                                 else
                                 {
-                                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Secondary"
+                                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
                                                OnClick="@(() => OpenPageEditor(context))">
                                         编辑
                                     </MudButton>
@@ -190,8 +190,8 @@
         </MudStack>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="CancelConfirm" Variant="Variant.Text">取消</MudButton>
-        <MudButton OnClick="AcceptConfirmAsync" Variant="Variant.Filled" Color="Color.Secondary">确认</MudButton>
+        <MudButton Color="Color.Secondary" OnClick="CancelConfirm" Variant="Variant.Text">取消</MudButton>
+        <MudButton OnClick="AcceptConfirmAsync" Variant="Variant.Filled" Color="Color.Primary">确认</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -202,26 +202,26 @@
         <MudStack Spacing="3" Class="platform-sheet">
             <section class="platform-sheet-section platform-accent-secondary">
                 <MudText Typo="Typo.h6">@(_isCreatingDomain ? "新建域" : "编辑域")</MudText>
-                <MudTextField T="string" Label="域编码" @bind-Value="_editorDomainCode"
+                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="域编码" @bind-Value="_editorDomainCode"
                               Disabled="@(!_isCreatingDomain)" Immediate="true"
                               HelperText="小写字母开头，可含数字与连字符；创建后不可改，页面代码按它声明归属"/>
-                <MudTextField T="string" Label="显示名称" @bind-Value="_editorDomainName" Immediate="true"
+                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="显示名称" @bind-Value="_editorDomainName" Immediate="true"
                               Counter="32" MaxLength="32"/>
-                <MudNumericField T="int" Label="顶栏排序（小的在前）" @bind-Value="_editorDomainSortOrder"
+                <MudNumericField Margin="Margin.Dense" Variant="Variant.Outlined" T="int" Label="顶栏排序（小的在前）" @bind-Value="_editorDomainSortOrder"
                                  Min="0" Max="999"/>
                 <MudSwitch T="bool" Label="启用该域" @bind-Value="_editorDomainEnabled"
-                           Color="Color.Secondary"/>
+                           Color="Color.Primary"/>
                 <MudSwitch T="bool" Label="空域也展示给普通用户" @bind-Value="_editorDomainVisibleWhenEmpty"
-                           Color="Color.Secondary"/>
+                           Color="Color.Primary"/>
                 <MudSwitch T="bool" Label="标记为系统域" @bind-Value="_editorDomainIsSystem"
-                           Color="Color.Warning"/>
+                           Color="Color.Primary"/>
                 <MudText Typo="Typo.body2" Class="platform-config-hint">
                     系统域不参与部门授权矩阵，固定归超级管理员；把业务域标成系统域后，普通用户将看不到它。
                 </MudText>
             </section>
             <MudStack Row="true" Justify="Justify.SpaceBetween">
-                <MudButton Variant="Variant.Text" OnClick="CloseDomainEditor">取消</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="_isSaving"
+                <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="CloseDomainEditor">取消</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_isSaving"
                            OnClick="SaveDomainAsync">
                     保存
                 </MudButton>
@@ -239,22 +239,22 @@
                 <MudText Typo="Typo.body2" Class="platform-config-hint">
                     路由 @_editorPageRoute · 页面标识 @_editorPageKey（均由代码声明，不可改）
                 </MudText>
-                <MudSelect T="Guid" Label="所属域" @bind-Value="_editorPageDomainId">
+                <MudSelect Margin="Margin.Dense" Variant="Variant.Outlined" T="Guid" Label="所属域" @bind-Value="_editorPageDomainId">
                     @foreach (AdminDomainDto domain in _domains)
                     {
                         <MudSelectItem T="Guid" Value="@domain.Id">@($"{domain.Name}（{domain.Code}）")</MudSelectItem>
                     }
                 </MudSelect>
-                <MudTextField T="string" Label="显示名称" @bind-Value="_editorPageTitle" Immediate="true"
+                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="显示名称" @bind-Value="_editorPageTitle" Immediate="true"
                               Counter="64" MaxLength="64"/>
-                <MudTextField T="string" Label="分组标题（留空表示直接挂在域下）"
+                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="分组标题（留空表示直接挂在域下）"
                               @bind-Value="_editorPageGroupTitle" Immediate="true" Counter="32" MaxLength="32"/>
-                <MudNumericField T="int" Label="域内排序（小的在前）" @bind-Value="_editorPageSortOrder"
+                <MudNumericField Margin="Margin.Dense" Variant="Variant.Outlined" T="int" Label="域内排序（小的在前）" @bind-Value="_editorPageSortOrder"
                                  Min="0" Max="999"/>
             </section>
             <MudStack Row="true" Justify="Justify.SpaceBetween">
-                <MudButton Variant="Variant.Text" OnClick="ClosePageEditor">取消</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="_isSaving"
+                <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="ClosePageEditor">取消</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_isSaving"
                            OnClick="SavePageAsync">
                     保存
                 </MudButton>

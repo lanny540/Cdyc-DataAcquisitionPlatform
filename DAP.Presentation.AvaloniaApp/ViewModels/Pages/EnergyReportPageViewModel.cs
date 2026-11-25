@@ -25,6 +25,8 @@ public sealed partial class EnergyReportPageViewModel : AutoRefreshPageViewModel
     private static readonly string[] MetricSoftKeys =
         ["DapInfoSoftBrush", "DapSuccessSoftBrush", "DapWarningSoftBrush", "DapTertiarySoftBrush"];
 
+    /// <summary>指标卡的 tint 底纹资源键：浅色主题下指标卡铺本色淡底（与 Web 端一致）。</summary>
+
     private readonly DesktopSession _session;
 
     private EnergyMetricDescriptorDto[] _metrics = [];
@@ -59,7 +61,7 @@ public sealed partial class EnergyReportPageViewModel : AutoRefreshPageViewModel
     public override string Description => "按日期区间汇总各班组消耗，支持口径切换与 CSV 导出。";
 
     /// <inheritdoc />
-    public override string Accent => "primary";
+    public override string Accent => "secondary";
 
     /// <summary>
     /// 统计粒度选项。
@@ -259,19 +261,22 @@ public sealed partial class EnergyReportPageViewModel : AutoRefreshPageViewModel
 
         SummaryCards.Add(new MetricCardModel("参与班组", TeamRows.Count.ToString(), "按当前统计口径汇总",
             NavIcons.Account, Palette.Brush(MetricAccentKeys[0]), Palette.Brush(MetricStrongKeys[0]),
-            Palette.Brush(MetricSoftKeys[0]), Palette.Brush("DapSurfaceBrush")));
+            Palette.Brush(MetricSoftKeys[0]), Palette.Brush("DapSurfaceBrush"),
+            Palette.Brush("DapInfoOnBrush")));
         SummaryCards.Add(new MetricCardModel("统计周期",
             TeamRows.Count == 0 ? "0" : TeamRows.Max(row => ParsePeriods(row.Periods)).ToString(),
             granularity.Label, NavIcons.Clock, Palette.Brush(MetricAccentKeys[1]),
             Palette.Brush(MetricStrongKeys[1]), Palette.Brush(MetricSoftKeys[1]),
-            Palette.Brush("DapSurfaceBrush")));
+            Palette.Brush("DapSurfaceBrush"), Palette.Brush("DapSuccessOnBrush")));
         SummaryCards.Add(new MetricCardModel("指标项", _metrics.Length.ToString(),
             _metrics.Length == 0 ? "未取到指标定义" : "四项原辅材料与能源",
             NavIcons.Science, Palette.Brush(MetricAccentKeys[2]), Palette.Brush(MetricStrongKeys[2]),
-            Palette.Brush(MetricSoftKeys[2]), Palette.Brush("DapSurfaceBrush")));
+            Palette.Brush(MetricSoftKeys[2]), Palette.Brush("DapSurfaceBrush"),
+            Palette.Brush("DapWarningOnBrush")));
         SummaryCards.Add(new MetricCardModel("明细记录", DetailRows.Count.ToString(), "逐条指标记录",
             NavIcons.TableRows, Palette.Brush(MetricAccentKeys[3]), Palette.Brush(MetricStrongKeys[3]),
-            Palette.Brush(MetricSoftKeys[3]), Palette.Brush("DapSurfaceBrush")));
+            Palette.Brush(MetricSoftKeys[3]), Palette.Brush("DapSurfaceBrush"),
+            Palette.Brush("DapTertiaryOnBrush")));
     }
 
     /// <summary>

@@ -19,9 +19,10 @@
     <Grid RowDefinitions="Auto,*" IsVisible="{Binding ShowShell}">
       <!-- 顶栏：品牌 / 模块 / 账号 -->
       <Border Grid.Row="0"
-              Background="{DynamicResource DapSurfaceBrush}"
-              BorderBrush="{DynamicResource DapBorderBrush}"
-              BorderThickness="0,0,0,1">
+              Background="{DynamicResource DapPrimaryBrush}"
+              BorderBrush="{DynamicResource DapPrimaryStrongBrush}"
+              BorderThickness="0,0,0,1"
+              BoxShadow="0 2px 4px -1px rgba(0,0,0,0.2), 0 4px 5px 0 rgba(0,0,0,0.14), 0 1px 10px 0 rgba(0,0,0,0.12)">
         <!-- macOS 系统交通灯绘制在窗口内容区左上角，品牌区必须让位，
                      否则 logo 与关闭按钮重叠（UrsaWindow 默认延伸内容区）。
                      Windows / Linux 的按钮在标题栏右侧，无需留白。 -->
@@ -32,17 +33,18 @@
         </Border.Padding>
         <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="18">
           <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-            <Border Width="30" Height="30" CornerRadius="8"
-                    Background="{DynamicResource DapPrimaryBrush}">
+            <!-- 品牌标识取主色高光块：顶栏实底上的浅一档色块 -->
+            <Border Width="30" Height="30" CornerRadius="4"
+                    Background="{DynamicResource DapPrimaryHighlightBrush}">
               <TextBlock Text="C" FontSize="16" FontWeight="Bold"
-                         Foreground="{DynamicResource DapSurfaceBrush}"
+                         Foreground="{DynamicResource DapOnPrimaryBrush}"
                          HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Border>
             <StackPanel Spacing="0" VerticalAlignment="Center">
               <TextBlock Text="CDYC 数据平台" FontSize="15" FontWeight="Bold"
-                         Foreground="{DynamicResource DapTextPrimaryBrush}" />
+                         Foreground="{DynamicResource DapOnPrimaryBrush}" />
               <TextBlock Text="数据查看 · 报表查询" FontSize="11"
-                         Foreground="{DynamicResource DapTextSubtleBrush}" />
+                         Foreground="{DynamicResource DapOnPrimaryMutedBrush}" />
             </StackPanel>
           </StackPanel>
 
@@ -67,10 +69,10 @@
             <StackPanel Spacing="0" HorizontalAlignment="Right">
               <TextBlock Text="{Binding Session.UserDisplayName}" FontSize="13"
                          FontWeight="SemiBold" HorizontalAlignment="Right"
-                         Foreground="{DynamicResource DapTextPrimaryBrush}" />
+                         Foreground="{DynamicResource DapOnPrimaryBrush}" />
               <TextBlock Text="{Binding Session.UserRoleText}" FontSize="11"
                          HorizontalAlignment="Right"
-                         Foreground="{DynamicResource DapTextSubtleBrush}" />
+                         Foreground="{DynamicResource DapOnPrimaryMutedBrush}" />
             </StackPanel>
             <Button Classes="ghost" Content="登出" Command="{Binding LogoutCommand}" />
           </StackPanel>

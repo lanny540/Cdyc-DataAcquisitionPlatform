@@ -21,8 +21,9 @@ public sealed partial class EnergyHistoryPageViewModel : EnergyPageViewModelBase
     private static readonly string[] MetricSoftKeys =
         ["DapInfoSoftBrush", "DapSuccessSoftBrush", "DapWarningSoftBrush", "DapTertiarySoftBrush"];
 
-    private static readonly string[] MetricTintKeys =
-        ["DapInfoTintBrush", "DapSuccessTintBrush", "DapWarningTintBrush", "DapTertiaryTintBrush"];
+    private static readonly string[] MetricOnKeys =
+        ["DapInfoOnBrush", "DapSuccessOnBrush", "DapWarningOnBrush", "DapTertiaryOnBrush"];
+
 
     private static readonly string[] MetricIcons =
         [NavIcons.Science, NavIcons.Opacity, NavIcons.Grain, NavIcons.Bolt];
@@ -203,7 +204,8 @@ public sealed partial class EnergyHistoryPageViewModel : EnergyPageViewModelBase
                 Palette.Brush(MetricAccentKeys[index]),
                 Palette.Brush(MetricStrongKeys[index]),
                 Palette.Brush(MetricSoftKeys[index]),
-                Palette.Brush("DapSurfaceBrush")));
+                Palette.Brush("DapSurfaceBrush"),
+                Palette.Brush(MetricOnKeys[index])));
 
             Trends.Add(new TrendCardModel(
                 $"{trend.MetricName}趋势",

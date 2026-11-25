@@ -3,7 +3,7 @@
 <PageTitle>排班日历</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
-    <MudPaper Class="platform-page-hero platform-accent-info pa-4" Elevation="0">
+    <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
             <MudStack Spacing="0">
                 <MudText Typo="Typo.h4" GutterBottom="true">排班日历</MudText>
@@ -34,7 +34,7 @@
                         <MudSelectItem T="string" Value="@team.TeamCode">@team.TeamName</MudSelectItem>
                     }
                 </MudSelect>
-                <MudButton Variant="Variant.Outlined" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Refresh"
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Refresh"
                            OnClick="LoadAsync" Disabled="_isLoading">
                     刷新
                 </MudButton>
@@ -65,11 +65,11 @@
                             </MudStack>
                         </MudStack>
                         <MudStack Row="true" Spacing="1">
-                            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" Color="Color.Default"
+                            <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Filled.ChevronLeft" Color="Color.Secondary"
                                            OnClick="@(() => ShiftMonth(-1))" aria-label="上个月"/>
-                            <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="GoToCurrentMonth">本月
+                            <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="GoToCurrentMonth">本月
                             </MudButton>
-                            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" Color="Color.Default"
+                            <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Filled.ChevronRight" Color="Color.Secondary"
                                            OnClick="@(() => ShiftMonth(1))" aria-label="下个月"/>
                         </MudStack>
                     </MudStack>
@@ -163,7 +163,7 @@
 
         <MudItem xs="12" lg="4">
             <MudStack Spacing="3">
-                <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-primary pa-4"
+                <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-secondary pa-4"
                           Elevation="0">
                     <MudStack Spacing="2">
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
@@ -259,7 +259,7 @@
                             <MudGrid Spacing="2">
                                 <MudItem xs="6">
                                     <MudPaper
-                                        Class="platform-stat-card platform-stat-card--tinted platform-accent-primary pa-3"
+                                        Class="platform-stat-card platform-stat-card--tinted platform-accent-secondary pa-3"
                                         Elevation="0">
                                         <div class="platform-stat-header">
                                             <span class="platform-section-icon">
@@ -327,7 +327,7 @@
                                         </MudText>
                                     </MudTd>
                                     <MudTd DataLabel="班次">
-                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
                                                  Color="@(context.IsRestDay ? Color.Warning : Color.Primary)">
                                             @context.ShiftName
                                         </MudChip>

@@ -3,7 +3,7 @@
 <PageTitle>系统审计</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
-    <MudPaper Class="platform-page-hero platform-accent-warning pa-4" Elevation="0">
+    <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
                   Spacing="3">
             <MudStack Spacing="1">
@@ -13,7 +13,7 @@
                     不含查询与登录。审计日志只读，默认保留 180 天。
                 </MudText>
             </MudStack>
-            <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.Download"
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Download"
                        Href="@ExportUrl" Target="_blank">
                 导出 CSV
             </MudButton>
@@ -27,24 +27,24 @@
 
     <MudPaper Class="platform-section-card--tinted platform-accent-warning pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Wrap="Wrap.Wrap" Class="mb-2">
-            <MudDatePicker Label="起始日期" @bind-Date="_from" DateFormat="yyyy-MM-dd" Clearable="true"/>
-            <MudDatePicker Label="截止日期" @bind-Date="_to" DateFormat="yyyy-MM-dd" Clearable="true"/>
-            <MudTextField T="string" Label="操作人账号" @bind-Value="_userName" Immediate="true"
+            <MudDatePicker Margin="Margin.Dense" Variant="Variant.Outlined" Label="起始日期" @bind-Date="_from" DateFormat="yyyy-MM-dd" Clearable="true" Class="platform-filter-select"/>
+            <MudDatePicker Margin="Margin.Dense" Variant="Variant.Outlined" Label="截止日期" @bind-Date="_to" DateFormat="yyyy-MM-dd" Clearable="true" Class="platform-filter-select"/>
+            <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" Label="操作人账号" @bind-Value="_userName" Immediate="true"
                           Class="platform-filter-field"/>
-            <MudSelect T="string" Label="对象类型" @bind-Value="_targetType" Clearable="true"
+            <MudSelect Variant="Variant.Outlined" Margin="Margin.Dense" T="string" Label="对象类型" @bind-Value="_targetType" Clearable="true"
                        Class="platform-filter-select">
                 @foreach (string type in _targetTypes)
                 {
                     <MudSelectItem T="string" Value="@type">@type</MudSelectItem>
                 }
             </MudSelect>
-            <MudSelect T="string" Label="结果" @bind-Value="_result" Clearable="true"
+            <MudSelect Variant="Variant.Outlined" Margin="Margin.Dense" T="string" Label="结果" @bind-Value="_result" Clearable="true"
                        Class="platform-filter-select">
                 <MudSelectItem T="string" Value="@("success")">成功</MudSelectItem>
                 <MudSelectItem T="string" Value="@("failed")">失败</MudSelectItem>
             </MudSelect>
-            <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="@(() => LoadAsync(1))">查询</MudButton>
-            <MudButton Variant="Variant.Text" OnClick="ClearFilters">清空筛选</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => LoadAsync(1))">查询</MudButton>
+            <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="ClearFilters">清空筛选</MudButton>
         </MudStack>
 
         @if (_isLoading)
@@ -92,14 +92,14 @@
                     <MudTd
                         DataLabel="对象">@($"{context.TargetType ?? "—"} / {context.TargetName ?? context.TargetId ?? "—"}")</MudTd>
                     <MudTd DataLabel="结果">
-                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
                                  Color="@(context.Result == "success" ? Color.Success : Color.Error)">
                             @(context.Result == "success" ? "成功" : "失败")
                         </MudChip>
                     </MudTd>
                     <MudTd DataLabel="来源">@(context.Ip ?? "—")</MudTd>
                     <MudTd Style="text-align: right;">
-                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Warning"
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
                                    Disabled="@(string.IsNullOrWhiteSpace(context.Detail))"
                                    OnClick="@(() => OpenDetail(context))">
                             查看
@@ -127,7 +127,7 @@
                 <pre class="platform-code-content">@_detailContent</pre>
             </section>
             <MudStack Row="true" Style="justify-content: flex-end;">
-                <MudButton Variant="Variant.Text" OnClick="@(() => _isDetailOpen = false)">关闭</MudButton>
+                <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="@(() => _isDetailOpen = false)">关闭</MudButton>
             </MudStack>
         </MudStack>
     </DialogContent>

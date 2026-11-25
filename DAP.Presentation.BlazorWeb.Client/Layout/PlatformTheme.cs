@@ -3,16 +3,17 @@ using MudBlazor;
 namespace DAP.Presentation.BlazorWeb.Client.Layout;
 
 /// <summary>
-/// 平台统一色板（Material Design 3）。
+/// 平台统一色板（Material Design 2，浅色品牌红 + 琥珀配色，示意稿定稿）。
 ///
 /// 此处色值须与 app.css 的 --md-* 变量保持同步，改动规则见 docs/DESIGN_SYSTEM.md。
 /// 登录页与主框架共用同一份主题，避免未登录时看到另一套配色。
 ///
-/// 全站以深色为主题：MudThemeProvider 传 IsDarkMode="true"，取 <see cref="Dark"/>。
-/// 浅色面板仍然保留——MudBlazor 组件在个别场景（打印、第三方便利贴）会读浅色值，
-/// 且将来若提供主题切换，这里就是现成的浅色档。
-/// 七色 base 是全站唯一色相锚点，浅色与深色共用；深浅差异只体现在
-/// 中性表面与 accent 的 soft/tint/strong 三档（深色容器 + 亮色强调文字）。
+/// 全站固定浅色主题：MudThemeProvider 传 IsDarkMode="false"，取 <see cref="Light"/>。
+/// 七色 base 是全站唯一色相锚点，每色配一档对比文字（-on）。
+///
+/// 色彩分工：primary 是红 #d32f2f（Red 700），承担顶栏与一切「操作」——主按钮、开关、选中、
+/// 输入焦点、图表主系列；tertiary 是强调琥珀 #ffb300，只作点缀（填充底配深褐字）；error 固定深酒红。
+/// 各色均为深色，对比文字一律白字。
 /// </summary>
 public static class PlatformTheme
 {
@@ -25,7 +26,6 @@ public static class PlatformTheme
         return new MudTheme
         {
             PaletteLight = Light(),
-            PaletteDark = Dark(),
             LayoutProperties =
                 new LayoutProperties
                 {
@@ -55,7 +55,8 @@ public static class PlatformTheme
     }
 
     /// <summary>
-    /// 浅色面板。中性面与 accent 三档维持原浅色值，深浅两套共用同一份品牌 base。
+    /// 浅色面板：中性面与 app.css 的 --platform-* 变量一一对应（黑色透明度阶 + 中性灰页底）。
+    /// 输入框描边取深一档（对白面 ≥3:1），表格行悬停取页面底色浅灰。
     /// </summary>
     private static PaletteLight Light()
     {
@@ -63,89 +64,51 @@ public static class PlatformTheme
 
         ApplyBrand(palette);
 
-        palette.Background = "#f4f7fa";
-        palette.BackgroundGray = "#eef2f7";
+        palette.Background = "#fafafa";
+        palette.BackgroundGray = "#eeeeee";
         palette.Surface = "#ffffff";
-        palette.AppbarBackground = "#ffffff";
-        palette.AppbarText = "#16202b";
+        palette.AppbarBackground = "#d32f2f";
+        palette.AppbarText = "#ffffff";
         palette.DrawerBackground = "#ffffff";
-        palette.DrawerIcon = "#4a5c70";
-        palette.DrawerText = "#16202b";
-        palette.TextPrimary = "#16202b";
-        palette.TextSecondary = "#4e5a70";
-        palette.TextDisabled = "#9aa6b6";
-        palette.ActionDefault = "#16202b";
-        palette.Divider = "#e1e7ee";
-        palette.DividerLight = "#eef2f7";
-        palette.LinesDefault = "#e1e7ee";
-        palette.LinesInputs = "#c7d0da";
-        palette.TableLines = "#e1e7ee";
-        palette.TableHover = "#dce8fa";
-        palette.TableStriped = "#f8fafc";
-        palette.Skeleton = "#e7ecf3";
+        palette.DrawerIcon = "#4f4f4f";
+        palette.DrawerText = "#212121";
+        palette.TextPrimary = "#212121";
+        palette.TextSecondary = "#4f4f4f";
+        palette.TextDisabled = "#9e9e9e";
+        palette.ActionDefault = "#212121";
+        palette.ActionDisabled = "#bdbdbd";
+        palette.Divider = "#e0e0e0";
+        palette.DividerLight = "#eeeeee";
+        palette.LinesDefault = "#e0e0e0";
+        palette.LinesInputs = "#8c8c8c";
+        palette.TableLines = "#eeeeee";
+        palette.TableHover = "#fafafa";
+        palette.TableStriped = "#fafafa";
+        palette.Skeleton = "#eeeeee";
 
         return palette;
     }
 
     /// <summary>
-    /// 深色面板：整体采用深色背景（Material Design 3 dark 规范）。
-    ///
-    /// 层级遵循「越浮越亮」：页面底 → 卡片表面 → 区块容器逐级提亮，
-    /// 与 M3 dark 的 elevation 惯例一致。accent 的 soft/tint 档在深色下是
-    /// 「深色容器」（带色相的暗底），strong 档改为亮色文字——深浅两套里
-    /// strong 的职责都是「在容器底上最清晰的强调色」，方向相反、语义相同。
-    /// 各色值均已核验：白字在 base 上 ≥4.5:1，strong 在 soft/tint 容器上 ≥4.5:1，
-    /// soft/tint 与深色表面的对比 ≥1.20:1（守卫测试强制）。
-    /// </summary>
-    private static PaletteDark Dark()
-    {
-        PaletteDark palette = new();
-
-        ApplyBrand(palette);
-
-        palette.Background = "#0e151d";
-        palette.BackgroundGray = "#101823";
-        palette.Surface = "#17212c";
-        palette.AppbarBackground = "#17212c";
-        palette.AppbarText = "#e6edf5";
-        palette.DrawerBackground = "#17212c";
-        palette.DrawerIcon = "#a7b6c8";
-        palette.DrawerText = "#e6edf5";
-        palette.TextPrimary = "#e6edf5";
-        palette.TextSecondary = "#a7b6c8";
-        palette.TextDisabled = "#5f7085";
-        palette.ActionDefault = "#e6edf5";
-        palette.Divider = "#2b3a4b";
-        palette.DividerLight = "#223042";
-        palette.LinesDefault = "#2b3a4b";
-        palette.LinesInputs = "#42576e";
-        palette.TableLines = "#2b3a4b";
-        palette.TableHover = "#1f2e42";
-        palette.TableStriped = "#1a2530";
-        palette.Skeleton = "#223042";
-
-        return palette;
-    }
-
-    /// <summary>
-    /// 品牌七色：全站唯一色相锚点，浅色与深色共用同一组 base。
-    /// base 同时承担主按钮背景（配白字 ≥4.5:1），因此深色主题下也不提亮。
+    /// 品牌七色（MD2 色阶）：全站唯一色相锚点，与 app.css 的 --md-* base / -on 变量同值。
+    /// 对比文字是「填充底上的文字」：主色红与各语义色均为深色配白字；
+    /// 强调琥珀偏亮，填充底配深褐字（TertiaryContrastText）。
     /// </summary>
     private static void ApplyBrand(Palette palette)
     {
-        palette.Primary = "#0b4fc4";
+        palette.Primary = "#d32f2f";
         palette.PrimaryContrastText = "#ffffff";
-        palette.Secondary = "#33475c";
+        palette.Secondary = "#455a64";
         palette.SecondaryContrastText = "#ffffff";
-        palette.Tertiary = "#7b2f9e";
-        palette.TertiaryContrastText = "#ffffff";
-        palette.Info = "#0f6fbd";
+        palette.Tertiary = "#ffb300";
+        palette.TertiaryContrastText = "#3e2a00";
+        palette.Info = "#1976d2";
         palette.InfoContrastText = "#ffffff";
-        palette.Success = "#0d7a3c";
+        palette.Success = "#2e7d32";
         palette.SuccessContrastText = "#ffffff";
         palette.Warning = "#b15600";
         palette.WarningContrastText = "#ffffff";
-        palette.Error = "#b32318";
+        palette.Error = "#8e1b1e";
         palette.ErrorContrastText = "#ffffff";
     }
 }

@@ -443,9 +443,12 @@ public sealed class AcquisitionServerService(
             .Replace(" API", string.Empty, StringComparison.Ordinal)
             .Replace(" ", string.Empty, StringComparison.Ordinal)
             .ToUpperInvariant();
-        string code = $"SRV_{prefix}{(string.IsNullOrEmpty(suffix) ? "SERVER" : suffix)}";
 
-        // 编码有 64 字符上限与全大写约束。
+        // 编码有 64 字符上限与全大写约束（ck_server_connections_code_upper）。
+        // 地址后缀保留原文，会带出 http 之类的小写字母，必须整体转大写，
+        // 否则 INSERT 会被数据库 CHECK 约束拒绝（表现为保存失败 500）。
+        string code = $"SRV_{prefix}{(string.IsNullOrEmpty(suffix) ? "SERVER" : suffix)}"
+            .ToUpperInvariant();
         return code.Length <= 64 ? code : code[..64];
     }
 

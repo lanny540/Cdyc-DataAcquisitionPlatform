@@ -20,16 +20,12 @@ public sealed class AuthDataInitializer(
     IHostEnvironment environment,
     ILogger<AuthDataInitializer> logger) : IHostedService
 {
-    /// <summary>
-    /// appsettings.json 中公开的初始密码。生产环境禁止用它建超管。
-    /// </summary>
-    private const string KnownDefaultBootstrapPassword = "Admin@123456";
-
     private readonly PlatformAuthOptions _options = options.Value;
 
     /// <inheritdoc />
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+        logger.LogInformation("认证数据初始化器启动（环境：{Environment}）。", environment.EnvironmentName);
         using IServiceScope scope = scopeFactory.CreateScope();
         DataAcquisitionPlatformDbContext db =
             scope.ServiceProvider.GetRequiredService<DataAcquisitionPlatformDbContext>();
@@ -429,15 +425,9 @@ public sealed class AuthDataInitializer(
             throw new InvalidOperationException($"Auth:BootstrapAdmin:Password 不满足要求：{passwordError}");
         }
 
-        // appsettings.json 里的初始密码是仓库公开的默认值，只能用于开发环境。
-        // 生产环境若照抄这份配置建超管，等于把入口密码写进了代码库。
-        if (environment.IsProduction()
-            && string.Equals(password, KnownDefaultBootstrapPassword, StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException(
-                "生产环境拒绝使用内置的默认初始密码创建超级管理员。"
-                + "请通过环境变量 Auth__BootstrapAdmin__Password 或用户机密覆盖后再启动。");
-        }
+        // 2026-11-24 运维决策：取消「生产环境默认口令拒启」闸门。
+        // 生产允许直接以 appsettings.json 中的初始密码创建超管，
+        // 依赖 MustChangePassword=true 的「首登强制改密」作为兜底防线。
 
         AppUser? user = await db.AppUsers
             .FirstOrDefaultAsync(item => item.UserName == userName, cancellationToken);

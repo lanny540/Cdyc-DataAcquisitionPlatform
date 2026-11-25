@@ -3,7 +3,7 @@
 <PageTitle>History 数据库 API 测试</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
-    <MudPaper Class="platform-page-hero platform-accent-warning pa-4" Elevation="0">
+    <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
             <MudStack Spacing="1">
                 <MudText Typo="Typo.h4">History 数据库 API 测试</MudText>
@@ -28,7 +28,7 @@
     <MudGrid Spacing="3">
         <MudItem xs="12" lg="5">
             <MudStack Spacing="2">
-                <MudPaper Class="platform-panel platform-section-card--tinted platform-accent-primary pa-4"
+                <MudPaper Class="platform-panel platform-section-card--tinted platform-accent-secondary pa-4"
                           Elevation="0">
                     <MudStack Spacing="2">
                         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
@@ -45,7 +45,7 @@
                                     </MudText>
                                 </MudStack>
                             </MudStack>
-                            <MudChip T="string" Variant="Variant.Text" Color="Color.Info">GET currentvalue</MudChip>
+                            <MudChip T="string" Variant="Variant.Outlined" Color="Color.Info">GET currentvalue</MudChip>
                         </MudStack>
 
                         <MudTextField Margin="Margin.Dense" Label="标签名称"
@@ -85,7 +85,7 @@
                                     </MudText>
                                 </MudStack>
                             </MudStack>
-                            <MudChip T="string" Variant="Variant.Text" Color="Color.Tertiary">GET raw</MudChip>
+                            <MudChip T="string" Variant="Variant.Outlined" Color="Color.Tertiary">GET raw</MudChip>
                         </MudStack>
 
                         <MudTextField Margin="Margin.Dense" Label="标签名称"
@@ -129,7 +129,7 @@
                                 最近 1 小时预设
                             </MudButton>
                             <MudButton Variant="Variant.Filled"
-                                       Color="Color.Secondary"
+                                       Color="Color.Primary"
                                        StartIcon="@Icons.Material.Filled.Timeline"
                                        Disabled="IsBusy"
                                        OnClick="QueryRawDataAsync">
@@ -188,7 +188,7 @@
                         <MudGrid Spacing="2">
                             <MudItem xs="12" md="4">
                                 <MudPaper
-                                    Class="platform-stat-card platform-stat-card--tinted platform-accent-primary history-api-metric-card pa-4"
+                                    Class="platform-stat-card platform-stat-card--tinted platform-accent-secondary history-api-metric-card pa-4"
                                     Elevation="0">
                                     <MudText Typo="Typo.caption">查询类型</MudText>
                                     <MudText Typo="Typo.h6">@_latestResponse.QueryType</MudText>

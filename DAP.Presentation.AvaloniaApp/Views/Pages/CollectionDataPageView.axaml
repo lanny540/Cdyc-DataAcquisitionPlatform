@@ -4,7 +4,7 @@
              x:Class="DAP.Presentation.AvaloniaApp.Views.Pages.CollectionDataPageView"
              x:DataType="vm:CollectionDataPageViewModel">
   <Grid RowDefinitions="Auto,Auto,*" RowSpacing="12">
-    <Border Classes="page-hero" Background="{DynamicResource DapInfoTintBrush}">
+    <Border Classes="page-hero">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
         <StackPanel Spacing="6">
           <TextBlock Classes="page-title" Text="实时采集数据" />
@@ -31,7 +31,7 @@
           </StackPanel>
           <CheckBox Content="自动刷新" IsChecked="{Binding AutoRefreshEnabled}"
                     VerticalAlignment="Bottom" />
-          <Button Classes="Primary" Content="刷新" VerticalAlignment="Bottom"
+          <Button Classes="ghost" Content="刷新" VerticalAlignment="Bottom"
                   Command="{Binding RefreshCommand}"
                   IsEnabled="{Binding IsNotLoading}" />
         </StackPanel>

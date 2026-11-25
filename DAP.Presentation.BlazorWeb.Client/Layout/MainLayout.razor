@@ -6,9 +6,9 @@
 @inject NavigationManager Nav
 @inject INavigationViewClient NavigationView
 
-@* 全站固定深色主题：IsDarkMode 决定 MudBlazor 组件读 PaletteDark，
-   与 app.css 的深色变量、PlatformTheme.Dark 三处同源同步。 *@
-<MudThemeProvider Theme="_theme" IsDarkMode="true"/>
+@* 全站固定浅色主题（MD2 品牌红+琥珀，示意稿定稿）：IsDarkMode="false" 让 MudBlazor 组件读 PaletteLight，
+   与 app.css 的浅色变量、PlatformTheme.Light 同源同步。 *@
+<MudThemeProvider Theme="_theme" IsDarkMode="false"/>
 <MudPopoverProvider/>
 <MudDialogProvider/>
 <MudSnackbarProvider/>
@@ -304,7 +304,7 @@
     }
 
     /// <summary>
-    /// 平台统一色板（Material Design 3）。定义见 <see cref="PlatformTheme"/>，
+    /// 平台统一色板（Material Design 2 品牌红+琥珀，示意稿定稿）。定义见 <see cref="PlatformTheme"/>，
     /// 登录页与主框架共用同一份，避免未登录时看到另一套配色。
     /// </summary>
     private readonly MudTheme _theme = PlatformTheme.Create();

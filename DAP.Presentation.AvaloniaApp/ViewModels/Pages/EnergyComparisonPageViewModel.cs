@@ -20,8 +20,6 @@ public sealed partial class EnergyComparisonPageViewModel : AutoRefreshPageViewM
     private static readonly string[] MetricStrongKeys =
         ["DapInfoStrongBrush", "DapSuccessStrongBrush", "DapWarningStrongBrush", "DapTertiaryStrongBrush"];
 
-    private static readonly string[] MetricTintKeys =
-        ["DapInfoTintBrush", "DapSuccessTintBrush", "DapWarningTintBrush", "DapTertiaryTintBrush"];
 
     private readonly DesktopSession _session;
 
@@ -174,20 +172,25 @@ public sealed partial class EnergyComparisonPageViewModel : AutoRefreshPageViewM
         TeamEnergyComparisonDto lowest = teams.MinBy(team => team.TotalConsumption)!;
         decimal spread = highest.TotalConsumption - lowest.TotalConsumption;
 
+        // 指标卡为白卡（与 Web 端示意稿语言一致），色相由圆形图标底块承载。
         SummaryCards.Add(new MetricCardModel("参与对比班组", teams.Length.ToString(), RangeText,
             NavIcons.Account, Palette.Brush("DapWarningBrush"), Palette.Brush("DapWarningStrongBrush"),
-            Palette.Brush("DapWarningSoftBrush"), Palette.Brush("DapSurfaceBrush")));
+            Palette.Brush("DapWarningSoftBrush"), Palette.Brush("DapSurfaceBrush"),
+            Palette.Brush("DapWarningOnBrush")));
         SummaryCards.Add(new MetricCardModel("综合能耗最高", highest.TeamName,
             $"{MetricFormat.Value(highest.TotalConsumption)} kgce，区间内最高",
-            NavIcons.Insights, Palette.Brush("DapPrimaryBrush"), Palette.Brush("DapPrimaryStrongBrush"),
-            Palette.Brush("DapPrimarySoftBrush"), Palette.Brush("DapSurfaceBrush")));
+            NavIcons.Insights, Palette.Brush("DapSecondaryBrush"), Palette.Brush("DapSecondaryStrongBrush"),
+            Palette.Brush("DapSecondarySoftBrush"), Palette.Brush("DapSurfaceBrush"),
+            Palette.Brush("DapSecondaryOnBrush")));
         SummaryCards.Add(new MetricCardModel("综合能耗最低", lowest.TeamName,
             $"{MetricFormat.Value(lowest.TotalConsumption)} kgce，区间内最低",
             NavIcons.BarChart, Palette.Brush("DapSuccessBrush"), Palette.Brush("DapSuccessStrongBrush"),
-            Palette.Brush("DapSuccessSoftBrush"), Palette.Brush("DapSurfaceBrush")));
+            Palette.Brush("DapSuccessSoftBrush"), Palette.Brush("DapSurfaceBrush"),
+            Palette.Brush("DapSuccessOnBrush")));
         SummaryCards.Add(new MetricCardModel("极差", MetricFormat.Value(spread), "最高与最低班组的综合能耗差值",
             NavIcons.Bolt, Palette.Brush("DapInfoBrush"), Palette.Brush("DapInfoStrongBrush"),
-            Palette.Brush("DapInfoSoftBrush"), Palette.Brush("DapSurfaceBrush")));
+            Palette.Brush("DapInfoSoftBrush"), Palette.Brush("DapSurfaceBrush"),
+            Palette.Brush("DapInfoOnBrush")));
 
         for (int index = 0; index < metrics.Length && index < 4; index++)
         {

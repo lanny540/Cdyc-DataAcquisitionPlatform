@@ -8,10 +8,10 @@
             VerticalAlignment="Center">
       <StackPanel Spacing="16">
         <StackPanel Orientation="Horizontal" Spacing="12">
-          <Border Width="38" Height="38" CornerRadius="10"
+          <Border Width="38" Height="38" CornerRadius="4"
                   Background="{DynamicResource DapPrimaryBrush}">
             <TextBlock Text="C" FontSize="20" FontWeight="Bold"
-                       Foreground="{DynamicResource DapSurfaceBrush}"
+                       Foreground="{DynamicResource DapPrimaryOnBrush}"
                        HorizontalAlignment="Center" VerticalAlignment="Center" />
           </Border>
           <StackPanel Spacing="2" VerticalAlignment="Center">

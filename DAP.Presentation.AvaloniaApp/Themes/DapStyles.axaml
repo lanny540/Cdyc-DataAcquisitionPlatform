@@ -4,15 +4,32 @@
   CDYC 数据采集平台 · 桌面端样式体系
 
   与 Web 端 app.css 的 platform 前缀类一一对应，语义相同、层次相同：
-    页头 page-hero（tint 底）、统计卡 stat-card（soft 底）、
-    区块卡 section-card（tint 底 + 左侧 4px 色条）、白色底板 chart-frame / panel。
+    页头 page-hero（tint 色块）、统计卡 stat-card（tint 色块 + 左侧 4px 色条，
+    头条 KPI 用主色实底配反白文字）、区块卡 section-card（tint 色块 + 左侧 4px 色条）、
+    白色底板 chart-frame / panel。圆角遵循 MD2 的 4dp。
 
   所有颜色都走 DapPalette.axaml 的资源键，禁止在本文件出现十六进制色值。
-  具体色相由页面在控件上显式绑定 DapXxxSoftBrush / DapXxxTintBrush 决定，
+  具体色相由页面在控件上显式绑定 DapXxxTintBrush / DapXxxSoftBrush 决定，
   本文件只负责尺寸、圆角、字号与留白，避免为每个色相新增一条规则。
+
+  外壳（顶栏、模块与抽屉选中）取主色紫 DapPrimary*，顶栏为主色实底
+  （MD2 经典形态），表面文字用 DapOnPrimary* 反白资源。
 -->
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- ============ 主按钮前景 ============
+         实心主按钮为「主色实底白字」（MD2）。
+         资源键层（SemiBrandOverride.axaml）已覆盖三态底色，
+         这里再补一层控件级前景，保证主按钮始终是白字。 -->
+  <Style Selector="Button.Primary">
+    <Setter Property="Foreground" Value="{DynamicResource DapPrimaryOnBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <Style Selector="Button.Primary:pointerover, Button.Primary:pressed">
+    <Setter Property="Foreground" Value="{DynamicResource DapPrimaryOnBrush}" />
+  </Style>
 
   <!-- ============ 文本层级 ============ -->
   <Style Selector="TextBlock.page-title">
@@ -98,40 +115,44 @@
   </Style>
 
   <!-- ============ 容器 ============ -->
+  <!-- 页面头部：示意稿风格无色块，标题直接排在页面底色上 -->
   <Style Selector="Border.page-hero">
-    <Setter Property="CornerRadius" Value="14" />
+    <Setter Property="CornerRadius" Value="4" />
     <Setter Property="Padding" Value="20,18" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="BorderBrush" Value="{DynamicResource DapBorderBrush}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Background" Value="Transparent" />
   </Style>
 
+  <!-- 统计卡：白卡 + MD2 投影浮于灰底（示意稿语言），不铺底纹不加色条 -->
   <Style Selector="Border.stat-card">
-    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="CornerRadius" Value="4" />
     <Setter Property="Padding" Value="16,14" />
-    <!-- 左侧 4px 色条：与 Web 端统计卡一致，画刷由各卡片绑定 Accent（base 档） -->
-    <Setter Property="BorderThickness" Value="4,0,0,0" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="BoxShadow" Value="0 1px 3px 0 #1F000000, 0 1px 2px 0 #3D000000" />
   </Style>
 
+  <!-- 区块卡：白卡 + MD2 投影（示意稿语言），卡内表格/图表直接坐在白面上 -->
   <Style Selector="Border.section-card">
-    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="CornerRadius" Value="4" />
     <Setter Property="Padding" Value="18" />
-    <Setter Property="BorderThickness" Value="4,0,0,0" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="BoxShadow" Value="0 1px 3px 0 #1F000000, 0 1px 2px 0 #3D000000" />
   </Style>
 
   <Style Selector="Border.panel">
     <Setter Property="Background" Value="{DynamicResource DapSurfaceBrush}" />
-    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="CornerRadius" Value="4" />
     <Setter Property="Padding" Value="18" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="BorderBrush" Value="{DynamicResource DapBorderBrush}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="BoxShadow" Value="0 1px 3px 0 #1F000000, 0 1px 2px 0 #3D000000" />
   </Style>
 
+  <!-- 图表容器：直接坐在所在白卡上，不再自带底色与描边 -->
   <Style Selector="Border.chart-frame">
-    <Setter Property="Background" Value="{DynamicResource DapSurfaceBrush}" />
-    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="CornerRadius" Value="4" />
     <Setter Property="Padding" Value="12" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="BorderBrush" Value="{DynamicResource DapBorderBrush}" />
+    <Setter Property="BorderThickness" Value="0" />
   </Style>
 
   <Style Selector="Border.chip">
@@ -156,23 +177,26 @@
 
   <Style Selector="Border.empty-state">
     <Setter Property="Padding" Value="32" />
-    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="CornerRadius" Value="4" />
     <Setter Property="BorderThickness" Value="0" />
   </Style>
 
   <!-- ============ 表单控件 ============ -->
   <Style Selector="TextBox.field, ComboBox.field, CalendarDatePicker.field, NumericUpDown.field">
     <Setter Property="MinHeight" Value="34" />
-    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="CornerRadius" Value="4" />
     <Setter Property="FontSize" Value="13" />
   </Style>
 
+  <!-- 次操作按钮（刷新 / 导出 / 上一月 / 返回）：白底 + 描边 + 次色文字，
+       与 Web 端 Color.Secondary + Variant.Outlined 对应。
+       主操作（生成报表 / 登录）才用 Classes="Primary" 的主色填充。 -->
   <Style Selector="Button.ghost">
     <Setter Property="Background" Value="{DynamicResource DapSurfaceBrush}" />
-    <Setter Property="Foreground" Value="{DynamicResource DapTextPrimaryBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource DapSecondaryBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource DapBorderStrongBrush}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="CornerRadius" Value="4" />
     <Setter Property="Padding" Value="14,7" />
     <Setter Property="FontSize" Value="13" />
   </Style>
@@ -190,7 +214,7 @@
   </Style>
 
   <Style Selector="DataGrid.data-table /template/ DataGridColumnHeader">
-    <Setter Property="Background" Value="{DynamicResource DapSurfaceSunkenBrush}" />
+    <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource DapTextSecondaryBrush}" />
     <Setter Property="FontSize" Value="12" />
     <Setter Property="FontWeight" Value="SemiBold" />
@@ -213,7 +237,7 @@
   </Style>
 
   <Style Selector="Border.nav-item">
-    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="CornerRadius" Value="4" />
     <Setter Property="Padding" Value="12,9" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
@@ -251,14 +275,19 @@
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="Padding" Value="14,8" />
-    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="CornerRadius" Value="4" />
     <Setter Property="FontSize" Value="14" />
-    <Setter Property="Foreground" Value="{DynamicResource DapTextSecondaryBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource DapOnPrimaryMutedBrush}" />
+  </Style>
+
+  <Style Selector="Button.module-button:pointerover">
+    <Setter Property="Background" Value="{DynamicResource DapPrimaryHighlightHoverBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource DapOnPrimaryBrush}" />
   </Style>
 
   <Style Selector="Button.module-button.active">
-    <Setter Property="Background" Value="{DynamicResource DapPrimaryTintBrush}" />
-    <Setter Property="Foreground" Value="{DynamicResource DapPrimaryStrongBrush}" />
+    <Setter Property="Background" Value="{DynamicResource DapPrimaryHighlightBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource DapOnPrimaryBrush}" />
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
 

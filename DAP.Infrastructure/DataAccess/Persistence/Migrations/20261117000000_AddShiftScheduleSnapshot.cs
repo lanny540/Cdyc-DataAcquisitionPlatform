@@ -20,7 +20,7 @@ public sealed class AddShiftScheduleSnapshot : Migration
                 rows_json jsonb NOT NULL,
                 imported_at timestamp with time zone NOT NULL,
                 file_name text NOT NULL
-            )
+            );
             """);
     }
 

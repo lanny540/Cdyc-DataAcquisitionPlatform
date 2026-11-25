@@ -88,7 +88,7 @@ public static class DesktopNavigationCatalog
                 new DesktopNavGroup("数据报表",
                 [
                     new DesktopNavItem(PageKeys.EnergyReport, "班组能耗报表", "区间汇总、明细与导出",
-                        NavIcons.Assessment, typeof(EnergyReportPageViewModel), "primary")
+                        NavIcons.Assessment, typeof(EnergyReportPageViewModel), "secondary")
                 ])
             ]),
         new(

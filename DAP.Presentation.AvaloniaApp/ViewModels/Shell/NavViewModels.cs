@@ -52,8 +52,8 @@ public sealed partial class NavItemViewModel : ObservableObject
     [ObservableProperty] private bool _isSelected;
 
     /// <summary>
-    /// 图标前景色：激活项用 primary 亮蓝（与 Web 端激活态一致），
-    /// 非激活项用本页主色的 strong 亮色档——与 Web 端「前景一律 Strong」的分区着色对齐。
+    /// 图标前景色：激活项用品牌红加深档（与 Web 端抽屉选中态一致），
+    /// 非激活项用本页主色的 strong 加深档，与 Web 端「前景一律 Strong」的分区着色对齐。
     /// </summary>
     public IBrush IconBrush => IsSelected
         ? Palette.Brush("DapPrimaryStrongBrush")

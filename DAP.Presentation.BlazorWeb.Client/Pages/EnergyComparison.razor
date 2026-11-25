@@ -3,7 +3,7 @@
 <PageTitle>班组横向对比</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
-    <MudPaper Class="platform-page-hero platform-accent-warning pa-4" Elevation="0">
+    <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
             <MudStack Spacing="0">
                 <MudText Typo="Typo.h4" GutterBottom="true">班组横向对比</MudText>
@@ -36,7 +36,7 @@
                                DateChanged="@(value => OnReferenceDateChangedAsync(value))"
                                Variant="Variant.Outlined" Margin="Margin.Dense"
                                Style="min-width: 170px;"/>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh"
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Refresh"
                            OnClick="LoadAsync" Disabled="@(_isLoading || _isRefreshing)">
                     刷新
                 </MudButton>
@@ -101,7 +101,7 @@
                 </MudPaper>
             </MudItem>
             <MudItem xs="12" sm="6" lg="3">
-                <MudPaper Class="platform-stat-card platform-stat-card--tinted platform-accent-primary pa-4"
+                <MudPaper Class="platform-stat-card platform-stat-card--tinted platform-accent-secondary pa-4"
                           Elevation="0">
                     <div class="platform-stat-header">
                         <span class="platform-section-icon">
@@ -194,7 +194,7 @@
             }
         </MudGrid>
 
-        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-primary pa-4"
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-secondary pa-4"
                   Elevation="0">
             <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
                       Spacing="2">
@@ -235,13 +235,13 @@
                             <MudText Typo="Typo.body2" Class="platform-table-primary">@context.TeamName</MudText>
                             @if (context.TeamName == HighestTeamName)
                             {
-                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Error">
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error">
                                     最高
                                 </MudChip>
                             }
                             else if (context.TeamName == LowestTeamName)
                             {
-                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Success">
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Success">
                                     最低
                                 </MudChip>
                             }

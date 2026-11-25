@@ -13,7 +13,7 @@
                         @EditorDescription
                     </MudText>
                 </MudStack>
-                <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Default" OnClick="Close"
+                <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Filled.Close" Color="Color.Secondary" OnClick="Close"
                                aria-label="关闭编辑"/>
             </MudStack>
 
@@ -116,7 +116,7 @@
                             <MudText Typo="Typo.h6">采集信息</MudText>
                             @if (CurrentServerType is not null)
                             {
-                                <MudChip T="string" Variant="Variant.Text"
+                                <MudChip T="string" Variant="Variant.Outlined"
                                          Color="@GetServerTypeChipColor(CurrentServerType.ServerType)">
                                     @CurrentServerType.DisplayName
                                 </MudChip>
@@ -282,7 +282,7 @@
             <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="ResetEditor" Disabled="IsBusy">
                 清空
             </MudButton>
-            <MudButton Variant="Variant.Outlined" Color="Color.Info" Disabled="IsBusy"
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Disabled="IsBusy"
                        StartIcon="@(_isTestingConnection ? Icons.Material.Filled.HourglassTop : Icons.Material.Filled.WifiTethering)"
                        OnClick="TestConnectionAsync">
                 @(_isTestingConnection ? "测试中..." : "测试连接")

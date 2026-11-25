@@ -120,7 +120,6 @@ public static class NavigationCatalog
     /// <summary>平台管理模块标识。</summary>
     public const string PlatformAdmin = "platform-admin";
 
-    private const string AccentPrimary = "platform-nav-link--primary";
     private const string AccentSecondary = "platform-nav-link--secondary";
     private const string AccentTertiary = "platform-nav-link--tertiary";
     private const string AccentSuccess = "platform-nav-link--success";
@@ -148,7 +147,7 @@ public static class NavigationCatalog
                 ]),
                 new NavGroup("数据报表",
                 [
-                    new NavItem("班组能耗报表", "/energy-report", Icons.Material.Filled.Assessment, AccentPrimary,
+                    new NavItem("班组能耗报表", "/energy-report", Icons.Material.Filled.Assessment, AccentSecondary,
                         "energy-report")
                 ])
             ]),
@@ -199,7 +198,7 @@ public static class NavigationCatalog
             [
                 new NavGroup("班组管理",
                 [
-                    new NavItem("排班时间管理", "/shift-schedules", Icons.Material.Filled.UploadFile, AccentPrimary,
+                    new NavItem("排班时间管理", "/shift-schedules", Icons.Material.Filled.UploadFile, AccentSecondary,
                         "shift-schedules", AccessLevel: AuthorizationCatalog.ConfigureAccessLevel),
                     new NavItem("排班日历", "/shift-calendar", Icons.Material.Filled.CalendarMonth, AccentInfo,
                         "shift-calendar", AccessLevel: AuthorizationCatalog.ConfigureAccessLevel)
@@ -211,7 +210,7 @@ public static class NavigationCatalog
             "采集配置与接口联调",
             Icons.Material.Filled.AdminPanelSettings,
             [
-                new NavItem("平台概览", "/platform-overview", Icons.Material.Filled.Dashboard, AccentPrimary,
+                new NavItem("平台概览", "/platform-overview", Icons.Material.Filled.Dashboard, AccentSecondary,
                     "platform-overview", AuthorizationCatalog.PlatformDomain),
                 new NavItem("服务器状态查询", "/server-connection-status", Icons.Material.Filled.Router, AccentInfo,
                     "server-connection-status", AuthorizationCatalog.PlatformDomain)
@@ -246,7 +245,7 @@ public static class NavigationCatalog
                         AccentInfo, "user-management", AuthorizationCatalog.PlatformDomain,
                         AuthorizationCatalog.ConfigureAccessLevel,
                         AuthorizationCatalog.UserManagePermission, true),
-                    new NavItem("域与页面配置", "/domain-config", Icons.Material.Filled.AccountTree, AccentPrimary,
+                    new NavItem("域与页面配置", "/domain-config", Icons.Material.Filled.AccountTree, AccentSecondary,
                         "domain-config", AuthorizationCatalog.PlatformDomain,
                         AuthorizationCatalog.ConfigureAccessLevel),
                     new NavItem("部门与授权", "/department-grants", Icons.Material.Filled.Group, AccentSuccess,

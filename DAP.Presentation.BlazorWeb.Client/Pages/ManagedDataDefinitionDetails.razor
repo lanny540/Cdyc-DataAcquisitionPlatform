@@ -5,7 +5,7 @@
 <MudStack Class="platform-page-shell" Spacing="2">
     <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
         <div class="node-details-back-strip">
-            <MudButton Variant="Variant.Text" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.ArrowBack"
+            <MudButton Variant="Variant.Text" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.ArrowBack"
                        Class="node-details-back-button" OnClick="GoBack">
                 返回后台数据管理
             </MudButton>
@@ -61,7 +61,7 @@
                            OnClick="OpenEditor">
                     编辑节点
                 </MudButton>
-                <MudButton Variant="Variant.Outlined" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Refresh"
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Refresh"
                            Disabled="_isLoading || _isExecuting" OnClick="@(() => LoadAsync())">
                     刷新详情
                 </MudButton>
@@ -95,8 +95,8 @@
 
     @if (_isLoading)
     {
-        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-primary" Elevation="0">
-            <div class="platform-empty-state platform-accent-primary">
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-secondary" Elevation="0">
+            <div class="platform-empty-state platform-accent-secondary">
                 <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
                 <MudText Typo="Typo.body1">正在加载节点详情...</MudText>
             </div>
@@ -193,7 +193,7 @@
         <MudGrid>
             <MudItem xs="12">
                 <MudStack Spacing="3">
-                    <MudPaper Class="platform-panel platform-panel--tinted platform-accent-primary pa-4"
+                    <MudPaper Class="platform-panel platform-panel--tinted platform-accent-secondary pa-4"
                               Elevation="0">
                         <MudStack Spacing="3">
                             <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
@@ -251,7 +251,7 @@
                                         </MudText>
                                     </MudStack>
                                 </MudStack>
-                                <MudChip T="string" Variant="Variant.Text" Color="Color.Info">
+                                <MudChip T="string" Variant="Variant.Outlined" Color="Color.Info">
                                     共 @_details.RecentRecords.Count 条
                                 </MudChip>
                             </MudStack>
@@ -326,7 +326,7 @@
                         <MudStack Spacing="0" Class="flex-grow-1">
                             <MudText Typo="Typo.h5">节点配置详情</MudText>
                         </MudStack>
-                        <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Default"
+                        <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Filled.Close" Color="Color.Secondary"
                                        OnClick="CloseInfoDrawer" aria-label="关闭节点配置"/>
                     </MudStack>
 
@@ -363,13 +363,13 @@
                             <MudStack Spacing="1">
                                 <MudText Typo="Typo.h6" Class="platform-card-title">业务标识</MudText>
                                 <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
-                                    <MudChip T="string" Variant="Variant.Text" Color="Color.Primary">
+                                    <MudChip T="string" Variant="Variant.Outlined" Color="Color.Primary">
                                         @_details.Definition.Department
                                     </MudChip>
-                                    <MudChip T="string" Variant="Variant.Text" Color="Color.Secondary">
+                                    <MudChip T="string" Variant="Variant.Outlined" Color="Color.Secondary">
                                         @_details.Definition.ProcessCode
                                     </MudChip>
-                                    <MudChip T="string" Variant="Variant.Text" Color="Color.Info">
+                                    <MudChip T="string" Variant="Variant.Outlined" Color="Color.Info">
                                         @_details.Definition.DataCategory
                                     </MudChip>
                                 </MudStack>

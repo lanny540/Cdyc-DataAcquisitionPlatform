@@ -3,7 +3,7 @@
 <PageTitle>点位数据管理</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
-    <MudPaper Class="platform-page-hero platform-accent-tertiary pa-4" Elevation="0">
+    <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
             <MudStack Spacing="1">
                 @* 与左侧菜单同名：菜单「点位数据管理」，页面原标题是「后台数据管理」。 *@
@@ -24,7 +24,7 @@
             </MudStack>
 
             <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
-                <MudButton Variant="Variant.Outlined" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Refresh"
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Refresh"
                            OnClick="LoadAsync">
                     刷新列表
                 </MudButton>
@@ -94,7 +94,7 @@
                     </MudText>
                 </MudStack>
             </MudStack>
-            <MudChip T="string" Variant="Variant.Text" Color="Color.Default">
+            <MudChip T="string" Variant="Variant.Outlined" Color="Color.Default">
                 默认按采集方式与编码排序
             </MudChip>
         </div>
@@ -121,7 +121,7 @@
     </MudPaper>
 
     <MudPaper
-        Class="platform-section-card platform-section-card--tinted platform-accent-primary managed-data-table-card"
+        Class="platform-section-card platform-section-card--tinted platform-accent-secondary managed-data-table-card"
         Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="2"
                   Class="pa-4">
@@ -136,7 +136,7 @@
                     </MudText>
                 </MudStack>
             </MudStack>
-            <MudChip T="string" Variant="Variant.Text" Color="Color.Default">
+            <MudChip T="string" Variant="Variant.Outlined" Color="Color.Default">
                 当前筛选结果 @FilteredDefinitions.Count() 条
             </MudChip>
         </MudStack>
@@ -197,7 +197,7 @@
                     </MudStack>
                 </MudTd>
                 <MudTd DataLabel="数据类别">
-                    <MudChip T="string" Variant="Variant.Text" Color="Color.Info"
+                    <MudChip T="string" Variant="Variant.Outlined" Color="Color.Info"
                              Size="Size.Small" Class="managed-data-chip">@context.DataCategory</MudChip>
                 </MudTd>
                 <MudTd DataLabel="采集频次">
@@ -224,14 +224,14 @@
                 </MudTd>
                 <MudTd DataLabel="操作" Class="table-action-cell">
                     <div class="table-action-grid managed-data-action-grid">
-                        <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
                                    Class="table-action-button"
                                    FullWidth="true"
                                    StartIcon="@Icons.Material.Filled.Visibility"
                                    OnClick="@(() => OpenDetails(context))">
                             详情
                         </MudButton>
-                        <MudButton Variant="Variant.Outlined" Color="Color.Info"
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Info"
                                    Class="table-action-button"
                                    FullWidth="true"
                                    StartIcon="@Icons.Material.Filled.PlayCircleOutline"
@@ -239,7 +239,7 @@
                                    OnClick="@(() => DebugReadAsync(context))">
                             @(IsExecutingDefinition(context.Id, false) ? "读取中" : "调试")
                         </MudButton>
-                        <MudButton Variant="Variant.Outlined" Color="Color.Success"
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Success"
                                    Class="table-action-button"
                                    FullWidth="true"
                                    StartIcon="@Icons.Material.Filled.CloudDownload"
@@ -247,14 +247,14 @@
                                    OnClick="@(() => CollectAsync(context))">
                             @(IsExecutingDefinition(context.Id, true) ? "采集中" : "入库")
                         </MudButton>
-                        <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
                                    Class="table-action-button"
                                    FullWidth="true"
                                    StartIcon="@Icons.Material.Filled.Edit"
                                    OnClick="@(() => EditAsync(context))">
                             编辑
                         </MudButton>
-                        <MudButton Variant="Variant.Outlined" Color="Color.Error"
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error"
                                    Class="table-action-button"
                                    FullWidth="true"
                                    StartIcon="@Icons.Material.Filled.DeleteOutline"
@@ -281,7 +281,7 @@
         </MudTable>
     </MudPaper>
 
-    <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-primary pa-4" Elevation="0">
+    <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-secondary pa-4" Elevation="0">
         <MudStack Spacing="3">
             <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
@@ -330,7 +330,7 @@
                     </MudItem>
                     <MudItem xs="12" md="3">
                         <MudPaper
-                            Class="platform-stat-card platform-stat-card--tinted platform-accent-primary managed-data-result-metric pa-4"
+                            Class="platform-stat-card platform-stat-card--tinted platform-accent-secondary managed-data-result-metric pa-4"
                             Elevation="0">
                             <MudText Typo="Typo.caption">执行模式</MudText>
                             <MudText Typo="Typo.h6">@_lastExecutionResult.ExecutionMode</MudText>

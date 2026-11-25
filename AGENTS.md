@@ -10,38 +10,79 @@
 
 ### 1. 色彩（最重要）
 
-项目采用 **Material Design 3** 七色封闭体系，禁止新增色相：
+项目采用 **Material Design 2** 七色封闭体系（品牌红+琥珀，示意稿定稿），禁止新增色相：
 
-| 角色      | Base      | 变量前缀                           |
-|-----------|-----------|------------------------------------|
-| Primary   | `#0B4FC4` | `--md-primary` / `DapPrimary*`     |
-| Secondary | `#33475C` | `--md-secondary` / `DapSecondary*` |
-| Tertiary  | `#7B2F9E` | `--md-tertiary` / `DapTertiary*`   |
-| Success   | `#0D7A3C` | `--md-success` / `DapSuccess*`     |
-| Warning   | `#B15600` | `--md-warning` / `DapWarning*`     |
-| Error     | `#B32318` | `--md-error` / `DapError*`         |
-| Info      | `#0F6FBD` | `--md-info` / `DapInfo*`           |
+| 角色      | Base（填充底） | On（底上文字） | 变量前缀                           |
+|-----------|----------------|----------------|------------------------------------|
+| Primary   | `#D32F2F`      | `#FFFFFF`      | `--md-primary` / `DapPrimary*`     |
+| Secondary | `#455A64`      | `#FFFFFF`      | `--md-secondary` / `DapSecondary*` |
+| Tertiary  | `#FFB300`      | `#3E2A00`      | `--md-tertiary` / `DapTertiary*`   |
+| Success   | `#2E7D32`      | `#FFFFFF`      | `--md-success` / `DapSuccess*`     |
+| Warning   | `#B15600`      | `#FFFFFF`      | `--md-warning` / `DapWarning*`     |
+| Error     | `#8E1B1E`      | `#FFFFFF`      | `--md-error` / `DapError*`         |
+| Info      | `#1976D2`      | `#FFFFFF`      | `--md-info` / `DapInfo*`           |
 
 > 上表为速查值，**一切以 `app.css` 的 `:root` 与 `docs/DESIGN_SYSTEM.md` 1.2 节为准**；
-> 三级深度（Base / Soft / Tint）的完整色值见设计规范。
+> 五档深度（Base / On / Strong / Soft / Tint）的完整色值见设计规范。
 
-语义映射：在线/成功=绿、离线/失败/删除=红、停用/检测中=琥珀、提示=信息蓝、主操作=蓝。 **禁用灰色表达业务状态。**
+语义映射：在线/成功=绿、离线/失败/删除=错误深红、停用/检测中=橙、提示=信息蓝、
+点缀/强调徽章=琥珀（tertiary）、主操作/输入焦点/选中控件=红（配白字）。 **禁用灰色表达业务状态。**
 
-**全站采用深色主题**（Web `IsDarkMode="true"` + 桌面 `RequestedThemeVariant="Dark"`），
-底色层级遵循 M3 dark「越浮越亮」：页面底 → 卡片表面 → 区块容器逐级提亮。
+**全站采用浅色主题**（Web `IsDarkMode="false"` + 桌面 `RequestedThemeVariant="Light"`）：
+页面底为中性灰 `#FAFAFA`，白色卡片以 MD2 投影浮于其上——**卡片不铺 tint 底纹、不加色条**；色彩由顶栏、圆形图标底块（accent 实底 + On 档图标）、徽章与图表系列承载。
 
-**改色板必须核验四条底线**（由守卫测试 `Palette_Should_Meet_Contrast_Baselines` 强制，
+**MD2 视觉语言（2026-11-25 示意稿定稿）**：红色实底顶栏（红+白字+4dp 投影）、灰底白卡加投影、
+无色块页头（标题直排页底）、圆形实色图标底块、100 阶浅底徽章（去描边）、
+黑色透明度阶文字（.87/.60/.54）、4dp 圆角。**页面头部不再一页一色**——hero 为无色块白底，
+页面个性由卡片 accent 表达。
+
+**主色红与错误深酒红靠明度区分**：亮红 `#D32F2F`（primary）＝品牌/操作，深酒红 `#8E1B1E`＝错误；
+色差须 ≥ ΔE 20（守卫 `Error_Should_Be_Distinguishable_From_Accent` 对 primary+tertiary 双查，
+当前实际 ΔE 73.8），改错误色时不得退回 `#B3261E` 一类的亮红。
+强调琥珀 `#FFB300`（tertiary）＝点缀/FAB（填充底配深褐字 `#3E2A00`）。
+退役的品牌红变量体系（`--platform-brand*` / `DapBrand*`）不得复活——语义由 primary 承接。
+
+**主色填充底一律白字**：primary 是深色（红），`On` 档为白色；填充态读 `PrimaryContrastText`，
+描边/文字按钮与聚焦态直接取 base 色（对白面 5.0:1），无需额外修正。
+
+**桌面端主色淡色底纹不铺数据容器**：`DapPrimarySoftBrush`/`DapPrimaryTintBrush` 不得作为指标卡、
+区块卡的整卡底色（page-hero 例外）；桌面指标卡保持「白卡 + 色条 + 图标块」样式，
+主色实底头条卡（`DapPrimaryBrush`/`DapPrimaryStrongBrush` 反白）是合法形态
+（守卫 `Desktop_Data_Containers_Should_Not_Use_Primary_Pale_Brushes` 强制）。
+
+**改色板必须核验对比度底线**（由守卫测试 `Palette_Should_Meet_Contrast_Baselines` 与
+`Neutral_Palette_Should_Meet_Contrast_Baselines` 强制，
 参照表面从 app.css 的 `--platform-surface` 读取）：
 
-| 约束            | 阈值                                                    |
-|-----------------|---------------------------------------------------------|
-| 白字 / base     | ≥ 4.5:1（WCAG AA）                                      |
-| tint / 卡片表面 | ≥ 1.20:1（底纹要肉眼可辨）                              |
-| soft / 卡片表面 | ≥ 1.25:1（统计卡底色要跳脱）                            |
-| strong / 容器底 | ≥ 4.5:1（卡片数字要可读；深色下 strong 是亮色强调文字） |
+| 约束                   | 阈值                                                    |
+|------------------------|---------------------------------------------------------|
+| On / base              | ≥ 4.5:1（WCAG AA，填充底上的文字）                      |
+| tint / 卡片表面        | ≥ 1.20:1（卡片底纹要肉眼可辨）                          |
+| soft / 卡片表面        | ≥ 1.25:1（头条 KPI 底色要跳脱）                         |
+| strong / tint、/ soft  | ≥ 4.5:1（标签行与图表系列要可读）                       |
+| 正文 / tint            | ≥ 7:1（卡片数值要清晰）                                 |
+| 次要、弱化文字 / 表面  | ≥ 4.5:1（文字不能发灰）                                 |
+| 输入框边框 / 表面      | ≥ 3.0:1（输入区域边界要清楚）                           |
+| 错误色 vs 强调色       | ΔE ≥ 20（CIE76，错误与点缀要一眼可分）                  |
 
-底色**必须整块铺满**，不要用 `linear-gradient(tint → surface)` 把颜色稀释回表面色——
-那样卡片九成面积仍是表面色，等于没上色。层次靠卡内的表格/图表底板区分。
+**组件风格统一（强制，细则见 `docs/DESIGN_SYSTEM.md` 3.10；守卫 `Components_Should_Follow_Unified_Style`）**——
+外观由动作角色决定，**页面 accent 不得用来挑按钮颜色**：
+
+| 角色 | 写法 |
+|------|------|
+| 主操作（新建/查询/保存/导入） | `Color.Primary` + `Variant.Filled`，每屏 1~2 个 |
+| 次操作（刷新/重置/导出/测试） | `Color.Secondary` + `Variant.Outlined` |
+| 取消 / 关闭 / 返回 | `Color.Secondary` + `Variant.Text` |
+| 破坏性确认 / 危险入口 | `Color.Error`（敏感操作确认用 `Color.Warning`） |
+| 表格行内操作 | `Variant.Text` + `Size.Small` + `table-action-button`，详情/编辑=primary、调试=info、入库=success、删除=error |
+
+- `Secondary/Info/Success/Tertiary` 不得做填充按钮；按钮不得省略 `Color`，不得用 `Default`/`Inherit`。
+- 成对的选中切换：选中项 Primary 填充、未选中项 Secondary 描边。
+- 输入类组件一律 `Variant.Outlined` + `Margin.Dense`；开关 `Color.Primary`（无 Variant 参数）；徽章与提示条 `Variant.Outlined`。
+- 桌面端：`Button.Primary`=主操作，`Button.ghost`=次操作（刷新/导出）。
+
+示意稿定稿后**卡片一律白底 + MD2 投影，禁止再铺 tint 底纹、渐变或色条**（含 `linear-gradient(tint → surface)`）——
+色彩只由顶栏、圆形图标底块、徽章与图表系列承载。层次靠卡内的表格/图表底板与投影区分。
 
 ### 2. 禁止硬编码色值
 
@@ -76,9 +117,9 @@
 | 场景        | 必须用                                                                                                                                                           |
 |-------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | 页面根      | `<MudStack Class="platform-page-shell" Spacing="2">`                                                                                                             |
-| 页面头部    | `platform-page-hero` + accent                                                                                                                                    |
-| 统计卡      | `platform-stat-card--tinted` + `platform-stat-header`（中性卡底，色相由左色条/图标底块/标签行承载）；**全宽头条 KPI 用 `--filled`（soft 全幅，全页最多一两张）** |
-| 区块卡/面板 | `platform-section-card--tinted` / `platform-panel--tinted`（中性卡底 + 左侧 4px 色条）                                                                           |
+| 页面头部    | `platform-page-hero`（示意稿定稿：无色块白底直排标题，不铺 tint、不加色条；accent 类名保留作标记）                                                                  |
+| 统计卡      | `platform-stat-card--tinted` + `platform-stat-header`（白卡 + MD2 投影，不铺底纹、无色条；色相由**圆形实色图标底块（accent 实底 + On 档图标）**与标签行承载；`--tinted/--filled` 类名保留作标记，无视觉差异） |
+| 区块卡/面板 | `platform-section-card--tinted` / `platform-panel--tinted`（白卡 + MD2 投影，无底纹无色条；卡内表格/抽屉同为白色表面）                    |
 | 表格        | `platform-data-table`                                                                                                                                            |
 | 空状态      | `platform-empty-state` + `platform-empty-icon`                                                                                                                   |
 | 抽屉        | `platform-sheet` + `platform-sheet-section`（各分区不同 accent）                                                                                                 |
@@ -89,13 +130,14 @@
 
 > 类名必须写完整：`platform-stat-card--tinted`、`platform-section-card--tinted`、
 > `platform-panel--tinted`。历史上曾把双连字符前缀截断成 `--tinted`——那不是任何已定义的
-> CSS 类，卡片会静默失去底色，且编译与守卫测试都发现不了。
+> CSS 类；示意稿定稿后这些修饰类只作标记（无视觉差异），但截断仍会让代码失去语义一致性，
+> 且未来恢复差异化样式时会静默失效。
 
 ### 6. 图表系列色跟随卡片 accent
 
 MudChart 把系列色硬编码为 Material 默认蓝（`#2979FF`）。`app.css` 已按所在卡片的
 `--card-accent` 覆盖折线/数据点/柱形与网格线。**图表必须放在带 `platform-accent-*`
-的卡片内**，否则系列色会退回 Primary 蓝。图例色块与系列同源取色，不得写十六进制。
+的卡片内**，否则系列色会退回默认蓝。图例色块与系列同源取色，不得写十六进制。
 
 ### 7. 界面文案不得出现英文异常消息
 
@@ -112,7 +154,8 @@ MudChart 把系列色硬编码为 Material 默认蓝（`#2979FF`）。`app.css` 
 注意特异度：MudBlazor 用 (0,4,0) 选择器（`.mud-navmenu.mud-navmenu-default .mud-nav-link.active:not(...)` 与
 `.mud-nav-link:not(.mud-nav-link-disabled) .mud-nav-link-icon.mud-nav-link-icon-default`）强制激活文字与图标颜色，
 自定义规则必须以 `.mud-navmenu .mud-nav-item.platform-nav-link...` 开头（(0,5,0) 起），否则**静默被压制**
-（历史上分区图标着色与激活亮字都因此从未生效，激活项一直显示调色板 base 深蓝）。
+（历史上分区图标着色与激活文字都因此从未生效）。**顶栏用主色实底反白，抽屉选中项取主色 tint 底 + strong 字**
+（`--md-primary*` / `DapPrimary*`），这是外壳样式。
 
 ### 9. 设计风格双端同步（强制）
 

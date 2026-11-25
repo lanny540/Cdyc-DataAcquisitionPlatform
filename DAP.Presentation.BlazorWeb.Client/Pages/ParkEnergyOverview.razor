@@ -3,7 +3,7 @@
 <PageTitle>园区能源总览</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
-    <MudPaper Class="platform-page-hero platform-accent-secondary pa-4" Elevation="0">
+    <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
                   Spacing="3">
             <MudStack Spacing="0">
@@ -20,7 +20,7 @@
                     </MudChip>
                     @if (IsSample)
                     {
-                        <MudChip T="string" Variant="Variant.Filled" Color="Color.Warning">
+                        <MudChip T="string" Variant="Variant.Outlined" Color="Color.Warning">
                             示例数据
                         </MudChip>
                     }
@@ -33,7 +33,7 @@
                     <MudSelectItem T="string" Value="@PeriodMonth">本月</MudSelectItem>
                     <MudSelectItem T="string" Value="@PeriodYear">本年</MudSelectItem>
                 </MudSelect>
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
                            StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadAsync" Disabled="_isLoading">
                     刷新
                 </MudButton>
@@ -60,7 +60,7 @@
                     @(_message ?? "统计期间内没有能源读数。")
                 </MudText>
                 <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" Justify="Justify.Center">
-                    <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
                                StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadAsync">
                         重新检查
                     </MudButton>

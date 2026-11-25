@@ -4,7 +4,7 @@
 <PageTitle>班组能耗仪表板</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
-    <MudPaper Class="platform-page-hero platform-accent-success pa-4" Elevation="0">
+    <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
             <MudStack Spacing="0">
                 <MudText Typo="Typo.h4" GutterBottom="true">班组原辅材料与能源消耗仪表板</MudText>
@@ -49,7 +49,7 @@
                             <MudSelectItem T="int" Value="@days">近 @days 天</MudSelectItem>
                         }
                     </MudSelect>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
                                StartIcon="@Icons.Material.Filled.Refresh"
                                OnClick="LoadAsync" Disabled="@(_isLoading || _isRefreshing)">
                         刷新
@@ -62,14 +62,15 @@
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
                   Spacing="2" Class="mt-3">
             <MudStack Row="true" Spacing="1">
+                @* 视图切换是一对「选中/未选中」：选中项金色填充，未选中项深灰蓝描边（与全站按钮角色一致）。 *@
                 <MudButton Variant="@(IsBoardView ? Variant.Filled : Variant.Outlined)"
-                           Color="@(IsBoardView ? Color.Success : Color.Inherit)"
+                           Color="@(IsBoardView ? Color.Primary : Color.Secondary)"
                            StartIcon="@Icons.Material.Filled.QueryStats"
                            OnClick="@(() => SwitchView(BoardView))">
                     数据看板
                 </MudButton>
                 <MudButton Variant="@(IsBoardView ? Variant.Outlined : Variant.Filled)"
-                           Color="@(IsBoardView ? Color.Inherit : Color.Tertiary)"
+                           Color="@(IsBoardView ? Color.Secondary : Color.Primary)"
                            StartIcon="@Icons.Material.Filled.ViewInAr"
                            OnClick="@(() => SwitchView(DigitalTwinView))">
                     数字孪生
@@ -135,9 +136,10 @@
         else
         {
             <MudGrid Spacing="3">
-                @* 综合能耗单独一行作为汇总头条，下面 4 项指标按 4 列均分（12/4=3）。 *@
+                @* 综合能耗单独一行作为汇总头条，下面 4 项指标按 4 列均分（12/4=3）。
+                   汇总是四项之和，取琥珀点缀色（示意稿头条的圆形图标底块），不占用任何指标色相。 *@
                 <MudItem xs="12">
-                    <MudPaper Class="platform-stat-card platform-stat-card--filled platform-accent-primary pa-4"
+                    <MudPaper Class="platform-stat-card platform-stat-card--filled platform-accent-tertiary pa-4"
                               Elevation="0">
                         <div class="platform-stat-header">
                             <span class="platform-section-icon">

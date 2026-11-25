@@ -14,10 +14,13 @@ public sealed partial class EnergyDashboardPageViewModel : EnergyPageViewModelBa
 {
     /// <summary>
     /// 四项指标依次取用的语义色资源键与图标，与 Web 端保持一致。
-    /// Strong 档用于标签/图标前景与图表系列，Soft 档用于图标底块。
+    /// base 档用于圆形图标底块，On 档为底块上的图标前景，Strong 档用于图表系列。
     /// </summary>
     private static readonly string[] MetricAccentKeys =
         ["DapInfoBrush", "DapSuccessBrush", "DapWarningBrush", "DapTertiaryBrush"];
+
+    private static readonly string[] MetricOnKeys =
+        ["DapInfoOnBrush", "DapSuccessOnBrush", "DapWarningOnBrush", "DapTertiaryOnBrush"];
 
     private static readonly string[] MetricStrongKeys =
         ["DapInfoStrongBrush", "DapSuccessStrongBrush", "DapWarningStrongBrush", "DapTertiaryStrongBrush"];
@@ -25,8 +28,6 @@ public sealed partial class EnergyDashboardPageViewModel : EnergyPageViewModelBa
     private static readonly string[] MetricSoftKeys =
         ["DapInfoSoftBrush", "DapSuccessSoftBrush", "DapWarningSoftBrush", "DapTertiarySoftBrush"];
 
-    private static readonly string[] MetricTintKeys =
-        ["DapInfoTintBrush", "DapSuccessTintBrush", "DapWarningTintBrush", "DapTertiaryTintBrush"];
 
     private static readonly string[] MetricIcons =
         [NavIcons.Science, NavIcons.Opacity, NavIcons.Grain, NavIcons.Bolt];
@@ -248,7 +249,8 @@ public sealed partial class EnergyDashboardPageViewModel : EnergyPageViewModelBa
                 Palette.Brush(MetricAccentKeys[index]),
                 Palette.Brush(MetricStrongKeys[index]),
                 Palette.Brush(MetricSoftKeys[index]),
-                Palette.Brush("DapSurfaceBrush")));
+                Palette.Brush("DapSurfaceBrush"),
+                Palette.Brush(MetricOnKeys[index])));
         }
     }
 

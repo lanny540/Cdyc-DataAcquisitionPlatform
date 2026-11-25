@@ -6,17 +6,18 @@ namespace DAP.Presentation.AvaloniaApp.ViewModels.Pages;
 /// <summary>
 /// 指标统计卡。
 ///
-/// 2026-11-16 与 Web 端「卡片三层强调」同步：卡底一律中性表面色，
-/// 色相只出现在左侧色条、图标底块（soft 底 + strong 图标）与标签行。
+/// 2026-11-25 对齐 MD2 示意稿卡片语言：白卡 + MD2 投影，不铺 tint 底纹、不加色条；
+/// 色相只出现在圆形图标底块（accent 实底 + On 档图标）。
 /// </summary>
 /// <param name="Label">指标名称。</param>
 /// <param name="Value">数值文本。</param>
 /// <param name="Supporting">补充说明。</param>
 /// <param name="Icon">图标路径数据。</param>
-/// <param name="Accent">主色 base 档，用于左侧色条。</param>
-/// <param name="AccentStrong">主色 strong 亮色档，用于标签文字与图标前景。</param>
-/// <param name="AccentSoft">主色 soft 档，用于图标底块底色。</param>
-/// <param name="Background">卡片底色（中性表面色）。</param>
+/// <param name="Accent">主色 base 档，用于圆形图标底块底色。</param>
+/// <param name="AccentStrong">主色 strong 加深档，用于图表系列。</param>
+/// <param name="AccentSoft">主色 soft 档（保留兼容，当前未用于图标底块）。</param>
+/// <param name="Background">卡片底色（中性表面色，白卡）。</param>
+/// <param name="AccentOn">图标底块上的前景（多数为白，琥珀底为深褐）。</param>
 public sealed record MetricCardModel(
     string Label,
     string Value,
@@ -25,7 +26,8 @@ public sealed record MetricCardModel(
     IBrush Accent,
     IBrush AccentStrong,
     IBrush AccentSoft,
-    IBrush Background);
+    IBrush Background,
+    IBrush AccentOn);
 
 /// <summary>
 /// 指标趋势卡：一张卡一项指标，避免四项指标挤在同一张图上互相压线。

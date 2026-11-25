@@ -272,10 +272,12 @@ public sealed class AuthDataInitializerTests
             link.UserId == rescued.Id && link.RoleId == superAdminRole.Id));
     }
 
-    // ---------- 生产环境默认密码拒启 ----------
+    // ---------- 生产环境初始密码 ----------
 
+    // 2026-11-24 运维决策：取消「生产环境默认密码拒启」闸门（AuthDataInitializer 同步移除），
+    // 生产允许直接用默认密码初始化超管，由首登强制改密兜底。
     [Fact]
-    public async Task StartAsync_Default_Bootstrap_Password_In_Production_Should_Refuse_To_Start()
+    public async Task StartAsync_Default_Bootstrap_Password_In_Production_Should_Create_Super_Admin()
     {
         using SqliteTestDatabase database = new();
         AuthDataInitializer initializer = CreateInitializer(
@@ -283,10 +285,12 @@ public sealed class AuthDataInitializerTests
             OptionsWithBootstrap(password: "Admin@123456"),
             HostingFakes.CreateProductionEnvironment());
 
-        // appsettings.json 里的公开默认密码只能用于开发环境。
-        InvalidOperationException exception =
-            await Assert.ThrowsAsync<InvalidOperationException>(() => initializer.StartAsync(CancellationToken.None));
-        Assert.Contains("默认初始密码", exception.Message);
+        await initializer.StartAsync(CancellationToken.None);
+
+        await using DataAcquisitionPlatformDbContext db = database.CreateContext();
+        AppUser admin = await db.AppUsers.SingleAsync(user => user.UserName == "bootadmin");
+        Assert.True(admin.MustChangePassword);
+        Assert.True(PasswordHasher.Verify("Admin@123456", admin.PasswordHash!));
     }
 
     [Fact]

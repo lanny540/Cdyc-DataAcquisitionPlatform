@@ -45,7 +45,7 @@
                     <MudSelectItem T="string" Value="@GranularityWeek">按周</MudSelectItem>
                     <MudSelectItem T="string" Value="@GranularityMonth">按月</MudSelectItem>
                 </MudSelect>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
                            StartIcon="@Icons.Material.Filled.Refresh"
                            OnClick="@(() => LoadAsync())" Disabled="@(_isLoading || _isRefreshing)">
                     生成报表
@@ -118,7 +118,7 @@
             }
         </MudGrid>
 
-        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-primary pa-4"
+        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-secondary pa-4"
                   Elevation="0">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                 <span class="platform-section-icon">

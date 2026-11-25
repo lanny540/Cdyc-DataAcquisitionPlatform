@@ -50,16 +50,121 @@ public partial class DesignSystemGuardTests
     }
 
     /// <summary>
+    /// 组件风格统一守卫（规范见 docs/DESIGN_SYSTEM.md「组件风格规范」一节）。
+    ///
+    /// 此前各页面按自己的强调色挑按钮颜色（新建用户=蓝、新建域=深灰蓝、新建部门=紫、导出=琥珀），
+    /// 输入框描边/下划线并存，开关四种颜色三种形态，徽章淡底/描边并存——同一个动作在两个页面长得不一样。
+    /// 这里把「角色决定外观，页面强调色不参与」固化为断言：
+    ///
+    /// 1. **填充按钮**只允许 primary（主操作）、error（破坏性确认）、warning（敏感操作确认）；
+    ///    secondary / info / success / tertiary 只能出现在描边或文字按钮上；
+    /// 2. **按钮**不得使用 default / inherit 灰，也不得省略 Color（取消、关闭统一用 secondary）；
+    /// 3. **输入类组件**一律 Outlined + Dense；
+    /// 4. **开关**一律 primary；
+    /// 5. **徽章与提示条**一律 Outlined。
+    ///
+    /// 颜色或形态由表达式动态计算的按钮（如仪表板的视图切换）不参与第 1、2 条判定。
+    /// </summary>
+    [Fact]
+    public void Components_Should_Follow_Unified_Style()
+    {
+        string[] inputComponents = ["TextField", "Select", "NumericField", "DatePicker", "AutoComplete"];
+        HashSet<string> filledColors = ["Primary", "Error", "Warning"];
+
+        List<string> offenders = new();
+
+        foreach (string file in RazorFiles())
+        {
+            string text = ReadRepoFile(file);
+            string name = Path.GetFileNameWithoutExtension(file);
+            // 外壳布局（菜单折叠钮等）不属于页面组件风格，按钮规则不扫描 Layout 目录
+            bool isShell = file.Contains($"{Path.DirectorySeparatorChar}Layout{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+
+            foreach (Match match in MudOpeningTagRegex().Matches(text))
+            {
+                string component = match.Groups[1].Value;
+                string attributes = match.Groups[2].Value;
+                int line = text.AsSpan(0, match.Index).Count('\n') + 1;
+                string where = $"{name}.razor:{line} <Mud{component}>";
+
+                string? variant = ReadAttribute(attributes, "Variant")?.Replace("Variant.", string.Empty);
+                string? color = ReadAttribute(attributes, "Color")?.Replace("Color.", string.Empty);
+                bool isDynamic = (variant?.StartsWith("@", StringComparison.Ordinal) ?? false)
+                    || (color?.StartsWith("@", StringComparison.Ordinal) ?? false);
+
+                if (component is "Button" or "IconButton")
+                {
+                    bool isIconButton = component == "IconButton";
+                    string? defaultVariant = isIconButton ? "Text" : "Filled";
+
+                    if (!isDynamic && !isShell)
+                    {
+                        if (color is null or "Default" or "Inherit")
+                        {
+                            offenders.Add($"{where}: 按钮颜色为 {color ?? "（省略）"}，" +
+                                "主操作=Primary、次操作/取消=Secondary、危险=Error，不得使用默认灰");
+                        }
+
+                        if (!isIconButton && (variant ?? defaultVariant) == "Filled" && color is not null && !filledColors.Contains(color))
+                        {
+                            offenders.Add($"{where}: 填充按钮用了 {color}，填充态只用于主操作（Primary）、" +
+                                "破坏性确认（Error）与敏感操作确认（Warning）");
+                        }
+                    }
+
+                    continue;
+                }
+
+                if (component == "Switch")
+                {
+                    if (color != "Primary")
+                    {
+                        offenders.Add($"{where}: 开关须为 Color.Primary（当前 {color ?? "默认"}）");
+                    }
+
+                    continue;
+                }
+
+                if (inputComponents.Contains(component))
+                {
+                    if (variant != "Outlined" || !attributes.Contains("Margin=\"Margin.Dense\"", StringComparison.Ordinal))
+                    {
+                        offenders.Add($"{where}: 输入类组件须为 Variant.Outlined + Margin.Dense（当前 {variant ?? "默认"}）");
+                    }
+
+                    continue;
+                }
+
+                if (component is "Chip" or "Alert" && variant != "Outlined")
+                {
+                    offenders.Add($"{where}: 徽章与提示条须为 Variant.Outlined（当前 {variant ?? "默认"}）");
+                }
+            }
+        }
+
+        Assert.True(offenders.Count == 0,
+            "组件风格不统一：" + Environment.NewLine + string.Join(Environment.NewLine, offenders));
+    }
+
+    /// <summary>读取起始标签上的某个属性值（形如 Color="Color.Primary"），不存在时返回 null。</summary>
+    private static string? ReadAttribute(string attributes, string name)
+    {
+        Match match = Regex.Match(attributes, $@"\b{name}=""([^""]*)""", RegexOptions.None, TimeSpan.FromSeconds(2));
+
+        return match.Success ? match.Groups[1].Value : null;
+    }
+
+    /// <summary>
     /// Web 端色板必须与 MudTheme 保持同步，否则组件默认色会与自定义样式冲突。
     /// </summary>
     [Theory]
-    [InlineData("#0b4fc4")]
-    [InlineData("#33475c")]
-    [InlineData("#7b2f9e")]
-    [InlineData("#0d7a3c")]
+    [InlineData("#d32f2f")]
+    [InlineData("#455a64")]
+    [InlineData("#ffb300")]
+    [InlineData("#2e7d32")]
     [InlineData("#b15600")]
-    [InlineData("#b32318")]
-    [InlineData("#0f6fbd")]
+    [InlineData("#8e1b1e")]
+    [InlineData("#1976d2")]
     public void AppCss_And_MudTheme_Should_Share_Same_Color(string hex)
     {
         string appCss = ReadRepoFile("DAP.Presentation.BlazorWeb/wwwroot/app.css");
@@ -76,13 +181,13 @@ public partial class DesignSystemGuardTests
     /// 桌面端色板必须与 Web 端一致：同一角色色在两个端使用相同 Base 值。
     /// </summary>
     [Theory]
-    [InlineData("DapPrimary", "0B4FC4")]
-    [InlineData("DapSecondary", "33475C")]
-    [InlineData("DapTertiary", "7B2F9E")]
-    [InlineData("DapSuccess", "0D7A3C")]
+    [InlineData("DapPrimary", "D32F2F")]
+    [InlineData("DapSecondary", "455A64")]
+    [InlineData("DapTertiary", "FFB300")]
+    [InlineData("DapSuccess", "2E7D32")]
     [InlineData("DapWarning", "B15600")]
-    [InlineData("DapError", "B32318")]
-    [InlineData("DapInfo", "0F6FBD")]
+    [InlineData("DapError", "8E1B1E")]
+    [InlineData("DapInfo", "1976D2")]
     public void Avalonia_Palette_Should_Match_Web_Color(string resourceKey, string webHex)
     {
         string palette = ReadRepoFile("DAP.Presentation.AvaloniaApp/Themes/DapPalette.axaml");
@@ -100,17 +205,17 @@ public partial class DesignSystemGuardTests
     /// 而是底色层与表面色的对比度只有 1.05~1.09 倍，肉眼几乎分辨不出，
     /// 于是所有卡片实际都呈现为同一个颜色。这里把底线固化为断言：
     ///
-    /// 1. **白字在 base 上 ≥ 4.5:1**（WCAG AA 正文级）——主按钮、徽章才读得清；
+    /// 1. **对比文字在 base 上 ≥ 4.5:1**（WCAG AA 正文级）——主按钮、徽章才读得清。
+    ///    对比文字取 <c>--md-{role}-on</c> 而不是写死白色：primary 是金色，只能配深字；
     /// 2. **tint 与卡片表面 ≥ 1.20:1**——区块底纹必须真的能被看见，否则等于没上色；
-    /// 3. **soft 与卡片表面 ≥ 1.25:1**——统计卡底色用 soft 档，比区块更跳脱，
+    /// 3. **soft 与卡片表面 ≥ 1.25:1**——头条 KPI 底色用 soft 档，比区块更跳脱，
     ///    若退回接近表面色，页面上最醒目的数字区域又会失去色彩。
     ///
-    /// 参照表面从 app.css 的 <c>--platform-surface</c> 读取而不是硬编码白色：
-    /// 全站已切换为深色主题（深色卡片表面 #17212c），tint/soft 是「比表面亮一档」的
-    /// 深色容器，对比方向与浅色主题相反，但「底纹必须可辨」的底线不变。
+    /// 参照表面从 app.css 的 <c>--platform-surface</c> 读取而不是硬编码白色。
+    /// 全站为浅色主题（卡片表面为白），tint/soft 是比表面深一档的淡色容器。
     ///
-    /// 同时校验 strong 色在各自底色上 ≥ 4.5:1，保证卡片里的数值不因底色调整而看不清。
-    /// 深色主题下 strong 是亮色强调文字，浅色主题下是加深档——职责相同、方向相反。
+    /// 同时校验 strong 色在各自底色上 ≥ 4.5:1，保证卡片里的标签与图表系列不因底色调整而看不清。
+    /// 浅色主题下 strong 是加深档。
     /// </summary>
     [Theory]
     [InlineData("primary")]
@@ -125,21 +230,28 @@ public partial class DesignSystemGuardTests
         string appCss = ReadRepoFile("DAP.Presentation.BlazorWeb/wwwroot/app.css");
 
         string? baseColor = ReadCssVariable(appCss, $"--md-{role}");
+        string? onColor = ReadCssVariable(appCss, $"--md-{role}-on");
         string? strongColor = ReadCssVariable(appCss, $"--md-{role}-strong");
         string? softColor = ReadCssVariable(appCss, $"--md-{role}-soft");
         string? tintColor = ReadCssVariable(appCss, $"--md-{role}-tint");
         string? surfaceColor = ReadCssVariable(appCss, "--platform-surface");
 
         Assert.NotNull(baseColor);
+        Assert.NotNull(onColor);
         Assert.NotNull(strongColor);
         Assert.NotNull(softColor);
         Assert.NotNull(tintColor);
         Assert.NotNull(surfaceColor);
 
-        double whiteOnBase = ContrastRatio(baseColor!, "#ffffff");
-        Assert.True(whiteOnBase >= 4.5,
-            $"{role} 的 base 色 {baseColor} 上放白字对比度仅 {whiteOnBase:F2}:1，" +
+        double onBase = ContrastRatio(onColor!, baseColor!);
+        Assert.True(onBase >= 4.5,
+            $"{role} 的 base 色 {baseColor} 上放对比文字 {onColor} 对比度仅 {onBase:F2}:1，" +
             "低于 WCAG AA 的 4.5:1，主按钮与徽章文字会看不清。");
+
+        // 近黑正文必须能直接落在填充底以外的任意淡色容器上
+        double textOnTint = ContrastRatio(ReadCssVariable(appCss, "--platform-text")!, tintColor!);
+        Assert.True(textOnTint >= 7.0,
+            $"正文色在 {role} 的 tint 底 {tintColor} 上对比度仅 {textOnTint:F2}:1，卡片数值会看不清。");
 
         double tintOnSurface = ContrastRatio(tintColor!, surfaceColor!);
         Assert.True(tintOnSurface >= 1.20,
@@ -158,8 +270,121 @@ public partial class DesignSystemGuardTests
 
         double strongOnSoft = ContrastRatio(strongColor!, softColor!);
         Assert.True(strongOnSoft >= 4.5,
-            $"{role} 的 strong 色 {strongColor} 在统计卡底色 {softColor} 上对比度仅 " +
+            $"{role} 的 strong 色 {strongColor} 在头条 KPI 底色 {softColor} 上对比度仅 " +
             $"{strongOnSoft:F2}:1，卡片数值会看不清。");
+
+        double mutedOnTint = ContrastRatio(ReadCssVariable(appCss, "--platform-text-muted")!, tintColor!);
+        Assert.True(mutedOnTint >= 4.5,
+            $"次要文字在 {role} 的 tint 底 {tintColor} 上对比度仅 {mutedOnTint:F2}:1，卡片补充说明会看不清。");
+    }
+
+    /// <summary>
+    /// 中性色阶的可读性守卫。
+    ///
+    /// 「文字不明显、边框不好看」的直接根因在中性色：正文不够黑、次要文字偏灰、
+    /// 边框与表面拉不开。这里把中性色的底线固化为断言。
+    /// MD2 改版后文字用黑色透明度阶口径（正文 #212121、次要 #4f4f4f、弱化 #757575），
+    /// 页面底色为中性灰（#fafafa），卡片表面仍为白色。
+    /// </summary>
+    [Fact]
+    public void Neutral_Palette_Should_Meet_Contrast_Baselines()
+    {
+        string appCss = ReadRepoFile("DAP.Presentation.BlazorWeb/wwwroot/app.css");
+
+        string surface = ReadCssVariable(appCss, "--platform-surface")!;
+        double textOnSurface = ContrastRatio(ReadCssVariable(appCss, "--platform-text")!, surface);
+        Assert.True(textOnSurface >= 12.0,
+            $"正文色对卡片表面对比度仅 {textOnSurface:F2}:1，文字会显得发灰不突出。");
+
+        double mutedOnSurface = ContrastRatio(ReadCssVariable(appCss, "--platform-text-muted")!, surface);
+        Assert.True(mutedOnSurface >= 4.5,
+            $"次要文字对卡片表面对比度仅 {mutedOnSurface:F2}:1，低于 WCAG AA 正文级。");
+
+        double subtleOnSurface = ContrastRatio(ReadCssVariable(appCss, "--platform-text-subtle")!, surface);
+        Assert.True(subtleOnSurface >= 4.5,
+            $"弱化文字对卡片表面对比度仅 {subtleOnSurface:F2}:1，低于 WCAG AA 正文级。");
+
+        double borderOnSurface = ContrastRatio(ReadCssVariable(appCss, "--platform-border")!, surface);
+        Assert.True(borderOnSurface >= 1.25,
+            $"常规边框对卡片表面对比度仅 {borderOnSurface:F2}:1，卡片轮廓会看不清。");
+
+        double borderStrongOnSurface = ContrastRatio(ReadCssVariable(appCss, "--platform-border-strong")!, surface);
+        Assert.True(borderStrongOnSurface >= 3.0,
+            $"输入框边框对卡片表面对比度仅 {borderStrongOnSurface:F2}:1，低于 WCAG 非文本对比 3:1。");
+    }
+
+    /// <summary>
+    /// 错误色必须与主色红、强调琥珀都一眼可分。
+    ///
+    /// 示意稿定稿后主色就是亮红 <c>#D32F2F</c>（Red 700）——红重新成为品牌与操作色；
+    /// 错误色是深酒红 <c>#8E1B1E</c>，同属红族，只靠明度区分。历史上第一版错误色
+    /// <c>#B3261E</c> 与亮红的色差只有 ΔE 10，用户反馈「太接近」，深酒红拉开到 ΔE 73.8。
+    /// 这里用 CIE76 色差（Lab 空间欧氏距离）对 primary 与 tertiary 双查：
+    /// ΔE ≥ 20 才算「明显不同的颜色」（琥珀强调色 ΔE ≈ 192，天然无冲突）。
+    /// 改错误色时不得退回 #B3261E 一类的亮红。
+    /// </summary>
+    [Fact]
+    public void Error_Should_Be_Distinguishable_From_Accent()
+    {
+        string appCss = ReadRepoFile("DAP.Presentation.BlazorWeb/wwwroot/app.css");
+        string error = ReadCssVariable(appCss, "--md-error")!;
+
+        foreach (string variable in new[] { "--md-primary", "--md-tertiary" })
+        {
+            string accent = ReadCssVariable(appCss, variable)!;
+
+            double distance = ColorDistance(error, accent);
+            Assert.True(distance >= 20.0,
+                $"错误色 {error} 与 {variable} 强调色 {accent} 的色差仅 {distance:F1}（ΔE），两者会混淆；" +
+                "错误色需与主色红拉开明度（如深酒红）。");
+        }
+
+        // 错误色同时是输入校验的提示文字色，叠在白底上也要达到正文级对比
+        double errorOnSurface = ContrastRatio(error, ReadCssVariable(appCss, "--platform-surface")!);
+        Assert.True(errorOnSurface >= 4.5,
+            $"错误红 {error} 在卡片表面对比度仅 {errorOnSurface:F2}:1，校验提示会看不清。");
+    }
+
+    /// <summary>
+    /// 全站固定浅色主题，且退役的品牌红不得复活。
+    ///
+    /// 两个布局的 MudThemeProvider、桌面端 App.axaml 与 app.css 必须同时是浅色档，
+    /// 任一处漏改都会出现「一半深色一半浅色」。旧的品牌红变量体系（--platform-brand*）
+    /// 已退役，其语义由 primary（同色值 #D32F2F）承接；
+    /// 此处的扫描防止旧变量体系在页面里复活出现两套红色变量。
+    /// </summary>
+    [Fact]
+    public void Theme_Should_Stay_Light_And_Keep_Brand_Red_Out_Of_Content()
+    {
+        string appCss = ReadRepoFile("DAP.Presentation.BlazorWeb/wwwroot/app.css");
+        Assert.Contains("color-scheme: light", appCss, StringComparison.Ordinal);
+        Assert.DoesNotContain("color-scheme: dark", appCss, StringComparison.OrdinalIgnoreCase);
+
+        foreach (string layout in new[] { "MainLayout.razor", "AuthLayout.razor" })
+        {
+            string text = ReadRepoFile($"DAP.Presentation.BlazorWeb.Client/Layout/{layout}");
+            Assert.Contains("IsDarkMode=\"false\"", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("IsDarkMode=\"true\"", text, StringComparison.OrdinalIgnoreCase);
+        }
+
+        string appXaml = ReadRepoFile("DAP.Presentation.AvaloniaApp/App.axaml");
+        Assert.Contains("RequestedThemeVariant=\"Light\"", appXaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("RequestedThemeVariant=\"Dark\"", appXaml, StringComparison.OrdinalIgnoreCase);
+
+        List<string> offenders = new();
+        foreach (string file in RazorFiles())
+        {
+            string text = ReadRepoFile(file);
+            // 只拦变量与修饰类本身：顶栏外壳的 .platform-brand 类名是既有结构，不属于泄漏
+            if (text.Contains("--platform-brand", StringComparison.Ordinal)
+                || text.Contains("platform-accent-brand", StringComparison.Ordinal))
+            {
+                offenders.Add($"{Relative(file)}: 页面引用了品牌红，品牌红只允许出现在外壳样式里");
+            }
+        }
+
+        Assert.True(offenders.Count == 0,
+            "品牌红不得进入内容区：" + Environment.NewLine + string.Join(Environment.NewLine, offenders));
     }
 
     /// <summary>
@@ -178,7 +403,7 @@ public partial class DesignSystemGuardTests
         string[] roles = new[] { "primary", "secondary", "tertiary", "success", "warning", "error", "info" };
 
         foreach (string role in roles)
-        foreach (string level in new[] { "base", "soft", "tint" })
+        foreach (string level in new[] { "base", "on", "strong", "soft", "tint" })
         {
             string variable = level == "base" ? $"--md-{role}" : $"--md-{role}-{level}";
 
@@ -487,6 +712,39 @@ public partial class DesignSystemGuardTests
     }
 
     /// <summary>
+    /// 计算两个十六进制颜色的 CIE76 色差（Lab 空间欧氏距离）。
+    /// 经验值：ΔE &lt; 10 一眼难分，≥ 20 明显不同。用于保证语义相近的颜色（品牌红/错误红）可区分。
+    /// </summary>
+    private static double ColorDistance(string first, string second)
+    {
+        (double L, double A, double B) a = ToLab(first);
+        (double L, double A, double B) b = ToLab(second);
+
+        return Math.Sqrt(Math.Pow(a.L - b.L, 2) + Math.Pow(a.A - b.A, 2) + Math.Pow(a.B - b.B, 2));
+    }
+
+    private static (double L, double A, double B) ToLab(string hex)
+    {
+        string value = hex.TrimStart('#');
+        double r = ToLinear(Convert.ToInt32(value[..2], 16) / 255.0);
+        double g = ToLinear(Convert.ToInt32(value.Substring(2, 2), 16) / 255.0);
+        double bl = ToLinear(Convert.ToInt32(value.Substring(4, 2), 16) / 255.0);
+
+        // sRGB → XYZ（D65），再归一化到白点
+        double x = ((0.4124 * r) + (0.3576 * g) + (0.1805 * bl)) / 0.95047;
+        double y = (0.2126 * r) + (0.7152 * g) + (0.0722 * bl);
+        double z = ((0.0193 * r) + (0.1192 * g) + (0.9505 * bl)) / 1.08883;
+
+        static double Pivot(double t) => t > 0.008856 ? Math.Cbrt(t) : (7.787 * t) + (16.0 / 116.0);
+
+        double fx = Pivot(x);
+        double fy = Pivot(y);
+        double fz = Pivot(z);
+
+        return ((116.0 * fy) - 16.0, 500.0 * (fx - fy), 200.0 * (fy - fz));
+    }
+
+    /// <summary>
     /// 桌面端必须引入品牌色覆盖，否则会继续使用 Semi 默认亮蓝 #0064fa。
     /// 校验只针对实际的资源定义行（Brush / Color），注释中的说明文字不算。
     /// </summary>
@@ -628,6 +886,69 @@ public partial class DesignSystemGuardTests
 
         Assert.True(offenders.Count == 0,
             "统计卡片必须声明 platform-accent-* 修饰类：" +
+            Environment.NewLine + string.Join(Environment.NewLine, offenders));
+    }
+
+    /// <summary>
+    /// 桌面端数据容器不得用主色淡色底纹（Soft/Tint）铺整卡。
+    ///
+    /// MD2 示意稿版主色（红 #D32F2F）参与 Web 端正常的 accent 轮换：白卡统计卡、
+    /// 主色实底头条卡（platform-stat-card--filled）与页面标题带都是合法形态，
+    /// 因此 Web 端不再单独限制 primary。
+    /// 桌面端指标卡的既定样式是「白卡 + base 色条 + Soft 底图标块」，
+    /// 若把 DapPrimarySoftBrush/TintBrush 铺在卡片背景上就是样式漂移；
+    /// 主色实底头条卡（DapPrimaryBrush/DapPrimaryStrongBrush 反白）是合法例外。
+    /// </summary>
+    [Fact]
+    public void Desktop_Data_Containers_Should_Not_Use_Primary_Pale_Brushes()
+    {
+        List<string> offenders = new();
+
+        // 桌面端：淡色画刷（Soft/Tint）不得作为数据容器或标题带的底色/描边；
+        // 实底头条卡用 DapPrimaryBrush/DapPrimaryStrongBrush 是合法例外。
+        string pagesDir = Path.Combine(AvaloniaAppDir(), "Views", "Pages");
+        foreach (string file in Directory.GetFiles(pagesDir, "*.axaml", SearchOption.AllDirectories))
+        {
+            string[] lines = ReadLines(file);
+            for (int i = 0; i < lines.Length; i++)
+            {
+                string line = lines[i];
+                bool paintsBackground = line.Contains("Background=", StringComparison.Ordinal) ||
+                                        line.Contains("BorderBrush=", StringComparison.Ordinal);
+                // page-hero 与 Web 端一致使用主色 tint 底，是淡色底纹的合法用途
+                if (!paintsBackground ||
+                    line.Contains("page-hero", StringComparison.Ordinal) ||
+                    (!line.Contains("DapPrimarySoftBrush", StringComparison.Ordinal) &&
+                     !line.Contains("DapPrimaryTintBrush", StringComparison.Ordinal)))
+                {
+                    continue;
+                }
+
+                offenders.Add($"{Relative(file)}:{i + 1}: {line.Trim()}");
+            }
+        }
+
+        // 桌面端代码后置里按画刷键取色时，同样不得把淡色底纹分配给指标卡。
+        string viewModelsDir = Path.Combine(AvaloniaAppDir(), "ViewModels");
+        foreach (string file in Directory.GetFiles(viewModelsDir, "*.cs", SearchOption.AllDirectories))
+        {
+            string[] lines = ReadLines(file);
+            for (int i = 0; i < lines.Length; i++)
+            {
+                string line = lines[i];
+                if (!line.Contains("Palette.Brush(\"DapPrimarySoftBrush\")", StringComparison.Ordinal) &&
+                    !line.Contains("Palette.Brush(\"DapPrimaryTintBrush\")", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                offenders.Add($"{Relative(file)}:{i + 1}: {line.Trim()}");
+            }
+        }
+
+        Assert.True(offenders.Count == 0,
+            "桌面端数据容器不得用主色淡色底纹（DapPrimarySoftBrush/TintBrush）铺整卡，" +
+            "指标卡请保持白卡 + 色条 + 图标块样式：" +
             Environment.NewLine + string.Join(Environment.NewLine, offenders));
     }
 
@@ -1196,6 +1517,13 @@ public partial class DesignSystemGuardTests
 
     [GeneratedRegex(@"<!--.*?-->", RegexOptions.Singleline)]
     private static partial Regex XmlCommentRegex();
+
+    /// <summary>
+    /// 匹配 MudBlazor 组件的起始标签（组 1 = 组件名，组 2 = 全部属性）。
+    /// 引号内的 &gt;（如 OnClick 里的 lambda 箭头）不作为标签结束，因此属性可以跨行且含表达式。
+    /// </summary>
+    [GeneratedRegex(@"<Mud(\w+)\b((?:""[^""]*""|[^>])*)>")]
+    private static partial Regex MudOpeningTagRegex();
 
     /// <summary>
     /// 匹配页面视图模型类名。结尾的 \b 让抽象基类 EnergyPageViewModelBase 不会被算作页面。

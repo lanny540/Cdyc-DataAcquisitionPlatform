@@ -3,7 +3,7 @@
 <PageTitle>班组历史指标</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
-    <MudPaper Class="platform-page-hero platform-accent-tertiary pa-4" Elevation="0">
+    <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
             <MudStack Spacing="0">
                 <MudText Typo="Typo.h4" GutterBottom="true">班组历史指标</MudText>
@@ -39,7 +39,7 @@
                     <MudSelectItem T="string" Value="@GranularityWeek">按周</MudSelectItem>
                     <MudSelectItem T="string" Value="@GranularityMonth">按月</MudSelectItem>
                 </MudSelect>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh"
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Refresh"
                            OnClick="LoadAsync" Disabled="@(_isLoading || _isRefreshing)">
                     刷新
                 </MudButton>

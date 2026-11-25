@@ -3,7 +3,7 @@
 <PageTitle>部门与授权</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
-    <MudPaper Class="platform-page-hero platform-accent-tertiary pa-4" Elevation="0">
+    <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
             <MudStack Spacing="1">
                 <MudText Typo="Typo.h4" GutterBottom="true">部门与授权</MudText>
@@ -12,7 +12,7 @@
                     部门之间平级、无层级，「本部门」按部门精确匹配。系统域（平台管理）不参与授权矩阵。
                 </MudText>
             </MudStack>
-            <MudButton Variant="Variant.Filled" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Add"
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
                        OnClick="OpenCreateDialog">
                 新建部门
             </MudButton>
@@ -80,17 +80,17 @@
                             <MudCheckBox T="bool"
                                          Value="@IsGranted(department, current)"
                                          ValueChanged="@(value => ToggleGrant(department, current, value))"
-                                         Color="Color.Tertiary" Size="Size.Small"
+                                         Color="Color.Primary" Size="Size.Small"
                                          Disabled="@(!department.IsEnabled)"/>
                         </MudTd>
                     }
                     <MudTd Style="text-align: right;">
-                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Tertiary"
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
                                    Disabled="@(UnsavedGrants(context) is null)"
                                    OnClick="@(() => SaveGrantsAsync(context))">
                             保存授权
                         </MudButton>
-                        <MudButton Size="Size.Small" Variant="Variant.Text"
+                        <MudButton Color="Color.Primary" Size="Size.Small" Variant="Variant.Text"
                                    OnClick="@(() => OpenEditDialog(context))">
                             编辑
                         </MudButton>
@@ -109,17 +109,17 @@
         <MudStack Spacing="3" Class="platform-sheet">
             <section class="platform-sheet-section platform-accent-tertiary">
                 <MudText Typo="Typo.h6">@(_isCreating ? "新建部门" : "编辑部门")</MudText>
-                <MudTextField T="string" Label="部门编码" @bind-Value="_editorCode" Disabled="@(!_isCreating)"
+                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="部门编码" @bind-Value="_editorCode" Disabled="@(!_isCreating)"
                               Immediate="true" Counter="32" MaxLength="32"/>
-                <MudTextField T="string" Label="部门名称" @bind-Value="_editorName" Immediate="true"
+                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="部门名称" @bind-Value="_editorName" Immediate="true"
                               Counter="64" MaxLength="64"/>
-                <MudTextField T="string" Label="外部目录编码（LDAP/OIDC 对应值，可空）" @bind-Value="_editorExternalCode"
+                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Label="外部目录编码（LDAP/OIDC 对应值，可空）" @bind-Value="_editorExternalCode"
                               Immediate="true" Counter="64" MaxLength="64"/>
-                <MudSwitch T="bool" Label="启用部门" @bind-Value="_editorEnabled" Color="Color.Tertiary"/>
+                <MudSwitch T="bool" Label="启用部门" @bind-Value="_editorEnabled" Color="Color.Primary"/>
             </section>
             <MudStack Row="true" Justify="Justify.SpaceBetween">
-                <MudButton Variant="Variant.Text" OnClick="CloseEditor">取消</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Tertiary" Disabled="_isSaving"
+                <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="CloseEditor">取消</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_isSaving"
                            OnClick="SaveDepartmentAsync">保存
                 </MudButton>
             </MudStack>

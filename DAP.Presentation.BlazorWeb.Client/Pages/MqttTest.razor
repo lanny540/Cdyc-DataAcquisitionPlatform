@@ -3,7 +3,7 @@
 <PageTitle>MQTT 测试</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
-    <MudPaper Class="platform-page-hero platform-accent-tertiary pa-4" Elevation="0">
+    <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
                   Spacing="3">
             <MudStack Spacing="0">
@@ -57,7 +57,7 @@
                                    OnClick="@(() => TestAsync())" Disabled="_isTesting">
                             @(_isTesting ? "正在测试..." : "开始测试")
                         </MudButton>
-                        <MudButton Variant="Variant.Text" Color="Color.Default"
+                        <MudButton Variant="Variant.Text" Color="Color.Secondary"
                                    StartIcon="@Icons.Material.Filled.RestartAlt"
                                    OnClick="@Reset" Disabled="_isTesting">
                             重置

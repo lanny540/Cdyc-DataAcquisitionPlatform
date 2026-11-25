@@ -4,7 +4,7 @@
              x:Class="DAP.Presentation.AvaloniaApp.Views.Pages.ShiftCalendarPageView"
              x:DataType="vm:ShiftCalendarPageViewModel">
   <Grid RowDefinitions="Auto,Auto,*" RowSpacing="12">
-    <Border Classes="page-hero" Background="{DynamicResource DapInfoTintBrush}">
+    <Border Classes="page-hero">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
         <StackPanel Spacing="6">
           <TextBlock Classes="page-title" Text="排班日历" />
@@ -19,7 +19,7 @@
           </Border>
           <Button Classes="ghost" Content="下一月" Command="{Binding NextMonthCommand}" />
           <Button Classes="ghost" Content="本月" Command="{Binding CurrentMonthCommand}" />
-          <Button Classes="Primary" Content="刷新" Command="{Binding RefreshCommand}"
+          <Button Classes="ghost" Content="刷新" Command="{Binding RefreshCommand}"
                   IsEnabled="{Binding IsNotLoading}" />
         </StackPanel>
       </Grid>

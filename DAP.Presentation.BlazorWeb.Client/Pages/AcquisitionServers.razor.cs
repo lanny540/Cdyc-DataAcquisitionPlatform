@@ -1,16 +1,20 @@
 using DAP.Core.Shared.Catalog;
 using DAP.Core.Shared.Contracts;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using MudBlazor;
 
 namespace DAP.Presentation.BlazorWeb.Client.Pages;
 
 /// <summary>
 /// 表示采集服务器配置页面的交互逻辑。
+/// 编辑器为整页视图（非弹层）：列表与表单在同一页面上按 _isEditorOpen 切换。
 /// </summary>
 public partial class AcquisitionServers
 {
     [Inject] private IPlatformApiClient PlatformApiClient { get; set; } = null!;
+
+    [Inject] private IJSRuntime JsRuntime { get; set; } = null!;
 
     private readonly List<AcquisitionServerDto> _servers = [];
     private readonly List<AcquisitionServerTypeDescriptor> _serverTypes = [];
@@ -93,10 +97,11 @@ public partial class AcquisitionServers
         }
     }
 
-    private void OpenCreateDrawer()
+    private async Task OpenCreateEditor()
     {
         ResetEditor();
         _isEditorOpen = true;
+        await ScrollToTopAsync();
     }
 
     private async Task EditAsync(AcquisitionServerDto server)
@@ -126,6 +131,7 @@ public partial class AcquisitionServers
         _lastProbeResult = null;
         _isEditorOpen = true;
         await InvokeAsync(StateHasChanged);
+        await ScrollToTopAsync();
     }
 
     private async Task SaveAsync()
@@ -138,14 +144,15 @@ public partial class AcquisitionServers
             AcquisitionServerDto saved = await PlatformApiClient.UpsertAcquisitionServerAsync(
                 BuildRequest());
 
+            _isEditorOpen = false;
+            // 先刷新列表再设置提示：LoadAsync 会清空消息，顺序颠倒会让成功提示一闪而过。
+            await LoadAsync();
             SetMessage(
                 _editingId.HasValue
                     ? $"采集服务器 {saved.DisplayName} 已更新。"
                     : $"采集服务器 {saved.DisplayName} 已创建，节点配置时可直接选择。",
                 Severity.Success);
-
-            _isEditorOpen = false;
-            await LoadAsync();
+            await ScrollToTopAsync();
         }
         catch (Exception ex)
         {
@@ -244,8 +251,9 @@ public partial class AcquisitionServers
         try
         {
             await PlatformApiClient.DeleteAcquisitionServerAsync(server.Id);
-            SetMessage($"采集服务器 {server.DisplayName} 已删除。", Severity.Success);
+            // 先刷新列表再设置提示，避免成功提示被 LoadAsync 清空。
             await LoadAsync();
+            SetMessage($"采集服务器 {server.DisplayName} 已删除。", Severity.Success);
         }
         catch (Exception ex)
         {
@@ -259,15 +267,26 @@ public partial class AcquisitionServers
         }
     }
 
-    private void CloseEditor()
-    {
-        _isEditorOpen = false;
-    }
-
-    private void CancelEditor()
+    private async Task CancelEditor()
     {
         ResetEditor();
         _isEditorOpen = false;
+        await ScrollToTopAsync();
+    }
+
+    /// <summary>
+    /// 视图切换后回到页面顶部，保证成功/失败提示与表单头部立即可见。
+    /// </summary>
+    private async Task ScrollToTopAsync()
+    {
+        try
+        {
+            await JsRuntime.InvokeVoidAsync("window.scrollTo", 0, 0);
+        }
+        catch (JSException)
+        {
+            // 预渲染或电路尚未就绪时无法执行脚本，忽略即可。
+        }
     }
 
     private void ResetEditor()

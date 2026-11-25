@@ -27,7 +27,7 @@
                 </MudStack>
             </MudStack>
             <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
-                <MudButton Variant="Variant.Outlined" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Refresh"
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Refresh"
                            OnClick="LoadAsync" Disabled="_isLoading">
                     刷新
                 </MudButton>
@@ -54,7 +54,7 @@
 
     <MudGrid Spacing="3">
         <MudItem xs="12" sm="6" lg="3">
-            <MudPaper Class="platform-stat-card platform-stat-card--tinted platform-accent-primary pa-4" Elevation="0">
+            <MudPaper Class="platform-stat-card platform-stat-card--tinted platform-accent-secondary pa-4" Elevation="0">
                 <div class="platform-stat-header">
                     <span class="platform-section-icon">
                         <MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Small"/>
@@ -280,7 +280,7 @@
                             支持 .xlsx 与 .xls，表头顺序可任意调整。
                         </MudText>
                     </MudStack>
-                    <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Default" OnClick="CloseImportDialog"
+                    <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Filled.Close" Color="Color.Secondary" OnClick="CloseImportDialog"
                                    aria-label="关闭上传面板"/>
                 </MudStack>
 
@@ -359,7 +359,7 @@
                                         </MudText>
                                     </MudStack>
                                 </MudStack>
-                                <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Default"
+                                <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Filled.Close" Color="Color.Secondary"
                                                Size="Size.Small"
                                                OnClick="ClearSelectedFile" aria-label="移除已选文件"/>
                             </MudStack>

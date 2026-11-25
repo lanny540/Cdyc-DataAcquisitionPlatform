@@ -3,7 +3,7 @@
 <PageTitle>服务器连接状态</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
-    <MudPaper Class="platform-page-hero platform-accent-info pa-4" Elevation="0">
+    <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
             <MudStack Spacing="1">
                 <MudText Typo="Typo.h4">服务器连接状态</MudText>
@@ -12,7 +12,7 @@
                 </MudText>
             </MudStack>
 
-            <MudButton Variant="Variant.Outlined" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Refresh"
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Refresh"
                        Disabled="@_isLoading" OnClick="LoadAsync">
                 @(_isCheckingStatuses ? "重新检测" : "刷新状态")
             </MudButton>

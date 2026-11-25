@@ -3,9 +3,9 @@
              x:Class="DAP.Presentation.AvaloniaApp.App"
              xmlns:local="using:DAP.Presentation.AvaloniaApp"
              xmlns:semi="https://irihi.tech/semi"
-             RequestedThemeVariant="Dark">
-  <!-- 全站固定深色主题（与 Web 端一致）：Semi 控件按 Dark variant 取色，
-         页面自绘部分通过 DapPalette 的深色画刷对齐，不再跟随系统浅色。 -->
+             RequestedThemeVariant="Light">
+  <!-- 全站固定浅色主题（红金配色，与 Web 端一致）：Semi 控件按 Light variant 取色，
+         页面自绘部分通过 DapPalette 的浅色画刷对齐，不跟随系统深色。 -->
 
   <Application.DataTemplates>
     <local:ViewLocator />

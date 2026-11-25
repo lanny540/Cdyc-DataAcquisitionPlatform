@@ -1,74 +1,91 @@
 /* ============================================================
    CDYC 数据采集平台 · 全局样式
-   色板定义遵循 Material Design 3，改动前请先阅读 docs/DESIGN_SYSTEM.md
+   色板定义遵循 Material Design 2，改动前请先阅读 docs/DESIGN_SYSTEM.md
    AI 协作约束见仓库根目录 AGENTS.md
    ============================================================ */
 :root {
-    color-scheme: dark;
+    color-scheme: light;
 
-    /* ===== Material Design 3 角色色板（深色主题）=====
-       全站固定深色背景，层级遵循 M3 dark 的「越浮越亮」：
-       页面底 #0e151d → 卡片表面 #17212c → 区块容器（tint/soft）再亮一档。
+    /* ===== Material Design 2 色板（浅色主题 · 品牌红 + 琥珀，示意稿定稿）=====
+       页面底色用中性灰 #fafafa，白色卡片以 MD2 标准投影浮于其上——
+       卡片不铺 tint 底纹、不加色条，色彩由顶栏、圆形图标底块、徽章与图表系列承载，
+       图表/表格等数据容器保持白色表面保证可读。
 
-       七色 base 是唯一色相锚点，浅深两套主题共用（base 同时承担主按钮背景，
-       配白字 ≥4.5:1，深色下不提亮）。其余三档按深色语义重定义：
-       - strong：亮色强调文字与图表系列色，在深色容器底上 ≥4.5:1；
-       - soft：统计卡底色（低饱和深色容器，比表面亮 ≥1.25 倍）；
-       - tint：区块卡/表头底色（低饱和深色容器，比表面亮 ≥1.20 倍）。
+       七色 base 是唯一色相锚点，每色四档外加一档对比文字（-on）：
+       - base：色条、图标本身、填充底（主按钮、开关、头条卡），配 -on 文字 ≥4.5:1；
+       - strong：加深档，用于强调文字、徽章文字、图表系列与描边（在 tint/soft 容器上 ≥4.5:1）；
+       - soft：图标底块、有色卡片描边（比白色表面 ≥1.25 倍）；
+       - tint：统计卡、区块卡、页头与表头的色块底纹（比白色表面 ≥1.20 倍）。
 
-       soft/tint 刻意压低饱和度（S≈20%）：大面积容器一旦带高饱和色相，
-       数字与次要文字就会和底色「融成一片」；色相辨识交给小面积的
-       base 色条、图标与 strong 标签，数值与标题一律用近白（--platform-text）。 */
-    --md-primary: #0b4fc4;
-    --md-primary-strong: #9cc0fa;
-    --md-primary-soft: #303a4c;
-    --md-primary-tint: #283140;
+       色彩分工（强制）：主色红 #d32f2f（Red 700）承担顶栏与一切「操作」——
+       主按钮、开关、选中、输入焦点、图表主系列；强调琥珀 #ffb300 用于点缀与 FAB，
+       填充底配深褐字（琥珀偏亮，白字不可读）；
+       警示语义 error 固定为深酒红 #8e1b1e，与主色亮红靠明度区分（ΔE 73.8）。
 
-    --md-secondary: #33475c;
-    --md-secondary-strong: #b6c8dc;
-    --md-secondary-soft: #363f4a;
-    --md-secondary-tint: #2e3641;
+       文字层级铁律：正文与标题用黑色透明度阶（.87/.60/.54），accent 只出现在
+       色条、图标底块、标签行与图表系列；tint/soft 底纹足够浅，近黑文字在其上 ≥7:1。 */
+    --md-primary: #d32f2f;
+    --md-primary-on: #ffffff;
+    --md-primary-strong: #a31515;
+    --md-primary-soft: #f4b5b5;
+    --md-primary-tint: #ffcdd2;
 
-    --md-tertiary: #7b2f9e;
-    --md-tertiary-strong: #d9b4f0;
-    --md-tertiary-soft: #3c344a;
-    --md-tertiary-tint: #383146;
+    --md-secondary: #455a64;
+    --md-secondary-on: #ffffff;
+    --md-secondary-strong: #263238;
+    --md-secondary-soft: #b0bec5;
+    --md-secondary-tint: #cfd8dc;
 
-    --md-success: #0d7a3c;
-    --md-success-strong: #7fd6a0;
-    --md-success-soft: #25352e;
-    --md-success-tint: #24322b;
+    --md-tertiary: #ffb300;
+    --md-tertiary-on: #3e2a00;
+    --md-tertiary-strong: #8f4400;
+    --md-tertiary-soft: #ffd54f;
+    --md-tertiary-tint: #ffe082;
+
+    --md-success: #2e7d32;
+    --md-success-on: #ffffff;
+    --md-success-strong: #1b5e20;
+    --md-success-soft: #a5d6a7;
+    --md-success-tint: #c8e6c9;
 
     --md-warning: #b15600;
-    --md-warning-strong: #f5b25e;
-    --md-warning-soft: #393122;
-    --md-warning-tint: #362f21;
+    --md-warning-on: #ffffff;
+    --md-warning-strong: #8f4400;
+    --md-warning-soft: #ffcc80;
+    --md-warning-tint: #ffe0b2;
 
-    --md-error: #b32318;
-    --md-error-strong: #ef8d80;
-    --md-error-soft: #423033;
-    --md-error-tint: #3c2d2f;
+    --md-error: #8E1B1E;
+    --md-error-on: #ffffff;
+    --md-error-strong: #5C0E10;
+    --md-error-soft: #F4C7C9;
+    --md-error-tint: #F9DDDF;
 
-    --md-info: #0f6fbd;
-    --md-info-strong: #7fc0f0;
-    --md-info-soft: #2a3545;
-    --md-info-tint: #273140;
+    --md-info: #1976d2;
+    --md-info-on: #ffffff;
+    --md-info-strong: #0d47a1;
+    --md-info-soft: #90caf9;
+    --md-info-tint: #bbdefb;
 
-    /* 中性色阶：深色蓝灰基调，页面底最深、浮起容器逐级提亮 */
-    --platform-bg: #0e151d;
-    --platform-surface: #17212c;
-    --platform-surface-muted: #1d2836;
-    --platform-surface-sunken: #223042;
-    --platform-border: #2b3a4b;
-    --platform-border-strong: #42576e;
-    --platform-text: #e6edf5;
-    --platform-text-muted: #a7b6c8;
-    --platform-text-subtle: #7a8ba0;
+    /* 旧品牌红变量体系（--platform-brand*）已退役：语义由 primary 承接——
+       外壳（顶栏、抽屉选中、登录入口）与一切「操作」都用主色红，
+       琥珀 tertiary 只作点缀。内容区里的深酒红只有 error 一种语义，
+       两种红靠明度区分，因此错误场合必须同时带图标或文字，不能只靠颜色。 */
+
+    /* 中性色阶：黑色透明度阶（MD2 文字/分隔线口径），页面底色为中性灰 */
+    --platform-bg: #fafafa;
+    --platform-surface: #ffffff;
+    --platform-surface-muted: #f5f5f5;
+    --platform-surface-sunken: #eeeeee;
+    --platform-border: #e0e0e0;
+    --platform-border-strong: #8c8c8c;
+    --platform-text: #212121;
+    --platform-text-muted: #4f4f4f;
+    --platform-text-subtle: #757575;
 
     --platform-primary: var(--md-primary);
     --platform-primary-soft: var(--md-primary-soft);
-    --platform-shadow: 0 1px 2px rgba(0, 0, 0, .32), 0 1px 3px rgba(0, 0, 0, .4);
-    --platform-shadow-raised: 0 6px 20px rgba(0, 0, 0, .45);
+    --platform-shadow: 0 1px 3px rgba(0, 0, 0, .12), 0 1px 2px rgba(0, 0, 0, .24);
+    --platform-shadow-raised: 0 3px 6px rgba(0, 0, 0, .16), 0 3px 6px rgba(0, 0, 0, .23);
 }
 
 html, body {
@@ -108,7 +125,7 @@ code, pre, .platform-inline-code, .platform-timestamp, .platform-monospace {
 a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
 textarea:focus-visible, [role="button"]:focus-visible,
 [tabindex]:not([tabindex="-1"]):focus-visible {
-    outline: 2px solid var(--platform-primary);
+    outline: 2px solid var(--md-primary-strong);
     outline-offset: 3px;
 }
 
@@ -173,20 +190,29 @@ textarea:focus-visible, [role="button"]:focus-visible,
 .platform-accent-neutral {
     --card-accent: var(--platform-border-strong);
     --card-accent-strong: var(--md-secondary-strong);
-    --card-accent-soft: var(--platform-surface-sunken);
-    --card-accent-tint: var(--platform-surface-muted);
+    --card-accent-soft: var(--platform-border);
+    --card-accent-tint: var(--platform-surface-sunken);
 }
 
 .platform-layout {
     min-height: 100vh;
 }
 
-/* ===== 顶栏 ===== */
+/* ===== 顶栏 =====
+   MD2 经典形态：主色实底 + 白字 + 4dp 投影，顶栏本身就是页面上最大的色块。 */
 .platform-appbar {
-    border-bottom: 1px solid var(--platform-border);
-    background: var(--platform-surface) !important;
-    color: var(--platform-text) !important;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, .3);
+    background: var(--md-primary) !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, .2), 0 4px 5px 0 rgba(0, 0, 0, .14), 0 1px 10px 0 rgba(0, 0, 0, .12);
+}
+
+/* 顶栏上的徽章（版本号）反白：半透明白底 + 白字，不沿用内容区的 tint 徽章。 */
+.platform-appbar .mud-chip.mud-chip-outlined,
+.platform-appbar .mud-chip.mud-chip-text,
+.platform-appbar .mud-chip.mud-chip-filled {
+    color: #ffffff;
+    background: rgba(255, 255, 255, .16);
+    border-color: transparent;
 }
 
 .platform-appbar .mud-toolbar {
@@ -211,8 +237,9 @@ textarea:focus-visible, [role="button"]:focus-visible,
 .platform-brand-avatar {
     width: 32px;
     height: 32px;
-    color: #fff;
-    background: linear-gradient(135deg, var(--md-primary) 0%, var(--md-info) 100%);
+    /* 品牌标识：白圆底 + 主色红图标，与统计卡「圆形实色图标底块」同一语言（示意稿定稿） */
+    background: #ffffff;
+    color: var(--md-primary);
 }
 
 .platform-brand-title {
@@ -223,7 +250,7 @@ textarea:focus-visible, [role="button"]:focus-visible,
 }
 
 .platform-brand-subtitle {
-    color: var(--platform-text-muted);
+    color: rgba(255, 255, 255, .72);
     font-size: 0.6875rem;
 }
 
@@ -242,7 +269,7 @@ textarea:focus-visible, [role="button"]:focus-visible,
     flex: 0 0 auto;
     padding-left: 12px;
     margin-left: 4px;
-    border-left: 1px solid var(--platform-border);
+    border-left: 1px solid rgba(255, 255, 255, .25);
 }
 
 .platform-user-avatar {
@@ -252,14 +279,14 @@ textarea:focus-visible, [role="button"]:focus-visible,
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: var(--md-primary-soft);
-    color: var(--md-primary-strong);
+    background: rgba(255, 255, 255, .2);
+    color: #ffffff;
 }
 
 .platform-user-name {
     max-width: 120px;
     overflow: hidden;
-    color: var(--platform-text);
+    color: #ffffff;
     font-size: 0.8125rem;
     font-weight: 500;
     white-space: nowrap;
@@ -281,14 +308,14 @@ textarea:focus-visible, [role="button"]:focus-visible,
     border: 0;
     border-radius: 4px;
     background: transparent;
-    color: var(--platform-text-muted);
+    color: rgba(255, 255, 255, .85);
     cursor: pointer;
     transition: background-color .15s ease, color .15s ease;
 }
 
 .platform-logout-button:hover {
-    background: var(--md-error-tint);
-    color: var(--md-error-strong);
+    background: rgba(255, 255, 255, .14);
+    color: #ffffff;
 }
 
 .platform-logout-button .mud-icon-root {
@@ -297,7 +324,7 @@ textarea:focus-visible, [role="button"]:focus-visible,
 
 /* ===== 顶栏一级导航 =====
    三个顶级模块（数据指标 / 业务配置 / 平台管理）切换左侧菜单。
-   激活态用 primary 的 soft 底 + 2px 下划线表达，颜色全部取自变量。 */
+   顶栏为主色实底，激活态用半透明白底 + 白字 + 白色下划线（MD2 深色顶栏惯例）。 */
 .platform-topnav {
     display: flex;
     align-items: center;
@@ -324,7 +351,7 @@ textarea:focus-visible, [role="button"]:focus-visible,
     border: 0;
     border-radius: 4px;
     background: transparent;
-    color: var(--platform-text-muted);
+    color: rgba(255, 255, 255, .78);
     font-family: inherit;
     font-size: 0.875rem;
     line-height: 1;
@@ -334,13 +361,13 @@ textarea:focus-visible, [role="button"]:focus-visible,
 }
 
 .platform-topnav-item:hover {
-    background: var(--md-primary-tint);
-    color: var(--md-primary-strong);
+    background: rgba(255, 255, 255, .1);
+    color: #ffffff;
 }
 
 .platform-topnav-item--active {
-    background: var(--md-primary-soft);
-    color: var(--md-primary-strong);
+    background: rgba(255, 255, 255, .16);
+    color: #ffffff;
     font-weight: 600;
 }
 
@@ -350,7 +377,7 @@ textarea:focus-visible, [role="button"]:focus-visible,
     inset: auto 10px 0;
     height: 2px;
     border-radius: 2px 2px 0 0;
-    background: var(--md-primary);
+    background: #ffffff;
 }
 
 .platform-topnav-item .mud-icon-root {
@@ -363,14 +390,14 @@ textarea:focus-visible, [role="button"]:focus-visible,
     display: inline-block;
     padding: 1px 6px;
     border-radius: 3px;
-    background: var(--md-warning-soft);
-    color: var(--md-warning-strong);
+    background: rgba(255, 255, 255, .2);
+    color: var(--md-warning-tint);
     font-size: 0.6875rem;
     line-height: 1.4;
 }
 
 .platform-topnav-loading {
-    color: var(--platform-text-subtle);
+    color: rgba(255, 255, 255, .7);
     font-size: 0.75rem;
 }
 
@@ -382,8 +409,8 @@ textarea:focus-visible, [role="button"]:focus-visible,
     height: 28px;
     padding: 0 10px;
     border-radius: 4px;
-    background: var(--md-info-tint);
-    color: var(--md-info-strong);
+    background: rgba(255, 255, 255, .16);
+    color: #ffffff;
     font-size: 0.75rem;
     white-space: nowrap;
 }
@@ -448,13 +475,11 @@ textarea:focus-visible, [role="button"]:focus-visible,
     transition: background-color .15s ease, color .15s ease;
 }
 
-/* ===== 导航激活态（2026-11-16 修复）=====
+/* ===== 导航激活态 =====
    MudBlazor 的激活规则是 .mud-navmenu.mud-navmenu-default .mud-nav-link.active:not(...)，
-   特异度 (0,4,0)，会把激活文字强制为调色板 base 深蓝（#0B4FC4）——
-   叠在深色抽屉上对比仅 2.3:1，用户实测反馈「深蓝色与背景色相近」。
-   此前的低特异度规则全部被压制；且 MudNavLink 把 active 加在 <a> 上而非
-   wrapper，依赖 wrapper.active 的图标规则从不命中。
-   这里用同构高特异度选择器覆盖，激活态与桌面端对齐：tint 底 + strong 亮字。 */
+   特异度 (0,4,0)。且 MudNavLink 把 active 加在 <a> 上而非 wrapper，
+   依赖 wrapper.active 的图标规则不命中。这里用同构高特异度选择器覆盖：
+   抽屉选中态取主色红（浅红底 + 加深红字），与顶栏同源。 */
 .mud-navmenu .mud-nav-item.platform-nav-link .mud-nav-link:hover:not(.mud-nav-link-disabled):not(.active) {
     background: var(--platform-surface-muted);
 }
@@ -465,13 +490,13 @@ textarea:focus-visible, [role="button"]:focus-visible,
     font-weight: 600;
 }
 
-/* 激活项悬停再亮一档（tint → soft），保持「越浮越亮」的层次。 */
+/* 激活项悬停再深一档（tint → soft 过渡），保持层次。 */
 .mud-navmenu .mud-nav-item.platform-nav-link .mud-nav-link.active:not(.mud-nav-link-disabled):hover:not(.mud-nav-link-disabled),
 .mud-navmenu .mud-nav-item.platform-nav-link .mud-nav-link.active:not(.mud-nav-link-disabled):active:not(.mud-nav-link-disabled) {
-    background: var(--md-primary-soft);
+    background: color-mix(in srgb, var(--md-primary-tint) 65%, var(--md-primary-soft));
 }
 
-/* 激活态图标跟随文字用 strong 亮蓝，不再依赖 wrapper 上的 active 类。 */
+/* 激活态图标跟随文字用主色加深档，不再依赖 wrapper 上的 active 类。 */
 .mud-navmenu .mud-nav-item.platform-nav-link .mud-nav-link.active:not(.mud-nav-link-disabled) .mud-nav-link-icon {
     color: var(--md-primary-strong);
 }
@@ -482,7 +507,7 @@ textarea:focus-visible, [role="button"]:focus-visible,
    特异度警告：MudBlazor 用 (0,4,0) 的
    `.mud-nav-link:not(.mud-nav-link-disabled) .mud-nav-link-icon.mud-nav-link-icon-default`
    把图标强制为抽屉默认灰——低特异度的分区着色从未生效过（图标一直是灰色）。
-   这里用 (0,5,0) 的同构选择器覆盖，并按「前景一律 Strong 档」取色。 */
+   这里用 (0,5,0) 的同构选择器覆盖，并按「前景一律 Strong 加深档」取色。 */
 .mud-navmenu .mud-nav-item.platform-nav-link--primary .mud-nav-link-icon.mud-nav-link-icon-default {
     color: var(--md-primary-strong);
 }
@@ -531,48 +556,29 @@ textarea:focus-visible, [role="button"]:focus-visible,
     min-width: 0;
 }
 
-/* ===== 通用卡片 ===== */
+/* ===== 通用卡片 =====
+   示意稿风格：白色卡面无边框，靠 MD2 投影浮于灰色页面底之上。 */
 .platform-page-hero, .platform-section-card, .platform-panel, .platform-stat-card, .status-code-card {
-    border: 1px solid var(--platform-border);
     border-radius: 4px;
     background: var(--platform-surface);
     box-shadow: var(--platform-shadow);
 }
 
-/* 区块卡片承载左侧色条，需自身建立定位上下文 */
+/* 区块卡片：示意稿风格已去色条，保留定位上下文以兼容内部绝对定位元素 */
 .platform-section-card, .platform-panel {
     position: relative;
     overflow: hidden;
 }
 
-/* 页面头部：主色描边 + 同色底纹，确立每页主色。 */
+/* 页面头部：示意稿风格无色块——标题与副标题直接排在页面底色上，
+   不铺 tint 底纹、不加色条与装饰圆；页面主色由顶栏与卡内圆形图标底块、图表系列承载。 */
 .platform-page-hero {
     position: relative;
-    overflow: hidden;
-    border-left: 4px solid var(--card-accent, var(--md-primary));
-    background: var(--card-accent-tint, var(--md-primary-tint));
+    background: transparent;
+    border: none;
+    box-shadow: none;
 }
 
-.platform-page-hero::after {
-    content: "";
-    position: absolute;
-    top: -56px;
-    right: -32px;
-    width: 180px;
-    height: 180px;
-    border-radius: 50%;
-    background: var(--card-accent, var(--md-primary));
-    opacity: .08;
-    pointer-events: none;
-}
-
-.platform-page-hero > * {
-    position: relative;
-    z-index: 1;
-}
-
-/* 页头标题用近白而不是 accent 亮色：彩色大标题与同色相容器底会融在一起，
-   页面主色由 tint 底、左侧色条与图标传达，标题保持最高对比度。 */
 .platform-page-hero .mud-typography-h4 {
     color: var(--platform-text);
 }
@@ -588,47 +594,50 @@ textarea:focus-visible, [role="button"]:focus-visible,
     font-size: 0.75rem;
 }
 
-/* ===== 徽章与提示条的深色可读性修复 =====
-   MudBlazor 9.12 的 outlined/text 徽章与提示条用调色板 base 色作文字与描边，
-   而 base 是「主按钮底色」档——在深色主题里本身就是深色，
-   叠在深色表面上对比只有 2~3:1（页头的班组/班次徽章、图表卡的
-   合计/均值/趋势徽章都受影响）。统一改用 strong 亮色档：
-   文字用 strong，描边用 55% 半透明 strong；浅色主题下 strong
-   是加深档，同样成立。类名注意：MudBlazor 用的是复合类
+/* ===== 徽章与提示条：MD2 浅底徽章 =====
+   MD2 的状态徽章是「100 阶浅底 + 深色字」，不再用描边。outlined/text 徽章统一覆盖：
+   文字取 strong 加深档，底色取 tint 色块，描边去掉。类名注意：MudBlazor 用的是复合类
    （mud-chip-color-warning / mud-alert-outlined-warning），不是 mud-warning。 */
 .mud-chip-outlined.mud-chip-color-primary, .mud-chip-text.mud-chip-color-primary {
     color: var(--md-primary-strong);
-    border-color: color-mix(in srgb, var(--md-primary-strong) 55%, transparent);
+    background: var(--md-primary-tint);
+    border-color: transparent;
 }
 
 .mud-chip-outlined.mud-chip-color-secondary, .mud-chip-text.mud-chip-color-secondary {
     color: var(--md-secondary-strong);
-    border-color: color-mix(in srgb, var(--md-secondary-strong) 55%, transparent);
+    background: var(--md-secondary-tint);
+    border-color: transparent;
 }
 
 .mud-chip-outlined.mud-chip-color-tertiary, .mud-chip-text.mud-chip-color-tertiary {
     color: var(--md-tertiary-strong);
-    border-color: color-mix(in srgb, var(--md-tertiary-strong) 55%, transparent);
+    background: var(--md-tertiary-tint);
+    border-color: transparent;
 }
 
 .mud-chip-outlined.mud-chip-color-success, .mud-chip-text.mud-chip-color-success {
     color: var(--md-success-strong);
-    border-color: color-mix(in srgb, var(--md-success-strong) 55%, transparent);
+    background: var(--md-success-tint);
+    border-color: transparent;
 }
 
 .mud-chip-outlined.mud-chip-color-warning, .mud-chip-text.mud-chip-color-warning {
     color: var(--md-warning-strong);
-    border-color: color-mix(in srgb, var(--md-warning-strong) 55%, transparent);
+    background: var(--md-warning-tint);
+    border-color: transparent;
 }
 
 .mud-chip-outlined.mud-chip-color-error, .mud-chip-text.mud-chip-color-error {
     color: var(--md-error-strong);
-    border-color: color-mix(in srgb, var(--md-error-strong) 55%, transparent);
+    background: var(--md-error-tint);
+    border-color: transparent;
 }
 
 .mud-chip-outlined.mud-chip-color-info, .mud-chip-text.mud-chip-color-info {
     color: var(--md-info-strong);
-    border-color: color-mix(in srgb, var(--md-info-strong) 55%, transparent);
+    background: var(--md-info-tint);
+    border-color: transparent;
 }
 
 /* outlined 提示条（页头的排班提示、操作结果反馈）：同口径换 strong 档，
@@ -679,39 +688,22 @@ textarea:focus-visible, [role="button"]:focus-visible,
     color: inherit;
 }
 
-/* 统计卡片：左侧语义色条 + 同色底纹。
-   底纹铺满整卡而非只染左侧一小条，否则卡片九成面积仍是白色，
-   整屏看上去「没有颜色」。
-   统计卡用 soft 档（比区块卡的 tint 档更饱和），让关键数字所在处
-   在白底页面中更跳脱；卡内表格仍保持白色表面以确保可读。 */
+/* ===== MD2 实心按钮投影 =====
+   MD2 的 contained 按钮自带 2dp 投影。主色为品牌红，文字/描边/聚焦态
+   直接用 base 档即可读。 */
+.mud-button-root.mud-button-filled {
+    box-shadow: 0 3px 1px -2px rgba(0, 0, 0, .2), 0 2px 2px 0 rgba(0, 0, 0, .14), 0 1px 5px 0 rgba(0, 0, 0, .12);
+}
+
+/* 统计卡片：示意稿风格——白色卡面 + MD2 投影浮于灰底之上。
+   不铺 tint 底纹、不加左侧色条；色彩由圆形图标底块承载，
+   数值保持近黑，是页面最清晰的层级。--tinted/--filled 类名保留作标记，
+   视觉上与常规统计卡一致（示意稿中所有统计卡都是白卡）。 */
 .platform-stat-card {
     position: relative;
     overflow: hidden;
     height: 100%;
     min-height: 108px;
-}
-
-.platform-stat-card::before {
-    content: "";
-    position: absolute;
-    inset: 0 auto 0 0;
-    width: 4px;
-    background: var(--card-accent, var(--md-primary));
-}
-
-/* 统计卡片：中性表面 + 左侧语义色条 + 彩色标签行。
-   深色主题的教训：每张卡都铺彩色底会变成「色块马赛克」——四五种深色
-   容器并排时彼此打架，暖色容器（琥珀/紫）还容易发闷显脏。
-   现在色相收敛到小面积（左色条、图标底块、标签行），数值在中性底上
-   保持页面最亮层级；--tinted 的名字保留（内部点缀元素仍取 tint 档）。 */
-.platform-stat-card--tinted {
-    background: var(--platform-surface);
-}
-
-/* 头条 KPI（全宽汇总卡，如「综合能耗合计」）：唯一保留 soft 全幅填充的
-   统计卡，用面积 + 色底建立页面第一数据层级，与常规指标卡拉开档次。 */
-.platform-stat-card--filled {
-    background: var(--card-accent-soft, var(--md-primary-soft));
 }
 
 .platform-stat-card > .mud-typography-caption {
@@ -720,19 +712,14 @@ textarea:focus-visible, [role="button"]:focus-visible,
     margin-bottom: 8px;
 }
 
-/* 数值是卡片里最需要「跳出来」的元素：用近白（对深色容器 ≈13:1），
-   accent 色相留给色条、图标与标签行——大数字一旦也用 accent 亮色，
-   会和同色相容器底融在一起，这正是「文字不突出」的根源。 */
+/* 数值是卡片里最需要「跳出来」的元素：用近黑，accent 色相留给
+   圆形图标底块与图表系列——大数字一旦也用 accent 色会显得花哨。 */
 .platform-stat-card .mud-typography-h3, .platform-stat-card .mud-typography-h5 {
     margin-bottom: 6px;
     color: var(--platform-text);
 }
 
-.platform-stat-card--tinted > .mud-typography-caption {
-    color: var(--card-accent-strong, var(--platform-text-muted));
-}
-
-/* 统计卡片标题行：图标底色块 + 标签 */
+/* 统计卡片标题行：标签用中性灰，色彩交给图标底块 */
 .platform-stat-header {
     display: flex;
     align-items: center;
@@ -741,45 +728,14 @@ textarea:focus-visible, [role="button"]:focus-visible,
 }
 
 .platform-stat-header .mud-typography {
-    color: var(--card-accent-strong, var(--platform-text-muted));
+    color: var(--platform-text-muted);
     font-weight: 600;
 }
 
 .platform-stat-header .platform-section-icon {
     width: 28px;
     height: 28px;
-    border-radius: 8px;
-}
-
-/* 区块卡片顶部色带，用于区分同级区块。 */
-.platform-section-card--banded {
-    border-top: 3px solid var(--card-accent, var(--md-primary));
-}
-
-/* 区块卡片的容器变体：中性表面 + 左侧语义色条。
-   区块卡承载标题、表格与图表，是页面上面积最大的容器——铺满同色底
-   会让整页变成彩色瓷砖；色彩改由左色条、图标底块与表头底色承载，
-   卡内内容（表格、图表）在中性底上可读性最好。 */
-.platform-section-card--tinted,
-.platform-panel--tinted {
-    background: var(--platform-surface);
-}
-
-.platform-section-card--tinted::before,
-.platform-panel--tinted::before {
-    content: "";
-    position: absolute;
-    inset: 0 auto 0 0;
-    width: 4px;
-    background: var(--card-accent, var(--md-primary));
-}
-
-/* 区块内的表格与表单仍用白色表面，与浅底形成层次 */
-.platform-section-card--tinted > .platform-data-table,
-.platform-panel--tinted > .platform-data-table,
-.platform-section-card--tinted .platform-sheet,
-.platform-panel--tinted .platform-sheet {
-    background: var(--platform-surface);
+    border-radius: 50%;
 }
 
 /* 卡片标题行 */
@@ -809,7 +765,7 @@ textarea:focus-visible, [role="button"]:focus-visible,
     font-size: 0.75rem;
 }
 
-/* 卡片标题前的色块图标，增强区块识别度。 */
+/* 卡片标题前的圆形图标底块：accent 实底 + 白色图标（示意稿语言）。 */
 .platform-section-icon {
     display: inline-flex;
     align-items: center;
@@ -817,9 +773,9 @@ textarea:focus-visible, [role="button"]:focus-visible,
     flex-shrink: 0;
     width: 30px;
     height: 30px;
-    border-radius: 8px;
-    background: var(--card-accent-soft, var(--md-primary-soft));
-    color: var(--card-accent-strong, var(--md-primary-strong));
+    border-radius: 50%;
+    background: var(--card-accent, var(--md-primary));
+    color: #ffffff;
 }
 
 /* 空状态 */
@@ -851,13 +807,13 @@ textarea:focus-visible, [role="button"]:focus-visible,
 }
 
 .platform-data-table .mud-table-head .mud-table-cell {
-    background: var(--card-accent-tint, var(--platform-surface-sunken));
-    color: var(--card-accent-strong, var(--platform-text-muted));
+    background: transparent;
+    color: var(--platform-text-muted);
     font-size: 0.75rem;
     font-weight: 600;
     padding: 10px 12px;
     white-space: nowrap;
-    border-bottom: 1px solid var(--card-accent-soft, var(--platform-border));
+    border-bottom: 1px solid rgba(0, 0, 0, .12);
 }
 
 .platform-data-table .mud-table-body .mud-table-cell {
@@ -867,7 +823,7 @@ textarea:focus-visible, [role="button"]:focus-visible,
 }
 
 .platform-data-table .mud-table-body .mud-table-row:hover {
-    background: var(--md-primary-tint);
+    background: var(--platform-bg);
 }
 
 .platform-data-table .mud-table-row:hover .platform-table-primary {
@@ -951,12 +907,12 @@ textarea:focus-visible, [role="button"]:focus-visible,
 .platform-sheet-header {
     flex: none;
     padding: 16px 20px;
-    background: linear-gradient(100deg, var(--card-accent-tint, var(--md-primary-tint)) 0%, var(--platform-surface) 70%);
-    border-bottom: 1px solid var(--card-accent-soft, var(--platform-border));
+    background: var(--platform-surface);
+    border-bottom: 1px solid var(--platform-border);
 }
 
 .platform-sheet-header .mud-typography-h5 {
-    color: var(--card-accent-strong, var(--md-primary-strong));
+    color: var(--platform-text);
 }
 
 .platform-sheet-header .mud-icon-button {
@@ -981,7 +937,6 @@ textarea:focus-visible, [role="button"]:focus-visible,
     background: var(--platform-surface);
     border: 1px solid var(--platform-border);
     border-radius: 4px;
-    border-left: 3px solid var(--card-accent, var(--md-primary));
     box-shadow: var(--platform-shadow);
 }
 
@@ -999,7 +954,7 @@ textarea:focus-visible, [role="button"]:focus-visible,
 /* 深色代码 / 日志面板 */
 .platform-code-panel {
     overflow: hidden;
-    background: linear-gradient(180deg, #1d2937 0%, #172130 100%);
+    background: #1c2836;
     border: 1px solid #2b3a4d;
     border-radius: 4px;
 }
@@ -1029,13 +984,13 @@ textarea:focus-visible, [role="button"]:focus-visible,
 
 .platform-summary {
     padding: 12px;
-    background: var(--card-accent-tint, var(--platform-surface-muted));
-    border: 1px solid var(--card-accent-soft, var(--platform-border));
+    background: var(--platform-surface-muted);
+    border: 1px solid var(--platform-border);
     border-radius: 4px;
 }
 
 .platform-summary > .mud-typography-caption {
-    color: var(--card-accent-strong, var(--platform-text-muted));
+    color: var(--platform-text-muted);
     font-weight: 600;
     margin-bottom: 2px;
 }
@@ -1053,11 +1008,9 @@ textarea:focus-visible, [role="button"]:focus-visible,
 .platform-chart-frame {
     width: 100%;
     height: 340px;
-    /* 上部带同色底纹，向下渐隐为白：图表区域有了色调，又不会干扰读数 */
-    background: linear-gradient(180deg,
-    var(--card-accent-tint, var(--md-primary-tint)) 0%,
-    var(--platform-surface) 42%);
-    border: 1px solid var(--card-accent-soft, var(--platform-border));
+    /* 示意稿风格：图表直接坐在白色卡面上，不再铺渐变底纹与描边 */
+    background: transparent;
+    border: none;
     border-radius: 3px;
     /* 左侧留出刻度值的位置：MudChart 的 Y 轴文字以 text-anchor:end 绘制在
        viewBox 边界上，SVG 默认 overflow:hidden 会把它们整个裁掉。
@@ -1094,8 +1047,8 @@ textarea:focus-visible, [role="button"]:focus-visible,
    presentation attribute，与七色体系完全脱节。SVG presentation attribute
    的优先级低于任何 CSS 规则，因此这里按所在卡片的 accent 变量覆盖。
 
-   系列取 **strong 档**而不是 base：深色主题下 base 太暗（与表面对比不足），
-   浅色主题下 strong 是加深档、对比同样更高，两个主题里折线/柱形都保持清晰。 */
+   系列取 **strong 档**而不是 base：strong 是加深档，每个角色在白底上都 ≥4.5:1，
+   折线/柱形清晰可辨，且「图例颜色 = 系列颜色」恒成立。 */
 .platform-chart-frame path.mud-chart-line {
     stroke: var(--card-accent-strong, var(--md-primary-strong));
 }
@@ -1111,7 +1064,7 @@ textarea:focus-visible, [role="button"]:focus-visible,
     transition: fill .15s ease, stroke .15s ease;
 }
 
-/* 柱形悬停时提亮一档（深色主题下「加深」无档可用，亮度调节对两套主题都成立），
+/* 柱形悬停时提亮一档（strong 是加深档，提亮后与静态柱形拉开差异），
    与悬停提示配合，强化“这根柱子对应的班组” */
 .platform-chart-frame path.mud-chart-bar:hover {
     filter: brightness(1.25);
@@ -1173,22 +1126,21 @@ textarea:focus-visible, [role="button"]:focus-visible,
 
 /* ===== 排班日历 =====
    MudBlazor 9.11 未提供独立日历组件，这里用网格自建月历。
-   色相全部来自所在容器的 accent 变量，不新增任何具体色相规则。 */
+   网格与表头用中性灰（示意稿的白卡语言），选中态用主色圈出。 */
 .platform-calendar {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 1px;
-    /* 网格线跟随所在容器的 accent，用灰色会在有色底上显得突兀 */
-    background: var(--card-accent-soft, var(--platform-border));
-    border: 1px solid var(--card-accent-soft, var(--platform-border));
+    background: var(--platform-border);
+    border: 1px solid var(--platform-border);
     border-radius: 4px;
     overflow: hidden;
 }
 
 .platform-calendar-weekday {
     padding: 8px 6px;
-    background: var(--card-accent-tint, var(--platform-surface-muted));
-    color: var(--card-accent-strong, var(--platform-text-muted));
+    background: var(--platform-surface-muted);
+    color: var(--platform-text-muted);
     font-size: 0.75rem;
     font-weight: 600;
     text-align: center;
@@ -1211,7 +1163,7 @@ textarea:focus-visible, [role="button"]:focus-visible,
 }
 
 .platform-calendar-cell:hover {
-    background: var(--card-accent-soft, var(--md-primary-soft));
+    background: var(--platform-surface-muted);
 }
 
 .platform-calendar-cell--muted {
@@ -1228,8 +1180,8 @@ textarea:focus-visible, [role="button"]:focus-visible,
 }
 
 .platform-calendar-cell--selected {
-    background: var(--card-accent-soft, var(--md-primary-soft));
-    box-shadow: inset 0 0 0 2px var(--card-accent, var(--md-primary));
+    background: var(--md-primary-tint);
+    box-shadow: inset 0 0 0 2px var(--md-primary);
 }
 
 .platform-calendar-date {
@@ -1249,14 +1201,15 @@ textarea:focus-visible, [role="button"]:focus-visible,
 }
 
 /* 日历状态标签。
-   底色用 base 档配白字而非 soft 档——日历格本身已是 tint 底，
-   soft 标签叠在 tint 上层次拉不开，状态提示会看不清。 */
+   底色用 strong 加深档配白字而非 soft 档——日历格本身已是 tint 底，
+   soft 标签叠在 tint 上层次拉不开，状态提示会看不清；
+   primary 的 base 是亮金色，配白字不可读，因此这里统一取各色的 strong 档。 */
 .platform-calendar-badge {
     font-size: 0.625rem;
     padding: 1px 6px;
     border-radius: 999px;
-    background: var(--card-accent, var(--md-primary));
-    color: #fff;
+    background: var(--card-accent-strong, var(--md-primary-strong));
+    color: #ffffff;
 }
 
 .platform-calendar-badge--rest {
@@ -1346,8 +1299,7 @@ textarea:focus-visible, [role="button"]:focus-visible,
 }
 
 .acquisition-server-picker {
-    border-left: 3px solid var(--card-accent, var(--md-primary));
-    background: linear-gradient(90deg, var(--card-accent-soft, var(--md-primary-soft)) 0, var(--platform-surface) 88px);
+    background: var(--platform-surface);
 }
 
 .node-server-preview {
@@ -1378,10 +1330,6 @@ textarea:focus-visible, [role="button"]:focus-visible,
 }
 
 /* ===== 服务器连接状态 ===== */
-.server-status-stat {
-    border-left: 3px solid var(--card-accent, var(--md-primary));
-}
-
 .server-status-stat::before {
     display: none;
 }
@@ -1390,15 +1338,7 @@ textarea:focus-visible, [role="button"]:focus-visible,
     position: relative;
     overflow: hidden;
     min-height: 252px;
-    background: linear-gradient(96deg, var(--card-accent-tint, var(--platform-surface-muted)) 0%, var(--platform-surface) 88px);
-}
-
-.server-status-card::before {
-    content: "";
-    position: absolute;
-    inset: 0 auto 0 0;
-    width: 4px;
-    background: var(--card-accent, var(--platform-border-strong));
+    background: var(--platform-surface);
 }
 
 .server-status-card .mud-typography-h6 {
@@ -1421,13 +1361,27 @@ textarea:focus-visible, [role="button"]:focus-visible,
     font-size: 0.75rem;
 }
 
-/* 列表页筛选控件：统一最小宽度，窄屏自动换行（外层 MudStack 负责 Wrap）。 */
+/* 列表页筛选控件：统一宽度口径，窄屏自动换行（外层 MudStack 负责 Wrap）。
+   文本框基准 140、最多伸展到 320，日期/选择框基准 160——
+   1440 宽下一行放得下「两日期 + 一文本 + 两选择 + 查询 + 清空筛选」（基准合计 1110，实测容器 1128），
+   筛选行不会无故折成两行，「查询」也始终紧挨着最后一个输入框，而不是被挤到行尾。
+   注意换行按 flex-basis 判定：调大任一基准宽度前先核对这个合计。 */
 .platform-filter-field {
-    min-width: 220px;
+    flex: 1 1 140px;
+    min-width: 140px;
+    max-width: 320px;
 }
 
 .platform-filter-select {
-    min-width: 160px;
+    flex: 0 1 160px;
+    min-width: 150px;
+}
+
+/* MudSelect 的 Class 只落在内层 .mud-input-control 上，真正作为 flex 项的是外层 div.mud-select，
+   MudBlazor 给它的默认值是 flex: 1 1 auto（会尽量撑满）。这里从内层类反选外层，套用同一宽度口径。 */
+.mud-select:has(> .platform-filter-select) {
+    flex: 0 1 160px;
+    min-width: 150px;
 }
 
 .status-code-shell {
@@ -1467,7 +1421,7 @@ textarea:focus-visible, [role="button"]:focus-visible,
     width: min(420px, 100%);
     padding: 28px 28px 24px;
     background: var(--platform-surface);
-    border: 1px solid var(--platform-border);
+    /* 登录入口的品牌落点：顶部主色红。登录页是用户看到的第一屏，用主色确立品牌 */
     border-top: 4px solid var(--md-primary);
     border-radius: 4px;
     box-shadow: var(--platform-shadow-raised);
@@ -1487,8 +1441,8 @@ textarea:focus-visible, [role="button"]:focus-visible,
     width: 44px;
     height: 44px;
     border-radius: 4px;
-    background: var(--md-primary-soft);
-    color: var(--md-primary-strong);
+    background: var(--md-primary);
+    color: #ffffff;
     font-size: 0.8125rem;
     font-weight: 600;
     letter-spacing: .04em;
@@ -1569,19 +1523,22 @@ textarea:focus-visible, [role="button"]:focus-visible,
     font-size: 0.8125rem;
 }
 
+/* 登录主按钮：主色实底白字（与全站主按钮一致），另加 MD2 投影。 */
 .platform-auth-submit {
     height: 40px;
     border: 0;
     border-radius: 4px;
     background: var(--md-primary);
-    color: #ffffff;
+    box-shadow: 0 3px 1px -2px rgba(0, 0, 0, .2), 0 2px 2px 0 rgba(0, 0, 0, .14), 0 1px 5px 0 rgba(0, 0, 0, .12);
+    color: var(--md-primary-on);
     font: inherit;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
+    transition: background-color .15s ease;
 }
 
 .platform-auth-submit:hover {
-    background: var(--md-primary-strong);
+    background: color-mix(in srgb, var(--md-primary) 80%, var(--md-primary-strong));
 }
 
 .platform-auth-meta {

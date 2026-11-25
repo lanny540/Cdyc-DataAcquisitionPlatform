@@ -3,7 +3,7 @@
 <PageTitle>点位配置</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
-    <MudPaper Class="platform-page-hero platform-accent-info pa-4" Elevation="0">
+    <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
             <MudStack Spacing="0">
                 @* 页面标题与左侧菜单保持一致：菜单叫「点位配置」，进来却叫「采集点配置管理」，
@@ -22,7 +22,7 @@
                 </MudStack>
             </MudStack>
             <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
-                <MudButton Variant="Variant.Outlined" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Refresh"
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Refresh"
                            OnClick="LoadAsync">
                     刷新列表
                 </MudButton>
@@ -94,8 +94,8 @@
                 </MudStack>
             </MudStack>
             <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
-                <MudChip T="string" Variant="Variant.Text" Color="Color.Default">来源可区分 Server / Local</MudChip>
-                <MudChip T="string" Variant="Variant.Text" Color="Color.Default">点击编辑在右侧打开表单</MudChip>
+                <MudChip T="string" Variant="Variant.Outlined" Color="Color.Default">来源可区分 Server / Local</MudChip>
+                <MudChip T="string" Variant="Variant.Outlined" Color="Color.Default">点击编辑在右侧打开表单</MudChip>
             </MudStack>
         </MudStack>
 
@@ -139,7 +139,7 @@
                 </MudTd>
                 <MudTd DataLabel="来源">
                     <MudChip T="string" Color="@(context.Source == "Local" ? Color.Warning : Color.Info)"
-                             Variant="Variant.Text" Size="Size.Small">
+                             Variant="Variant.Outlined" Size="Size.Small">
                         @context.Source
                     </MudChip>
                 </MudTd>
@@ -150,7 +150,7 @@
                 </MudTd>
                 <MudTd DataLabel="操作" Class="table-action-cell">
                     <div class="table-action-grid table-action-grid--two">
-                        <MudButton Variant="Variant.Outlined"
+                        <MudButton Size="Size.Small" Variant="Variant.Text"
                                    Color="Color.Primary"
                                    Class="table-action-button"
                                    FullWidth="true"
@@ -158,7 +158,7 @@
                                    OnClick="@(() => EditAsync(context))">
                             编辑
                         </MudButton>
-                        <MudButton Variant="Variant.Outlined"
+                        <MudButton Size="Size.Small" Variant="Variant.Text"
                                    Color="Color.Error"
                                    Class="table-action-button"
                                    FullWidth="true"
@@ -202,7 +202,7 @@
                             @EditorDescription
                         </MudText>
                     </MudStack>
-                    <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Default" OnClick="CloseEditor"
+                    <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Filled.Close" Color="Color.Secondary" OnClick="CloseEditor"
                                    aria-label="关闭编辑"/>
                 </MudStack>
 

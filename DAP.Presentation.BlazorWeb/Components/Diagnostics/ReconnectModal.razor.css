@@ -66,7 +66,7 @@
 #components-reconnect-modal ::deep .components-reconnect-icon-shell {
     width: 56px;
     height: 56px;
-    border: 1px solid var(--platform-border);
+    border-radius: 50%;
 }
 
 #components-reconnect-modal ::deep .components-reconnect-show-icon,

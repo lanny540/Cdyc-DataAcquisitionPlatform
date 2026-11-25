@@ -1,33 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
 
+<!--
+  Semi 主题覆盖：把 Semi 控件的默认取色对齐到平台色板（浅色品牌红 + 琥珀 · MD2 示意稿）。
+  色值与 Web 端 PlatformTheme.cs、DapPalette.axaml 同源，改动规则见 docs/DESIGN_SYSTEM.md。
+  新增覆盖键前必须先核实键存在于当前 Semi 版本（当前 Semi.Avalonia 12.1.0.1）。
+-->
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-  <!-- Primary：#0B4FC4，Active 用 dark 变体 -->
-  <SolidColorBrush x:Key="SemiColorPrimary" Color="#0B4FC4" />
-  <SolidColorBrush x:Key="SemiColorPrimaryActive" Color="#083A99" />
-  <SolidColorBrush x:Key="SemiColorPrimaryDisabled" Color="#8FB2E0" />
+  <!-- Primary：#D32F2F（Red 700）。主色为深色，实心主按钮配白字 -->
+  <SolidColorBrush x:Key="SemiColorPrimary" Color="#D32F2F" />
+  <SolidColorBrush x:Key="SemiColorPrimaryActive" Color="#B71C1C" />
+  <SolidColorBrush x:Key="SemiColorPrimaryDisabled" Color="#FFCDD2" />
 
-  <!-- Success：#0D7A3C -->
-  <SolidColorBrush x:Key="SemiColorSuccess" Color="#0D7A3C" />
-  <SolidColorBrush x:Key="SemiColorSuccessActive" Color="#085829" />
+  <!-- Semi 按钮主题键：实心主按钮的主色三态（悬停/按下按 MD2 加深一档）与白字前景 -->
+  <SolidColorBrush x:Key="ButtonSolidPrimaryBackground" Color="#D32F2F" />
+  <SolidColorBrush x:Key="ButtonSolidPrimaryPointeroverBackground" Color="#C62828" />
+  <SolidColorBrush x:Key="ButtonSolidPrimaryPressedBackground" Color="#B71C1C" />
+  <SolidColorBrush x:Key="ButtonSolidPrimaryBorderBrush" Color="#D32F2F" />
+  <SolidColorBrush x:Key="ButtonSolidPrimaryPointeroverBorderBrush" Color="#C62828" />
+  <SolidColorBrush x:Key="ButtonSolidPrimaryPressedBorderBrush" Color="#B71C1C" />
+  <SolidColorBrush x:Key="ButtonSolidPrimaryPressedForeground" Color="#FFFFFF" />
+  <!-- 描边与文字形态的主按钮：主色为深色，直接用 base 档即可读 -->
+  <SolidColorBrush x:Key="ButtonDefaultPrimaryForeground" Color="#D32F2F" />
+  <SolidColorBrush x:Key="ButtonOutlineColorfulPrimaryForeground" Color="#D32F2F" />
+  <SolidColorBrush x:Key="ButtonOutlineColorfulPrimaryBorderBrush" Color="#D32F2F" />
 
-  <!-- Warning：#B15600 -->
+  <!-- Success：#2E7D32（Green 800） -->
+  <SolidColorBrush x:Key="SemiColorSuccess" Color="#2E7D32" />
+  <SolidColorBrush x:Key="SemiColorSuccessActive" Color="#1B5E20" />
+
+  <!-- Warning：#B15600（沿用，白字对比 5.0:1） -->
   <SolidColorBrush x:Key="SemiColorWarning" Color="#B15600" />
-  <SolidColorBrush x:Key="SemiColorWarningActive" Color="#824000" />
+  <SolidColorBrush x:Key="SemiColorWarningActive" Color="#8F4400" />
 
-  <!-- Danger（Semi 中对应 Error 语义）：#B32318 -->
-  <SolidColorBrush x:Key="SemiColorDanger" Color="#B32318" />
-  <SolidColorBrush x:Key="SemiColorDangerActive" Color="#861711" />
+  <!-- Danger（Semi 中对应 Error 语义）：#8E1B1E 深酒红，固定不变 -->
+  <SolidColorBrush x:Key="SemiColorDanger" Color="#8E1B1E" />
+  <SolidColorBrush x:Key="SemiColorDangerActive" Color="#5C0E10" />
 
-  <!-- Link / Info：#0F6FBD -->
-  <SolidColorBrush x:Key="SemiColorLink" Color="#0F6FBD" />
+  <!-- Link：链接取主色（MD2 中链接属于操作，跟随 primary） -->
+  <SolidColorBrush x:Key="SemiColorLink" Color="#D32F2F" />
 
-  <!-- 中性色阶：与 Web 端深色 platform 中性变量对齐（深色主题下越浮越亮） -->
-  <SolidColorBrush x:Key="SemiColorFill0" Color="#17212C" />
-  <SolidColorBrush x:Key="SemiColorText0" Color="#E6EDF5" />
-  <SolidColorBrush x:Key="SemiColorText1" Color="#A7B6C8" />
-  <SolidColorBrush x:Key="SemiColorBorder" Color="#42576E" />
-  <SolidColorBrush x:Key="SemiColorBackground0" Color="#0E151D" />
+  <!-- 中性色阶：与 Web 端浅色 platform 中性变量对齐（黑色透明度阶） -->
+  <SolidColorBrush x:Key="SemiColorFill0" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="SemiColorText0" Color="#212121" />
+  <SolidColorBrush x:Key="SemiColorText1" Color="#616161" />
+  <SolidColorBrush x:Key="SemiColorBorder" Color="#BDBDBD" />
+  <SolidColorBrush x:Key="SemiColorBackground0" Color="#FAFAFA" />
 
 </ResourceDictionary>

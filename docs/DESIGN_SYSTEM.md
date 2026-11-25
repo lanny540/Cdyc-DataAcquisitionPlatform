@@ -6,12 +6,17 @@
 
 ---
 
-## 一、色彩体系（Material Design 3）
+## 一、色彩体系（Material Design 2 · 品牌红 + 琥珀，示意稿定稿）
 
-> **全站固定深色主题**（2026-11 起）：Web 端 MudThemeProvider 传 `IsDarkMode="true"` 读取
-> `PlatformTheme.Dark`；桌面端 `App.axaml` 的 `RequestedThemeVariant="Dark"`。整体采用深色背景，
-> 页面底 → 卡片表面 → 区块容器按 M3 dark 惯例「越浮越亮」。浅色面板仍保留在
-> `PlatformTheme.Light` 中（打印/未来切换用），但页面样式一律以深色档为准。
+> **全站固定浅色主题**（2026-11-25 起，MD2 示意稿定稿）：Web 端 MudThemeProvider 传 `IsDarkMode="false"` 读取
+> `PlatformTheme.Light`；桌面端 `App.axaml` 的 `RequestedThemeVariant="Light"`。页面底为中性灰 `#FAFAFA`，
+> 白色卡片以 MD2 投影浮于其上——**卡片不铺 tint 底纹、不加色条**，色彩由顶栏、圆形图标底块、
+> 徽章与图表系列承载。深色面板不再保留——只维护一套主题。
+>
+> **MD2 视觉语言（示意稿定稿）**：红色实底顶栏（primary 红 + 白字 + 4dp 投影）、灰底白卡加投影、
+> 无色块页头（标题直接排在页底上）、圆形实色图标底块（accent 实底 + 白图标）、
+> 100 阶浅底徽章（去描边）、黑色透明度阶文字（.87/.60/.54）、4dp 圆角。
+> 可读性底线：正文对表面 ≥12:1、次要与弱化文字 ≥4.5:1、输入框边框 ≥3:1。
 
 ### 1.1 唯一权威来源
 
@@ -20,136 +25,158 @@
 | Web          | `DAP.Presentation.BlazorWeb/wwwroot/app.css` 的 `:root` 变量                                  | `--md-*` / `--platform-*`                |
 | 桌面         | `DAP.Presentation.AvaloniaApp/Themes/DapPalette.axaml`                                        | `Dap*Brush` / `Dap*Color`                |
 | 桌面主题对接 | `DAP.Presentation.AvaloniaApp/Themes/SemiBrandOverride.axaml`                                 | 覆盖 Semi 默认调色板                     |
-| Web 组件对接 | `DAP.Presentation.BlazorWeb.Client/Layout/PlatformTheme.cs` 的 `PaletteDark` / `PaletteLight` | 传给 MudBlazor；主框架与登录页共用同一份 |
+| Web 组件对接 | `DAP.Presentation.BlazorWeb.Client/Layout/PlatformTheme.cs` 的 `PaletteLight`                 | 传给 MudBlazor；主框架与登录页共用同一份 |
 
 **改色流程**：先改权威文件 → 再同步到对接文件 → 验证双端一致。禁止只改其中一处。
 
 ### 1.2 七组角色色
 
-每组角色色固定四级深度，**不得新增其他色相**。base 是唯一色相锚点，浅深两套主题共用；
-深色主题下 soft/tint 是「带色相的深色容器」，strong 是「容器底上的亮色强调文字」：
+每组角色色固定五档，**不得新增其他色相**。base 是唯一色相锚点：
 
-| 角色              | 变量             | Base（主色） | Strong（强调文字） | Soft（统计卡底） | Tint（区块底） |
-|-------------------|------------------|--------------|--------------------|------------------|----------------|
-| Primary 主色      | `--md-primary`   | `#0B4FC4`    | `#9CC0FA`          | `#303A4C`        | `#283140`      |
-| Secondary 次色    | `--md-secondary` | `#33475C`    | `#B6C8DC`          | `#363F4A`        | `#2E3641`      |
-| Tertiary 第三色   | `--md-tertiary`  | `#7B2F9E`    | `#D9B4F0`          | `#3C344A`        | `#383146`      |
-| Success 成功/在线 | `--md-success`   | `#0D7A3C`    | `#7FD6A0`          | `#25352E`        | `#24322B`      |
-| Warning 警告/停用 | `--md-warning`   | `#B15600`    | `#F5B25E`          | `#393122`        | `#362F21`      |
-| Error 错误/危险   | `--md-error`     | `#B32318`    | `#EF8D80`          | `#423033`        | `#3C2D2F`      |
-| Info 信息         | `--md-info`      | `#0F6FBD`    | `#7FC0F0`          | `#2A3545`        | `#273140`      |
+| 角色              | 变量             | Base（图标底块/填充底） | On（填充底上的文字） | Strong（强调文字） | Soft（淡色容器） | Tint（浅底徽章） |
+|-------------------|------------------|----------------|----------------------|--------------------|--------------------|------------------|
+| Primary 主色（红）| `--md-primary`   | `#D32F2F`      | `#FFFFFF`            | `#A31515`          | `#F4B5B5`          | `#FFCDD2`        |
+| Secondary 次色    | `--md-secondary` | `#455A64`      | `#FFFFFF`            | `#263238`          | `#B0BEC5`          | `#CFD8DC`        |
+| Tertiary 强调色（琥珀）| `--md-tertiary`  | `#FFB300`      | `#3E2A00`            | `#8F4400`          | `#FFD54F`          | `#FFE082`        |
+| Success 成功/在线 | `--md-success`   | `#2E7D32`      | `#FFFFFF`            | `#1B5E20`          | `#A5D6A7`          | `#C8E6C9`        |
+| Warning 警告/停用 | `--md-warning`   | `#B15600`      | `#FFFFFF`            | `#8F4400`          | `#FFCC80`          | `#FFE0B2`        |
+| Error 错误/危险   | `--md-error`     | `#8E1B1E`      | `#FFFFFF`            | `#5C0E10`          | `#F4C7C9`          | `#F9DDDF`        |
+| Info 信息         | `--md-info`      | `#1976D2`      | `#FFFFFF`            | `#0D47A1`          | `#90CAF9`          | `#BBDEFB`        |
 
-> Warning 的 soft 精确值为 `#393122`（无空格），本表中的写法仅为示意；
-> **一切以 `app.css` 的 `:root` 变量为准**，改色时先改那里。
+**一切以 `app.css` 的 `:root` 变量为准**，改色时先改那里；`On` 档对应 `--md-{role}-on`。
 
 **深度用途（不可混用）**：
 
-- **Base**：色条、主按钮、图标本身（白字在其上 ≥4.5:1）——**不做前景文字**；
-- **Strong**：强调文字、徽章文字、图表折线/柱形、标签行（在容器底上 ≥4.5:1）；
-- **Soft**：**头条 KPI 卡底色**、图标底色块、提示条底色（与卡片表面 ≥1.25:1）；
-- **Tint**：页面头部底色、表格表头底色、图表渐变起点（与卡片表面 ≥1.20:1）。
+- **Base**：圆形图标底块（示意稿定稿：accent 实色圆 + On 档图标）、填充底（主按钮、开关、选中态）——配 On 档白字 ≥4.5:1；
+- **Strong**：强调文字、浅底徽章文字、图表折线/柱形、标签行、表格主字段（在白面与 tint 容器上 ≥4.5:1）；
+- **Soft**：对话框/提示图标底块等淡色容器、outlined 提示条的底色混合基色（与白色表面 ≥1.25:1）；
+- **Tint**：浅底徽章与提示条底、hover 淡底、抽屉选中项淡底（与白色表面 ≥1.20:1）。
 
-**文字层级铁律（深色主题下尤其重要）**：
+**文字层级铁律**：
 
-- **数值（h3/h5）与页头/区块标题（h4/h6）一律用近白 `--platform-text`**——
-  彩色大文字叠在同色相容器底上会融成一片，这是「文字不突出」的根源；
-- accent 色相只出现在**小面积元素**：左侧色条、图标、标签行（caption）、
-  图表折线/柱形（strong 档）；
-- soft/tint 容器刻意压低饱和度（S≈20%），让中性次要文字与底色协调，
-  色相辨识交给小面积的 base 色条与图标。
+- **数值（h3/h5）与页头/区块标题（h4/h6）一律用近黑 `--platform-text`**——示意稿中数值是页面最清晰的层级，
+  大数字一旦用 accent 色就会与彩色图标底块抢视觉；
+- accent 色相出现在**小面积元素**：圆形实色图标底块、标签行（caption）、图表折线/柱形（strong 档）；
+- 卡片一律白底 + MD2 投影（示意稿定稿）：**禁止再铺 tint 底纹、渐变或色条**，色彩只由顶栏、圆形图标底块、
+  徽章与图表系列承载。
 
-#### 1.2.1 为什么底色要压到这个深度（可读性底线）
+**主色填充底与白字（MD2 铁律）**：primary 是深色（红），一切填充底（主按钮、开关、
+选中态、桌面主色实底头条卡）配 **白字**（On 档，对比 ≥4.5:1）。MudBlazor 把 primary 既当「填充底」又当前景色用——
+填充态读 `PrimaryContrastText`（已设白字），描边/文字按钮与聚焦态直接取 base 色，
+在白面上 ≥6.7:1，无需额外修正。
 
-「整站看上去很素」的根因**不是颜色不够艳，而是底色层与表面太接近**。
-早期 tint 与表面的对比度只有 1.05~1.09 倍，肉眼完全分辨不出，
-于是所有卡片实际都呈现为同一个颜色，再鲜艳的 base 色也只出现在 3~4px 的色条上。
+**主色红与错误深酒红的区分**：主色是亮红 `#D32F2F`（Red 700），错误色是**深酒红 `#8E1B1E`**——
+两者同属红族，只靠明度区分（暗红＝错误，亮红＝品牌/操作），色差 ΔE 73.8；强调琥珀 `#FFB300`
+与错误色 ΔE ≈ 192，天然无冲突。守卫测试 `Error_Should_Be_Distinguishable_From_Accent`
+对 primary 与 tertiary 双查（CIE76 ΔE ≥ 20）。历史上第一版错误色取 M3 基线 `#B3261E`，
+与亮红色差只有 ΔE 10、一眼分不开；改用深酒红靠明度拉开。改错误色时不得退回亮红。
 
-当前色板已核验四条底线（由守卫测试 `Palette_Should_Meet_Contrast_Baselines` 强制，
-参照表面从 app.css 的 `--platform-surface` 读取）：
+#### 1.2.1 对比度底线（可读性的硬约束）
 
-| 约束            | 阈值     | 含义                                 |
-|-----------------|----------|--------------------------------------|
-| 白字 / base     | ≥ 4.5:1  | WCAG AA 正文级，主按钮与徽章可读     |
-| tint / 卡片表面 | ≥ 1.20:1 | 区块底纹必须肉眼可辨，否则等于没上色 |
-| soft / 卡片表面 | ≥ 1.25:1 | 统计卡底色用 soft 档，比区块更跳脱   |
-| strong / 容器底 | ≥ 4.5:1  | 卡片数值在 soft/tint 容器上仍清晰    |
+「整站看上去很素」或「文字不明显」的根因，**不是颜色不够艳，而是层级之间的对比度不够**：
+底色层与表面色太接近会让所有卡片呈现为同一个颜色；正文与次要文字不够黑会让整页发灰；
+边框与表面太接近会让卡片轮廓糊掉。
 
-**改动色板时必须重新核验这四条**，否则「改配色」很容易改成「变淡」或「看不清」。
+当前色板已核验（守卫测试 `Palette_Should_Meet_Contrast_Baselines` 与
+`Neutral_Palette_Should_Meet_Contrast_Baselines` 强制，参照表面从 app.css 的 `--platform-surface` 读取）：
 
-### 1.2.2 卡片底色的分配（2026-11-16 修订：三层强调体系）
+| 约束                     | 阈值     | 含义                                       |
+|--------------------------|----------|--------------------------------------------|
+| On / base                | ≥ 4.5:1  | WCAG AA 正文级，主按钮与徽章可读           |
+| tint / 卡片表面          | ≥ 1.20:1 | 浅底徽章/提示条底必须肉眼可辨             |
+| soft / 卡片表面          | ≥ 1.25:1 | 对话框/提示图标底块可辨                   |
+| strong / tint、/ soft    | ≥ 4.5:1  | 徽章文字与图表系列在淡色容器上仍清晰      |
+| 正文 / 表面              | ≥ 7:1    | 卡片数值在白卡上清晰（实际 ≥11:1）        |
+| 次要文字 / 表面          | ≥ 4.5:1  | 补充说明可读                               |
+| 弱化文字 / 表面          | ≥ 4.5:1  | 时间戳、提示语可读                         |
+| 常规边框 / 表面          | ≥ 1.25:1 | 输入框/分隔线轮廓可见                     |
+| 输入框边框 / 表面        | ≥ 3.0:1  | WCAG 非文本对比，输入区域边界清楚         |
 
-深色主题的教训：**每张卡都铺彩色底会变成「色块马赛克」**——四五种深色容器并排
-彼此打架，暖色容器（琥珀/紫）还容易发闷显脏。色彩改为三层强调：
+**改动色板时必须重新核验这些底线**，否则「改配色」很容易改成「变淡」或「看不清」。
 
-| 容器                       | 底色                         | 色彩由谁承载               | 修饰类                          |
-|----------------------------|------------------------------|----------------------------|---------------------------------|
-| 页面头部                   | tint 全幅                    | 底色 + 左色条              | `platform-page-hero`            |
-| **头条 KPI**（全宽汇总卡） | **soft 全幅**                | 底色 + 左色条              | `platform-stat-card--filled`    |
-| 常规统计卡                 | **中性表面**                 | 左色条 + 图标底块 + 标签行 | `platform-stat-card--tinted`    |
-| 区块卡片                   | **中性表面**                 | 左侧 4px 色条 + 图标底块   | `platform-section-card--tinted` |
-| 面板                       | **中性表面**                 | 左侧 4px 色条              | `platform-panel--tinted`        |
-| 图表容器                   | tint→表面渐变（上 42% 渐隐） | 渐变 + 系列色              | `platform-chart-frame`          |
-| 数据表格                   | 中性卡底 + tint 表头         | 表头底色 + 表头文字        | `platform-data-table`           |
+### 1.2.2 卡片的投影语言（示意稿定稿）
+
+页面底为中性灰 `#FAFAFA`，**所有卡片一律白底 + MD2 投影浮于其上**（`--platform-shadow`：
+`0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.24)`），无边框、不铺 tint 底纹、无左色条、无顶部色带：
+
+| 容器                       | 底色                    | 轮廓                 | 色彩由谁承载               | 修饰类                          |
+|----------------------------|-------------------------|----------------------|----------------------------|---------------------------------|
+| 页面头部                   | 无色块（直排页面灰底）  | 无                   | 顶栏 + 卡内 accent         | `platform-page-hero`（accent 类名保留，无视觉） |
+| **头条 KPI**（全宽汇总卡） | 白                      | MD2 投影             | 圆形图标底块 + 数值近黑最大号 | `platform-stat-card--filled`    |
+| 常规统计卡                 | 白                      | MD2 投影             | **圆形实色图标底块（accent 实底 + On 档图标）** + 标签行 | `platform-stat-card--tinted` |
+| 区块卡片                   | 白                      | MD2 投影             | 图标底块 + accent 徽章     | `platform-section-card--tinted` |
+| 面板                       | 白                      | MD2 投影             | 标题 + accent              | `platform-panel--tinted`        |
+| 图表容器（卡内）           | 白                      | MD2 投影             | 系列色（strong 档）        | `platform-chart-frame`          |
+| 数据表格（卡内）           | 白                      | 表头下 12% 黑分隔线  | 表头中性灰字               | `platform-data-table`           |
 
 要点：
 
-- `--tinted` 类名保留（卡内点缀元素——图标底块、表头——仍取 tint/soft 档），
-  但**卡底一律中性表面**；`--filled` 是唯一 soft 全幅变体，全页最多一两张（头条 KPI）。
-- **桌面端等价实现（2026-11-16 已同步）**：`DapStyles.axaml` 的 `Border.stat-card`
-  自带 4px 左色条；卡片底色由页面绑定 `DapSurfaceBrush`（中性），色条绑定 `Dap*Brush`
-  （base），图标底块 = `Dap*SoftBrush` 底 + `Dap*StrongBrush` 图标，标签/图表系列 =
-  `Dap*StrongBrush`，数值 = `DapTextPrimaryBrush`（近白）。头条 KPI 保留 Soft 全幅 +
-  base 色条。**Web 端设计风格调整必须同步到桌面端**（改 Web 卡片/文字/色档语义时，
-  同步修改桌面端对应资源绑定与 `DapStyles.axaml`）。
-- 卡片数量多时（KPI 行 4~5 张、图表 4 张），中性卡 + 彩色左条的组合既保留
-  每张卡的色彩身份，又不会让整页变成彩色瓷砖。
-- **不要用渐变把底色稀释回表面色**；有色的容器（hero、头条 KPI）整块铺满。
+- 卡内表格、抽屉、代码面板同为白色表面，层次靠投影与分隔线区分，不再靠底纹色差；
+- `--tinted` / `--filled` 修饰类**保留作语义标记但无视觉差异**（示意稿中所有统计卡都是白卡），
+  写类名时仍必须带全双连字符前缀，为将来恢复差异化样式留语义；
+- **桌面端等价实现**：`DapStyles.axaml` 的 `Border.stat-card` / `Border.section-card`
+  同为白卡 + `BoxShadow` 投影（无边框无色条）；图标底块 = `Dap*Brush` 实色圆 + `Dap*OnBrush` 图标
+  （`MetricCardModel.AccentOn`）；标签/图表系列 = `Dap*StrongBrush`，数值 = `DapTextPrimaryBrush`（近黑）。
+  **Web 端设计风格调整必须同步到桌面端**。
+- **页面头部全站统一无色块**：22 个页面 hero 均为白底直排标题，hero 上的 accent 类不再产生视觉效果；
+  页面个性由卡片 accent 表达，不再一页一色。
+- **桌面端淡色底纹不铺数据容器**：桌面指标卡的既定样式是「白卡 + 圆形图标底块」，
+  `DapPrimarySoftBrush`/`DapPrimaryTintBrush` 不得铺整卡（page-hero 已无底色）；
+  主色实底头条卡用 `DapPrimaryBrush`/`DapPrimaryStrongBrush` 反白是合法形态。
+  守卫 `Desktop_Data_Containers_Should_Not_Use_Primary_Pale_Brushes` 强制。
+- **禁止用渐变稀释色彩**：卡片、图表容器一律纯色白底，`linear-gradient` 仅保留在
+  深色代码/日志面板之外的场景（示意稿中无渐变装饰）。
 
-### 1.2.3 徽章与提示条（MudChip / MudAlert）的深色可读性
+### 1.2.3 徽章与提示条（MudChip / MudAlert）的浅底形态
 
-MudBlazor 的 outlined/text 徽章与提示条用调色板 **base 色**作文字与描边——
-深色主题下 base 本身是深色，叠在深色表面上对比只有 2~3:1。app.css 统一覆盖：
+MD2 的状态徽章是「100 阶浅底 + 深色字」，不再用描边。app.css 统一覆盖：
 
-- **文字与描边一律 strong 档**（描边 55%/50% 半透明，填充保持 outlined 语义）；
-- outlined 提示条补一层 45% 的 soft 底色，让提示区域可被一眼圈出；
+- outlined / text 徽章与提示条：**底色取 tint 色块、文字取 strong 加深档、描边去掉**；
 - 类名是**复合类**：`mud-chip-color-warning` / `mud-alert-outlined-warning`，
   不是 `mud-warning`（写错会静默不生效）。
+
+填充态徽章（filled）读 base 底 + On 档白字，无需额外覆盖。
 
 ### 1.2.4 焦点框范围
 
 `:focus-visible` 只作用于**可交互元素**（链接/按钮/输入/`[role=button]`/
 非负 `[tabindex]`）。原因：Blazor 增强导航会给内容区标题加 `tabindex="-1"`
-并在跳转后聚焦它，全量规则会让页头标题画出蓝色框（仪表板页头实测出现过）。
+并在跳转后聚焦它，全量规则会让页头标题画出焦点框（仪表板页头实测出现过）。
+焦点框取 primary 的 base 档（红色焦点环对白面 5.0:1，清晰可辨）。
 
-### 1.3 中性色（深色）
+### 1.3 中性色（浅色）
 
-| 用途     | 变量                        | 色值      |
-|----------|-----------------------------|-----------|
-| 页面背景 | `--platform-bg`             | `#0E151D` |
-| 卡片表面 | `--platform-surface`        | `#17212C` |
-| 次级表面 | `--platform-surface-muted`  | `#1D2836` |
-| 下沉表面 | `--platform-surface-sunken` | `#223042` |
-| 常规边框 | `--platform-border`         | `#2B3A4B` |
-| 强边框   | `--platform-border-strong`  | `#42576E` |
-| 主要文字 | `--platform-text`           | `#E6EDF5` |
-| 次要文字 | `--platform-text-muted`     | `#A7B6C8` |
-| 弱化文字 | `--platform-text-subtle`    | `#7A8BA0` |
+| 用途     | 变量                        | 色值      | 对白色表面   |
+|----------|-----------------------------|-----------|--------------|
+| 页面背景 | `--platform-bg`             | `#FAFAFA` | —            |
+| 卡片表面 | `--platform-surface`        | `#FFFFFF` | —            |
+| 次级表面 | `--platform-surface-muted`  | `#F5F5F5` | 1.09:1       |
+| 下沉表面 | `--platform-surface-sunken` | `#EEEEEE` | 1.16:1       |
+| 常规边框 | `--platform-border`         | `#E0E0E0` | 1.32:1       |
+| 强边框   | `--platform-border-strong`  | `#8C8C8C` | 3.36:1       |
+| 主要文字 | `--platform-text`           | `#212121` | 16.1:1       |
+| 次要文字 | `--platform-text-muted`     | `#4F4F4F` | 8.2:1        |
+| 弱化文字 | `--platform-text-subtle`    | `#757575` | 4.6:1        |
 
-> 层级遵循 M3 dark 的「越浮越亮」：页面底最深，卡片表面亮一档，
-> 区块容器（tint/soft）再亮一档且带色相。主要文字对表面 ≥ 7:1，
-> 次要文字对表面 ≥ 4.5:1。
+> 层级遵循浅色惯例「越浮越白」：页面底为中性灰（Grey 50），白色卡片以 MD2 投影浮起，
+> 浮起的对话框用 `--platform-shadow`（MD2 4dp 投影）。
+> 文字用黑色透明度阶口径（MD2 标准）：正文 .87 黑、次要 .60 黑、弱化 .54 黑。
+> 强边框（输入框描边、登录输入框）对表面 ≥3:1，这是「输入框边界看得清」的保证。
 
 ### 1.4 语义色映射（强制）
 
-| 语义                   | 颜色           | 用例                         |
-|------------------------|----------------|------------------------------|
-| 在线 / 成功 / 已启用   | `success` 绿   | 在线采集点、连通、启用态     |
-| 离线 / 失败 / 危险     | `error` 红     | 离线采集点、删除按钮、失败态 |
-| 停用 / 待处理 / 进行中 | `warning` 琥珀 | 停用、检测中、不可连接       |
-| 提示 / 中性信息        | `info` 信息蓝  | 来源标识、空状态、提示条     |
-| 主操作 / 当前页        | `primary` 蓝   | 主按钮、当前导航、编码文本   |
+| 语义                   | 颜色           | 用例                               |
+|------------------------|----------------|------------------------------------|
+| 在线 / 成功 / 已启用   | `success` 绿   | 在线采集点、连通、启用态           |
+| 离线 / 失败 / 危险     | `error` 红     | 离线采集点、删除按钮、失败态       |
+| 停用 / 待处理 / 进行中 | `warning` 橙   | 停用、检测中、不可连接             |
+| 提示 / 中性信息        | `info` 信息蓝  | 来源标识、空状态、提示条           |
+| 主操作 / 输入焦点 / 选中控件 | `primary` 红（配白字） | 主按钮、开关、复选框、输入焦点、表格主字段 |
+| 点缀 / 强调徽章        | `tertiary` 琥珀 | 强调徽章、点缀色块、FAB            |
 
 **禁用**：不得用`default`（灰）表达业务状态。灰只用于「未配置」这类无状态信息的场景。
+**禁用**：内容区里的红有两个语义——主色（操作/品牌）与错误（危险），两者靠明度区分
+（守卫 ΔE ≥ 20 强制）；需要「点缀/强调」时用 `tertiary`（琥珀，与两种红都不同族）。
 
 ---
 
@@ -167,10 +194,10 @@ MudBlazor 的 outlined/text 徽章与提示条用调色板 **base 色**作文字
 
 ```css
 .platform-accent-primary {
-    --card-accent: var(--md-primary);          /* 色条、图标底 */
-    --card-accent-strong: var(--md-primary-strong); /* 强调文字 */
-    --card-accent-soft: var(--md-primary-soft);    /* 边框 */
-    --card-accent-tint: var(--md-primary-tint);    /* 底纹 */
+    --card-accent: var(--md-primary);          /* 圆形图标底块实色 */
+    --card-accent-strong: var(--md-primary-strong); /* 强调文字/图表系列 */
+    --card-accent-soft: var(--md-primary-soft);    /* 淡色容器 */
+    --card-accent-tint: var(--md-primary-tint);    /* 浅底徽章/选中淡底 */
 }
 ```
 
@@ -182,20 +209,20 @@ MudBlazor 的 outlined/text 徽章与提示条用调色板 **base 色**作文字
 <MudPaper Class="platform-stat-card platform-stat-card--tinted platform-accent-success pa-4">
 ```
 
-- `platform-stat-card` + `platform-stat-card--tinted`：中性卡底 + 左侧色条 + 彩色标签行
-- `platform-stat-card--filled`：头条 KPI 专用，soft 全幅底（全页最多一两张）
-- `platform-page-hero platform-accent-<色>`：页面头部，自动获得色条 + 渐层 + 装饰圆
-- `platform-section-card--banded`：区块顶部 3px 色带
+- `platform-stat-card` + `platform-stat-card--tinted`：白卡 + 投影 + 圆形实色图标底块 + 标签行（`--tinted` 作标记，无视觉差异）
+- `platform-stat-card--filled`：头条 KPI 专用标记（同为白卡，数值近黑最大号）
+- `platform-page-hero platform-accent-<色>`：页面头部（无色块白底直排，accent 类名仅作标记）
 - `platform-empty-state platform-accent-<色>`：空状态
 - `platform-sheet platform-accent-<色>`：抽屉（子分区可各自再取色）
 
 ### 2.3 页面主色分配
 
-**一个页面一个主色**，用于页面头部与抽屉；区块/卡片在主色体系内再取细分色。
+**页面头部全站统一 primary**（MD2 经典样式：一致的页头，页面个性由卡片表达）。
+hero 之外，每个页面在 accent 体系内登记一个**卡片主色**，用于区块卡、抽屉与图表：
 
-| 页面                                                              | 菜单归属                 | 主色      |
-|-------------------------------------------------------------------|--------------------------|-----------|
-| 平台概览 `/platform-overview`                                     | 平台管理                 | primary   |
+| 页面                                                              | 菜单归属                 | 卡片主色 |
+|-------------------------------------------------------------------|--------------------------|----------|
+| 平台概览 `/platform-overview`                                     | 平台管理                 | secondary |
 | 点位配置 `/collection-points`                                     | 平台管理 → 采集配置      | info      |
 | 点位数据管理 `/managed-data-definitions`                          | 平台管理 → 采集配置      | tertiary  |
 | 采集服务器配置 `/acquisition-servers`                             | 平台管理 → 采集配置      | success   |
@@ -206,24 +233,25 @@ MudBlazor 的 outlined/text 徽章与提示条用调色板 **base 色**作文字
 | 部门与授权 `/department-grants`                                   | 平台管理 → 权限管理      | tertiary  |
 | 用户与角色 `/user-management`                                     | 平台管理 → 权限管理      | info      |
 | 系统审计 `/system-audit`                                          | 平台管理 → 权限管理      | warning   |
-| 采集节点详情 `/managed-data-definitions/{id}`                     | 平台管理 → 采集配置      | primary   |
-| 排班时间管理 `/shift-schedules`                                   | 业务配置 → 班组管理      | primary   |
+| 采集节点详情 `/managed-data-definitions/{id}`                     | 平台管理 → 采集配置      | tertiary  |
+| 排班时间管理 `/shift-schedules`                                   | 业务配置 → 班组管理      | secondary |
 | 排班日历 `/shift-calendar`                                        | 业务配置 → 班组管理      | info      |
 | 能耗仪表板 `/`（别名 `/energy-dashboard`）                        | 数据指标 → 能耗指标      | success   |
 | 历史指标 `/energy-history`                                        | 数据指标 → 能耗指标      | tertiary  |
 | 班组横向对比 `/energy-comparison`                                 | 数据指标 → 能耗指标      | warning   |
-| 班组能耗报表 `/energy-report`                                     | 数据指标 → 数据报表      | primary   |
+| 班组能耗报表 `/energy-report`                                     | 数据指标 → 数据报表      | secondary |
 | 园区能源总览 `/park-energy`                                       | 能源 → 能源总览          | secondary |
 | 计量点台账 `/park-energy/meters`                                  | 能源 → 台账与配置        | secondary |
 | 实时采集数据 `/collection-data`                                   | 数据查看 → 采集运行      | info      |
 | 登录 `/login`、改密 `/change-password`                            | 不在菜单内（AuthLayout） | primary   |
 | 无权限 `/no-access`、无访问权 `/forbidden`、未上线 `/coming-soon` | 不在菜单内（状态页）     | info      |
 
+> 上表登记的是**卡片主色**（区块卡、抽屉、图表系列）；页面头部 hero 一律 primary，不再逐页登记。
 > 「数据指标」与「能源」是两个并列的域，不要混：「数据指标」是钞纸工序视角（班组 × 四项指标 × 班次），
 > 「能源」是园区经营视角（介质 × 组织 × 用途 × 系统）。两者都用到了「能耗」这个词，但口径与受众不同。
 > 能源域统一取 `secondary`，与钞纸的 `success` 绿区分开，否则从顶栏切过去会以为没跳转。
 
-新增页面时必须在本表中登记主色。
+新增页面时必须在本表中登记卡片主色（hero 无需登记，全站统一 primary）。
 
 **桌面端（Avalonia）页面主色**：与 Web 同名页面保持一致，颜色由各页面视图模型的
 `Accent` 属性声明（守卫测试 `Avalonia_Page_ViewModels_Should_Be_Registered_In_Navigation_Catalog`
@@ -234,7 +262,7 @@ MudBlazor 的 outlined/text 徽章与提示条用调色板 **base 色**作文字
 | 能耗仪表板          | 数据指标 → 能耗指标  | success  |
 | 历史指标            | 数据指标 → 能耗指标  | tertiary |
 | 班组横向对比        | 数据指标 → 能耗指标  | warning  |
-| 班组能耗报表        | 数据指标 → 数据报表  | primary  |
+| 班组能耗报表        | 数据指标 → 数据报表  | secondary |
 | 实时采集数据        | 数据查看 → 采集运行  | info     |
 | 排班日历            | 数据查看 → 班组排班  | info     |
 | 登录 / 强制改密浮层 | 不在菜单内（覆盖层） | primary  |
@@ -255,6 +283,18 @@ private static readonly string[] MetricAccents =
 但要求代码后置中确实存在 `MetricAccents` 且含 `platform-accent-` 字面量，
 防止有人借插值把任意色相塞进来。
 
+**汇总卡不是第 5 项指标**：全宽头条卡（如能耗仪表板的「综合能耗合计」）是四项指标之和，
+不属于任何一个指标色相，取**主色实底反白**（MD2 filled card）：
+
+```razor
+<MudPaper Class="platform-stat-card platform-stat-card--filled platform-accent-primary pa-4" Elevation="0">
+```
+
+头条卡与常规统计卡同为白卡，靠更大的数值字号（h3 27px 级）与琥珀圆形图标底块建立第一数据层级。
+历史上头条卡曾取 soft 档底色（红金版金色 soft 铺满后像警示条，已否掉）；MD2 改版后统一为主色实底。
+同理，「采集点总数」「班组数量」「对比明细」这类综合/计数/明细容器也取主色实底或中性 `secondary` tint，
+不得混入四项指标的语义色相。
+
 ---
 
 ## 三、组件规范
@@ -274,9 +314,9 @@ private static readonly string[] MetricAccents =
 </MudPaper>
 ```
 
-- 必须带 `--tinted` 与 accent 类；**全宽汇总头条卡改用 `--filled`**（soft 全幅）
+- 必须带 `--tinted` 与 accent 类；**全宽汇总头条卡改用 `--filled`**（主色实底反白）
 - 必须有 `platform-stat-header` 图标行
-- 数值文字颜色由样式统一为近白，**不要再加 `Color="..."`**
+- 数值文字颜色由样式统一为近黑，**不要再加 `Color="..."`**
 
 ### 3.2 数据表格
 
@@ -284,23 +324,21 @@ private static readonly string[] MetricAccents =
 <MudTable Class="platform-data-table" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm">
 ```
 
-- 表头底色/文字色跟随所在卡片 accent
+- 表头中性灰字 + 12% 黑下分隔线（示意稿定稿，不随 accent 上色）
 - 编码、地址等标识文本用 `platform-inline-code` + `platform-table-primary`
-- 行操作区用 `table-action-grid` + `table-action-button`，按动作语义取色（详情=primary、调试=info、入库=success、编辑=
-  primary、删除=error）
-- 表格本身用卡片表面色（`--platform-surface`），与有色容器底形成层次，不要继承底色
+- 行操作区用 `table-action-grid` + `table-action-button`，**统一 `Variant="Variant.Text"` + `Size="Size.Small"`**，
+  按动作语义取色（详见 3.10）。primary 的文字/描边按钮直接用 base 色（红对白面 5.0:1，无需修正）
+- 表格本身用白色表面（`--platform-surface`），与白卡同色，层次靠表头分隔线与斑马纹/hover 区分
 
 ### 3.2.1 区块卡片与面板
 
 ```razor
-<MudPaper Class="platform-section-card platform-section-card--banded platform-accent-success --tinted" Elevation="0">
+<MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-success" Elevation="0">
 ```
 
-- `--banded`：顶部 3px 色带
-- `--tinted`：中性卡底 + 左侧 4px 色条（深色主题下大面积彩色底会变成色块马赛克，
-  区块卡只留色条与图标底块的色彩身份）
-- 两者可叠加使用；只加 `--tinted` 不加 `--banded` 也成立
-- 卡片内的表格、图表、抽屉仍用卡片表面色（深色主题下为深色表面），不要继承底色
+- 示意稿定稿后区块卡/面板一律白卡 + MD2 投影：`--tinted` 仅作语义标记，**无 tint 底纹、无描边、无色条**
+- `--banded`（顶部 3px 色带）已随示意稿改版退役，不得再写
+- 卡片内的表格、抽屉、代码面板同为白色表面
 
 ### 3.3 空状态
 
@@ -322,7 +360,7 @@ private static readonly string[] MetricAccents =
 - 表单分区用 `platform-sheet-section` + **各自不同的** accent 类
 - 对话框行为配置统一走 `Common/PlatformDialogs.cs`，禁止页面内联声明 `DialogOptions`
 
-### 3.5 深色代码/日志面板
+### 3.5 代码/日志面板
 
 ```html
 <MudPaper Class="platform-code-panel" Elevation="0">
@@ -331,7 +369,8 @@ private static readonly string[] MetricAccents =
 </MudPaper>
 ```
 
-固定深色分层，不随 accent 变化。
+固定深色分层，不随 accent 变化——浅色主题下代码面板保留深色是刻意的：
+原始报文与日志用深底等宽字最易读，也是全站唯一保留的深色区域。
 
 ### 3.6 图表容器
 
@@ -360,10 +399,10 @@ CSS 规则优先级高于 presentation attribute，因此 `app.css` 用 accent �
 - 柱形 `path.mud-chart-bar` → `--card-accent-strong`，悬停提亮（`filter: brightness(1.25)`）；
 - 网格线统一为 `--platform-border`（替换 MudBlazor 的 `#e0e0e0`）。
 
-**系列取 strong 档而不是 base**：深色主题下 base 与深色表面对比不足，折线会看不清；
-浅色主题下 strong 是加深档，对比同样更高。两个主题里「系列色 = 图例色块」恒成立。
+**系列取 strong 档而不是 base**：strong 是加深档，每个角色在浅底上都 ≥4.5:1。
+「系列色 = 图例色块」恒成立。
 
-**约束：图表必须放在带 `platform-accent-*` 的卡片内**，否则系列色会退回 Primary 蓝。
+**约束：图表必须放在带 `platform-accent-*` 的卡片内**，否则系列色会退回 MudBlazor 默认蓝（`#2979FF`）。
 图例用 `platform-chart-legend` + `platform-chart-legend-swatch`，
 色块同样取 `--card-accent-strong`，保证「图例颜色 = 折线/柱形颜色」恒成立，**不得直接写十六进制**。
 
@@ -432,6 +471,8 @@ teams.Select(t => new ChartSeries<double> { Name = t.TeamName, Data = [t.ValueA]
   启动与未知路由都默认选中它。调整首页指向时这三处要一起改。
 - 图标取色用显式修饰类（`platform-nav-link--primary` 等），**不要用 `nth-child`**——
   分组后同一父级下有多个 `MudNavMenu`，`nth-child` 不再可靠。
+- **顶栏与顶栏激活模块用主色实底反白**（MD2 彩色顶栏）；抽屉选中项取主色 tint 底 + strong 字（示意稿定稿后无色条）；
+  非激活项图标按本页主色的 strong 档分区着色。
 - 新增菜单项只需在目录中登记，守卫测试 `Navigation_Links_Should_Point_To_Existing_Pages`
   会校验每个 href 都有对应的 `@page` 路由，写错路由会直接失败。
 
@@ -457,6 +498,54 @@ MudBlazor 9.12 **未提供** `MudCalendar` 组件（只有 `MudDatePicker` 内�
 - 外部入口一律**次级样式**：主按钮只能有一个（账号密码登录的「登录」），否则用户不知道该点哪个。
 - 提供方多于 3 家时优先考虑折叠，避免把登录表单挤出首屏（390px 高度下尤其明显）。
 - 该区块与改密页共用 `AuthLayout` 外壳，主色沿用 `/login` 的 primary，不新增色相。
+
+---
+
+### 3.10 组件风格规范（按钮 / 输入 / 开关 / 徽章）
+
+**原则：外观由动作角色决定，页面强调色不参与。** 同一个动作在全站长得一样——「刷新」在任何页面都是深灰蓝描边，
+「保存」在任何对话框都是红色填充。此前的做法是各页面按自己的 accent 挑按钮色（新建用户=蓝、新建域=深灰蓝、
+新建部门=紫、导出=琥珀），同一动作两个页面两种样子。
+
+#### 按钮
+
+| 角色             | 固定写法                                          | 用于                                             | 数量       |
+|------------------|---------------------------------------------------|--------------------------------------------------|------------|
+| 主操作           | `Color="Color.Primary"` + `Variant="Variant.Filled"`     | 新建、查询、保存、确认、上传/导入、生成报表       | 每屏 1~2 个 |
+| 次操作           | `Color="Color.Secondary"` + `Variant="Variant.Outlined"` | 刷新、重置、导出、测试连通、预览、区块内的次级新增 | 不限       |
+| 取消 / 关闭 / 返回 | `Color="Color.Secondary"` + `Variant="Variant.Text"`     | 对话框底部、返回上一级、清空筛选、「本月」        | —          |
+| 破坏性确认       | `Color="Color.Error"` + `Variant="Variant.Filled"`       | 确认删除、确认清空、确认移交超管                 | 对话框底部 |
+| 敏感操作确认     | `Color="Color.Warning"` + `Variant="Variant.Filled"`     | 确认重置密码                                     | 对话框底部 |
+| 危险入口         | `Color="Color.Error"`（描边或文字）                | 工具栏「清空数据」、行内删除/停用/移交超管        | —          |
+| 行内操作         | `Variant="Variant.Text"` + `Size="Size.Small"` + `Class="table-action-button"` | 表格行               | —          |
+
+- **行内动作语义色**：详情 / 编辑 / 查看 = primary；调试 / 测试 = info；执行 / 入库 = success；重置密码 / 恢复默认 =
+  warning；删除 / 停用 / 移交超管 = error。
+- `secondary` / `info` / `success` / `tertiary` **不得做填充按钮**，按钮颜色不得省略，也不得用 `Default` / `Inherit`
+  （守卫测试 `Components_Should_Follow_Unified_Style` 强制）。
+- **成对的「选中 / 未选中」切换**（如仪表板的看板 / 数字孪生）：选中项 `Primary` 填充，未选中项 `Secondary` 描边。
+  不要用 success / tertiary 给两个选项各配一种颜色。
+- **语义成对的描边按钮保留语义色**：启用 = success、停用 = error；试读 = info、入库 = success——这里颜色本身承载
+  「会产生什么结果」的含义，不属于页面强调色。
+- 前往类文字按钮（查看完整历史、查看班组对比）用 `Primary` 文字；返回类用 `Secondary` 文字。
+- 工具栏按钮带 `StartIcon`（`Icons.Material.Filled.*`）、Medium；行内 Small。错误态 / 空状态里的唯一动作
+  （重新加载、去上传、立即新增、返回首页）是主操作，用 primary 填充。
+
+#### 输入、开关、徽章
+
+| 组件                       | 固定写法                                                   |
+|----------------------------|------------------------------------------------------------|
+| `MudTextField` / `MudSelect` / `MudNumericField` / `MudDatePicker` | `Variant="Variant.Outlined"` + `Margin="Margin.Dense"`（筛选栏与对话框表单一致） |
+| `MudSwitch`                | `Color="Color.Primary"`（无 Variant 参数）                 |
+| `MudChip` / `MudAlert`     | `Variant="Variant.Outlined"`，状态色写在 `Color` / `Severity` |
+| `MudProgressLinear` / `MudProgressCircular` | 跟随所在卡片的 accent，不统一成一种颜色    |
+
+筛选栏固定结构：`MudStack Row AlignItems="End"` 内依次是输入 / 选择 → 红色「查询」→ 文字「清空筛选」。
+下划线形态（不写 `Variant` 的默认值）在浅色主题下边界太弱，已全部废弃。
+
+#### 桌面端对应
+
+`Button.Primary` = 主操作（生成报表、登录）；`Button.ghost` = 次操作（刷新、导出 CSV、上一月 / 下一月 / 本月）。
 
 ---
 
@@ -499,10 +588,10 @@ app.TryGetResource("SemiColorXxx", ThemeVariant.Light, out var v);
 
 | 类                                                                                 | 用途                                                                    | 对应 Web                                       |
 |------------------------------------------------------------------------------------|-------------------------------------------------------------------------|------------------------------------------------|
-| `page-hero`                                                                        | 页头容器（配 `Background="{DynamicResource Dap<Role>TintBrush}"` 上色） | `platform-page-hero`                           |
+| `page-hero`                                                                        | 页头容器（示意稿定稿：无色块，直排页面灰底）                          | `platform-page-hero`                           |
 | `page-title` / `page-subtitle`                                                     | 页头标题与副标题                                                        | 同名                                           |
-| `stat-card` / `stat-label` / `stat-value` / `stat-value-large` / `stat-supporting` | 统计卡：名称、数值、大号数值、辅助文字                                  | `platform-stat-card`                           |
-| `section-card` / `card-title` / `card-description`                                 | 区块卡（左侧 4px 色条）                                                 | `platform-section-card`                        |
+| `stat-card` / `stat-label` / `stat-value` / `stat-value-large` / `stat-supporting` | 统计卡：白卡投影、圆形实色图标底块、名称、数值、辅助文字                  | `platform-stat-card`                           |
+| `section-card` / `card-title` / `card-description`                                 | 区块卡（白卡投影，无色条）                                                 | `platform-section-card`                        |
 | `panel`                                                                            | 表面底容器（表格、明细、提示块）                                        | `platform-chart-frame` / `platform-data-table` |
 | `chart-frame`                                                                      | 图表底板                                                                | `platform-chart-frame`                         |
 | `chip`                                                                             | 状态标签                                                                | `platform-chip`                                |
@@ -531,25 +620,36 @@ app.TryGetResource("SemiColorXxx", ThemeVariant.Light, out var v);
 2. **禁止为具体色相新增 CSS 规则**，一律复用 `.platform-accent-*`
 3. **禁止给 MudBlazor 的 `Color` 参数传入与语义不符的值**（如用 Success 表示"停用"）
 4. **禁止在 MudText 上加 `Color` 覆盖 accent 已决定的值**
-5. **禁止引入第 8 种色相**，七个角色色 + 中性色是封闭集合
+5. **禁止引入第 8 种色相**，七个角色色 + 中性色是封闭集合；退役的品牌红变量体系
+   （`--platform-brand*` / `DapBrand*`）不得复活——其语义由 primary（同色值 #D32F2F）承接，
+   避免同一红色出现两套变量
 6. **禁止手搓空状态、抽屉、确认框**，统一用既有class 与 `PlatformDialogs`
 7. **禁止直接改MudBlazor / Semi 主题源码**，只能通过 `PaletteLight` / `Application.Resources` 覆盖
-8. **禁止用渐变把底色稀释回表面色**：`linear-gradient(tint → surface 78px)` 这类写法会让卡片
-   九成面积仍是表面色，视觉上等于没上色。要有色就整块铺满（`background: var(--card-accent-tint)`），
-   层次靠卡片内的表格/图表底板来区分，而不是靠稀释底色。
+8. **禁止给卡片铺色/渐变**：示意稿定稿后卡片一律白底 + MD2 投影，**不得再铺 tint 底纹、
+   `linear-gradient` 渐变或左/顶色条**——历史上「要有色就整块铺满」的口径已随示意稿改版废止，
+   色彩只由顶栏、圆形图标底块、徽章与图表系列承载。
+9. **桌面端禁止用主色淡色底纹铺数据容器**：`DapPrimarySoftBrush` / `DapPrimaryTintBrush` 不得作为
+   指标卡、区块卡的整卡底色（page-hero 已无底色）；
+   桌面指标卡保持「白卡 + 圆形图标底块（`Accent` 实底 + `AccentOn` 图标）」样式（守卫
+   `Desktop_Data_Containers_Should_Not_Use_Primary_Pale_Brushes` 强制）。
+   主色实底只属于桌面主色实底头条卡与顶栏；Web 端 primary 参与正常 accent 轮换，不在此限。
 
 ---
 
 ## 六、新增页面检查清单
 
 - [ ] 页面根容器为 `<MudStack Class="platform-page-shell" Spacing="2">`
-- [ ] 头部为 `platform-page-hero` + 已登记的 accent 类
-- [ ] 统计卡片带 `--tinted`（头条 KPI 用 `--filled`）+ accent + 图标行
-- [ ] 表格带 `platform-data-table`
+- [ ] 头部为 `platform-page-hero`（示意稿定稿：无色块白底直排，不铺 tint/色条/渐变；accent 类名仅作标记）
+- [ ] 统计卡片为白卡 + 圆形实色图标底块（accent 实底 + On 档图标），带 `--tinted` 标记；
+      全宽头条 KPI 用 `--filled`（同为白卡，数值近黑最大号）
+- [ ] 区块卡/面板为白卡 + 投影，无底纹无色条（`--banded` 已退役）
+- [ ] 表格带 `platform-data-table`（表头中性灰字 + 12% 黑分隔线）
 - [ ] 空状态用 `platform-empty-state`
 - [ ] 抽屉用 `platform-sheet` + 分区 accent；对话框走 `PlatformDialogs`
-- [ ] 全文件无硬编码色值
-- [ ] 在本文档「页面主色分配」表中登记新页面主色
+- [ ] 全文件无硬编码色值，无 `--platform-brand` / `DapBrand` 引用（品牌红体系已退役，语义由 primary 承接）
+- [ ] 按钮按 3.10 的角色写：主操作 Primary 填充、次操作 Secondary 描边、取消 Secondary 文字、危险 Error；行内 Text + Small
+- [ ] 输入类组件 `Variant.Outlined` + `Margin.Dense`，开关 `Color.Primary`，徽章与提示条 `Variant.Outlined`
+- [ ] 在本文档「页面主色分配」表中登记新页面的卡片主色
 
 组件级样式（`Xxx.razor.css`）另需：
 

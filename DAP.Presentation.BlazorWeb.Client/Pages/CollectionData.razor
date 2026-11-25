@@ -3,7 +3,7 @@
 <PageTitle>实时采集数据</PageTitle>
 
 <MudStack Class="platform-page-shell" Spacing="2">
-    <MudPaper Class="platform-page-hero platform-accent-info pa-4" Elevation="0">
+    <MudPaper Class="platform-page-hero platform-accent-primary pa-4" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
                   Spacing="3">
             <MudStack Spacing="0">
@@ -31,7 +31,7 @@
                         <MudSelectItem T="int" Value="@option">@($"{option} 条")</MudSelectItem>
                     }
                 </MudSelect>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
                            StartIcon="@Icons.Material.Filled.Refresh"
                            OnClick="LoadAsync" Disabled="@(_isLoading || _isRefreshing)">
                     刷新
@@ -65,7 +65,7 @@
                     </MudText>
                 </MudStack>
             </MudStack>
-            <MudChip T="string" Variant="Variant.Text" Color="Color.Default">@($"{Records.Length} 条")</MudChip>
+            <MudChip T="string" Variant="Variant.Outlined" Color="Color.Default">@($"{Records.Length} 条")</MudChip>
         </div>
 
         @if (_isLoading)

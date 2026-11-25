@@ -22,9 +22,9 @@
     flex-direction: column;
     gap: 14px;
     padding: 18px 20px 16px;
-    border: 1px solid var(--platform-border);
-    border-radius: 14px;
+    border-radius: 4px;
     background: var(--platform-surface);
+    box-shadow: var(--platform-shadow);
 }
 
 .twin-head {
