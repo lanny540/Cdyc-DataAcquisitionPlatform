@@ -76,9 +76,10 @@ test("超管登录、强制改密、进入平台并登出", async ({page}) => {
         state.password = UPDATED_PASSWORD;
     }
 
-    // 超管落地页是平台概览（不在业务域内，不受域授权限制）。
-    expect(new URL(page.url()).pathname).toBe("/platform-overview");
-    await expect(page.getByRole("heading", {name: "数据采集平台概览"})).toBeVisible();
+    // 超管落地页是根路由的大屏导航枢纽（ScreensHub）：每次登录先选入口，
+    // 不直接进业务页面；从业务页被拦回登录页时由 returnUrl 优先回跳。
+    expect(new URL(page.url()).pathname).toBe("/");
+    await expect(page.getByRole("heading", {name: "平台大屏导航"})).toBeVisible();
 
     // 顶栏账号区读会话 claims，不额外请求接口。
     await expect(page.locator(".platform-user-name")).toHaveText("超级管理员");
@@ -94,7 +95,7 @@ test("超管登录、强制改密、进入平台并登出", async ({page}) => {
 
     // 刷新后仍处于登录态：Cookie 是 HttpOnly 的服务端会话。
     await page.reload();
-    expect(new URL(page.url()).pathname).toBe("/platform-overview");
+    expect(new URL(page.url()).pathname).toBe("/");
     await expect(page.locator(".platform-user-name")).toHaveText("超级管理员");
 
     // 切到钞纸域，确认落地页可访问且顶栏高亮跟随。

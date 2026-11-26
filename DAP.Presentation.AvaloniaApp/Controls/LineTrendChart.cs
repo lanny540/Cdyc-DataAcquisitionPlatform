@@ -7,7 +7,8 @@ namespace DAP.Presentation.AvaloniaApp.Controls;
 /// <summary>
 /// 趋势折线图：一条序列、面积填充、数据点标记与抽稀后的横轴标签。
 ///
-/// 与 Web 端 MudChart 的取舍一致：标签数量限制在 6 个以内，否则密集的日期会挤成一条黑带。
+/// 横轴标签上限由 <see cref="MaxLabels"/> 控制：默认 6 个，与 Web 端一致——
+/// 单行整幅宽绑定 12 个，两列半宽收紧到 4 个，否则密集的日期会挤成一条黑带。
 /// </summary>
 public sealed class LineTrendChart : PlatformChartBase
 {
@@ -25,10 +26,16 @@ public sealed class LineTrendChart : PlatformChartBase
     public static readonly StyledProperty<string?> UnitProperty =
         AvaloniaProperty.Register<LineTrendChart, string?>(nameof(Unit));
 
+    /// <summary>
+    /// 横轴标签最多绘制个数：默认 6 个；排布切换页绑定 12（单行）/ 4（两列），与 Web 端同步。
+    /// </summary>
+    public static readonly StyledProperty<int> MaxLabelsProperty =
+        AvaloniaProperty.Register<LineTrendChart, int>(nameof(MaxLabels), 6);
+
     static LineTrendChart()
     {
-        AffectsRender<LineTrendChart>(PointsProperty, UnitProperty, AccentProperty, LabelBrushProperty,
-            GridBrushProperty);
+        AffectsRender<LineTrendChart>(PointsProperty, UnitProperty, MaxLabelsProperty, AccentProperty,
+            LabelBrushProperty, GridBrushProperty);
     }
 
     /// <summary>
@@ -47,6 +54,15 @@ public sealed class LineTrendChart : PlatformChartBase
     {
         get => GetValue(UnitProperty);
         set => SetValue(UnitProperty, value);
+    }
+
+    /// <summary>
+    /// 横轴标签最多绘制个数。
+    /// </summary>
+    public int MaxLabels
+    {
+        get => GetValue(MaxLabelsProperty);
+        set => SetValue(MaxLabelsProperty, value);
     }
 
     /// <inheritdoc />
@@ -153,8 +169,9 @@ public sealed class LineTrendChart : PlatformChartBase
             context.DrawEllipse(surface, new Pen(accent, 2), coordinate, 3.2, 3.2);
         }
 
-        // 横轴标签抽稀：最多 6 个
-        int labelStep = Math.Max(1, (int)Math.Ceiling(points.Length / 6.0));
+        // 横轴标签抽稀：上限由 MaxLabels 决定（默认 6 个，排布切换时页面绑定 12 或 4）
+        int maxLabels = Math.Max(1, MaxLabels);
+        int labelStep = Math.Max(1, (int)Math.Ceiling(points.Length / (double)maxLabels));
 
         for (int index = 0; index < points.Length; index += labelStep)
         {

@@ -339,7 +339,7 @@ public sealed class AdminUserService(
 
             // 停用即清空失败计数与锁定，避免启用后仍被剩余锁定期拦在门外。
             // 同时换安全戳：停用的目的就是「立刻不让这个人再操作」，
-            // 不换戳的话他手上的会话还能继续用到绝对过期（最长 12 小时）。
+            // 不换戳的话他手上的会话还能继续用到滑动过期（长期不操作才掉线）。
             if (!request.IsEnabled)
             {
                 user.AccessFailedCount = 0;

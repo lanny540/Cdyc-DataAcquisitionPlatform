@@ -18,7 +18,7 @@ namespace DAP.Tests.UnitTests;
 /// 本地账号登录校验的单元测试。
 ///
 /// 这里钉住的规则出错都是安全事故：先判状态再验凭据会变成账号探针；
-/// 锁定计数不清零会让解锁即再锁；改密不换安全戳会让已签发会话活到绝对过期。
+/// 锁定计数不清零会让解锁即再锁；改密不换安全戳会让已签发会话用到滑动过期。
 /// </summary>
 public sealed class PlatformAuthServiceTests
 {
@@ -722,14 +722,17 @@ public sealed class PlatformAuthServiceTests
     // ---------- ResolveLandingPageAsync：四个分支分开处理 ----------
 
     [Fact]
-    public async Task ResolveLandingPageAsync_Super_Admin_Should_Go_To_Platform_Overview()
+    public async Task ResolveLandingPageAsync_Super_Admin_Should_Go_To_Screen_Hub()
     {
         using SqliteTestDatabase database = new();
         await using DataAcquisitionPlatformDbContext db = database.CreateContext();
         PlatformAuthService service = CreateService(db, DefaultOptions(), new FixedTimeProvider(Now));
 
         AuthUserDto user = new(Guid.NewGuid(), "admin", "超管", null, [], [], 99, [], false, true);
-        Assert.Equal("/platform-overview", await service.ResolveLandingPageAsync(user));
+
+        // 无 returnUrl 的登录（如登出后再登录）落到根路由的大屏导航枢纽：
+        // 每次登录先选入口，而不是直接进平台概览。
+        Assert.Equal("/", await service.ResolveLandingPageAsync(user));
     }
 
     [Fact]

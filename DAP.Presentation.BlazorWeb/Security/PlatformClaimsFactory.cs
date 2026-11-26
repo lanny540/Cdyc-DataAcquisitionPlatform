@@ -18,7 +18,7 @@ public static class PlatformClaimsFactory
     /// 按用户信息生成会话主体。
     /// </summary>
     /// <param name="user">用户授权视图。</param>
-    /// <param name="issuedAt">会话签发时间，用于绝对过期判定。</param>
+    /// <param name="issuedAt">会话签发时间，用于车间只读会话的固定有效期判定。</param>
     /// <param name="securityStamp">会话安全戳，用于撤销判定；为空时不写该 claim（车间只读会话）。</param>
     /// <returns>可直接写入 Cookie 的主体。</returns>
     public static ClaimsPrincipal CreatePrincipal(

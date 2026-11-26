@@ -87,4 +87,13 @@ public static class NavIcons
     /// <summary>时钟。</summary>
     public const string Clock =
         "M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm4.2 14.2L11 13V7h1.5v5.2l4.5 2.7-.8 1.3z";
+
+    /// <summary>单行堆叠排布（两条横杠）：趋势图每图独占一行时按钮用它。</summary>
+    public const string ViewAgenda =
+        "M19,13H5c-1.1,0-2,0.9-2,2v4c0,1.1,0.9,2,2,2h14c1.1,0,2-0.9,2-2v-4C21,13.9,20.1,13,19,13z " +
+        "M19,3H5C3.9,3,3,3.9,3,5v4c0,1.1,0.9,2,2,2h14c1.1,0,2-0.9,2-2V5C21,3.9,20.1,3,19,3z";
+
+    /// <summary>两列并排排布（三根竖杠）：趋势图每行两列时按钮用它。</summary>
+    public const string ViewColumn =
+        "M14.67,5v14H9.33V5H14.67z M15.67,19H21V5h-5.33V19z M8.33,19V5H3v14H8.33z";
 }

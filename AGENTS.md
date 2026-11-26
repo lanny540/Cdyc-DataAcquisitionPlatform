@@ -279,6 +279,13 @@ npx playwright test --config auth.playwright.config.mjs
 - **分类**：条目较多时在小节内用 `### 新增 / ### 优化 / ### 修复 / ### 文档` 细分；
   单条变更可不分类。
 - **一致性**：提交信息中的主要条目必须能在当日小节里找到对应描述，两者不得互相矛盾。
+- **应用版本号同步**：每次提交同时把根目录 `Directory.Build.props` 的
+  `Version` / `AssemblyVersion` / `FileVersion` 三个属性更新为提交日期
+  （格式 `yyyy.M.d`，如 `2026.11.26`，三者必须一致）。该文件是全解决方案唯一版本源，
+  csproj 不得再声明 `<Version>`；Web 顶栏版本徽章与桌面侧栏版本文字自动读取程序集版本
+  显示（`v2026.11.26`），界面代码不硬编码。守卫测试
+  `AppVersionGuardTests`（`Version_Props_Should_Be_The_Single_Date_Source`、
+  `Csproj_Files_Should_Not_Redeclare_Version`）强制。
 - 架构与运行说明变更同步更新 `README.md`。
 
 > `CHANGELOG.md` 顶部的「记录规则」「变更分类建议」两节与本条规则同义；

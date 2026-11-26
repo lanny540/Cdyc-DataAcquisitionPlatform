@@ -141,19 +141,15 @@ public sealed class LockoutOptions
 }
 
 /// <summary>
-/// 会话 Cookie 时长。滑动过期覆盖一个工作日，绝对过期防止会话无限延长。
+/// 会话 Cookie 时长。纯滑动过期：活跃用户每次请求过半自动续期，
+/// 长期不操作超过该时长才要求重新登录；不设登录起算的绝对上限。
 /// </summary>
 public sealed class CookieSessionOptions
 {
     /// <summary>
     /// 获取或设置滑动过期小时数。
     /// </summary>
-    public int SlidingHours { get; set; } = 8;
-
-    /// <summary>
-    /// 获取或设置绝对过期小时数。超过后即使一直在操作也要求重新登录。
-    /// </summary>
-    public int AbsoluteHours { get; set; } = 12;
+    public int SlidingHours { get; set; } = 10;
 
     /// <summary>
     /// 获取或设置是否要求会话 Cookie 带 Secure 标志（非 Development 环境生效）。

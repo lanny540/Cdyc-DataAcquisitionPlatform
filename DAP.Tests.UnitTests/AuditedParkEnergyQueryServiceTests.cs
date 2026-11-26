@@ -123,8 +123,7 @@ public sealed class AuditedParkEnergyQueryServiceTests
                 HostingFakes.CreateDevelopmentEnvironment(),
                 NullLogger<ParkEnergyQueryService>.Instance),
             new StubUserContext(user),
-            new AuditScopeFactory(database, new FixedTimeProvider(FixedNow)),
-            Options.Create(new PlatformAuthOptions()));
+            new AuditScopeFactory(database, new FixedTimeProvider(FixedNow)));
     }
 
     /// <summary>构造合法的计量点新建请求（四维标识取自已播种的字典）。</summary>
@@ -310,21 +309,22 @@ public sealed class AuditedParkEnergyQueryServiceTests
     }
 
     [Fact]
-    public async Task ExpiredSession_Should_Be_Denied_Even_For_SuperAdmin()
+    public async Task Session_Issued_Long_Ago_Should_Still_Be_Accepted()
     {
         using EnergySqliteTestDatabase database = new();
         await SeedCatalogAsync(database);
         (Guid userId, Guid stamp) = await SeedSuperAdminAsync(database);
 
-        // 会话签发于 13 小时前，超过 12 小时绝对过期：即使安全戳匹配、身份合法也拒绝。
+        // 会话只做滑动续期、无绝对过期：签发于 13 小时前的会话，只要安全戳仍匹配、
+        // 身份合法即可继续操作——活跃用户不因登录时间久而被强制重新登录。
         AuditedParkEnergyQueryService service = CreateService(
             database, SuperAdmin(userId, stamp, DateTimeOffset.UtcNow.AddHours(-13)));
-        EnergyMeterUpsertRequest request = await ValidMeterRequestAsync(database, "EM-EXPIRED-001");
+        EnergyMeterUpsertRequest request = await ValidMeterRequestAsync(database, "EM-LONGAGO-001");
 
-        await Assert.ThrowsAsync<ForbiddenAccessException>(() => service.UpsertMeterAsync(request));
+        await service.UpsertMeterAsync(request);
 
         AuditLog audit = Assert.Single(await LoadAuditsAsync(database));
-        Assert.Equal("failed", audit.Result);
+        Assert.Equal("success", audit.Result);
         Assert.Equal(userId, audit.UserId);
     }
 

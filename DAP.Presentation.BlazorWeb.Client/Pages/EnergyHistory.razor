@@ -115,26 +115,17 @@
     }
     else
     {
-        <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-tertiary pa-4"
-                  Elevation="0">
-            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
-                      Spacing="2">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                    <span class="platform-section-icon">
-                        <MudIcon Icon="@Icons.Material.Filled.Timeline" Size="Size.Small"/>
-                    </span>
-                    <MudStack Spacing="0">
-                        <MudText Typo="Typo.h6" Class="platform-card-title">四项指标趋势</MudText>
-                        <MudText Typo="Typo.body2" Class="platform-card-description">
-                            @($"{_history.TeamName} 按{GranularityLabel(_history.Granularity)}统计，每项指标独立成图，便于识别单项波动。")
-                        </MudText>
-                    </MudStack>
-                </MudStack>
-                <MudChip T="string" Variant="Variant.Outlined" Color="Color.Tertiary">
-                    @($"共 {_history.Trends.Sum(trend => trend.Points.Count)} 个数据点")
-                </MudChip>
-            </MudStack>
-        </MudPaper>
+        @* 原「四项指标趋势」区块卡已取消，只留一条无底色的工具条：
+           标题不做卡片包边，右侧按钮切换下方图表的单行 / 两列排布。 *@
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
+                  Spacing="2">
+            <MudText Typo="Typo.subtitle2">四项指标趋势</MudText>
+            @* 图标即当前排布：两条横杠＝单行堆叠，两列竖杠＝每行两列；点击切换，悬停给出文字说明。 *@
+            <MudTooltip Text="@TrendLayoutHint" Placement="Placement.Left">
+                <MudIconButton Icon="@TrendLayoutIcon" Variant="Variant.Outlined" Color="Color.Secondary"
+                               OnClick="ToggleTrendLayout" aria-label="@TrendLayoutHint"/>
+            </MudTooltip>
+        </MudStack>
 
         <MudGrid Spacing="3">
             @for (int i = 0; i < Trends.Length && i < MetricAccents.Length; i++)
@@ -142,7 +133,9 @@
                 EnergyTrendDto trend = Trends[i];
                 int metricIndex = i;
 
-                <MudItem xs="12" lg="6">
+                @* 单行模式整行铺开，横轴能放下 10~12 个十字符日期标签；
+                   两列模式每图约半宽，标签会变密，由用户按需要自行切换。 *@
+                <MudItem xs="12" lg="@(_trendSingleColumn ? 12 : 6)">
                     <MudPaper
                         Class="@($"platform-section-card platform-section-card--banded {MetricAccents[metricIndex]} pa-4")"
                         Elevation="0">
@@ -169,7 +162,9 @@
                             </MudStack>
 
                             <div class="platform-chart-panel platform-chart-frame">
-                                <MudChart T="double"
+                                @* @key 绑定排布：MudChart 只在实例创建时量一次容器宽度，
+                                   不换实例的话切回单行后 SVG 仍是半宽，标签又会压字。 *@
+                                <MudChart @key="_trendSingleColumn" T="double"
                                           ChartType="ChartType.Line"
                                           ChartSeries="@BuildSeries(trend)"
                                           ChartLabels="@BuildLabels(trend)"

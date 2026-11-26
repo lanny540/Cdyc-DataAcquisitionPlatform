@@ -53,7 +53,7 @@ public sealed class PlatformAuthClient(HttpClient httpClient) : IPlatformAuthCli
         using HttpResponseMessage response =
             await httpClient.PostAsync("/api/auth/logout", null, cancellationToken);
 
-        // 登出失败不应阻塞界面：本地已清空会话时，服务端会话会在绝对过期时间后自然失效。
+        // 登出失败不应阻塞界面：本地已清空会话时，服务端会话会在滑动过期时间后自然失效。
         _ = response.StatusCode;
     }
 

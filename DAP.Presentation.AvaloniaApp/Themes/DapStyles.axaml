@@ -201,6 +201,22 @@
     <Setter Property="FontSize" Value="13" />
   </Style>
 
+  <!-- 纯图标次操作按钮（趋势排布切换）：与 Button.ghost 同语言的方形描边托，
+       内容只有 PathIcon，说明文字由 ToolTip 与 AutomationProperties.Name 承载，
+       对应 Web 端 MudIconButton Variant.Outlined Color.Secondary -->
+  <Style Selector="Button.icon-ghost">
+    <Setter Property="Background" Value="{DynamicResource DapSurfaceBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource DapSecondaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DapBorderStrongBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Width" Value="34" />
+    <Setter Property="Height" Value="34" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+
   <!-- ============ 数据表 ============ -->
   <Style Selector="DataGrid.data-table">
     <Setter Property="Background" Value="Transparent" />

@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using DAP.Clients;
 using DAP.Core.Shared.Contracts;
+using DAP.Presentation.AvaloniaApp.Navigation;
 using DAP.Presentation.AvaloniaApp.Services;
 
 namespace DAP.Presentation.AvaloniaApp.ViewModels.Pages;
@@ -141,5 +143,55 @@ public abstract partial class EnergyPageViewModelBase : AutoRefreshPageViewModel
         {
             _suppressTeamReload = false;
         }
+    }
+
+    /// <summary>
+    /// 趋势图排布：true 表示每图独占一行，false 表示每行两列。
+    /// 与 Web 端能耗仪表板 / 历史指标的切换按钮同口径：默认单行，属页面内即时状态。
+    /// 目前只有这两个页面把该状态接进视图；横向对比与报表页不使用。
+    /// </summary>
+    [ObservableProperty] private bool _trendSingleColumn = true;
+
+    /// <summary>
+    /// 趋势卡网格列数：单行 1 列，两列 2 列。
+    /// </summary>
+    public int TrendColumns => TrendSingleColumn ? 1 : 2;
+
+    /// <summary>
+    /// 横轴标签上限：单行整幅宽可放 12 个十字符日期，两列半宽收紧到 4 个，与 Web 端同步。
+    /// </summary>
+    public int TrendMaxLabels => TrendSingleColumn ? 12 : 4;
+
+    /// <summary>
+    /// 切换按钮图标即当前排布：单行给两条横杠（ViewAgenda），两列给竖杠（ViewColumn），
+    /// 与 Web 端 MudIconButton 的图标口径一致。
+    /// </summary>
+    public string TrendLayoutIcon => TrendSingleColumn ? NavIcons.ViewAgenda : NavIcons.ViewColumn;
+
+    /// <summary>
+    /// 切换按钮的悬停提示。
+    /// </summary>
+    public string TrendLayoutHint => TrendSingleColumn
+        ? "当前每图独占一行，点击改为每行两列"
+        : "当前每行两列，点击改为单独成行";
+
+    /// <summary>
+    /// 排布切换后同步派生属性，让图表网格列数、标签上限与按钮图标立即变化。
+    /// </summary>
+    partial void OnTrendSingleColumnChanged(bool value)
+    {
+        OnPropertyChanged(nameof(TrendColumns));
+        OnPropertyChanged(nameof(TrendMaxLabels));
+        OnPropertyChanged(nameof(TrendLayoutIcon));
+        OnPropertyChanged(nameof(TrendLayoutHint));
+    }
+
+    /// <summary>
+    /// 切换单行 / 两列排布。
+    /// </summary>
+    [RelayCommand]
+    private void ToggleTrendLayout()
+    {
+        TrendSingleColumn = !TrendSingleColumn;
     }
 }

@@ -41,7 +41,6 @@ public static class PlatformAuthenticationExtensions
             ?? new CookieSessionOptions();
 
         int slidingHours = Math.Max(1, cookieOptions.SlidingHours);
-        int absoluteHours = Math.Max(slidingHours, cookieOptions.AbsoluteHours);
 
         // 生产强制 Secure：SameAsRequest 的语义是「请求是 https 才加 Secure」，
         // 一旦有人把站点直接以 http 暴露（内网图省事很常见），会话 Cookie 就会明文过网，
@@ -86,19 +85,19 @@ public static class PlatformAuthenticationExtensions
 
                 options.Events = new CookieAuthenticationEvents
                 {
-                    // 绝对过期：Cookie 自身只做滑动续期，签发时间超过上限一律作废。
-                    // 取 claim 里的签发时间而不是 Cookie 的 IssuedUtc——滑动续期会刷新后者，
-                    // 用它判定等于永远不会到期。
+                    // 会话只做滑动续期：活跃用户每次请求过半自动续期，长期不操作才掉线，
+                    // 不设「从登录起算的绝对上限」。安全兜底交给 HttpOnly Cookie
+                    // 与下面的安全戳校验（停用账号、改密立即作废）。
                     OnValidatePrincipal = async context =>
                     {
-                        DateTimeOffset? issuedAt = PlatformClaimsFactory.ReadIssuedAt(context.Principal);
-
                         // 车间只读会话：
                         // 绑定签发 IP，不一致立即作废——Cookie 被复制到别的机器也用不了；
                         // 固定有效期不滑动：滑动续期会让被盗 Cookie 无限延长，
                         // 固定到期后由白名单 IP 重新签发，现场无感。
                         if (PlatformClaimsFactory.IsBoardTerminal(context.Principal))
                         {
+                            DateTimeOffset? issuedAt = PlatformClaimsFactory.ReadIssuedAt(context.Principal);
+
                             string? issuedIp = context.Principal?.FindFirst(
                                 AuthorizationCatalog.PlatformClaimTypes.BoardIssuedIp)?.Value;
                             string? remoteIp = context.HttpContext.Connection.RemoteIpAddress?.ToString();
@@ -117,17 +116,8 @@ public static class PlatformAuthenticationExtensions
                             return;
                         }
 
-                        if (issuedAt is null ||
-                            DateTimeOffset.UtcNow - issuedAt.Value > TimeSpan.FromHours(absoluteHours))
-                        {
-                            context.RejectPrincipal();
-                            await context.HttpContext.SignOutAsync(
-                                CookieAuthenticationDefaults.AuthenticationScheme);
-                            return;
-                        }
-
-                        // 安全戳比对：停用账号、管理员重置密码后，旧会话必须立刻作废，
-                        // 而不是继续用到绝对过期。车间只读会话在上面已经 return，不走这里。
+                        // 安全戳比对：停用账号、管理员重置密码后，旧会话必须立刻作废。
+                        // 车间只读会话在上面已经 return，不走这里。
                         string? userIdValue = context.Principal?.FindFirst(
                             AuthorizationCatalog.PlatformClaimTypes.UserId)?.Value;
                         string? stamp = context.Principal?.FindFirst(

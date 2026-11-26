@@ -93,6 +93,41 @@ public partial class EnergyDashboard
     private Severity _messageSeverity = Severity.Info;
 
     /// <summary>
+    /// 趋势图排布：true 表示每图独占一行，false 表示每行两列。
+    /// 单行时横轴能完整放下 10~12 个十字符日期标签；两列更紧凑，但标签会变密。
+    /// 属页面内即时状态，刷新后回到默认（单行）。
+    /// </summary>
+    private bool _trendSingleColumn = true;
+
+    /// <summary>
+    /// 单行模式横轴最多保留的标签数：整幅宽约 1090px，十字符日期（2026-10-28）可放 12 个。
+    /// </summary>
+    private const int SingleColumnLabelLimit = 12;
+
+    /// <summary>
+    /// 两列模式横轴最多保留的标签数：每图约半宽（1280 视口下 424px），
+    /// 十字符日期放 5 个只剩 1px 间隙，取 4 个才能留出约 30px 的呼吸位。
+    /// </summary>
+    private const int TwoColumnLabelLimit = 4;
+
+    /// <summary>
+    /// 按钮图标即当前排布：单行堆叠给 ViewAgenda（两条横杠），两列给 ViewColumn（两根竖杠）。
+    /// 文字说明改由悬停提示承载，按钮本体只留图标。
+    /// </summary>
+    private string TrendLayoutIcon => _trendSingleColumn
+        ? Icons.Material.Filled.ViewAgenda
+        : Icons.Material.Filled.ViewColumn;
+
+    private string TrendLayoutHint => _trendSingleColumn
+        ? "当前每图独占一行，点击改为每行两列"
+        : "当前每行两列，点击改为单独成行";
+
+    private void ToggleTrendLayout()
+    {
+        _trendSingleColumn = !_trendSingleColumn;
+    }
+
+    /// <summary>
     /// 是否严格解析出在岗班组。轮休 / 排班未导入算非在岗；手动切换到非在岗班组也算非在岗，
     /// 但手动切回处于在岗班次的班组时恢复在岗徽标（服务端按班次窗口判定，与选择方式无关）。
     /// 页面据此切换提示文案，绝不把猜测的班组当成在岗事实。
@@ -217,8 +252,9 @@ public partial class EnergyDashboard
 
     /// <summary>
     /// X 轴标签抽稀：MudChart 会等距绘制所有标签，7 天以上需限制数量才不至于挤成黑带。
+    /// 上限随排布收紧——两列每图约半宽，能放下的十字符日期比单行少一半多。
     /// </summary>
-    private static string[] BuildLabels(EnergyTrendDto trend)
+    private string[] BuildLabels(EnergyTrendDto trend)
     {
         IReadOnlyCollection<EnergyTrendPointDto> points = trend.Points;
         if (points.Count == 0)
@@ -226,7 +262,7 @@ public partial class EnergyDashboard
             return [];
         }
 
-        const int maxLabels = 12;
+        int maxLabels = _trendSingleColumn ? SingleColumnLabelLimit : TwoColumnLabelLimit;
 
         if (points.Count <= maxLabels)
         {

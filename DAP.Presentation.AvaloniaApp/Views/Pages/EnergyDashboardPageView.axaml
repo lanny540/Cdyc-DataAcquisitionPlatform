@@ -139,21 +139,24 @@
           </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-        <!-- 趋势区标题 -->
-        <Border Classes="section-card" Background="{DynamicResource DapSuccessTintBrush}"
-                BorderBrush="{DynamicResource DapSuccessBrush}">
-          <StackPanel Spacing="2">
-            <TextBlock Classes="card-title" Text="四项指标趋势" />
-            <TextBlock Classes="card-description"
-                       Text="每项指标独立成图，避免共用纵轴时互相压线。" />
-          </StackPanel>
-        </Border>
+        <!-- 趋势区工具条：标题不包卡片，右侧纯图标按钮切换单行 / 两列，与 Web 端同口径。
+             图标即当前排布：两条横杠表示单行堆叠，三根竖杠表示每行两列，悬停给出文字说明 -->
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+          <TextBlock Classes="card-title" Text="四项指标趋势" />
+          <Button Grid.Column="1" Classes="icon-ghost"
+                  Command="{Binding ToggleTrendLayoutCommand}"
+                  ToolTip.Tip="{Binding TrendLayoutHint}"
+                  AutomationProperties.Name="{Binding TrendLayoutHint}">
+            <PathIcon Data="{Binding TrendLayoutIcon}" Width="18" Height="18"
+                      Foreground="{DynamicResource DapSecondaryBrush}" />
+          </Button>
+        </Grid>
 
         <ItemsControl ItemsSource="{Binding Trends}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
-              <UniformGrid Columns="2" />
-              <!-- 图表卡等分两列，随窗口宽度拉伸 -->
+              <UniformGrid Columns="{Binding TrendColumns}" />
+              <!-- 列数跟随切换按钮：单行整幅铺开，两列等分随窗口宽度拉伸 -->
             </ItemsPanelTemplate>
           </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
@@ -186,7 +189,8 @@
                     <controls:LineTrendChart Height="210"
                                              Points="{Binding Samples}"
                                              Accent="{Binding AccentStrong}"
-                                             Unit="{Binding Unit}" />
+                                             Unit="{Binding Unit}"
+                                             MaxLabels="{Binding $parent[ItemsControl].DataContext.TrendMaxLabels}" />
                   </Border>
                 </StackPanel>
               </Border>

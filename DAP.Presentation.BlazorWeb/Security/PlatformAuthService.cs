@@ -246,10 +246,11 @@ public sealed class PlatformAuthService(
         AuthUserDto user,
         CancellationToken cancellationToken = default)
     {
-        // 分支 1：超级管理员短路，不看域。
+        // 分支 1：超级管理员短路，不看域。落到根路由的大屏导航枢纽（ScreensHub），
+        // 每次登录都先选入口；带了 returnUrl 的登录在调用方已优先使用 returnUrl。
         if (user.IsSuperAdmin)
         {
-            return "/platform-overview";
+            return "/";
         }
 
         // 分支 4：没有任何可见域 —— 缺授权，找管理员。

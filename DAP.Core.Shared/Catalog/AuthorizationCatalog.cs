@@ -156,7 +156,7 @@ public static class AuthorizationCatalog
         /// <summary>是否超级管理员。存在即为 true，不写 false。</summary>
         public const string SuperAdmin = "dap:super_admin";
 
-        /// <summary>会话签发时间，用于绝对过期判定（Cookie 自身只做滑动过期）。</summary>
+        /// <summary>会话签发时间，用于车间只读会话的固定有效期判定（普通会话只做滑动续期）。</summary>
         public const string IssuedAt = "dap:issued_at";
 
         /// <summary>是否必须先修改密码。存在即表示必须改，改密后重新签发会话不再带此 claim。</summary>
@@ -164,7 +164,7 @@ public static class AuthorizationCatalog
 
         /// <summary>
         /// 会话安全戳。与 <c>app_users.security_stamp</c> 比对，不一致即作废会话——
-        /// 停用账号、管理员重置密码后，已签发的 Cookie 不再等到绝对过期才失效。
+        /// 停用账号、管理员重置密码后，已签发的 Cookie 立即失效。
         /// </summary>
         public const string SecurityStamp = "dap:security_stamp";
 

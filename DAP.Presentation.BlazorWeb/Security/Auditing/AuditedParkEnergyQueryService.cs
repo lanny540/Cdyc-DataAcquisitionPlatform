@@ -3,7 +3,6 @@ using DAP.Core.Shared.Contracts;
 using DAP.Infrastructure.DataAccess.Persistence;
 using DAP.Presentation.BlazorWeb.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 namespace DAP.Presentation.BlazorWeb.Security.Auditing;
 
@@ -13,8 +12,7 @@ namespace DAP.Presentation.BlazorWeb.Security.Auditing;
 public sealed class AuditedParkEnergyQueryService(
     ParkEnergyQueryService inner,
     ICurrentUserContext userContext,
-    IServiceScopeFactory scopeFactory,
-    IOptions<PlatformAuthOptions> options) : IParkEnergyQueryService
+    IServiceScopeFactory scopeFactory) : IParkEnergyQueryService
 {
     public Task<ParkEnergyOverviewDto> GetOverviewAsync(
         string period, bool demo = false, CancellationToken cancellationToken = default)
@@ -81,14 +79,10 @@ public sealed class AuditedParkEnergyQueryService(
         DataAcquisitionPlatformDbContext db =
             scope.ServiceProvider.GetRequiredService<DataAcquisitionPlatformDbContext>();
         PlatformAuthService auth = scope.ServiceProvider.GetRequiredService<PlatformAuthService>();
-        DateTimeOffset? issuedAt = PlatformClaimsFactory.ReadIssuedAt(actor?.Principal);
-        int absoluteHours = Math.Max(
-            Math.Max(1, options.Value.Cookie.SlidingHours),
-            options.Value.Cookie.AbsoluteHours);
-
+        // 会话只做滑动续期（无绝对过期），写入授权以前置校验为准：
+        // 安全戳、启用状态与权限逐项核对，任何一项不满足即拒绝并落审计。
         bool allowed = false;
-        if (actor?.UserId is { } userId && issuedAt.HasValue &&
-            DateTimeOffset.UtcNow - issuedAt.Value <= TimeSpan.FromHours(absoluteHours))
+        if (actor?.UserId is { } userId)
         {
             string? stamp = actor.Principal.FindFirst(AuthorizationCatalog.PlatformClaimTypes.SecurityStamp)?.Value;
             Guid? currentStamp = await db.AppUsers.AsNoTracking()
