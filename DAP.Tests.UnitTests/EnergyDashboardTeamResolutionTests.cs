@@ -4,7 +4,7 @@ using DAP.Presentation.BlazorWeb.Services;
 namespace DAP.Tests.UnitTests;
 
 /// <summary>
-/// 仪表板班组归属解析的守卫测试（docs/AUTH_DESIGN.md 6.6）：
+/// 仪表板班组归属解析的守卫测试：
 /// 默认班组必须走严格解析——不命中就不给在岗事实，绝不取模猜测。
 /// </summary>
 public sealed class EnergyDashboardTeamResolutionTests

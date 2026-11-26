@@ -8,7 +8,7 @@ namespace DAP.Presentation.BlazorWeb.Client.Pages;
 /// 表示域与页面配置页的交互逻辑。
 ///
 /// 页面等级误配（把配置页调成查看类）会造成越权可见且不报错，
-/// 因此改档必须二次确认（docs/AUTH_DESIGN.md 第 4 节）。
+/// 因此改档必须二次确认。
 /// </summary>
 public partial class DomainConfig
 {

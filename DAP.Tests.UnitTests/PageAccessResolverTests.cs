@@ -7,7 +7,7 @@ using Microsoft.Extensions.Caching.Memory;
 namespace DAP.Tests.UnitTests;
 
 /// <summary>
-/// PageAccessResolver 的单元测试（docs/AUTH_DESIGN.md 7.3）。
+/// PageAccessResolver 的单元测试。
 ///
 /// 覆盖的核心规则：
 /// - 路径归一化：去查询串 / 锚点、去首尾斜杠、大小写不敏感；

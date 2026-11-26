@@ -14,7 +14,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace DAP.Tests.UnitTests;
 
 /// <summary>
-/// AdminUserService 的单元测试（docs/AUTH_DESIGN.md 6.4 / 9.3 / 9.5）。
+/// AdminUserService 的单元测试。
 ///
 /// 覆盖的核心安全规则：
 /// - 超管管全部账号，部门管理员只管本部门（department_id 精确相等）；

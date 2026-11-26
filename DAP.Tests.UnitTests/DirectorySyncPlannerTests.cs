@@ -4,7 +4,7 @@ using DAP.Presentation.BlazorWeb.Security.Directory;
 namespace DAP.Tests.UnitTests;
 
 /// <summary>
-/// 目录同步判定的单元测试（docs/AUTH_DESIGN.md 11.3）。
+/// 目录同步判定的单元测试。
 ///
 /// 这里每一条规则出错都是生产事故：
 /// 无变化也写库 → 每小时把所有账号刷一遍；目录字段为空就清空 → 姓名变空白；

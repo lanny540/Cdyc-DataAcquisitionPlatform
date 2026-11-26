@@ -4,7 +4,7 @@ using DAP.Core.Shared.Catalog;
 namespace DAP.Presentation.BlazorWeb.Security;
 
 /// <summary>
-/// 用户管理的纯判定规则（docs/AUTH_DESIGN.md 9.3）。
+/// 用户管理的纯判定规则。
 ///
 /// 抽成静态方法是为了让「部门边界」「角色授予上限」这两条安全约束可以被单测直接覆盖，
 /// 而不必为了测一个 if 去搭数据库。判定与执行分离：规则只回答「能不能」，

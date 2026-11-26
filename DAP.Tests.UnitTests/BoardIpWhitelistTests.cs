@@ -4,7 +4,7 @@ using DAP.Presentation.BlazorWeb.Security;
 namespace DAP.Tests.UnitTests;
 
 /// <summary>
-/// 车间白名单 CIDR 匹配的守卫测试（docs/AUTH_DESIGN.md 6.6 五条硬约束之 1、2）。
+/// 车间白名单 CIDR 匹配的守卫测试。
 /// </summary>
 public sealed class BoardIpWhitelistTests
 {

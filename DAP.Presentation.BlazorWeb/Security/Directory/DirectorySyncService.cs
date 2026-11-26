@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 namespace DAP.Presentation.BlazorWeb.Security.Directory;
 
 /// <summary>
-/// 目录同步（docs/AUTH_DESIGN.md 11.1、11.3）。
+/// 目录同步。
 ///
 /// 两条铁律在这里落地：
 /// <list type="number">

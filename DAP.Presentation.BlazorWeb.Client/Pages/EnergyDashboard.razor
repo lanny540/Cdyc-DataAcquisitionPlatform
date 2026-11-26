@@ -97,7 +97,7 @@
             <MudAlert Severity="@_messageSeverity" Dense="true" Variant="Variant.Outlined">@_message</MudAlert>
         }
 
-        @* 班组归属提示：轮休 / 排班未导入时不给在岗默认值，显式说明而不是让现场猜（docs/AUTH_DESIGN.md 6.6）。 *@
+        @* 班组归属提示：轮休 / 排班未导入时不给在岗默认值，显式说明而不是让现场猜。 *@
         @if (!string.IsNullOrWhiteSpace(TeamResolutionHint))
         {
             <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Outlined"

@@ -13,7 +13,7 @@ namespace DAP.Presentation.BlazorWeb.Security;
 public sealed record PageAccessRequirement(string DomainCode, int AccessLevel);
 
 /// <summary>
-/// 按请求路径解析页面的域归属与等级要求（docs/AUTH_DESIGN.md 7.3）。
+/// 按请求路径解析页面的域归属与等级要求。
 ///
 /// 端点组按域划分，而同一域内既有查看类页面也有配置类页面——只按域判定的策略
 /// 拦不住「普通用户直接输入配置页地址」。本解析器供服务端闸门在页面请求时

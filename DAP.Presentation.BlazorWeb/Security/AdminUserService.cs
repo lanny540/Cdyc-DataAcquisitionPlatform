@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 namespace DAP.Presentation.BlazorWeb.Security;
 
 /// <summary>
-/// 用户与角色管理服务（docs/AUTH_DESIGN.md 6.4 / 9.3 / P2）。
+/// 用户与角色管理服务（P2）。
 ///
 /// 两类操作者共用同一套方法，靠服务内判定收窄范围：
 /// 超级管理员可管全部账号；部门管理员只能管本部门（department_id 精确相等），
@@ -19,7 +19,7 @@ namespace DAP.Presentation.BlazorWeb.Security;
 ///
 /// 角色与启停的变更**在下一次登录时生效**：授权判定只认 Cookie 里的 claims，
 /// 会话内不热切换（与域授权变更的处理一致）。**停用与重置密码例外**——
-/// 这两件事换掉安全戳，已签发的会话立即失效（docs/AUTH_DESIGN.md 9.5）。
+/// 这两件事换掉安全戳，已签发的会话立即失效。
 /// </summary>
 public sealed class AdminUserService(
     DataAcquisitionPlatformDbContext db,
@@ -363,7 +363,7 @@ public sealed class AdminUserService(
 
     /// <summary>
     /// 调整账号所属部门。仅超级管理员可用——跨部门调动不能下放，
-    /// 否则部门管理员可以把别部门的人拉进本部门再处置（docs/AUTH_DESIGN.md 9.3）。
+    /// 否则部门管理员可以把别部门的人拉进本部门再处置。
     /// </summary>
     /// <param name="userId">用户标识。</param>
     /// <param name="request">部门请求。</param>

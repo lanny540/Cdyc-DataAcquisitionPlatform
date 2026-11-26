@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace DAP.Tests.UnitTests;
 
 /// <summary>
-/// AdminDomainService 的单元测试（docs/AUTH_DESIGN.md 第 4 节）。
+/// AdminDomainService 的单元测试。
 ///
 /// 覆盖的核心规则：
 /// - 域编码创建后不可改，删除受「无页面且非系统域」约束；

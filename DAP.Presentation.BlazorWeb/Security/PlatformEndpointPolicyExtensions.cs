@@ -4,7 +4,7 @@ namespace DAP.Presentation.BlazorWeb.Security;
 
 /// <summary>
 /// 端点策略挂载扩展。集中收敛策略名的书写位置，
-/// 端点文件不再各自拼字符串（docs/AUTH_DESIGN.md 第 10 节）。
+/// 端点文件不再各自拼字符串。
 /// </summary>
 public static class PlatformEndpointPolicyExtensions
 {

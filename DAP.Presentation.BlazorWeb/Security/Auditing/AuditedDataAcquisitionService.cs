@@ -5,7 +5,7 @@ using DAP.Core.Shared.Contracts;
 namespace DAP.Presentation.BlazorWeb.Security.Auditing;
 
 /// <summary>
-/// 采集配置（采集点、后台数据定义）的授权与审计装饰器（docs/AUTH_DESIGN.md 7.2 / 9.4）。
+/// 采集配置（采集点、后台数据定义）的授权与审计装饰器。
 ///
 /// 配置类写操作要求平台配置权限点；业务数据写入（采集上报、本地同步）不属于
 /// 配置操作，原样转发不留痕。读方法同样直接转发。

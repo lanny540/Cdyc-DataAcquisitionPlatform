@@ -4,7 +4,7 @@ namespace DAP.Presentation.BlazorWeb.Security;
 
 /// <summary>
 /// 把领域服务装饰器抛出的 <see cref="ForbiddenAccessException"/> 统一映射为
-/// API 403 或页面跳转 /forbidden（docs/AUTH_DESIGN.md 7.2）。
+/// API 403 或页面跳转 /forbidden。
 /// </summary>
 public static class ForbiddenAccessExtensions
 {

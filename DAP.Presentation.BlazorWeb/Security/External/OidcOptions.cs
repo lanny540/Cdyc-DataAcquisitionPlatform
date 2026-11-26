@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 namespace DAP.Presentation.BlazorWeb.Security.External;
 
 /// <summary>
-/// OIDC 对接配置（docs/AUTH_DESIGN.md 11.2）。对应 appsettings 的 <c>Auth:Oidc</c> 节。
+/// OIDC 对接配置。对应 appsettings 的 <c>Auth:Oidc</c> 节。
 ///
 /// 多 IdP 靠配置扩展：每段 <see cref="OidcProviderOptions"/> 注册一个独立的认证 scheme
 /// （<c>oidc-{code}</c>），新增一家只需要加一段配置，不动代码。

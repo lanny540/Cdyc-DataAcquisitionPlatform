@@ -8,7 +8,7 @@ using Microsoft.Extensions.Caching.Memory;
 namespace DAP.Tests.UnitTests;
 
 /// <summary>
-/// UserSessionValidator 的单元测试（docs/AUTH_DESIGN.md 9.5）。
+/// UserSessionValidator 的单元测试。
 ///
 /// 覆盖的核心规则：
 /// - 没有安全戳的会话一律不认（失败方向必须是关闭）；

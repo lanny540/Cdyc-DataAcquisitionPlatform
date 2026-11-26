@@ -68,7 +68,7 @@ public sealed record CurrentUser(
 /// <summary>
 /// 提供当前操作者。HTTP 端点路径从 <see cref="HttpContext"/> 取；
 /// Server 电路内没有 HttpContext，回退到级联认证状态（电路建立时的用户）。
-/// 两条路径最终都归结为同一份 claims——全系统只有一条授权路径（docs/AUTH_DESIGN.md 7.2）。
+/// 两条路径最终都归结为同一份 claims——全系统只有一条授权路径。
 /// </summary>
 public interface ICurrentUserContext
 {

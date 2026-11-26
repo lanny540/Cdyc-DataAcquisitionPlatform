@@ -1,113 +1,99 @@
--- =============================================================================
--- CDYC 数据采集平台 · 部署后自检
---
--- 只读脚本，可反复执行。用于确认「建表是否完整」「基础字典是否就位」
--- 「应用启动后是否完成了对账与超管创建」。
---
--- 执行：psql ... -f 03_verify.sql
--- 建议加 -P pager=off 以便直接看结果：psql -P pager=off ... -f 03_verify.sql
--- =============================================================================
-
-\echo '== 1. 迁移记录（部署脚本应为 10 条，且与脚本中出现的迁移一致） =='
+\echo '=== 1. 迁移版本（期望 12 行，末行为 20261125000000_AddScreenHubCards）==='
 SELECT "MigrationId", "ProductVersion"
 FROM "__EFMigrationsHistory"
 ORDER BY "MigrationId";
 
-\echo ''
-\echo '== 2. 业务表清单（应为 22 张，另有 __EFMigrationsHistory） =='
-SELECT table_name
-FROM information_schema.tables
-WHERE table_schema = 'public'
-  AND table_type = 'BASE TABLE'
-ORDER BY table_name;
+\echo '=== 2. 业务表完整性（期望 24 张全部为 t）==='
+SELECT tbl AS "表名", (to_regclass('public.' || tbl) IS NOT NULL) AS "已存在"
+FROM unnest(ARRAY[
+    'collection_points',
+    'collection_data_records',
+    'managed_data_definitions',
+    'server_connections',
+    'audit_logs',
+    'business_domains',
+    'departments',
+    'permissions',
+    'roles',
+    'domain_pages',
+    'app_users',
+    'department_domain_grants',
+    'role_permissions',
+    'external_identities',
+    'user_roles',
+    'directory_sync_issues',
+    'energy_media',
+    'energy_org_units',
+    'energy_systems',
+    'energy_usage_types',
+    'energy_meters',
+    'energy_readings',
+    'shift_schedule_snapshot',
+    'screen_hub_cards'
+]) AS x(tbl)
+ORDER BY tbl;
 
-\echo ''
-\echo '== 3. 索引与约束数量（粗查建表是否完整；缺失通常意味着脚本中断） =='
-SELECT (SELECT count(*) FROM pg_indexes WHERE schemaname = 'public') AS index_count,
-       (SELECT count(*)
-        FROM pg_constraint c
-                 JOIN pg_namespace n ON n.oid = c.connamespace
-        WHERE n.nspname = 'public')                                  AS constraint_count;
+\echo '=== 3. 基础字典行数（期望：域4 权限点5 角色4 角色权限3 介质5 用途5 系统5）==='
+SELECT 'business_domains' AS "表", count(*) AS "行数" FROM business_domains
+UNION ALL SELECT 'permissions',   count(*) FROM permissions
+UNION ALL SELECT 'roles',         count(*) FROM roles
+UNION ALL SELECT 'role_permissions', count(*) FROM role_permissions
+UNION ALL SELECT 'energy_media',       count(*) FROM energy_media
+UNION ALL SELECT 'energy_usage_types', count(*) FROM energy_usage_types
+UNION ALL SELECT 'energy_systems',     count(*) FROM energy_systems
+ORDER BY 1;
 
-\echo ''
-\echo '== 4. 授权字典计数（执行 02_seed_authorization.sql 后：4 / 5 / 4） =='
-SELECT (SELECT count(*) FROM business_domains) AS domains,
-       (SELECT count(*) FROM permissions)      AS permissions,
-       (SELECT count(*) FROM roles)            AS roles;
-
-\echo ''
-\echo '== 5. 职能域明细（平台管理应为 is_system = true） =='
-SELECT code, name, sort_order, is_system, is_enabled, visible_when_empty
-FROM business_domains
-ORDER BY sort_order;
-
-\echo ''
-\echo '== 6. 角色与权限点映射（超级管理员不挂权限点属正常） =='
-SELECT r.code                                                     AS role_code,
-       r.name                                                     AS role_name,
-       r.page_level,
-       r.is_enabled,
-       coalesce(string_agg(p.code, ', ' ORDER BY p.code), '(无)') AS permission_codes
+\echo '=== 4. 角色与权限点对应关系 ==='
+SELECT r.code AS "角色", r.page_level AS "页面等级", r.is_enabled AS "启用",
+       coalesce(string_agg(p.code, ', ' ORDER BY p.code), '(无)') AS "权限点"
 FROM roles r
-         LEFT JOIN role_permissions rp ON rp.role_id = r.id
-         LEFT JOIN permissions p ON p.id = rp.permission_id
-GROUP BY r.id, r.code, r.name, r.page_level, r.is_enabled, r.sort_order
-ORDER BY r.sort_order;
+LEFT JOIN role_permissions rp ON rp.role_id = r.id
+LEFT JOIN permissions p ON p.id = rp.permission_id
+GROUP BY r.code, r.page_level, r.is_enabled
+ORDER BY r.code;
 
-\echo ''
-\echo '== 7. 领域页面（应用首次启动后由 DomainPageReconciler 写入，应为 20 条） =='
-SELECT count(*)                            AS page_count,
-       count(*) FILTER (WHERE is_orphaned) AS orphaned_count
+\echo '=== 5. 超级管理员检查（期望 1 个；为 0 时应用首次启动会自动创建）==='
+SELECT u.user_name AS "账号", u.display_name AS "姓名",
+       u.is_enabled AS "启用", u.must_change_password AS "首登改密", u.created_at AS "创建时间"
+FROM app_users u
+JOIN user_roles ur ON ur.user_id = u.id
+JOIN roles r ON r.id = ur.role_id
+WHERE r.code = 'super-admin';
+
+\echo '=== 6. 页面归属（首次启动后才有数据，期望 20 行、is_orphaned 全为 f）==='
+SELECT count(*) AS "页面数",
+       count(*) FILTER (WHERE is_orphaned) AS "已下线",
+       count(*) FILTER (WHERE access_level = 2) AS "配置类"
 FROM domain_pages;
 
-\echo ''
-\echo '== 8. 超管账号（应用首次启动后由 AuthDataInitializer 创建） =='
-SELECT u.user_name,
-       u.display_name,
-       u.is_enabled,
-       u.must_change_password,
-       (u.password_hash IS NOT NULL) AS has_local_password,
-       (ur.role_id IS NOT NULL)      AS has_super_admin_role
-FROM app_users u
-         LEFT JOIN user_roles ur
-                   ON ur.user_id = u.id
-                       AND ur.role_id = (SELECT id FROM roles WHERE code = 'super-admin')
-ORDER BY u.user_name;
+\echo '=== 7. 外键悬空检查（四组期望均为 0）==='
+SELECT 'collection_data_records 指向不存在的采集点' AS "检查项", count(*) AS "悬空行数"
+FROM collection_data_records d
+LEFT JOIN collection_points p ON p.id = d.collection_point_id
+WHERE p.id IS NULL
+UNION ALL
+SELECT 'domain_pages 指向不存在的域', count(*)
+FROM domain_pages pg
+LEFT JOIN business_domains bd ON bd.id = pg.domain_id
+WHERE bd.id IS NULL
+UNION ALL
+SELECT 'energy_meters 指向不存在的介质', count(*)
+FROM energy_meters m
+LEFT JOIN energy_media md ON md.id = m.medium_id
+WHERE md.id IS NULL
+UNION ALL
+SELECT 'energy_readings 指向不存在的表计', count(*)
+FROM energy_readings rd
+LEFT JOIN energy_meters m ON m.id = rd.meter_id
+WHERE m.id IS NULL;
 
-\echo ''
-\echo '== 9. 关键唯一索引是否齐全（缺一条都可能让登录或对账行为异常） =='
-SELECT indexname
-FROM pg_indexes
-WHERE schemaname = 'public'
-  AND indexname IN (
-                    'ux_business_domains_code',
-                    'ux_permissions_code',
-                    'ux_roles_code',
-                    'ux_app_users_user_name',
-                    'ux_domain_pages_page_key',
-                    'ux_departments_code',
-                    'ux_collection_points_code',
-                    'ux_managed_data_definitions_code',
-                    'ux_server_connections_code',
-                    'ux_energy_media_code',
-                    'ux_energy_usage_types_code',
-                    'ux_energy_systems_code',
-                    'ux_energy_org_units_code',
-                    'ux_energy_meters_code',
-                    'ux_energy_readings_meter_read_at')
-ORDER BY indexname;
+\echo '=== 8. 排班快照表约束（单行表：id 必须恒为 1）==='
+SELECT conname AS "约束名", pg_get_constraintdef(oid) AS "定义"
+FROM pg_constraint
+WHERE conrelid = 'shift_schedule_snapshot'::regclass;
 
-\echo ''
-\echo '== 10. 后台节点软删除（应存在 deleted_at，唯一索引仅约束未归档行） =='
-SELECT c.column_name,
-       c.is_nullable,
-       c.data_type,
-       i.indexdef
-FROM information_schema.columns c
-         LEFT JOIN pg_indexes i
-                   ON i.schemaname = 'public'
-                       AND i.tablename = 'managed_data_definitions'
-                       AND i.indexname = 'ux_managed_data_definitions_code'
-WHERE c.table_schema = 'public'
-  AND c.table_name = 'managed_data_definitions'
-  AND c.column_name = 'deleted_at';
+\echo '=== 9. 大屏导航卡（应用首次启动后自动补入默认卡，期望 3 行且全部启用；管理员后续增删改属正常）==='
+SELECT count(*) AS "卡片数",
+       count(*) FILTER (WHERE is_enabled) AS "启用数",
+       count(*) FILTER (WHERE btrim(title) = '') AS "空标题行数"
+FROM screen_hub_cards;

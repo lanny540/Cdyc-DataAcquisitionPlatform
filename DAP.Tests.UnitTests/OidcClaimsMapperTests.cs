@@ -4,7 +4,7 @@ using DAP.Presentation.BlazorWeb.Security.External;
 namespace DAP.Tests.UnitTests;
 
 /// <summary>
-/// OIDC claims 映射与配置校验的单元测试（docs/AUTH_DESIGN.md 11.2）。
+/// OIDC claims 映射与配置校验的单元测试。
 ///
 /// 真实 IdP 上很难逐个复现「claim 名换了」「groups 带前缀」「sub 缺失」这些差异，
 /// 因此把映射抽成纯函数在这里钉住。

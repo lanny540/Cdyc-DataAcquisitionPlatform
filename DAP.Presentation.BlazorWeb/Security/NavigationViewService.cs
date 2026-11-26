@@ -10,7 +10,7 @@ using MudBlazor;
 namespace DAP.Presentation.BlazorWeb.Security;
 
 /// <summary>
-/// 按当前会话构建导航树（docs/AUTH_DESIGN.md 第 5 节）。
+/// 按当前会话构建导航树。
 ///
 /// 顶栏渲染的是「用户可见域列表」而不是固定模块：域可见性按 claims 过滤、
 /// 页面按等级过滤、空域对普通用户隐藏、对超管保留并标记「未上线」。

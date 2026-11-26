@@ -29,7 +29,7 @@ public sealed record AuditLogFilter(
     int PageSize = 50);
 
 /// <summary>
-/// 审计日志查询与导出（docs/AUTH_DESIGN.md 9.4）。
+/// 审计日志查询与导出。
 ///
 /// 审计表只读：本服务不提供任何修改或删除入口（保留期清理由后台任务按批次执行，
 /// 不经过用户操作）。查询权限归 action.system.manage，属平台运维范畴。
@@ -180,7 +180,7 @@ public sealed class AdminAuditService(DataAcquisitionPlatformDbContext db)
 }
 
 /// <summary>
-/// 审计保留期清理（docs/AUTH_DESIGN.md 9.4）：按 <c>Auth:Audit:RetentionDays</c>
+/// 审计保留期清理：按 <c>Auth:Audit:RetentionDays</c>
 /// 分批删除过期记录，避免一条大 DELETE 长时间锁表。
 /// 保留天数设为 0 或负数时不清理。
 /// </summary>

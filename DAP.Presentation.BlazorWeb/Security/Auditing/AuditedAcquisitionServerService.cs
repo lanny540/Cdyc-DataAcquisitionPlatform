@@ -5,7 +5,7 @@ using DAP.Presentation.BlazorWeb.Services;
 namespace DAP.Presentation.BlazorWeb.Security.Auditing;
 
 /// <summary>
-/// 采集服务器配置的授权与审计装饰器（docs/AUTH_DESIGN.md 7.2 / 9.4）。
+/// 采集服务器配置的授权与审计装饰器。
 /// 增删改要求平台配置权限点；探测（连通性测试）是只读诊断，原样转发。
 /// </summary>
 public sealed class AuditedAcquisitionServerService(

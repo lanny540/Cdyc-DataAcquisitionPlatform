@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 namespace DAP.Presentation.BlazorWeb.Security;
 
 /// <summary>
-/// 动态授权策略提供者：按策略名在请求时生成三类策略（docs/AUTH_DESIGN.md 7.3）。
+/// 动态授权策略提供者：按策略名在请求时生成三类策略。
 ///
 /// 域可在后台新增，策略名无法在编译期固定，因此不走 <c>AuthorizeAttribute</c> 静态注册。
 /// 判定只读会话 claims，不查库——登录时域、等级、权限点已全部写进 claims，

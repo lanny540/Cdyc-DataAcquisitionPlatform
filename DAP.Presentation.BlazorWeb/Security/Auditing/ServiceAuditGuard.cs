@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 namespace DAP.Presentation.BlazorWeb.Security.Auditing;
 
 /// <summary>
-/// 领域服务写操作的统一守卫：先授权、再执行、后留痕（docs/AUTH_DESIGN.md 7.2 / 9.4）。
+/// 领域服务写操作的统一守卫：先授权、再执行、后留痕。
 ///
 /// HTTP 端点与 Server 电路直调两条路径都经过这里，区别只在操作者从哪里取——
 /// 授权判定本身永远只认会话 claims，不存在「这段按 IP 放行、那段按身份放行」的双轨制。
@@ -51,7 +51,7 @@ internal static class ServiceAuditGuard
 
         if (user is null)
         {
-            // 没有可归责的操作者就不允许写：IP 不是身份（docs/AUTH_DESIGN.md 6.6 硬约束 4）。
+            // 没有可归责的操作者就不允许写：IP 不是身份。
             await writer.RecordAsync(null, actionCode, targetType, targetId, targetName, false,
                 new { reason = "会话没有可识别的操作者" }, cancellationToken);
             throw new ForbiddenAccessException("页面仍在加载或会话已失效，请刷新页面后重试。");

@@ -5,7 +5,7 @@ using DAP.Presentation.BlazorWeb.Services;
 namespace DAP.Presentation.BlazorWeb.Security.Auditing;
 
 /// <summary>
-/// 排班服务的授权与审计装饰器（docs/AUTH_DESIGN.md 7.2）。
+/// 排班服务的授权与审计装饰器。
 ///
 /// SSR 页面直调与 HTTP 端点都会走到它——只在端点挂策略
 /// 拦不住直调路径，因此授权放在服务入口：导入与清空要求排班配置权限点，

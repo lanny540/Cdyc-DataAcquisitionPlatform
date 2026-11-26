@@ -123,7 +123,7 @@ public sealed class DeterministicEnergyMetricService(
         }
 
         // 显式指定班组时按指定班组展示；未指定时才严格解析当前在岗班组。
-        // 严格解析（docs/AUTH_DESIGN.md 6.6）：不命中就不给默认值——当天轮休、排班未导入
+        // 严格解析：不命中就不给默认值——当天轮休、排班未导入
         // 都不能靠取模"猜"一个班组，车间终端会把默认值当成在岗事实。
         bool requestedTeam = !string.IsNullOrWhiteSpace(teamCode);
 
@@ -658,7 +658,7 @@ public sealed class DeterministicEnergyMetricService(
     /// <summary>
     /// 严格解析当前在岗班组：命中当天排班且当前时刻在班次内才返回；
     /// 当天轮休、无匹配班次、排班未导入一律返回 null，绝不取模猜测
-    /// （docs/AUTH_DESIGN.md 6.6：可以给默认值，但不能"猜"）。
+    /// （可以给默认值，但不能"猜"）。
     /// </summary>
     private static ShiftTeamDto? TryResolveOnDutyTeam(
         IReadOnlyCollection<ShiftTeamDto> teams,

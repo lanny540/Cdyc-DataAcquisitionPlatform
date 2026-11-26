@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 namespace DAP.Presentation.BlazorWeb.Security.Directory;
 
 /// <summary>
-/// 域账号在平台侧的建号与字段刷新（docs/AUTH_DESIGN.md 11.1「登录时再做一次实时校验」）。
+/// 域账号在平台侧的建号与字段刷新（登录时再做一次实时校验）。
 ///
 /// 与定时同步共用 <see cref="DirectorySyncPlanner"/>：两条路径若各写一套字段映射，
 /// 迟早会出现「同步改的姓名被登录改回去了」这类只在现场才看得见的问题。

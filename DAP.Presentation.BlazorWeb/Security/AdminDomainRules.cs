@@ -4,7 +4,7 @@ using DAP.Core.Shared.Catalog;
 namespace DAP.Presentation.BlazorWeb.Security;
 
 /// <summary>
-/// 域管理的纯判定规则（docs/AUTH_DESIGN.md 第 4 节）。
+/// 域管理的纯判定规则。
 ///
 /// 与 <see cref="AdminUserRules"/> 同样的思路：把「编码能不能用」「这个域能不能删」
 /// 抽成可单测的静态判定，服务只负责落库与审计。

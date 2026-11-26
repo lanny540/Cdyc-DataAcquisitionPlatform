@@ -3,7 +3,7 @@ using DAP.Presentation.BlazorWeb.Security.Directory;
 namespace DAP.Tests.UnitTests;
 
 /// <summary>
-/// LDAP 过滤器与属性映射的单元测试（docs/AUTH_DESIGN.md 11.1）。
+/// LDAP 过滤器与属性映射的单元测试。
 ///
 /// 这里钉的是两类事故：过滤器没转义导致的 LDAP 注入（一个 <c>*</c> 就能以别人的身份 bind），
 /// 以及属性缺失时映射出的空值把本地数据冲掉。

@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace DAP.Tests.UnitTests;
 
 /// <summary>
-/// AuditLogWriter 的单元测试（docs/AUTH_DESIGN.md 9.4）。
+/// AuditLogWriter 的单元测试。
 ///
 /// 覆盖的核心规则：
 /// - actor 字段（用户/部门/IP/UserAgent）完整落库，失败操作同样记录（result = failed）；

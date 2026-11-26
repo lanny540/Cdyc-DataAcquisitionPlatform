@@ -12,7 +12,7 @@ namespace DAP.Presentation.BlazorWeb.Client.Layout;
 /// <param name="Icon">Material 图标常量，必须确认存在于 Icons.Material.Filled。</param>
 /// <param name="Accent">导航图标取色类，取值来自 app.css 已定义的 platform-nav-link--* 修饰类。</param>
 /// <param name="PageKey">页面稳定标识，落库后不随路由改动而变化，是启动对账的比对键。</param>
-/// <param name="DomainCode">默认所属职能域。库中可覆盖，见 docs/AUTH_DESIGN.md 第 4 节。</param>
+/// <param name="DomainCode">默认所属职能域。库中可覆盖。</param>
 /// <param name="AccessLevel">页面等级：1 查看类，2 配置类。</param>
 /// <param name="RequiredPermission">
 /// 页面要求的权限点。为空表示只按域与等级判定；非空时导航与页面闸门都要求持有该权限点。

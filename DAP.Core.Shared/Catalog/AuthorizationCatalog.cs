@@ -171,7 +171,7 @@ public static class AuthorizationCatalog
         /// <summary>车间只读终端标记，P1 的 IP 白名单会话使用。</summary>
         public const string BoardTerminal = "dap:board_terminal";
 
-        /// <summary>车间只读会话的签发 IP。会话绑定签发时的地址，不一致立即作废（docs/AUTH_DESIGN.md 6.6 硬约束 5）。</summary>
+        /// <summary>车间只读会话的签发 IP。会话绑定签发时的地址，不一致立即作废。</summary>
         public const string BoardIssuedIp = "dap:board_issued_ip";
     }
 }

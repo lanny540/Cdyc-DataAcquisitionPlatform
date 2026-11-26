@@ -51,7 +51,7 @@ public sealed record AdminDomainDto(
 /// <summary>
 /// 表示修改页面归属配置的请求。字段留空表示不修改。
 ///
-/// 这些字段在 docs/AUTH_DESIGN.md 第 4 节里都登记为「平台可改」：
+/// 这些字段都登记为「平台可改」：
 /// 所属域、显示名称、分组标题、排序、等级、启停。路由与页面标识键不在此列——
 /// 它们由代码的 <c>@page</c> 与 <c>NavItem.PageKey</c> 决定，改了会让菜单指向 404。
 /// </summary>

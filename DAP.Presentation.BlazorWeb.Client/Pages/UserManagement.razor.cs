@@ -9,7 +9,7 @@ using MudBlazor;
 namespace DAP.Presentation.BlazorWeb.Client.Pages;
 
 /// <summary>
-/// 表示用户与角色页的交互逻辑（docs/AUTH_DESIGN.md 9.3 / P2）。
+/// 表示用户与角色页的交互逻辑（P2）。
 ///
 /// 页面按操作者身份裁剪：超管可管全部账号、可分配全部启用角色、可移交超管；
 /// 部门管理员只见本部门账号，角色下拉只有「普通用户 / 技术人员」，且看不到部门选择。

@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace DAP.Tests.UnitTests;
 
 /// <summary>
-/// DomainPageReconciler 的单元测试（启动对账，docs/AUTH_DESIGN.md 第 4 节）。
+/// DomainPageReconciler 的单元测试（启动对账）。
 ///
 /// 覆盖的核心规则：
 /// - 代码声明的页面在启动时全部入库（新页面不报错地消失是最常见的线上故障）；

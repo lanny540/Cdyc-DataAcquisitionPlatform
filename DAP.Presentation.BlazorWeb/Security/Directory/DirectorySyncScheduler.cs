@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 namespace DAP.Presentation.BlazorWeb.Security.Directory;
 
 /// <summary>
-/// 目录全量同步的后台任务（docs/AUTH_DESIGN.md 11.1「定时全量，默认每小时」）。
+/// 目录全量同步的后台任务（定时全量，默认每小时）。
 ///
 /// 设计上有两点刻意为之：
 /// 1. **启动后先等一会儿再跑第一轮**：应用启动时数据库迁移、种子与页面对账都在抢连接，

@@ -81,7 +81,7 @@ public sealed record EnergyTrendDto(
 /// <param name="Trends">四项指标的历史趋势。</param>
 /// <param name="TeamResolution">班组归属的解析方式：on-duty 严格命中当天排班且当前时刻在班次内；
 /// manual 用户手动指定；rest-day 当天轮休或无匹配班次（不给在岗默认值）；no-schedule 排班未导入。
-/// 车间终端把默认值当在岗事实，因此 rest-day / no-schedule 必须在页面上显式提示（docs/AUTH_DESIGN.md 6.6）。</param>
+/// 车间终端把默认值当在岗事实，因此 rest-day / no-schedule 必须在页面上显式提示。</param>
 public sealed record EnergyDashboardDto(
     string TeamCode,
     string TeamName,

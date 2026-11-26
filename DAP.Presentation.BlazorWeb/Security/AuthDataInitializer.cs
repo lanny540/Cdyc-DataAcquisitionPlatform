@@ -79,7 +79,7 @@ public sealed class AuthDataInitializer(
     }
 
     /// <summary>
-    /// 空配置兜底告警（docs/AUTH_DESIGN.md 4.3）。
+    /// 空配置兜底告警。
     ///
     /// 这两种情形都不会让超管进不去，所以不阻断启动；但现场表现是「除超管外全员登录后没东西可看」，
     /// 而日志里一句提示都没有时，排查会从「页面的问题」一路猜到「数据库连错了」。
@@ -127,7 +127,7 @@ public sealed class AuthDataInitializer(
     }
 
     /// <summary>
-    /// 校验外部身份源配置（docs/AUTH_DESIGN.md 11）。启用但配置不完整时**拒绝启动**：
+    /// 校验外部身份源配置。启用但配置不完整时**拒绝启动**：
     /// 半配置的目录认证会让域账号登录失败，而失败现场看起来和「密码错了」一模一样，
     /// 没人会想到是配置少了一项。
     /// </summary>
@@ -170,7 +170,7 @@ public sealed class AuthDataInitializer(
     }
 
     /// <summary>
-    /// 校验车间只读终端配置（docs/AUTH_DESIGN.md 6.6）：
+    /// 校验车间只读终端配置：
     /// 启用但白名单为空说明配置没跟上，拒绝启动——静默跳过会让现场误以为免登录已生效；
     /// 宽于 /24 的条目输出告警——开成网段等于整个网段的人都能读到全部班组数据，且不会报错。
     /// </summary>
@@ -241,7 +241,7 @@ public sealed class AuthDataInitializer(
     }
 
     /// <summary>
-    /// 应用部门管理员启用开关（docs/AUTH_DESIGN.md 9.2）。
+    /// 应用部门管理员启用开关。
     ///
     /// 只朝一个方向生效：配置为 true 时把内置角色翻到启用；配置为 false 时**不**把
     /// 已被手工启用的角色改回去——人工决定优先于默认值，否则一次重启就会让

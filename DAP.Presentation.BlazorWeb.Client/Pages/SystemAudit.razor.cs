@@ -6,7 +6,7 @@ using MudBlazor;
 namespace DAP.Presentation.BlazorWeb.Client.Pages;
 
 /// <summary>
-/// 表示系统审计页的交互逻辑（docs/AUTH_DESIGN.md 9.4）。
+/// 表示系统审计页的交互逻辑。
 ///
 /// 只读页面：不提供任何修改或删除入口。导出走浏览器直接下载 CSV，
 /// 不经 WASM 中转——几万行数据读进内存再拼字符串既慢又容易把页面卡住。

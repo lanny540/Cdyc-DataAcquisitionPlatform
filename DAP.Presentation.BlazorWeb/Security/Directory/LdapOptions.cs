@@ -1,7 +1,7 @@
 namespace DAP.Presentation.BlazorWeb.Security.Directory;
 
 /// <summary>
-/// LDAP 传输加密方式（docs/AUTH_DESIGN.md 11.1）。
+/// LDAP 传输加密方式。
 /// </summary>
 public enum LdapTransportSecurity
 {
@@ -22,7 +22,7 @@ public enum LdapTransportSecurity
 }
 
 /// <summary>
-/// LDAP / AD 对接配置（docs/AUTH_DESIGN.md 11.1）。对应 appsettings 的 <c>Auth:Ldap</c> 节。
+/// LDAP / AD 对接配置。对应 appsettings 的 <c>Auth:Ldap</c> 节。
 ///
 /// 默认关闭：未配置目录时应用不应因为一个空配置就去连 636 端口。
 /// 打开后用户名密码走「服务账号 bind → 按账号搜到用户 DN → 用该 DN 与用户密码二次 bind」，

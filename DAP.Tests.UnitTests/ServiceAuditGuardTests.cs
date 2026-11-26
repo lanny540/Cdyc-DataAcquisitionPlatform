@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace DAP.Tests.UnitTests;
 
 /// <summary>
-/// ServiceAuditGuard 的单元测试（docs/AUTH_DESIGN.md 7.2 / 9.4）。
+/// ServiceAuditGuard 的单元测试。
 ///
 /// 覆盖的核心规则：
 /// - 无身份不允许写（IP 不是身份），拒绝也留痕；

@@ -119,7 +119,7 @@ public static class PlatformPresentationServiceCollectionExtensions
         services.AddScoped<IManagedDataExecutionService, ManagedDataExecutionService>();
         services.AddScoped<IConnectionDiagnosticsService, ConnectionDiagnosticsService>();
 
-        // 领域服务装饰器（docs/AUTH_DESIGN.md 7.2）：SSR 直调与 HTTP 端点两条路径
+        // 领域服务装饰器：SSR 直调与 HTTP 端点两条路径
         // 共用同一个校验点——写操作要求权限点，拒绝与执行结果一律写审计。
         // 装饰器内部按请求开 scope 取操作者与审计管道，自身生命周期与被包装服务一致。
         services.AddScoped<Security.Auditing.ICurrentUserContext, Security.Auditing.PlatformCurrentUserContext>();

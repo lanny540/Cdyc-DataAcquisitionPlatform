@@ -129,7 +129,6 @@ Web（Blazor）与跨平台桌面（Avalonia）双终端展示方案。
 │   └── Controls/                   # 自绘折线 / 柱状图控件（颜色取自色板）
 ├── DAP.Tests.UnitTests             # 测试：领域与基础设施单元测试
 ├── docs/DESIGN_SYSTEM.md           # 设计规范（强制）
-├── docs/AUTH_DESIGN.md             # 认证与权限设计基线
 └── AGENTS.md                       # AI 协作约束
 ```
 
@@ -228,7 +227,7 @@ Web 端。
   Auth__BootstrapAdmin__Password='换成强口令'
   ```
 - 连续输错 5 次锁定 15 分钟（`Auth:Lockout`）。超管全局唯一，启动自检发现数量不为 1 会拒绝启动。
-- 设计基线见 [`docs/AUTH_DESIGN.md`](docs/AUTH_DESIGN.md)（三层收窄：职能域 → 页面等级 → 权限点）。P0–P4 均已落地：登录认证、域授权矩阵（
+- 授权模型为三层收窄（职能域 → 页面等级 → 权限点）。P0–P4 均已落地：登录认证、域授权矩阵（
   `/department-grants`）、页面等级与域配置（`/domain-config`）、配置类写操作审计（`audit_logs`）、领域服务授权装饰器、车间终端 IP
   白名单免登录（`Auth:Board`，默认关闭）、用户与角色（`/user-management`）、系统审计（`/system-audit`）、部门管理员（
   `Auth:DepartmentAdmin`，默认关闭）、LDAP / AD 对接与目录同步（`Auth:Ldap`）、OIDC 统一登录（`Auth:Oidc`）。

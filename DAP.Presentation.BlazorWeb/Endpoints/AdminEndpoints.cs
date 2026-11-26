@@ -7,7 +7,7 @@ using DAP.Presentation.BlazorWeb.Security.Directory;
 namespace DAP.Presentation.BlazorWeb.Endpoints;
 
 /// <summary>
-/// 提供域与页面配置、部门与授权矩阵的管理端点（docs/AUTH_DESIGN.md 第 10 节 /api/admin/*）。
+/// 提供域与页面配置、部门与授权矩阵的管理端点（api/admin/*）。
 ///
 /// 策略按操作对象拆分：域与页面归 action.domain.manage，部门与授权矩阵归
 /// action.department.manage——两者都是超管职责，拆开是为了将来把部门管理
@@ -153,7 +153,7 @@ public static class AdminEndpoints
             .WithName("UpdateAdminDepartmentGrants");
 
         // 用户与角色：策略挂 action.user.manage。超级管理员在策略提供程序里短路，
-        // 部门管理员靠该权限点进入，服务内再按部门收窄（docs/AUTH_DESIGN.md 9.3）。
+        // 部门管理员靠该权限点进入，服务内再按部门收窄。
         RouteGroupBuilder userGroup = endpoints.MapGroup("/api/admin/users")
             .WithTags("AdminUsers")
             .RequirePermission(Authorization_UserManage);

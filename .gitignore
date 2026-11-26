@@ -35,8 +35,11 @@ playwright-report/
 # 数据保护密钥环：绝对不能入库（等同 Cookie 签名私钥）
 **/data-protection-keys/
 
-# 截图默认不入库（体积大且随界面频繁变化），仅保留 README 引用的三张；
-# 新增需要入库的截图时，在下面追加一条对应的否定规则。
+# 生产业务数据预置脚本：含 GE Historian 明文口令，只在本机与部署介质流转，不入库
+/docs/sql/04_production_seed.sql
+
+# 截图默认不入库（体积大且随界面频繁变化）。README 引用的截图已用 git add -f 纳入版本库，
+# 忽略规则对已跟踪文件无效；新增需要入库的截图同样用 git add -f，或在此追加否定规则。
 /docs/screenshots/*
 !/docs/screenshots/digital-twin-papermachine.png
 !/docs/screenshots/park-energy-live.png

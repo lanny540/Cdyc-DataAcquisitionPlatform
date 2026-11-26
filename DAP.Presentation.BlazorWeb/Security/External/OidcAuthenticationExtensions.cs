@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 namespace DAP.Presentation.BlazorWeb.Security.External;
 
 /// <summary>
-/// 把配置里的每家 OIDC 提供方注册成一个独立 scheme（docs/AUTH_DESIGN.md 11.2）。
+/// 把配置里的每家 OIDC 提供方注册成一个独立 scheme。
 ///
 /// 这里刻意复用 ASP.NET Core 的 OpenIdConnect 处理器而不是手写授权码流程：
 /// state / nonce / PKCE / 元数据缓存 / id_token 签名校验这些安全细节由框架实现，

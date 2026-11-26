@@ -3,7 +3,7 @@ using DAP.Presentation.BlazorWeb.Security;
 namespace DAP.Tests.UnitTests;
 
 /// <summary>
-/// 用户管理安全规则的单元测试（docs/AUTH_DESIGN.md 9.3）。
+/// 用户管理安全规则的单元测试。
 ///
 /// 这几条规则是「部门管理员只能管本部门」的落地点：界面藏下拉项不算数，
 /// 服务端判定才是边界。规则抽成纯函数后可以逐条钉死，改坏了测试会直接失败。

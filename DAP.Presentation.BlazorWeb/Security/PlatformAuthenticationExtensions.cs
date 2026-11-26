@@ -59,7 +59,7 @@ public static class PlatformAuthenticationExtensions
         services.AddScoped<PageAccessResolver>();
         services.AddScoped<UserSessionValidator>();
 
-        // 外部身份源（docs/AUTH_DESIGN.md 11）：LDAP 与 OIDC 都默认关闭，
+        // 外部身份源：LDAP 与 OIDC 都默认关闭，
         // 关闭时这些服务仍可解析，只是不产生任何外部调用。
         services.AddScoped<ILdapDirectory, LdapDirectoryClient>();
         services.AddScoped<DirectoryAccountService>();
@@ -93,7 +93,7 @@ public static class PlatformAuthenticationExtensions
                     {
                         DateTimeOffset? issuedAt = PlatformClaimsFactory.ReadIssuedAt(context.Principal);
 
-                        // 车间只读会话（docs/AUTH_DESIGN.md 6.6 硬约束 5）：
+                        // 车间只读会话：
                         // 绑定签发 IP，不一致立即作废——Cookie 被复制到别的机器也用不了；
                         // 固定有效期不滑动：滑动续期会让被盗 Cookie 无限延长，
                         // 固定到期后由白名单 IP 重新签发，现场无感。
@@ -215,7 +215,7 @@ public static class PlatformAuthenticationExtensions
 
             if (context.User.Identity?.IsAuthenticated != true)
             {
-                // 车间只读终端：命中 IP 白名单的未认证请求签发只读会话（docs/AUTH_DESIGN.md 6.6）。
+                // 车间只读终端：命中 IP 白名单的未认证请求签发只读会话。
                 // IP 只决定「是否签发」，之后所有请求与 Blazor 电路一律基于该 Cookie 的 claims 判定。
                 if (await TryIssueBoardSessionAsync(app, context))
                 {
@@ -294,7 +294,7 @@ public static class PlatformAuthenticationExtensions
     /// <summary>
     /// 尝试为车间只读终端签发免登录会话。claims 只有三个：
     /// 车间终端标记 + 钞纸域 + 页面等级 1——「数据指标改 IP 白名单」在现有模型里
-    /// 就等价于「钞纸域 + 等级 1」，不需要新增任何权限概念（docs/AUTH_DESIGN.md 6.6）。
+    /// 就等价于「钞纸域 + 等级 1」，不需要新增任何权限概念。
     /// 每次签发写一条应用日志，用于追溯这个免登录入口最近被谁用过。
     /// </summary>
     /// <returns>签发成功时 true，请求以只读会话继续。</returns>

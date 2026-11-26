@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 namespace DAP.Presentation.BlazorWeb.Security.Directory;
 
 /// <summary>
-/// 基于 <c>System.DirectoryServices.Protocols</c> 的目录客户端（docs/AUTH_DESIGN.md 11.1）。
+/// 基于 <c>System.DirectoryServices.Protocols</c> 的目录客户端。
 ///
 /// 两条硬约束：
 /// 1. **平台不保存域账号密码**，校验方式是「服务账号 bind → 搜到用户 DN → 用该 DN 与用户输入的密码

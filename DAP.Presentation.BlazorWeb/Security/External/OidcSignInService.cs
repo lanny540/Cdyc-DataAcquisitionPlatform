@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 namespace DAP.Presentation.BlazorWeb.Security.External;
 
 /// <summary>
-/// OIDC 登录时的建号与字段刷新（docs/AUTH_DESIGN.md 11.2「首次登录 JIT 建号」）。
+/// OIDC 登录时的建号与字段刷新（首次登录 JIT 建号）。
 /// </summary>
 public sealed class OidcSignInService(
     DataAcquisitionPlatformDbContext db,

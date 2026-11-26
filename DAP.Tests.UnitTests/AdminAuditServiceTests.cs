@@ -13,7 +13,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DAP.Tests.UnitTests;
 
 /// <summary>
-/// AdminAuditService 的单元测试（docs/AUTH_DESIGN.md 9.4）。
+/// AdminAuditService 的单元测试。
 ///
 /// 覆盖的核心规则：
 /// - 时间筛选转 UTC（From 含边界、To 不含边界）；

@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace DAP.Presentation.BlazorWeb.Security;
 
 /// <summary>
-/// 域与页面配置、部门与授权矩阵的管理服务（docs/AUTH_DESIGN.md 第 4 节）。
+/// 域与页面配置、部门与授权矩阵的管理服务。
 ///
 /// 授权判定在端点策略（action.domain.manage / action.department.manage），
 /// 本服务负责变更本身与审计留痕。页面归属改动会把 source 置为 override，
@@ -64,7 +64,7 @@ public sealed class AdminDomainService(
     }
 
     /// <summary>
-    /// 新建职能域（docs/AUTH_DESIGN.md 4.2：新增域先在这里建，再让页面代码声明它的编码）。
+    /// 新建职能域（新增域先在这里建，再让页面代码声明它的编码）。
     ///
     /// 没有这一步时「新增域」只能改代码发版，而文档写的是后台先建域——
     /// 两者不一致的结果是实施人员照文档操作却发现没有入口。
@@ -344,7 +344,7 @@ public sealed class AdminDomainService(
         CurrentUser? actor = await currentUser.GetUserAsync(cancellationToken);
         DateTimeOffset now = timeProvider.GetUtcNow();
 
-        // detail 只记发生变化的字段（docs/AUTH_DESIGN.md 8.4）。
+        // detail 只记发生变化的字段。
         var before = new
         {
             page.AccessLevel,
@@ -515,7 +515,7 @@ public sealed class AdminDomainService(
     }
 
     /// <summary>
-    /// 新建部门。部门之间平级、无层级（刻意不设 parent_id，见 docs/AUTH_DESIGN.md 8.1）。
+    /// 新建部门。部门之间平级、无层级（刻意不设 parent_id）。
     /// </summary>
     /// <param name="request">部门请求。</param>
     /// <param name="cancellationToken">取消令牌。</param>

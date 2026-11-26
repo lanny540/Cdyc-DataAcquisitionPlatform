@@ -4,7 +4,7 @@ using System.Net.Sockets;
 namespace DAP.Presentation.BlazorWeb.Security;
 
 /// <summary>
-/// 车间终端白名单的 CIDR 匹配（docs/AUTH_DESIGN.md 6.6）。
+/// 车间终端白名单的 CIDR 匹配。
 ///
 /// IP 只决定「是否签发只读会话」，授权判定仍然只认 claims——
 /// 这里不做任何权限判断，签发时的 claims 集合才是授权边界。

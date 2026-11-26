@@ -3,7 +3,7 @@ using DAP.Presentation.BlazorWeb.Security;
 namespace DAP.Tests.UnitTests;
 
 /// <summary>
-/// 验证域管理的纯判定规则（docs/AUTH_DESIGN.md 第 4 节）。
+/// 验证域管理的纯判定规则。
 ///
 /// 这些规则决定了「编码能不能落库」与「域能不能删」，属于配置层最容易出事的两处：
 /// 编码大小写混用会让授权看起来配了却不生效；删掉带页面的域会让页面整体消失。

@@ -26,27 +26,27 @@ public sealed class PlatformAuthOptions
     public CookieSessionOptions Cookie { get; set; } = new();
 
     /// <summary>
-    /// 获取或设置车间只读终端的 IP 白名单配置（docs/AUTH_DESIGN.md 6.6）。
+    /// 获取或设置车间只读终端的 IP 白名单配置。
     /// </summary>
     public BoardOptions Board { get; set; } = new();
 
     /// <summary>
-    /// 获取或设置部门管理员启用开关（docs/AUTH_DESIGN.md 9.2）。
+    /// 获取或设置部门管理员启用开关。
     /// </summary>
     public DepartmentAdminOptions DepartmentAdmin { get; set; } = new();
 
     /// <summary>
-    /// 获取或设置审计日志保留策略（docs/AUTH_DESIGN.md 9.4）。
+    /// 获取或设置审计日志保留策略。
     /// </summary>
     public AuditOptions Audit { get; set; } = new();
 
     /// <summary>
-    /// 获取或设置 LDAP / AD 对接配置（docs/AUTH_DESIGN.md 11.1）。默认关闭。
+    /// 获取或设置 LDAP / AD 对接配置。默认关闭。
     /// </summary>
     public Directory.LdapOptions Ldap { get; set; } = new();
 
     /// <summary>
-    /// 获取或设置 OIDC 对接配置（docs/AUTH_DESIGN.md 11.2）。默认关闭。
+    /// 获取或设置 OIDC 对接配置。默认关闭。
     /// </summary>
     public External.OidcOptions Oidc { get; set; } = new();
 }

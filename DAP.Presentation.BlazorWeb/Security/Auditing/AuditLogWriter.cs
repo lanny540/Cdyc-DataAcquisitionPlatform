@@ -6,7 +6,7 @@ using DAP.Infrastructure.DataAccess.Persistence;
 namespace DAP.Presentation.BlazorWeb.Security.Auditing;
 
 /// <summary>
-/// 审计记录写入管道（docs/AUTH_DESIGN.md 9.4）。
+/// 审计记录写入管道。
 ///
 /// 只记录配置类写操作，actor 永远是员工个人；失败的操作也记录（result = failed），
 /// 否则连续尝试越权的痕迹会消失。detail 只保留发生变化的字段，避免整行快照撑大表。
