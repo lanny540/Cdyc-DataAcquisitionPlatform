@@ -48,6 +48,7 @@ public sealed class DirectoryAccountService(
                 .Include(item => item.ExternalIdentities)
                 .Include(item => item.UserRoles)
                 .ThenInclude(link => link.Role)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(item => item.Id == userId, cancellationToken);
 
         Guid? departmentId = await departmentCodes.ResolveAsync(record.DepartmentExternalCode, cancellationToken);
@@ -199,6 +200,7 @@ public sealed class DirectoryAccountService(
                 .Include(item => item.ExternalIdentities)
                 .Include(item => item.UserRoles)
                 .ThenInclude(link => link.Role)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
 
             return existing is null ? null : new DirectoryProvisionResult(true, existing, null);

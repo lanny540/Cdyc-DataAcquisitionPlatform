@@ -149,6 +149,7 @@ public sealed class DirectorySyncService(
             .Include(user => user.ExternalIdentities)
             .Include(user => user.UserRoles)
             .ThenInclude(link => link.Role)
+            .AsSplitQuery()
             .ToListAsync(cancellationToken);
 
         Dictionary<string, AppUser> userByExternalId = BuildIdentityIndex(users);
