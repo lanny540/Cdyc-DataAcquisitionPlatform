@@ -33,20 +33,6 @@
             否则运行时会与接口路径重复拼接导致 404。
         </MudAlert>
 
-        @if (_lastProbeResult is not null)
-        {
-            <MudAlert Severity="@(_lastProbeResult.Success ? Severity.Success : Severity.Warning)"
-                      Dense="true" Variant="Variant.Outlined">
-                <MudText Typo="Typo.body2">@_lastProbeResult.StatusMessage</MudText>
-                @if (!string.IsNullOrWhiteSpace(_lastProbeResult.ParsedValue))
-                {
-                    <MudText Typo="Typo.caption">
-                        解析数值：@_lastProbeResult.ParsedValue
-                    </MudText>
-                }
-            </MudAlert>
-        }
-
         <MudPaper Class="platform-section-card platform-section-card--tinted platform-accent-secondary pa-4" Elevation="0">
             <MudStack Spacing="2">
                 <MudText Typo="Typo.h6">基础信息</MudText>

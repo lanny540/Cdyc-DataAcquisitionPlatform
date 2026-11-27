@@ -1,5 +1,6 @@
 using DAP.Core.Shared.Catalog;
 using DAP.Core.Shared.Contracts;
+using DAP.Presentation.BlazorWeb.Client.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using MudBlazor;
@@ -15,6 +16,8 @@ public partial class AcquisitionServers
     [Inject] private IPlatformApiClient PlatformApiClient { get; set; } = null!;
 
     [Inject] private IJSRuntime JsRuntime { get; set; } = null!;
+
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
 
     private readonly List<AcquisitionServerDto> _servers = [];
     private readonly List<AcquisitionServerTypeDescriptor> _serverTypes = [];
@@ -164,11 +167,14 @@ public partial class AcquisitionServers
         }
     }
 
+    /// <summary>
+    /// 对编辑器草稿执行连通性测试。结果用浮动 toast 即时反馈：
+    /// 测试按钮在页面底部操作条，原来的内嵌结果条在页面顶部，长表单下需要滚动才能看到。
+    /// </summary>
     private async Task TestDraftAsync()
     {
         _isTesting = true;
         _lastProbeResult = null;
-        _message = null;
 
         try
         {
@@ -181,13 +187,12 @@ public partial class AcquisitionServers
                     _configurationDraft.TryGetValue("apiPath", out string? apiPath) ? apiPath : null));
 
             _lastProbeResult = result;
-            SetMessage(
-                result.StatusMessage,
-                result.Success ? Severity.Success : Severity.Warning);
+            PublishProbeToast(result);
         }
         catch (Exception ex)
         {
-            SetMessage($"连通性测试失败：{UserFacingErrors.Describe(ex)}", Severity.Error);
+            PlatformExecutionToasts.Publish(
+                Snackbar, $"连通性测试失败：{UserFacingErrors.Describe(ex)}", Severity.Error);
         }
         finally
         {
@@ -195,10 +200,13 @@ public partial class AcquisitionServers
         }
     }
 
+    /// <summary>
+    /// 对列表中已保存的服务器执行连通性测试。结果用浮动 toast 即时反馈，
+    /// 详细结果（状态码、耗时、解析值）仍写入下方「最近一次连通性测试」卡作持久记录。
+    /// </summary>
     private async Task TestSavedServerAsync(AcquisitionServerDto server)
     {
         _testingServerId = server.Id;
-        _message = null;
 
         try
         {
@@ -210,20 +218,28 @@ public partial class AcquisitionServers
                     BuildConfigurationFromServer(server)));
 
             _lastProbeResult = result;
-            SetMessage(
-                $"{server.DisplayName}：{result.StatusMessage}",
-                result.Success ? Severity.Success : Severity.Warning);
+            PublishProbeToast(result, server.DisplayName);
 
             await LoadAsync();
         }
         catch (Exception ex)
         {
-            SetMessage($"{server.DisplayName} 连通性测试失败：{UserFacingErrors.Describe(ex)}", Severity.Error);
+            PlatformExecutionToasts.Publish(
+                Snackbar,
+                $"{server.DisplayName} 连通性测试失败：{UserFacingErrors.Describe(ex)}",
+                Severity.Error);
         }
         finally
         {
             _testingServerId = Guid.Empty;
         }
+    }
+
+    /// <summary>推送连通性测试结果的 toast（服务器名可选，草稿测试时以默认称呼呈现）。</summary>
+    private void PublishProbeToast(AcquisitionServerProbeResultDto result, string? serverName = null)
+    {
+        (string message, Severity severity) = PlatformExecutionToasts.ForServerProbe(result, serverName);
+        PlatformExecutionToasts.Publish(Snackbar, message, severity);
     }
 
     private void RequestDelete(AcquisitionServerDto server)

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using DAP.Core.Shared.Catalog;
 using DAP.Core.Shared.Contracts;
+using DAP.Presentation.BlazorWeb.Client.Services;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
@@ -16,6 +17,7 @@ public partial class ManagedDataDefinitionEditor : ComponentBase, IAsyncDisposab
     private static readonly JsonSerializerOptions JsonSerializerOptions = new() { WriteIndented = true };
 
     [Inject] private IPlatformApiClient PlatformApiClient { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
 
     /// <summary>正在编辑的节点标识，为空表示新增。</summary>
     [Parameter]
@@ -41,7 +43,6 @@ public partial class ManagedDataDefinitionEditor : ComponentBase, IAsyncDisposab
     private bool _isSaving;
     private bool _isTestingConnection;
     private string? _validationMessage;
-    private ManagedDataConnectionTestResultDto? _lastConnectionTestResult;
 
     private string _code = string.Empty;
     private string _name = string.Empty;
@@ -123,7 +124,6 @@ public partial class ManagedDataDefinitionEditor : ComponentBase, IAsyncDisposab
     private async Task LoadEditorStateAsync()
     {
         _validationMessage = null;
-        _lastConnectionTestResult = null;
         _isLoading = true;
 
         try
@@ -199,7 +199,6 @@ public partial class ManagedDataDefinitionEditor : ComponentBase, IAsyncDisposab
     {
         _selectedServerId = serverId;
         _nodeConfiguration.Clear();
-        _lastConnectionTestResult = null;
 
         // 切换服务器时套用该类型的节点字段默认值。
         foreach (AcquisitionServerFieldDescriptor field in CurrentNodeFields)
@@ -235,7 +234,6 @@ public partial class ManagedDataDefinitionEditor : ComponentBase, IAsyncDisposab
     {
         ResetFields();
         _validationMessage = null;
-        _lastConnectionTestResult = null;
     }
 
     private void ResetFields()
@@ -261,6 +259,8 @@ public partial class ManagedDataDefinitionEditor : ComponentBase, IAsyncDisposab
         ManagedDataDefinitionUpsertRequest? request = BuildCurrentRequest();
         if (request is null)
         {
+            // 校验提示写在页面顶部，而保存按钮在页面底部操作条；补一条 toast 让用户原地可见。
+            Snackbar.Add(_validationMessage ?? "请先完善表单后再保存。", Severity.Warning);
             return;
         }
 
@@ -283,11 +283,17 @@ public partial class ManagedDataDefinitionEditor : ComponentBase, IAsyncDisposab
         }
     }
 
+    /// <summary>
+    /// 用当前表单内容验证采集服务器连通性。结果用浮动 toast 即时反馈：
+    /// 测试按钮在页面底部操作条，原来的内嵌结果条在页面顶部，长表单下需要滚动才能看到。
+    /// </summary>
     private async Task TestConnectionAsync()
     {
         ManagedDataDefinitionUpsertRequest? request = BuildCurrentRequest();
         if (request is null)
         {
+            // 校验提示写在页面顶部，而测试按钮在页面底部操作条；补一条 toast 让用户原地可见。
+            Snackbar.Add(_validationMessage ?? "请先完善表单后再执行连接测试。", Severity.Warning);
             return;
         }
 
@@ -296,11 +302,16 @@ public partial class ManagedDataDefinitionEditor : ComponentBase, IAsyncDisposab
 
         try
         {
-            _lastConnectionTestResult = await PlatformApiClient.TestManagedDataConnectionAsync(request);
+            ManagedDataConnectionTestResultDto result =
+                await PlatformApiClient.TestManagedDataConnectionAsync(request);
+
+            (string message, Severity severity) = PlatformExecutionToasts.ForConnectionTest(result);
+            PlatformExecutionToasts.Publish(Snackbar, message, severity);
         }
         catch (Exception ex)
         {
-            _validationMessage = $"连接测试失败：{UserFacingErrors.Describe(ex)}";
+            PlatformExecutionToasts.Publish(
+                Snackbar, $"连接测试失败：{UserFacingErrors.Describe(ex)}", Severity.Error);
         }
         finally
         {
@@ -329,8 +340,6 @@ public partial class ManagedDataDefinitionEditor : ComponentBase, IAsyncDisposab
             return null;
         }
 
-        // 与服务端 ValidateManagedDataDefinitionRequest 的必填项保持一致，
-        // 能在表单层直接给出原因的就不留到 400 校验错误。
         if (string.IsNullOrWhiteSpace(_name))
         {
             _validationMessage = "数据名称不能为空。";

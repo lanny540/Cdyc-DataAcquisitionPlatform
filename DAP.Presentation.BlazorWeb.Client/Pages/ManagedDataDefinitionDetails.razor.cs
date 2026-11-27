@@ -1,5 +1,6 @@
 using System.Text.Json;
 using DAP.Core.Shared.Contracts;
+using DAP.Presentation.BlazorWeb.Client.Services;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
@@ -24,6 +25,7 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
 
     [Inject] private IPlatformApiClient PlatformApiClient { get; set; } = null!;
     [Inject] private NavigationManager NavigationManager { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
 
     [Parameter] public Guid Id { get; set; }
 
@@ -206,6 +208,11 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// 执行调试读取或立即采集。结果用浮动 toast 即时反馈（原来写入顶部提示条后会被
+    /// 随后的 LoadAsync 清空，用户几乎看不到；toast 不受页面刷新影响）。
+    /// 详细结果保留在页面底部「最近一次读取结果」摘要卡中。
+    /// </summary>
     private async Task ExecuteAsync(bool isCollect)
     {
         if (_details is null)
@@ -214,7 +221,6 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
         }
 
         _isExecuting = true;
-        _message = null;
 
         try
         {
@@ -229,17 +235,16 @@ public partial class ManagedDataDefinitionDetails : IAsyncDisposable
                 ResetCountdown();
             }
 
-            _message = _lastExecutionResult.Success
-                ? _lastExecutionResult.StatusMessage
-                : $"执行失败：{_lastExecutionResult.ErrorMessage ?? _lastExecutionResult.StatusMessage}";
-            _messageSeverity = _lastExecutionResult.Success ? Severity.Success : Severity.Error;
+            (string message, Severity severity) =
+                PlatformExecutionToasts.ForManagedDataExecution(_lastExecutionResult, isCollect);
+            PlatformExecutionToasts.Publish(Snackbar, message, severity);
 
             await LoadAsync();
         }
         catch (Exception ex)
         {
-            _message = $"节点执行失败：{UserFacingErrors.Describe(ex)}";
-            _messageSeverity = Severity.Error;
+            PlatformExecutionToasts.Publish(
+                Snackbar, $"节点执行失败：{UserFacingErrors.Describe(ex)}", Severity.Error);
         }
         finally
         {

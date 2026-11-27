@@ -1,5 +1,6 @@
 using DAP.Core.Shared.Catalog;
 using DAP.Core.Shared.Contracts;
+using DAP.Presentation.BlazorWeb.Client.Services;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
@@ -15,6 +16,7 @@ public partial class ManagedDataDefinitions
 
     [Inject] private IPlatformApiClient PlatformApiClient { get; set; } = null!;
     [Inject] private NavigationManager NavigationManager { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
 
     private readonly List<ManagedDataDefinitionDto> _definitions = [];
 
@@ -192,11 +194,14 @@ public partial class ManagedDataDefinitions
         NavigationManager.NavigateTo($"/managed-data-definitions/{definition.Id}");
     }
 
+    /// <summary>
+    /// 执行调试读取或采集入库。结果用浮动 toast 即时反馈（跟随视口，长页面下无需滚动），
+    /// 详细结果（解析值、原始 JSON）写入页面底部「最近一次执行结果」卡作持久记录。
+    /// </summary>
     private async Task ExecuteDefinitionAsync(ManagedDataDefinitionDto definition, bool isCollect)
     {
         _executingDefinitionId = definition.Id;
         _isCollectExecution = isCollect;
-        _message = null;
 
         try
         {
@@ -209,15 +214,14 @@ public partial class ManagedDataDefinitions
                 await LoadAsync();
             }
 
-            SetMessage(
-                _lastExecutionResult.Success
-                    ? _lastExecutionResult.StatusMessage
-                    : $"执行失败：{_lastExecutionResult.ErrorMessage ?? _lastExecutionResult.StatusMessage}",
-                _lastExecutionResult.Success ? Severity.Success : Severity.Error);
+            (string message, Severity severity) =
+                PlatformExecutionToasts.ForManagedDataExecution(_lastExecutionResult, isCollect);
+            PlatformExecutionToasts.Publish(Snackbar, message, severity);
         }
         catch (Exception ex)
         {
-            SetMessage($"执行失败：{UserFacingErrors.Describe(ex)}", Severity.Error);
+            PlatformExecutionToasts.Publish(
+                Snackbar, $"执行失败：{UserFacingErrors.Describe(ex)}", Severity.Error);
         }
         finally
         {

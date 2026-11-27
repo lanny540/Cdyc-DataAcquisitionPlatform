@@ -35,7 +35,16 @@ public static class PlatformPresentationServiceCollectionExtensions
             .AddInteractiveServerComponents(options => { options.DetailedErrors = environment.IsDevelopment(); })
             .AddInteractiveWebAssemblyComponents();
 
-        services.AddMudServices();
+        // 全局 toast 配置：调试读取、采集入库、连通性测试等一次性执行操作的结果
+        // 用浮动提示呈现（跟随视口，不随页面滚动），长页面下无需滚动到顶部即可看到反馈。
+        // SnackbarVariant 默认即 Filled（Material 规范的 toast 形态）；位置改为顶部居中。
+        // WASM 端 Program.cs 中保持一致配置，Auto 模式两端行为相同。
+        services.AddMudServices(config =>
+        {
+            config.SnackbarConfiguration.PositionClass = "mud-snackbar-location-top-center";
+            config.SnackbarConfiguration.VisibleStateDuration = 6000;
+            config.SnackbarConfiguration.MaxDisplayedSnackbars = 4;
+        });
         services.AddMemoryCache();
 
         // Cookie 与应用内数据保护用的密钥环必须落盘并固定应用名：
