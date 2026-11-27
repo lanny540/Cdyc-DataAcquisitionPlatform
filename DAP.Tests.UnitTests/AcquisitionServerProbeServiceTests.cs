@@ -377,6 +377,50 @@ public sealed class AcquisitionServerProbeServiceTests
     }
 
     [Fact]
+    public async Task ProbeAsync_Historian_GeWrappedPayload_ExtractsTagSampleValue()
+    {
+        // GE 实测报文（2026-11-27 现场 curl）：对象包裹 ErrorCode/Data、键首字母大写、
+        // 数值在 Samples 最后一个样本的 Value（字符串）里。解析值必须来自匹配 Tag 的样本，
+        // 而不能退化成取报文第一个数字（那会取到 ErrorCode 0）。
+        const string payload = """
+                               {"ErrorCode":0,"ErrorMessage":null,"Data":[{"TagName":"P1P2DCS-MS-/ASSETS/BROKE/LIS4108.MES","ErrorCode":0,"DataType":"Float","Samples":[{"TimeStamp":"2026-10-10T05:39:20.000Z","Value":"12.3","Quality":0}]}]}
+                               """;
+
+        StubHttpMessageHandler handler = new(HttpStatusCode.OK, payload);
+        AcquisitionServerProbeService service = CreateService(handler);
+
+        AcquisitionServerProbeResultDto result = await service.ProbeAsync(
+            AcquisitionServerCatalogKeys.Historian,
+            "http://10.9.3.54:8080",
+            new Dictionary<string, string> { ["clientId"] = "admin", ["clientSecret"] = "Pa55word" },
+            "P1P2DCS-MS-/ASSETS/BROKE/LIS4108.MES");
+
+        Assert.True(result.Success);
+        Assert.Equal("12.3", result.ParsedValue);
+    }
+
+    [Fact]
+    public async Task ProbeAsync_Historian_GeWrappedPayload_TagNameCaseInsensitive()
+    {
+        // tagName 匹配与键名读取都必须大小写不敏感：配置里写小写也要能匹配 GE 的 TagName。
+        const string payload = """
+                               {"ErrorCode":0,"Data":[{"TagName":"TAG_A1","ErrorCode":0,"Samples":[{"TimeStamp":"2026-11-27T00:00:00.000Z","Value":"8.8","Quality":0}]}]}
+                               """;
+
+        StubHttpMessageHandler handler = new(HttpStatusCode.OK, payload);
+        AcquisitionServerProbeService service = CreateService(handler);
+
+        AcquisitionServerProbeResultDto result = await service.ProbeAsync(
+            AcquisitionServerCatalogKeys.Historian,
+            "http://10.9.3.54:8080",
+            new Dictionary<string, string> { ["clientId"] = "admin", ["clientSecret"] = "Pa55word" },
+            "tag_a1");
+
+        Assert.True(result.Success);
+        Assert.Equal("8.8", result.ParsedValue);
+    }
+
+    [Fact]
     public async Task ProbeAsync_NetworkProbe_HttpUrl_UsesDefaultPort()
     {
         AcquisitionServerProbeService service = CreateService();

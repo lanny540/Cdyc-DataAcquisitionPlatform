@@ -356,6 +356,7 @@ public sealed class ManagedDataExecutionService(
             ?? TryGetDateTimeOffsetProperty(element, "datetime")
             ?? TryGetDateTimeOffsetProperty(element, "collectedAt")
             ?? TryGetDateTimeOffsetProperty(element, "Timestamp")
+            ?? TryGetDateTimeOffsetProperty(element, "TimeStamp")
             ?? TryGetDateTimeOffsetProperty(element, "Time");
 
         sample = new ParsedHistorianValue(value.Value, sampledAt);

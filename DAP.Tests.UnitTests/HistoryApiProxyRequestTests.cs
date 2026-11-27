@@ -1,4 +1,5 @@
 using System.Net;
+using DAP.Core.Shared.Catalog;
 using DAP.Core.Shared.Contracts;
 using DAP.Presentation.BlazorWeb.Services;
 using Microsoft.Extensions.Caching.Memory;
@@ -173,17 +174,167 @@ public class HistoryApiProxyRequestTests
     }
 
     [Fact]
-    public async Task GetCurrentValueAsync_When_Password_Grant_Missing_User_Should_Report_Readably()
+    public async Task GetCurrentValueAsync_Should_Send_Custom_Client_As_Configured()
     {
+        // 现场自建 Client（如管理员提供的 admin/Pa55word）按存储值原样使用。
+        RecordingHandler handler = new(BusinessOnly(_ => JsonResponse("""{"value":1}""")));
+        HistoryApiProxyService service = CreateService(handler);
+
+        await service.GetCurrentValueAsync(
+            new HistoryCurrentValueQueryRequest("TAG001"),
+            Conn("https://hist.example.com", "admin", "Pa55word",
+                oauthUsername: "HIS81.admin", oauthPassword: "web-admin-secret"));
+
+        string expected = Convert.ToBase64String(
+            System.Text.Encoding.UTF8.GetBytes("admin:Pa55word"));
+
+        Assert.Equal($"Basic {expected}", handler.LastTokenAuthorization);
+    }
+
+    [Fact]
+    public async Task GetCurrentValueAsync_Should_Fall_Back_To_Ge_Default_Client_When_Blank()
+    {
+        RecordingHandler handler = new(BusinessOnly(_ => JsonResponse("""{"value":1}""")));
+        HistoryApiProxyService service = CreateService(handler);
+
+        await service.GetCurrentValueAsync(
+            new HistoryCurrentValueQueryRequest("TAG001"),
+            Conn("https://hist.example.com", " ", " ",
+                oauthUsername: "HIS81.admin", oauthPassword: "web-admin-secret"));
+
+        string expected = Convert.ToBase64String(
+            System.Text.Encoding.UTF8.GetBytes(
+                $"{AcquisitionServerCatalog.HistorianDefaultClientId}:{AcquisitionServerCatalog.HistorianDefaultClientSecret}"));
+
+        Assert.Equal($"Basic {expected}", handler.LastTokenAuthorization);
+    }
+
+    [Fact]
+    public async Task GetCurrentValueAsync_Should_Use_Client_Credentials_When_User_Blank()
+    {
+        // 管理员只提供 Client 对（如 admin/Pa55word）的场景：未填 OAuth 用户名密码时
+        // 直接走 client_credentials，不要求用户再填用户名。
         RecordingHandler handler = new(BusinessOnly(_ => JsonResponse("""{"value":1}""")));
         HistoryApiProxyService service = CreateService(handler);
 
         HistoryApiQueryResponse response = await service.GetCurrentValueAsync(
             new HistoryCurrentValueQueryRequest("TAG001"),
-            Conn("https://hist.example.com", oauthUsername: null, oauthPassword: null));
+            Conn("https://hist.example.com", "admin", "Pa55word",
+                oauthUsername: null, oauthPassword: null));
 
-        Assert.False(response.Success);
-        Assert.Contains("OAuth 用户名", response.ErrorMessage, StringComparison.Ordinal);
+        Assert.True(response.Success);
+        Assert.Contains("grant_type=client_credentials", handler.LastTokenForm, StringComparison.Ordinal);
+        Assert.DoesNotContain("grant_type=password", handler.LastTokenForm, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetCurrentValueAsync_Should_Negotiate_Client_Credentials_When_Password_Rejected()
+    {
+        // 现场 Client 只开 client_credentials：先按 password 尝试（已填用户名密码），
+        // 上游以「Unauthorized grant type」拒绝后自动改用 client_credentials，无需用户选择。
+        // 模拟 UAA 只拒绝第一次（password）请求（401，与现场一致），之后放行。
+        int tokenRequests = 0;
+        RecordingHandler handler = new(request =>
+        {
+            if (request.RequestUri!.AbsolutePath.Contains("/oauth/", StringComparison.OrdinalIgnoreCase))
+            {
+                return ++tokenRequests == 1
+                    ? new HttpResponseMessage(HttpStatusCode.Unauthorized)
+                    {
+                        Content = new StringContent(
+                            """{"error":"invalid_client","error_description":"Unauthorized grant type: password"}""",
+                            System.Text.Encoding.UTF8,
+                            "application/json")
+                    }
+                    : JsonResponse("""{"access_token":"token-for-test","expires_in":3600}""");
+            }
+
+            return JsonResponse("""{"value":1}""");
+        });
+        HistoryApiProxyService service = CreateService(handler);
+
+        HistoryApiQueryResponse response = await service.GetCurrentValueAsync(
+            new HistoryCurrentValueQueryRequest("TAG001"),
+            Conn("https://hist.example.com", "admin", "Pa55word",
+                oauthUsername: "HIS81.admin", oauthPassword: "web-admin-secret"));
+
+        Assert.True(response.Success);
+        Assert.Contains("grant_type=client_credentials", handler.LastTokenForm, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetCurrentValueAsync_Should_Switch_To_Password_Grant_When_User_Credentials_Added()
+    {
+        // 同一台服务器先用 Client 对换到令牌（协商结果已缓存为 client_credentials），
+        // 管理员随后补填用户名密码：下一次取令牌必须改走 password，不能沿用缓存的模式。
+        RecordingHandler handler = new(BusinessOnly(_ => JsonResponse("""{"value":1}""")));
+        HistoryApiProxyService service = CreateService(handler);
+
+        HistoryApiQueryResponse clientOnly = await service.GetCurrentValueAsync(
+            new HistoryCurrentValueQueryRequest("TAG001"),
+            Conn("https://hist.example.com", "admin", "Pa55word",
+                oauthUsername: null, oauthPassword: null));
+
+        HistoryApiQueryResponse withUser = await service.GetCurrentValueAsync(
+            new HistoryCurrentValueQueryRequest("TAG001"),
+            Conn("https://hist.example.com", "admin", "Pa55word",
+                oauthUsername: "HIS81.admin", oauthPassword: "web-admin-secret"));
+
+        Assert.True(clientOnly.Success);
+        Assert.True(withUser.Success);
+        Assert.Contains("grant_type=password", handler.LastTokenForm, StringComparison.Ordinal);
+        Assert.Contains("HIS81.admin", handler.LastTokenForm, StringComparison.Ordinal);
+        Assert.Contains("web-admin-secret", handler.LastTokenForm, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetCurrentValueAsync_Should_Switch_Back_To_Client_Credentials_When_User_Credentials_Removed()
+    {
+        // 反向切换：password 成功后授权模式已缓存为 password，
+        // 清空用户名密码后应直接用 client_credentials，不能因缓存的 password 模式报「请填写用户名密码」。
+        RecordingHandler handler = new(BusinessOnly(_ => JsonResponse("""{"value":1}""")));
+        HistoryApiProxyService service = CreateService(handler);
+
+        await service.GetCurrentValueAsync(
+            new HistoryCurrentValueQueryRequest("TAG001"),
+            Conn("https://hist.example.com", "admin", "Pa55word",
+                oauthUsername: "HIS81.admin", oauthPassword: "web-admin-secret"));
+
+        HistoryApiQueryResponse clientOnly = await service.GetCurrentValueAsync(
+            new HistoryCurrentValueQueryRequest("TAG001"),
+            Conn("https://hist.example.com", "admin", "Pa55word",
+                oauthUsername: null, oauthPassword: null));
+
+        Assert.True(clientOnly.Success);
+        Assert.Contains("grant_type=client_credentials", handler.LastTokenForm, StringComparison.Ordinal);
+        Assert.DoesNotContain("grant_type=password", handler.LastTokenForm, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetCurrentValueAsync_Password_Grant_Should_Match_Uaa_Wire_Contract()
+    {
+        // password 模式的线上请求形态：POST 到配置的 Token 路径、表单编码、
+        // Basic 头为 Client 对、表单体含 grant_type/username/password，业务请求携带 Bearer。
+        RecordingHandler handler = new(BusinessOnly(_ => JsonResponse("""{"value":1}""")));
+        HistoryApiProxyService service = CreateService(handler);
+
+        await service.GetCurrentValueAsync(
+            new HistoryCurrentValueQueryRequest("TAG001"),
+            Conn("https://hist.example.com", "admin", "Pa55word",
+                oauthUsername: "HIS81.admin", oauthPassword: "web-admin-secret"));
+
+        string expectedBasic = Convert.ToBase64String(
+            System.Text.Encoding.UTF8.GetBytes("admin:Pa55word"));
+
+        Assert.Equal(HttpMethod.Post, handler.LastTokenMethod);
+        Assert.Equal("/oauth/token", handler.LastTokenUri!.AbsolutePath);
+        Assert.Equal("application/x-www-form-urlencoded",
+            handler.LastTokenContentType?.Split(';')[0]);
+        Assert.Equal($"Basic {expectedBasic}", handler.LastTokenAuthorization);
+        Assert.Contains("grant_type=password", handler.LastTokenForm, StringComparison.Ordinal);
+        Assert.Contains("username=HIS81.admin", handler.LastTokenForm, StringComparison.Ordinal);
+        Assert.Contains("password=web-admin-secret", handler.LastTokenForm, StringComparison.Ordinal);
+        Assert.Equal("Bearer token-for-test", handler.LastRequest?.Headers.Authorization?.ToString());
     }
 
     [Theory]
@@ -272,7 +423,7 @@ public class HistoryApiProxyRequestTests
     /// <summary>
     /// 记录发出的请求，并按委托返回预设响应或抛出预设异常。
     /// 取令牌是首个请求且带表单体，HttpClient 发送后表单可能被释放，
-    /// 因此在转发前就把表单内容复制下来供断言使用。
+    /// 因此在转发前就把表单内容与认证头复制下来供断言使用。
     /// </summary>
     private sealed class RecordingHandler(Func<HttpRequestMessage, HttpResponseMessage> responder)
         : HttpMessageHandler
@@ -281,7 +432,15 @@ public class HistoryApiProxyRequestTests
 
         public Uri? LastRequestUri { get; private set; }
 
+        public HttpMethod? LastTokenMethod { get; private set; }
+
+        public Uri? LastTokenUri { get; private set; }
+
+        public string? LastTokenContentType { get; private set; }
+
         public string LastTokenForm { get; private set; } = string.Empty;
+
+        public string? LastTokenAuthorization { get; private set; }
 
         protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
@@ -290,10 +449,17 @@ public class HistoryApiProxyRequestTests
             LastRequest = request;
             LastRequestUri = request.RequestUri;
 
-            if (request.Content is not null &&
-                request.RequestUri!.AbsolutePath.Contains("/oauth/", StringComparison.OrdinalIgnoreCase))
+            if (request.RequestUri!.AbsolutePath.Contains("/oauth/", StringComparison.OrdinalIgnoreCase))
             {
-                LastTokenForm = await request.Content.ReadAsStringAsync(cancellationToken);
+                LastTokenMethod = request.Method;
+                LastTokenUri = request.RequestUri;
+                LastTokenAuthorization = request.Headers.Authorization?.ToString();
+
+                if (request.Content is not null)
+                {
+                    LastTokenContentType = request.Content.Headers.ContentType?.ToString();
+                    LastTokenForm = await request.Content.ReadAsStringAsync(cancellationToken);
+                }
             }
 
             if (responder(request) is { } response)

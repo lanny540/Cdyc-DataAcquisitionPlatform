@@ -495,34 +495,72 @@ public sealed class AcquisitionServerProbeService(
             return TryReadFirstNumber(payload);
         }
 
-        // GE Historian 最新值返回数组，元素中 tagName 与当前采集点位匹配。
+        // GE Historian 最新值报文有两种形态：裸数组（联调用）或
+        // {"ErrorCode":0,"Data":[{TagName, Samples:[{TimeStamp, Value, Quality}]}]}（实测，
+        // 键首字母大写，数值在 Samples 最后一个样本的 Value 里）。
         try
         {
             using JsonDocument document = JsonDocument.Parse(payload);
-            if (document.RootElement.ValueKind == JsonValueKind.Array)
-            {
-                foreach (JsonElement element in document.RootElement.EnumerateArray())
-                {
-                    string? tagName = TryReadStringProperty(element, "tagName");
-                    if (tagName is null || !string.Equals(tagName, identifier, StringComparison.OrdinalIgnoreCase))
-                    {
-                        continue;
-                    }
+            JsonElement root = document.RootElement;
 
-                    string? value = TryReadNumber(element, "value");
-                    if (value is not null)
-                    {
-                        return value;
-                    }
-                }
+            JsonElement? sampleArray = root.ValueKind == JsonValueKind.Array
+                ? root
+                : TryGetPropertyIgnoreCase(root, "data") is { } dataElement &&
+                  dataElement.ValueKind == JsonValueKind.Array
+                    ? dataElement
+                    : null;
+
+            if (sampleArray is { } arrayElement)
+            {
+                return TryExtractFromSampleArray(arrayElement, identifier) ?? TryReadFirstNumber(payload);
             }
         }
         catch (JsonException)
         {
-            return TryReadFirstNumber(payload);
+            // 报文非 JSON 时落到统一的首个数值兜底。
         }
 
         return TryReadFirstNumber(payload);
+    }
+
+    /// <summary>
+    /// 在最新值样本数组中按 tagName 匹配当前采集点位，返回其样本数值。
+    /// GE 的样本数值也可能嵌在元素自身的 Samples 数组里（取最后一个样本）。
+    /// </summary>
+    private static string? TryExtractFromSampleArray(JsonElement array, string identifier)
+    {
+        foreach (JsonElement element in array.EnumerateArray())
+        {
+            string? tagName = TryReadStringProperty(element, "tagName");
+            if (tagName is null || !string.Equals(tagName, identifier, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            string? value = TryReadNumber(element, "value");
+            if (value is not null)
+            {
+                return value;
+            }
+
+            if (TryGetPropertyIgnoreCase(element, "samples") is { } samples &&
+                samples.ValueKind == JsonValueKind.Array)
+            {
+                JsonElement? lastSample = null;
+                foreach (JsonElement sample in samples.EnumerateArray())
+                {
+                    lastSample = sample;
+                }
+
+                if (lastSample is { } sampleElement &&
+                    TryReadNumber(sampleElement, "value") is { } sampleValue)
+                {
+                    return sampleValue;
+                }
+            }
+        }
+
+        return null;
     }
 
     private static string? TryReadJsonPath(string payload, string valuePath)
@@ -635,15 +673,37 @@ public sealed class AcquisitionServerProbeService(
 
     private static string? TryReadNumber(JsonElement element, string propertyName)
     {
-        return element.TryGetProperty(propertyName, out JsonElement property) ? ReadScalar(property) : null;
+        // GE 实测报文键首字母大写（TagName/Value），必须大小写不敏感地匹配。
+        return TryGetPropertyIgnoreCase(element, propertyName) is { } property ? ReadScalar(property) : null;
     }
 
     private static string? TryReadStringProperty(JsonElement element, string propertyName)
     {
-        return element.TryGetProperty(propertyName, out JsonElement property) &&
+        return TryGetPropertyIgnoreCase(element, propertyName) is { } property &&
                property.ValueKind == JsonValueKind.String
             ? property.GetString()
             : null;
+    }
+
+    /// <summary>
+    /// 大小写不敏感地读取对象属性；非对象或未命中时返回 null。
+    /// </summary>
+    private static JsonElement? TryGetPropertyIgnoreCase(JsonElement element, string propertyName)
+    {
+        if (element.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        foreach (JsonProperty property in element.EnumerateObject())
+        {
+            if (string.Equals(property.Name, propertyName, StringComparison.OrdinalIgnoreCase))
+            {
+                return property.Value;
+            }
+        }
+
+        return null;
     }
 
     private static bool TryResolveEndpoint(

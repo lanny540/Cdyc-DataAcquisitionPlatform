@@ -51,8 +51,13 @@ public sealed class HistoryApiProxyService(
 {
     private const string HttpClientName = "HistoryApi";
     private const string TokenCacheKey = "history-api-access-token";
+    private const string GrantModeCacheKey = "history-api-grant-mode";
     private const int MinimumTimeoutSeconds = 5;
     private const string PasswordGrant = "password";
+    private const string ClientCredentialsGrant = "client_credentials";
+
+    // 接口路径已从表单移除（GE 各环境一致），默认值统一登记在 AcquisitionServerCatalog；
+    // 历史记录中存过自定义路径时仍按存储值优先。
     private readonly AcquisitionServerRuntimeOptions _runtimeOptions = runtimeOptions.Value;
 
     public Task<HistoryApiQueryResponse> GetCurrentValueAsync(
@@ -61,7 +66,7 @@ public sealed class HistoryApiProxyService(
         CancellationToken cancellationToken = default)
     {
         string trimmedTagNames = request.TagNames.Trim();
-        string currentValuePath = ResolvePath(connectionOptions.CurrentValuePath, "currentValuePath");
+        string currentValuePath = ResolvePath(connectionOptions.CurrentValuePath, AcquisitionServerCatalog.HistorianDefaultValuePath);
         string requestUri = $"{NormalizePath(currentValuePath)}?tagNames={Uri.EscapeDataString(trimmedTagNames)}";
 
         return SendAuthorizedGetAsync(
@@ -78,7 +83,7 @@ public sealed class HistoryApiProxyService(
         CancellationToken cancellationToken = default)
     {
         string tagName = request.TagName.Trim();
-        string rawDataPath = ResolvePath(connectionOptions.RawDataPathPrefix, "rawDataPathPrefix");
+        string rawDataPath = ResolvePath(connectionOptions.RawDataPathPrefix, AcquisitionServerCatalog.HistorianDefaultRawDataPathPrefix);
         string requestUri =
             $"{NormalizePath(rawDataPath)}/{Uri.EscapeDataString(tagName)}/{FormatUtcTimestamp(request.StartTime)}/{FormatUtcTimestamp(request.EndTime)}/{request.StartIndex}/{request.Count}";
 
@@ -114,7 +119,7 @@ public sealed class HistoryApiProxyService(
 
         try
         {
-            ValidateConfiguration(resolvedBaseAddress, connectionOptions);
+            ValidateConfiguration(resolvedBaseAddress);
 
             using HttpClient client = CreateClient(resolvedBaseAddress, connectionOptions);
 
@@ -292,8 +297,15 @@ public sealed class HistoryApiProxyService(
         HistoryApiConnectionOptions connectionOptions,
         CancellationToken cancellationToken)
     {
-        string clientId = connectionOptions.ClientId?.Trim() ?? string.Empty;
-        string tokenCacheKey = $"{TokenCacheKey}:{resolvedBaseAddress}:{clientId}";
+        // Client 凭据按存储值使用，留空回落 GE 默认对（现场自定义 Client 见表单说明）。
+        (string effectiveClientId, string effectiveClientSecret) =
+            AcquisitionServerCatalog.ResolveHistorianClientCredentials(
+                connectionOptions.ClientId, connectionOptions.ClientSecret);
+        // 令牌与授权模式缓存按「地址 + ClientId + OAuth 用户名」隔离：管理员在同一台服务器上
+        // 补填或清空用户名密码，就是在切换授权模式，不能继续沿用另一种模式换来的令牌。
+        string credentialScope =
+            $"{resolvedBaseAddress}:{effectiveClientId}:{connectionOptions.OAuthUsername?.Trim() ?? string.Empty}";
+        string tokenCacheKey = $"{TokenCacheKey}:{credentialScope}";
 
         if (memoryCache.TryGetValue<HistoryApiTokenCacheEntry>(tokenCacheKey,
                 out HistoryApiTokenCacheEntry? cachedEntry) &&
@@ -303,85 +315,148 @@ public sealed class HistoryApiProxyService(
             return cachedEntry.AccessToken;
         }
 
-        string oauthTokenPath = ResolvePath(connectionOptions.OAuthTokenPath, "oauthTokenPath");
-        using HttpRequestMessage request = new(HttpMethod.Post, NormalizePath(oauthTokenPath))
+        // 授权模式自适应：现场 UAA 的 Client 允许的授权类型不可预知（GE 默认 Client 走
+        // password，管理员自建 Client 常只开 client_credentials），这里按
+        // 「password（已填用户名密码时）→ client_credentials」顺序尝试，被上游以
+        // 「Unauthorized grant type」拒绝时自动换下一种，协商结果缓存避免每次重复试错。
+        string negotiatedGrant = memoryCache.TryGetValue<string>($"{GrantModeCacheKey}:{credentialScope}",
+            out string? cachedGrant) &&
+            cachedGrant is not null
+            ? cachedGrant
+            : string.Empty;
+
+        bool hasUserCredentials =
+            !string.IsNullOrWhiteSpace(connectionOptions.OAuthUsername?.Trim()) &&
+            !string.IsNullOrWhiteSpace(connectionOptions.OAuthPassword?.Trim());
+
+        // 缓存的 password 模式只在用户名密码仍填写时沿用；凭据已被清空就退回 client_credentials。
+        List<string> grantAttempts = negotiatedGrant switch
         {
-            Content = new FormUrlEncodedContent(BuildTokenRequestBody(connectionOptions))
+            PasswordGrant when hasUserCredentials => [PasswordGrant],
+            ClientCredentialsGrant => [ClientCredentialsGrant],
+            _ when hasUserCredentials => [PasswordGrant, ClientCredentialsGrant],
+            _ => [ClientCredentialsGrant]
         };
 
-        request.Headers.Authorization = new AuthenticationHeaderValue(
-            "Basic",
-            Convert.ToBase64String(
-                System.Text.Encoding.UTF8.GetBytes($"{clientId}:{connectionOptions.ClientSecret?.Trim()}")));
+        string oauthTokenPath = ResolvePath(connectionOptions.OAuthTokenPath, AcquisitionServerCatalog.HistorianDefaultOAuthTokenPath);
+        string? lastFailurePayload = null;
+        int lastFailureStatus = 0;
 
-        using HttpResponseMessage response = await client.SendAsync(request, cancellationToken);
-        string payload = await response.Content.ReadAsStringAsync(cancellationToken);
-
-        if (!response.IsSuccessStatusCode)
+        foreach (string grantMode in grantAttempts)
         {
-            // 上游响应体只进日志：它可能包含 IdP 的错误细节、内部主机名或调试信息，
-            // 而这条消息会被直接展示到「History API 测试」页面上。
-            logger.LogWarning(
-                "获取 OAuth Token 失败：上游返回 {StatusCode}，响应体 {Payload}。",
-                (int)response.StatusCode,
-                payload);
+            using HttpRequestMessage request = new(HttpMethod.Post, NormalizePath(oauthTokenPath))
+            {
+                Content = new FormUrlEncodedContent(
+                    BuildTokenRequestBody(connectionOptions, grantMode, hasUserCredentials))
+            };
 
-            throw new InvalidOperationException(
-                $"获取 OAuth Token 失败，上游返回 {(int)response.StatusCode} {response.ReasonPhrase}。" +
-                " 请核对采集服务器配置中的 ClientId、ClientSecret、OAuth 用户名与 OAuth 密码。");
+            request.Headers.Authorization = new AuthenticationHeaderValue(
+                "Basic",
+                Convert.ToBase64String(
+                    System.Text.Encoding.UTF8.GetBytes($"{effectiveClientId}:{effectiveClientSecret}")));
+
+            using HttpResponseMessage response = await client.SendAsync(request, cancellationToken);
+            string payload = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                // 协商成功：记住该 Client 实际可用的授权模式，后续换令牌不再试错。
+                if (negotiatedGrant != grantMode)
+                {
+                    memoryCache.Set($"{GrantModeCacheKey}:{credentialScope}", grantMode,
+                        TimeSpan.FromHours(8));
+                }
+
+                HistoryApiTokenResponse? tokenResponse =
+                    JsonSerializer.Deserialize<HistoryApiTokenResponse>(payload);
+
+                if (tokenResponse is null || string.IsNullOrWhiteSpace(tokenResponse.AccessToken))
+                {
+                    throw new InvalidOperationException("获取 OAuth Token 失败，服务端未返回有效的 access_token。");
+                }
+
+                DateTimeOffset expiresAt =
+                    DateTimeOffset.UtcNow.AddSeconds(Math.Max(tokenResponse.ExpiresIn - 60, 60));
+                HistoryApiTokenCacheEntry cacheEntry = new(tokenResponse.AccessToken, expiresAt);
+                memoryCache.Set(tokenCacheKey, cacheEntry, expiresAt);
+
+                return tokenResponse.AccessToken;
+            }
+
+            lastFailurePayload = payload;
+            lastFailureStatus = (int)response.StatusCode;
+
+            // 仅当上游明确拒绝「授权类型」时切换下一种模式；用户名密码错误（Bad credentials）
+            // 换授权模式没有意义，直接走失败处理。
+            bool isGrantTypeRejection = payload.Contains("unauthorized grant type",
+                StringComparison.OrdinalIgnoreCase);
+
+            if (!isGrantTypeRejection || grantMode == grantAttempts[^1])
+            {
+                break;
+            }
+
+            logger.LogInformation(
+                "UAA 拒绝了 {GrantMode} 授权（Client {ClientId}），自动改用下一种授权模式重试。",
+                grantMode,
+                effectiveClientId);
         }
 
-        HistoryApiTokenResponse? tokenResponse =
-            JsonSerializer.Deserialize<HistoryApiTokenResponse>(payload);
+        // 上游响应体只进日志：它可能包含 IdP 的错误细节、内部主机名或调试信息，
+        // 而这条消息会被直接展示到「History API 测试」页面上。
+        // 失败时同时记录实际使用的授权模式、OAuth 用户名与 ClientId（不含密码），
+        // 便于和外部工具的成功请求逐项对账——"Bad credentials" 几乎都是两侧凭据不一致。
+        logger.LogWarning(
+            "获取 OAuth Token 失败：上游返回 {StatusCode}，响应体 {Payload}。本次尝试的授权模式：{GrantModes}，OAuth 用户名：{OAuthUsername}，ClientId：{ClientId}。",
+            lastFailureStatus,
+            lastFailurePayload,
+            string.Join(" → ", grantAttempts),
+            connectionOptions.OAuthUsername,
+            effectiveClientId);
 
-        if (tokenResponse is null || string.IsNullOrWhiteSpace(tokenResponse.AccessToken))
-        {
-            throw new InvalidOperationException("获取 OAuth Token 失败，服务端未返回有效的 access_token。");
-        }
-
-        DateTimeOffset expiresAt = DateTimeOffset.UtcNow.AddSeconds(Math.Max(tokenResponse.ExpiresIn - 60, 60));
-        HistoryApiTokenCacheEntry cacheEntry = new(tokenResponse.AccessToken, expiresAt);
-        memoryCache.Set(tokenCacheKey, cacheEntry, expiresAt);
-
-        return tokenResponse.AccessToken;
+        throw new InvalidOperationException(
+            $"获取 OAuth Token 失败，上游返回 {lastFailureStatus}。" +
+            $" 已尝试授权模式：{string.Join("、", grantAttempts)}。" +
+            " 请核对采集服务器配置中的 ClientId/ClientSecret 与 OAuth 用户名/密码是否与 Historian 管理员提供的一致。");
     }
 
     /// <summary>
-    /// 构造换取令牌的表单体。固定使用 password 授权模式：
-    /// 现场 GE Historian UAA 的 <c>historian_public_rest_api</c> 等 Client
-    /// 仅允许 password 授权（client_credentials 会被拒绝），Basic 头仍为 ClientId/ClientSecret。
+    /// 构造换取令牌的表单体。授权模式由运行时自适应协商：
+    /// password 模式对应 Proficy Authentication 用户（GE 默认 Client 即此场景），
+    /// client_credentials 模式对应管理员自建的服务级 Client（仅需 Client 对）。
     /// </summary>
     private List<KeyValuePair<string, string>> BuildTokenRequestBody(
-        HistoryApiConnectionOptions connectionOptions)
+        HistoryApiConnectionOptions connectionOptions,
+        string grantMode,
+        bool hasUserCredentials)
     {
-        string oauthUsername = connectionOptions.OAuthUsername?.Trim() ?? string.Empty;
-        string oauthPassword = connectionOptions.OAuthPassword?.Trim() ?? string.Empty;
-
-        if (string.IsNullOrWhiteSpace(oauthUsername) || string.IsNullOrWhiteSpace(oauthPassword))
+        if (grantMode == PasswordGrant)
         {
-            throw new InvalidOperationException(
-                "请在采集服务器配置中填写 OAuth 用户名与 OAuth 密码（password 授权模式必需）。");
+            string oauthUsername = connectionOptions.OAuthUsername?.Trim() ?? string.Empty;
+            string oauthPassword = connectionOptions.OAuthPassword?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(oauthUsername) || string.IsNullOrWhiteSpace(oauthPassword))
+            {
+                throw new InvalidOperationException(
+                    "请在采集服务器配置中填写 OAuth 用户名与 OAuth 密码（password 授权必需）。");
+            }
+
+            return
+            [
+                new KeyValuePair<string, string>("grant_type", PasswordGrant),
+                new KeyValuePair<string, string>("username", oauthUsername),
+                new KeyValuePair<string, string>("password", oauthPassword)
+            ];
         }
 
-        return
-        [
-            new KeyValuePair<string, string>("grant_type", PasswordGrant),
-            new KeyValuePair<string, string>("username", oauthUsername),
-            new KeyValuePair<string, string>("password", oauthPassword)
-        ];
+        return [new KeyValuePair<string, string>("grant_type", ClientCredentialsGrant)];
     }
 
-    private static void ValidateConfiguration(string resolvedBaseAddress, HistoryApiConnectionOptions connectionOptions)
+    private static void ValidateConfiguration(string resolvedBaseAddress)
     {
         if (string.IsNullOrWhiteSpace(resolvedBaseAddress))
         {
             throw new InvalidOperationException("采集服务器未配置基础地址，请在采集服务器配置页面填写后再测试。");
-        }
-
-        if (string.IsNullOrWhiteSpace(connectionOptions.ClientId) ||
-            string.IsNullOrWhiteSpace(connectionOptions.ClientSecret))
-        {
-            throw new InvalidOperationException("采集服务器未配置 ClientId 或 ClientSecret，请在采集服务器配置页面填写后再测试。");
         }
     }
 
@@ -417,13 +492,11 @@ public sealed class HistoryApiProxyService(
     }
 
     /// <summary>
-    /// 接口路径优先取数据库中的服务器配置，缺失时回落到类型目录登记的默认值。
+    /// 接口路径优先取数据库中的服务器配置（历史记录可能存有自定义路径），缺失时使用内置默认值。
     /// </summary>
-    private static string ResolvePath(string? configuredPath, string configurationKey)
+    private static string ResolvePath(string? configuredPath, string fallback)
     {
-        return string.IsNullOrWhiteSpace(configuredPath)
-            ? AcquisitionServerCatalog.GetServerFieldDefault(AcquisitionServerCatalog.Historian, configurationKey)
-            : configuredPath.Trim();
+        return string.IsNullOrWhiteSpace(configuredPath) ? fallback : configuredPath.Trim();
     }
 
     private static string FormatUtcTimestamp(DateTimeOffset value)

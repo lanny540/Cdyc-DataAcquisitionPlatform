@@ -235,9 +235,19 @@ public partial class HistoryApiTest
 
         string configuredValue = matchedValue?.Value ?? string.Empty;
 
-        return configuredValue.Length > 0
-            ? configuredValue
-            : AcquisitionServerCatalog.GetServerFieldDefault(AcquisitionServerCatalog.Historian, key);
+        if (configuredValue.Length > 0)
+        {
+            return configuredValue;
+        }
+
+        // 接口路径已从表单移除，缺失时用目录登记的内置默认值兜底（与运行时代理一致）。
+        return key switch
+        {
+            "oauthTokenPath" => AcquisitionServerCatalog.HistorianDefaultOAuthTokenPath,
+            "currentValuePath" => AcquisitionServerCatalog.HistorianDefaultValuePath,
+            "rawDataPathPrefix" => AcquisitionServerCatalog.HistorianDefaultRawDataPathPrefix,
+            _ => AcquisitionServerCatalog.GetServerFieldDefault(AcquisitionServerCatalog.Historian, key)
+        };
     }
 
     private static bool TryParseUtcTime(string value, out DateTimeOffset result)

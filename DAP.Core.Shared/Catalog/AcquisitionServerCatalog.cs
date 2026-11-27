@@ -26,6 +26,50 @@ public static class AcquisitionServerCatalog
     /// <summary>通用 HTTP 接口。</summary>
     public const string HttpApi = "HTTP API";
 
+    /// <summary>GE Historian 本地部署的默认 UAA Client，用于换取令牌的 Basic 头。</summary>
+    public const string HistorianDefaultClientId = "historian_public_rest_api";
+
+    /// <summary>GE Historian 本地部署的默认 UAA Client 密钥。</summary>
+    public const string HistorianDefaultClientSecret = "publicapisecret";
+
+    // 以下三个接口路径已从采集服务器表单移除（GE 各环境一致），仅供运行时兜底与测试页预览；
+    // 历史记录中存过自定义路径时仍按存储值优先。
+    /// <summary>Historian 换取令牌的内置默认路径。</summary>
+    public const string HistorianDefaultOAuthTokenPath = "/uaa/oauth/token";
+
+    /// <summary>Historian 读取最新值的内置默认路径。</summary>
+    public const string HistorianDefaultValuePath = "/historian-rest-api/v1/datapoints/currentvalue";
+
+    /// <summary>Historian 读取时间段原始数据的内置默认路径前缀。</summary>
+    public const string HistorianDefaultRawDataPathPrefix = "/historian-rest-api/v1/datapoints/raw";
+
+    /// <summary>
+    /// 解析 Historian 换取令牌使用的 Client 凭据。
+    ///
+    /// Client 对由现场 UAA 决定（GE 默认 <see cref="HistorianDefaultClientId"/> /
+    /// <see cref="HistorianDefaultClientSecret"/>，现场也可能使用管理员自建的 Client），
+    /// 表单中两个输入框均可留空：未配置时回落 GE 默认对，配置了则按存储值使用。
+    /// 授权模式由运行时自适应协商（先 password、被拒后回落 client_credentials），
+    /// 不再暴露授权模式下拉。
+    /// </summary>
+    /// <param name="clientId">数据库中存储的 ClientId，可为空。</param>
+    /// <param name="clientSecret">数据库中存储的 ClientSecret，可为空。</param>
+    /// <returns>实际用于 Basic 认证头的 ClientId 与 ClientSecret。</returns>
+    public static (string ClientId, string ClientSecret) ResolveHistorianClientCredentials(
+        string? clientId,
+        string? clientSecret)
+    {
+        string trimmedId = clientId?.Trim() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(trimmedId))
+        {
+            return (HistorianDefaultClientId, HistorianDefaultClientSecret);
+        }
+
+        return (trimmedId,
+            string.IsNullOrWhiteSpace(clientSecret) ? HistorianDefaultClientSecret : clientSecret.Trim());
+    }
+
     private static readonly HashSet<string> SupportedAddressSchemes =
         new(StringComparer.OrdinalIgnoreCase) { "http", "https", "tcp", "mqtt" };
 
@@ -46,39 +90,23 @@ public static class AcquisitionServerCatalog
             "例如 /historian-rest-api/v1/datapoints/currentvalue",
             "/historian-rest-api/v1/datapoints/currentvalue",
             [
-                new AcquisitionServerFieldDescriptor("clientId", "ClientId", AcquisitionServerFieldTypes.Text, true,
-                    "historian_public_rest_api",
-                    "用于 password 授权换取访问令牌，GE 默认为 historian_public_rest_api。", Group: "认证"),
-                new AcquisitionServerFieldDescriptor("clientSecret", "ClientSecret",
-                    AcquisitionServerFieldTypes.Password, true,
-                    HelperText: "访问密钥，保存后仅掩码回显。", Group: "认证"),
-                new AcquisitionServerFieldDescriptor("oauthTokenPath", "Token 接口路径", AcquisitionServerFieldTypes.Text,
+                new AcquisitionServerFieldDescriptor("clientId", "ClientId", AcquisitionServerFieldTypes.Text,
                     false,
-                    "/uaa/oauth/token",
-                    "换取访问令牌的相对路径。",
-                    "/uaa/oauth/token", Group: "接口"),
+                    HelperText: "现场 UAA 的 Client 标识；留空使用 GE 默认 historian_public_rest_api。",
+                    DefaultValue: "historian_public_rest_api", Group: "认证"),
+                new AcquisitionServerFieldDescriptor("clientSecret", "ClientSecret",
+                    AcquisitionServerFieldTypes.Password,
+                    false,
+                    HelperText: "Client 密钥；留空使用 GE 默认 publicapisecret，保存后仅掩码回显。",
+                    Group: "认证"),
                 new AcquisitionServerFieldDescriptor("oauthUsername", "OAuth 用户名", AcquisitionServerFieldTypes.Text,
                     false,
-                    HelperText: "password 授权模式的用户名，GE 默认格式为 <Historian 主机名>.admin。",
+                    HelperText: "password 授权的用户名（Proficy Authentication 用户，GE 默认格式 <主机名>.admin）。填 client_credentials 场景可留空。",
                     Group: "认证"),
                 new AcquisitionServerFieldDescriptor("oauthPassword", "OAuth 密码", AcquisitionServerFieldTypes.Password,
                     false,
-                    HelperText: "password 授权模式的密码，通常为 Web 管理控制台密码；保存后仅掩码回显。",
+                    HelperText: "password 授权的密码；保存后仅掩码回显。client_credentials 场景可留空。",
                     Group: "认证"),
-                new AcquisitionServerFieldDescriptor("currentValuePath", "最新值接口路径", AcquisitionServerFieldTypes.Text,
-                    false,
-                    "/historian-rest-api/v1/datapoints/currentvalue",
-                    "读取最新值的相对路径。",
-                    "/historian-rest-api/v1/datapoints/currentvalue", Group: "接口"),
-                new AcquisitionServerFieldDescriptor("rawDataPathPrefix", "原始数据路径前缀", AcquisitionServerFieldTypes.Text,
-                    false,
-                    "/historian-rest-api/v1/datapoints/raw",
-                    "读取时间段数据的相对路径。",
-                    "/historian-rest-api/v1/datapoints/raw", Group: "接口"),
-                new AcquisitionServerFieldDescriptor("useMockResponses", "使用 Mock 响应",
-                    AcquisitionServerFieldTypes.Boolean, false,
-                    HelperText: "开启后不访问真实 Historian，仅用于前端联调。",
-                    DefaultValue: "false", Group: "调试"),
                 new AcquisitionServerFieldDescriptor("timeoutSeconds", "超时秒数", AcquisitionServerFieldTypes.Number,
                     false,
                     "30",

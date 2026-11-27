@@ -39,8 +39,10 @@ public class HistoryApiProxyServiceTests
     }
 
     [Fact]
-    public async Task GetCurrentValueAsync_ShouldFail_WhenCredentialsMissing()
+    public async Task GetCurrentValueAsync_BlankClientPair_Should_Resolve_OAuth_User_Error()
     {
+        // ClientId/ClientSecret 已从表单移除：空值统一回落 GE 默认对，不再作为校验拦截项；
+        // 真正阻断的是 password 授权必需的 OAuth 用户名与密码。
         HistoryApiProxyService service = CreateService();
 
         HistoryApiQueryResponse response = await service.GetCurrentValueAsync(
@@ -48,7 +50,7 @@ public class HistoryApiProxyServiceTests
             new HistoryApiConnectionOptions("http://10.9.3.54:8080", string.Empty, "   "));
 
         Assert.False(response.Success);
-        Assert.Contains("ClientId", response.ErrorMessage, StringComparison.Ordinal);
+        Assert.Contains("OAuth 用户名", response.ErrorMessage, StringComparison.Ordinal);
     }
 
     [Fact]
